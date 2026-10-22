@@ -1,0 +1,18 @@
+# Only application code, public place data and frontend assets enter the build.
+**
+!Dockerfile
+!datemate/
+!datemate/requirements.txt
+!datemate/app/
+!datemate/app/**
+!datemate/data/
+!datemate/data/**
+!datemate/static/
+!datemate/static/**
+
+**/.env
+**/.env.*
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/runtime/

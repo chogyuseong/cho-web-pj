@@ -12,6 +12,7 @@ cd C:\Users\SSAFY\Desktop\streamlit_lab\datemate
 접속: http://127.0.0.1:8000
 
 - [환경 준비·데이터·기능·검증 안내](datemate/README.md)
+- [Cloud Run 발표용 배포 순서](datemate/docs/cloud-run-deployment.md)
 - 실제 API 키: `datemate/.env` (외부 공유 및 Git 등록 금지)
 - 키 없는 설정 양식: `datemate/.env.example`
 - Python 가상환경: `datemate/.venv`

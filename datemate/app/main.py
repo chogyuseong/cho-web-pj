@@ -34,8 +34,13 @@ async def lifespan(app):
 
 app=FastAPI(title='서울 데이트메이트 · 서울 데이트 코스 추천',version='0.1.0',lifespan=lifespan)
 
+@app.get('/healthz',include_in_schema=False)
+def health():
+    return {'status':'ok'}
+
 @app.middleware('http')
 async def safety(request:Request,call_next):
+    if request.url.path=='/healthz':return await call_next(request)
     started=time.perf_counter()
     # 전체 요청 본문 2 MiB. Content-Length가 없는 요청도 스트림을 읽으며 제한한다.
     if request.method in ('POST','PUT','PATCH','DELETE'):

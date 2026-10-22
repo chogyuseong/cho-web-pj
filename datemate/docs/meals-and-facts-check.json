@@ -1,0 +1,11 @@
+{
+  "meal_groups": 2,
+  "first_group_restaurants": 3,
+  "confirmed_places": 1,
+  "unknown_conditions": [
+    "budget",
+    "reservation",
+    "visit_date"
+  ],
+  "page_errors": []
+}

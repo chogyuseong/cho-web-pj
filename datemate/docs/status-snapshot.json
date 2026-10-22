@@ -1,0 +1,29 @@
+{
+  "region": "서울",
+  "temporary_region": true,
+  "counts": {
+    "demo": {
+      "places": 28,
+      "indexed": 28,
+      "chunks": 28
+    },
+    "real": {
+      "places": 152,
+      "indexed": 152,
+      "chunks": 11
+    }
+  },
+  "llm": "GMS 키 없음",
+  "embedding": "demo",
+  "route": "실제 경로 API 키 없음",
+  "themes": [
+    "레저·활동",
+    "카페·미식",
+    "휴식·힐링",
+    "문화·예술",
+    "체험·제작",
+    "오락·놀이",
+    "산책·풍경"
+  ],
+  "map_js_key": ""
+}

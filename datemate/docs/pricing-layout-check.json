@@ -1,0 +1,15 @@
+{
+  "price_kinds": [
+    "web_reference",
+    "web_reference",
+    "web_reference",
+    "estimated",
+    "estimated",
+    "estimated"
+  ],
+  "cost_rows": 6,
+  "inline_detail": true,
+  "unknown_only_notice_hidden": true,
+  "refresh_worked": true,
+  "page_errors": []
+}

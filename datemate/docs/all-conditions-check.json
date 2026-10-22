@@ -1,0 +1,199 @@
+{
+  "old_plan_checks": 33,
+  "issue_conditions": [
+    "budget",
+    "end",
+    "max_leg",
+    "max_walk",
+    "people",
+    "request",
+    "reservation",
+    "stay_minutes",
+    "theme_mode",
+    "transport",
+    "visit_date"
+  ],
+  "checks": [
+    {
+      "condition": "region",
+      "label": "지역",
+      "state": "met",
+      "message": "방문 장소가 모두 서울 안에 있어요."
+    },
+    {
+      "condition": "origin",
+      "label": "출발지",
+      "state": "met",
+      "message": "선택한 출발지에서 코스를 시작해요."
+    },
+    {
+      "condition": "mode",
+      "label": "장소 데이터",
+      "state": "info",
+      "message": "실제 장소로 구성했어요."
+    },
+    {
+      "condition": "visit_date",
+      "label": "방문 날짜·영업시간",
+      "state": "unknown",
+      "message": "2026-10-22의 영업시간·휴무를 확인하지 못했어요: 아름다운 차박물관, 경인미술관 전통다원, 오설록 티하우스 북촌점"
+    },
+    {
+      "condition": "start",
+      "label": "시작 시간",
+      "state": "met",
+      "message": "11:00에 출발하는 일정이에요."
+    },
+    {
+      "condition": "end",
+      "label": "종료 시간",
+      "state": "unmet",
+      "message": "종료 15:29 — 요청한 11:30보다 239분 늦어요."
+    },
+    {
+      "condition": "people",
+      "label": "인원",
+      "state": "unknown",
+      "message": "2명을 비용 계산에 반영했어요. 장소별 수용 인원·단체 입장 가능 여부는 미확인이에요."
+    },
+    {
+      "condition": "budget",
+      "label": "예산",
+      "state": "unmet",
+      "message": "확인·추정 비용 상한 9,000원이 예산 0원보다 9,000원 많아요."
+    },
+    {
+      "condition": "budget",
+      "label": "예산",
+      "state": "unknown",
+      "message": "알려진 비용은 9,000~9,000원이지만, 미확인 입장료·교통비 등은 빠져 있어 예산 0원 충족을 보장할 수 없어요."
+    },
+    {
+      "condition": "transport",
+      "label": "교통수단·경로",
+      "state": "unknown",
+      "message": "대중교통 기준으로 계산했어요. 실제 길찾기·시간표·도로 상황은 확인하지 못한 추정 경로예요."
+    },
+    {
+      "condition": "count",
+      "label": "방문 장소 수",
+      "state": "met",
+      "message": "요청한 3곳을 제안해요."
+    },
+    {
+      "condition": "themes",
+      "label": "테마",
+      "state": "met",
+      "message": "‘카페·미식’에 해당하는 장소 유형으로 구성했어요."
+    },
+    {
+      "condition": "date_subcategory",
+      "label": "콘셉트별",
+      "state": "info",
+      "message": "별도 조건을 선택하지 않았어요."
+    },
+    {
+      "condition": "theme_mode",
+      "label": "테마 구성",
+      "state": "unmet",
+      "message": "여러 유형 혼합을 원하셨지만 한 유형으로만 구성됐어요."
+    },
+    {
+      "condition": "setting",
+      "label": "실내·실외",
+      "state": "info",
+      "message": "실내·실외 제한을 선택하지 않았어요."
+    },
+    {
+      "condition": "avoid",
+      "label": "피할 활동",
+      "state": "info",
+      "message": "제외할 활동을 입력하지 않았어요."
+    },
+    {
+      "condition": "reservation",
+      "label": "예약",
+      "state": "unknown",
+      "message": "아름다운 차박물관 — 예약 필요 여부와 남은 자리를 확인하지 못했어요."
+    },
+    {
+      "condition": "reservation",
+      "label": "예약",
+      "state": "unknown",
+      "message": "경인미술관 전통다원 — 예약 필요 여부와 남은 자리를 확인하지 못했어요."
+    },
+    {
+      "condition": "reservation",
+      "label": "예약",
+      "state": "unknown",
+      "message": "오설록 티하우스 북촌점 — 예약 필요 여부와 남은 자리를 확인하지 못했어요."
+    },
+    {
+      "condition": "max_leg",
+      "label": "구간 이동 시간",
+      "state": "unmet",
+      "message": "강동구청 → 아름다운 차박물관: 67분 — 요청 1분보다 66분 초과해요."
+    },
+    {
+      "condition": "max_leg",
+      "label": "구간 이동 시간",
+      "state": "unmet",
+      "message": "아름다운 차박물관 → 경인미술관 전통다원: 10분 — 요청 1분보다 9분 초과해요."
+    },
+    {
+      "condition": "max_leg",
+      "label": "구간 이동 시간",
+      "state": "unmet",
+      "message": "경인미술관 전통다원 → 오설록 티하우스 북촌점: 12분 — 요청 1분보다 11분 초과해요."
+    },
+    {
+      "condition": "max_walk",
+      "label": "총 도보 시간",
+      "state": "unmet",
+      "message": "총 도보 18분 — 요청 0분보다 18분 초과해요."
+    },
+    {
+      "condition": "return_home",
+      "label": "귀가 포함",
+      "state": "info",
+      "message": "귀가 포함을 선택하지 않았어요."
+    },
+    {
+      "condition": "stay_minutes",
+      "label": "체류 시간",
+      "state": "met",
+      "message": "장소당 60분으로 계산했어요."
+    },
+    {
+      "condition": "stay_minutes",
+      "label": "체류 시간",
+      "state": "unknown",
+      "message": "장소별 권장·필수 체험 시간을 확인하지 못했어요. 입력한 체류 시간으로 계산했어요."
+    },
+    {
+      "condition": "allow_estimates",
+      "label": "추정 사용",
+      "state": "info",
+      "message": "이동·체류 추정을 허용한 조건이에요."
+    },
+    {
+      "condition": "mbti",
+      "label": "MBTI 참고",
+      "state": "info",
+      "message": "MBTI 참고를 선택하지 않았거나 유형이 비어 있어 반영하지 않았어요."
+    },
+    {
+      "condition": "request",
+      "label": "자유 요청",
+      "state": "unknown",
+      "message": "자유 요청에서 해석한 구조화 조건은 반영했지만 문장 전체의 세부 요구를 충족했는지는 자동 확인하지 못했어요: 카페 3곳"
+    },
+    {
+      "condition": "locked",
+      "label": "고정 장소",
+      "state": "met",
+      "message": "고정한 장소가 없어요."
+    }
+  ],
+  "page_errors": []
+}

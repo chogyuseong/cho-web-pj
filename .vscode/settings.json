@@ -1,0 +1,5 @@
+{
+    "python.terminal.useEnvFile": true,
+    "python.defaultInterpreterPath": "${workspaceFolder}/datemate/.venv/Scripts/python.exe",
+    "python.envFile": "${workspaceFolder}/datemate/.env"
+}

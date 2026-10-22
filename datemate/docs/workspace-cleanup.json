@@ -1,0 +1,170 @@
+﻿[
+    {
+        "path":  "venv",
+        "files":  15268,
+        "bytes":  398197190,
+        "status":  "deleted"
+    },
+    {
+        "path":  ".pytest_cache",
+        "files":  4,
+        "bytes":  1470,
+        "status":  "deleted"
+    },
+    {
+        "path":  ".env.example",
+        "files":  1,
+        "bytes":  498,
+        "status":  "deleted"
+    },
+    {
+        "path":  "requirements.txt",
+        "files":  1,
+        "bytes":  654,
+        "status":  "deleted"
+    },
+    {
+        "path":  "plus_widget_key.py",
+        "files":  1,
+        "bytes":  3684,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step0_llm.py",
+        "files":  1,
+        "bytes":  6126,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step1_widgets.py",
+        "files":  1,
+        "bytes":  2865,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step2_rerun.py",
+        "files":  1,
+        "bytes":  1825,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step3_state.py",
+        "files":  1,
+        "bytes":  1820,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step4_echo.py",
+        "files":  1,
+        "bytes":  2803,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step5_llm.py",
+        "files":  1,
+        "bytes":  3552,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step6_context.py",
+        "files":  1,
+        "bytes":  3612,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step7_skeleton.py",
+        "files":  1,
+        "bytes":  6418,
+        "status":  "deleted"
+    },
+    {
+        "path":  "step8_wiki_api.py",
+        "files":  1,
+        "bytes":  6276,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\runtime\\pytest_cache",
+        "files":  5,
+        "bytes":  5344,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\runtime\\pdfs",
+        "files":  0,
+        "bytes":  null,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\runtime\\place-photos",
+        "files":  0,
+        "bytes":  null,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\app\\__pycache__",
+        "files":  16,
+        "bytes":  111644,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\tests\\__pycache__",
+        "files":  11,
+        "bytes":  144136,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\place-photo-desktop.png",
+        "files":  1,
+        "bytes":  643051,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\place-photo-mobile.png",
+        "files":  1,
+        "bytes":  142623,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\recommendation-diagnostics.png",
+        "files":  1,
+        "bytes":  396325,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\romance-explore-320.png",
+        "files":  1,
+        "bytes":  1131789,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\romance-explore-768.png",
+        "files":  1,
+        "bytes":  1476071,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\romance-home-320.png",
+        "files":  1,
+        "bytes":  325986,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\romance-home-768.png",
+        "files":  1,
+        "bytes":  424990,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\romance-plan-320.png",
+        "files":  1,
+        "bytes":  530166,
+        "status":  "deleted"
+    },
+    {
+        "path":  "datemate\\docs\\screenshots\\romance-plan-768.png",
+        "files":  1,
+        "bytes":  722293,
+        "status":  "deleted"
+    }
+]

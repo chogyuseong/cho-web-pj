@@ -1,0 +1,6 @@
+.date-category-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;background:var(--soft);padding:5px;border-radius:8px;margin-bottom:16px}
+.date-category-tab{min-height:40px;padding:8px 2px;border-radius:5px;background:transparent;color:var(--muted);font-size:11px;white-space:nowrap}
+.date-category-tab[aria-pressed=true]{background:var(--green);color:#fff;box-shadow:0 2px 5px #0001}
+.date-subcategory-title{font-size:11px;font-weight:600;margin:0 0 10px}
+.date-subcategories{gap:7px}.date-subcategories label{margin-bottom:4px}.date-subcategories span{display:block;min-height:38px;font-size:11px;padding:9px 12px}
+.date-category-tab:focus-visible{outline:2px solid var(--green);outline-offset:2px}

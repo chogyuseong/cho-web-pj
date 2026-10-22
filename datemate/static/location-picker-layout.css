@@ -1,0 +1,12 @@
+/* 지도 확정 버튼은 스크롤 영역 밖에 두어 작은 화면에서도 바로 누를 수 있다. */
+#dialog.location-dialog[open]{display:flex;flex-direction:column;max-height:90vh;max-height:90dvh;overflow:hidden}
+#dialog.location-dialog .dialog-top{flex-shrink:0}
+#dialog.location-dialog #dialog-content{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#dialog.location-dialog #dialog-content>h2{flex-shrink:0;margin:12px 0 4px}
+.location-body{min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:3px}
+.location-body .location-search{margin-top:10px}
+.location-body .location-map{height:290px;min-height:200px}
+.location-footer{flex-shrink:0;background:white;border-top:1px solid var(--line);padding-top:10px;margin-top:8px}
+.location-footer .location-picked{margin:0 0 8px;padding:8px 10px;font-size:12px}
+.location-footer .primary{min-height:44px}
+@media(max-width:520px){#dialog.location-dialog{padding:18px}.location-body .location-map{height:235px}.location-body .location-search{margin-top:4px}}

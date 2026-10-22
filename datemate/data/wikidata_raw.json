@@ -1,0 +1,4251 @@
+{
+  "head": {
+    "vars": [
+      "item",
+      "itemLabel",
+      "coord",
+      "kind",
+      "article"
+    ]
+  },
+  "results": {
+    "bindings": [
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7451676"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97380833 37.56412222)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%8B%9C%EB%A6%BD%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울특별시립미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12592360"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97811 37.573834)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%97%AD%EC%82%AC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "대한민국역사박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27301229"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.031111111 37.468611111)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "녹지광장"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q495437"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97771 37.56902)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B2%AD%EA%B3%84%EC%B2%9C"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "청계천"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27340609"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.84 37.574166666)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "궁산공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27340603"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.886388888 37.5725)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "난지천공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16219754"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.122202 37.551175)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B4%91%EB%82%98%EB%A3%A8%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "광나루한강공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27308626"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.038333333 37.620833333)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울드림랜드"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q97205213"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.983369444 37.576330555)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EA%B3%B5%EC%98%88%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울공예박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12623756"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.096666666 37.633611111)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%95%9C%EA%B5%AD%EC%B2%B4%EC%9C%A1%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "한국체육박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483110"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6727168"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.057523 37.643955)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%85%B8%EC%9B%90%EB%A7%88%EB%93%A4%EC%8A%A4%ED%83%80%EB%94%94%EC%9B%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "노원마들스타디움"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5116354"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9640826 37.5446761)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%88%99%EB%AA%85%EC%97%AC%EC%9E%90%EB%8C%80%ED%95%99%EA%B5%90_%EC%A0%95%EC%98%81%EC%96%91%EC%9E%90%EC%88%98%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "숙명여자대학교 정영양자수박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7132596"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0061614 37.5596195)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%A2%85%EC%9D%B4%EB%82%98%EB%9D%BC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "종이나라박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q85977433"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.938 37.561916666)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%8F%99%EC%9D%80%EC%9D%98%ED%95%99%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "동은의학박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q65240344"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.95304 37.513878)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%85%B8%EB%93%A4%EB%82%98%EB%A3%A8%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "노들나루공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q97229870"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.893888888 37.516111111)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%AC%B8%EB%9E%98%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "문래공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6443836"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.977697 37.5774224)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B8%88%ED%98%B8%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "금호미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27340735"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.385555555 33.470277777)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "수산유원지"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6850461"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0823 37.4858)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%B0%80%EC%95%8C%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "밀알미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q487498"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.99949 37.537969)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%A6%AC%EC%9B%80%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "리움미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27340604"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.885277777 37.567777777)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "하늘공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130342836"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.076329 37.528029)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%9A%9D%EC%84%AC%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "뚝섬한강공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483357"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.988 37.5711)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%83%91%EA%B3%A8%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "탑골공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27301216"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.919722222 37.491944444)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%B3%B4%EB%9D%BC%EB%A7%A4%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "보라매공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q47524353"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.834475 37.572341)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%8B%9D%EB%AC%BC%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울식물원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q8035876"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.982 37.581)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%B8%EA%B3%84%EC%9E%A5%EC%8B%A0%EA%B5%AC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "세계장신구박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q60987108"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.966831668 37.545747717)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "식민지역사박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q24861751"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.924869497 37.559397072)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B2%BD%EC%9D%98%EC%84%A0%EC%88%B2%EA%B8%B8"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "경의선숲길"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q485465"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.08 37.546)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%96%B4%EB%A6%B0%EC%9D%B4%EB%8C%80%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울어린이대공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q488571"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.95663 37.57442)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EB%8C%80%EB%AC%B8%ED%98%95%EB%AC%B4%EC%86%8C"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서대문형무소"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q30275918"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9716 37.5567)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%A1%9C_7017"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울로 7017"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483110"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7089144"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.123334 37.51693)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%98%AC%EB%A6%BC%ED%94%BD_%EB%B2%A8%EB%A1%9C%EB%93%9C%EB%A1%AC_(%EC%84%9C%EC%9A%B8%ED%8A%B9%EB%B3%84%EC%8B%9C)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "올림픽 벨로드롬"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7451680"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.94979 37.46631)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%8C%80%ED%95%99%EA%B5%90_%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울대학교 미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483110"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q10855359"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.86666667 37.49833333)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B3%A0%EC%B2%99%EC%8A%A4%EC%B9%B4%EC%9D%B4%EB%8F%94"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "고척스카이돔"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27308635"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.985 37.592777777)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "삼청공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q486172"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.96 37.47105556)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%82%99%EC%84%B1%EB%8C%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "낙성대"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7451676"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97380833 37.56412222)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%8B%9C%EB%A6%BD%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울특별시립미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130296821"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.969546 37.517956)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9D%B4%EC%B4%8C%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "이촌한강공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16560"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q482852"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.995980555 37.578430555)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B0%BD%EA%B2%BD%EA%B6%81"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "창경궁"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483110"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6895259"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.883022 37.530509)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%AA%A9%EB%8F%99%EC%9A%B4%EB%8F%99%EC%9E%A5"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "목동운동장"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27340607"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.845555555 37.555)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "우장산공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27340601"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.885555555 37.577222222)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "근린공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16220016"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.965974 37.556294)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%86%90%EA%B8%B0%EC%A0%95%EC%B2%B4%EC%9C%A1%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "손기정체육공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q11240953"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.98366 37.57385)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%AA%A9%EC%9D%B8%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "목인박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7752711"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0349647 37.5802298)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%8C%80%ED%95%99%EA%B5%90%EB%B3%91%EC%9B%90_%EC%9D%98%ED%95%99%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울대학교병원 의학박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6443836"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.977697 37.5774224)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B8%88%ED%98%B8%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "금호미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q494668"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.09811111 37.51119444)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%A1%AF%EB%8D%B0%EC%9B%94%EB%93%9C"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "롯데월드"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q97230330"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0767 37.6196)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%83%9D%ED%99%9C%EC%82%AC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울생활사박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q93713440"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.055138888 37.597694444)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B2%BD%ED%9D%AC%EB%8C%80%ED%95%99%EA%B5%90_%ED%95%9C%EC%9D%98%ED%95%99%EC%97%AD%EC%82%AC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "경희대학교 한의학역사박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6850461"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0823 37.4858)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%B0%80%EC%95%8C%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "밀알미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q487498"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.99949 37.537969)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%A6%AC%EC%9B%80%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "리움미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6431840"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.692222222 37.72)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%95%9C%EA%B5%AD%EC%98%81%EC%83%81%EC%9E%90%EB%A3%8C%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "한국영상자료원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6431840"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.889896 37.580396)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%95%9C%EA%B5%AD%EC%98%81%EC%83%81%EC%9E%90%EB%A3%8C%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "한국영상자료원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483110"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q175477"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.897243 37.56823)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%9B%94%EB%93%9C%EC%BB%B5%EA%B2%BD%EA%B8%B0%EC%9E%A5"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울월드컵경기장"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16560"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12583799"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.975555555 37.566944444)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B2%BD%EC%9A%B4%EA%B6%81_%EC%96%91%EC%9D%B4%EC%9E%AC"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "경운궁 양이재"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12608670"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.090106 37.574405)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9A%A9%EB%A7%88%ED%8F%AD%ED%8F%AC%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "용마폭포공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q167346"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q47524353"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.834475 37.572341)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%8B%9D%EB%AC%BC%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울식물원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7451680"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.94979 37.46631)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%8C%80%ED%95%99%EA%B5%90_%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울대학교 미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12622668"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.08672 37.51758)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "한강공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27307221"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.08114 37.54896)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "어린이대공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27340602"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.894722222 37.563055555)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "평화의공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q496451"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.99657778 37.59420278)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B0%84%EC%86%A1%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "간송미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483110"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q489240"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.010595 37.56758)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%8F%99%EB%8C%80%EB%AC%B8%EC%9A%B4%EB%8F%99%EC%9E%A5"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "동대문운동장"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16560"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q10855678"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.976944444 37.578333333)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B7%BC%EC%A0%95%EC%A0%84"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "근정전"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16169167"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.126361111 37.544305555)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B2%9C%ED%98%B8%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "천호공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q484880"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.03522222 37.52441667)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%8F%84%EC%82%B0%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "도산공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q120716244"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.94038758 37.519670046)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "퐁피두센터한화서울"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12599081"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.041079 37.621052)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%B6%81%EC%84%9C%EC%9A%B8_%EA%BF%88%EC%9D%98%EC%88%B2"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "북서울 꿈의숲"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137994610"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.979605 37.476123)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "남서울미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6431745"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0347 37.5893)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B3%A0%EB%A0%A4%EB%8C%80%ED%95%99%EA%B5%90_%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "고려대학교 박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16094840"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.962224 37.572059)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%EA%B2%BD%EC%B0%B0%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "경찰박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7232990"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0539585 37.5058037)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%8F%AC%EC%8A%A4%EC%BD%94%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "포스코미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q55728978"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.973338 37.577487)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%8C%80%EB%A6%BC%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "대림미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12599807"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.948632 37.51405)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%82%AC%EC%9C%A1%EC%8B%A0%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "사육신공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130510216"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.851913 37.505942)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B3%A0%EC%B2%99%EA%B7%BC%EB%A6%B0%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "고척근린공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q625781"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0588 37.5125)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%AE%A4%EC%A7%80%EC%97%84_%EA%B9%80%EC%B9%98%EA%B0%84"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "뮤지엄 김치간"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q167346"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q55734734"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.993888888 37.583055555)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B0%BD%EA%B2%BD%EA%B6%81_%EB%8C%80%EC%98%A8%EC%8B%A4"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "창경궁 대온실"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137516117"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0736 37.5425)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "건국대학교박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130455545"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.900404 37.55146)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%A7%9D%EC%9B%90%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "망원한강공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5170223"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.032799 37.524048)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%BD%94%EB%A6%AC%EC%95%84%EB%82%98_%ED%99%94%EC%9E%A5%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "코리아나 화장박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q626736"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.965919 37.604789)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%99%94%EC%A0%95%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "화정박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130528121"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.855385 37.508747)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B3%84%EB%82%A8%EA%B7%BC%EB%A6%B0%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "계남근린공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6002100"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97667 37.61149)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%83%81%EC%9B%90%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "상원미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q21060745"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0085 37.57283333)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%95%9C%EC%96%91%EB%8F%84%EC%84%B1%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "한양도성박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q624285"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.116054 37.520968)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%98%AC%EB%A6%BC%ED%94%BD%EA%B8%B0%EB%85%90%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울올림픽기념관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16560"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q477157"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.991666666 37.579444444)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B0%BD%EB%8D%95%EA%B6%81"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "창덕궁"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q118323279"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0747 37.516269)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울올림픽전시관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130753620"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.016651 37.525605)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9E%A0%EC%9B%90%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "잠원한강공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137994504"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.066752 37.640785)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "북서울미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q486449"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97909 37.581625)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%EB%AF%BC%EC%86%8D%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국립민속박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q496451"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.99657778 37.59420278)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B0%84%EC%86%A1%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "간송미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q48792707"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.8791 37.5202)"
+        },
+        "itemLabel": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Anyangcheon Stream Walkway"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16560"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q482485"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9767996 37.5798841)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B2%BD%EB%B3%B5%EA%B6%81"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "경복궁"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16176229"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.921125 37.518376)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%97%AC%EC%9D%98%EB%8F%84%EC%83%9B%EA%B0%95%EC%83%9D%ED%83%9C%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "여의도샛강생태공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q625749"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.991 37.5749)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%96%A1%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "떡박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q131869173"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9825 37.553611111)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "한양공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q120716244"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.94038758 37.519670046)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "퐁피두센터한화서울"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q123190163"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9782 37.5785)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%A1%B0%EC%84%A0%EC%B4%9D%EB%8F%85%EB%B6%80%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "조선총독부박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16560"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q482631"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.975 37.566111111)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%8D%95%EC%88%98%EA%B6%81"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "덕수궁"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12585835"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.009469 37.477429)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EC%95%85%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국악박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130534000"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.89347 37.543977)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%96%91%ED%99%94%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "양화한강공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12601393"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.825422222 37.484086111)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%ED%91%B8%EB%A5%B8%EC%88%98%EB%AA%A9%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울푸른수목원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137994610"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.979605 37.476123)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "남서울미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6431745"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0347 37.5893)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B3%A0%EB%A0%A4%EB%8C%80%ED%95%99%EA%B5%90_%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "고려대학교 박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7232990"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0539585 37.5058037)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%8F%AC%EC%8A%A4%EC%BD%94%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "포스코미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q55728978"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.973338 37.577487)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%8C%80%EB%A6%BC%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "대림미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5957035"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.96036111 37.54538889)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%9A%A8%EC%B0%BD%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "효창공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16560"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q494577"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97486389 37.58669167)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B2%AD%EC%99%80%EB%8C%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "청와대"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12622916"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.956944444 37.495555555)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%95%9C%EA%B5%AD%EA%B8%B0%EB%8F%85%EA%B5%90%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "숭실대학교 한국기독교박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q55734734"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.993888888 37.583055555)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B0%BD%EA%B2%BD%EA%B6%81_%EB%8C%80%EC%98%A8%EC%8B%A4"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "창경궁 대온실"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q65273774"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.910698 37.515453)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%98%81%EB%93%B1%ED%8F%AC%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "영등포공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5170223"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.032799 37.524048)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%BD%94%EB%A6%AC%EC%95%84%EB%82%98_%ED%99%94%EC%9E%A5%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "코리아나 화장박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16560"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q490392"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.987 37.5761)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9A%B4%ED%98%84%EA%B6%81"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "운현궁"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q490392"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.987 37.5761)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9A%B4%ED%98%84%EA%B6%81"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "운현궁"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6431669"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.005530555 37.575508333)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%95%9C%EA%B5%AD%ED%98%84%EB%8C%80%EC%9D%98%EC%83%81%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "한국현대의상박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q130393869"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.07109 37.649177)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%85%B8%ED%95%B4%EA%B7%BC%EB%A6%B0%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "노해근린공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6002100"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97667 37.61149)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%83%81%EC%9B%90%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "상원미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137994434"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.048913 37.655525)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울시립 사진미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137994504"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.066752 37.640785)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "북서울미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q122946494"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9993 37.5384)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "삼성아동교육문화센터"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q123039241"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.02542 37.5157)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "학동공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16184633"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.99433333 37.57291667)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%A2%85%EB%AC%98%EA%B4%91%EC%9E%A5"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "종묘광장공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12605978"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.930166666 37.517472222)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%95%99%EC%B9%B4%EB%9D%BC%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "앙카라공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q11235569"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.01025 37.56702778)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%8F%99%EB%8C%80%EB%AC%B8%EC%97%AD%EC%82%AC%EB%AC%B8%ED%99%94%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "동대문역사문화공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7712137"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.844 37.492)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%8F%89%EA%B0%95_%EC%84%B1%EC%84%9C_%EC%9C%A0%EB%AC%BC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "평강 성서 유물박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4845110"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.982916666 37.587027777)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%B6%80%EC%97%89%EC%9D%B4%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "부엉이박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7392065"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.118256 37.517086)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%86%8C%EB%A7%88%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "소마미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q486694"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.1225 37.520277777)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%98%AC%EB%A6%BC%ED%94%BD%EA%B3%B5%EC%9B%90_(%EC%84%9C%EC%9A%B8)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "올림픽공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q489764"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9771 37.5365)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%A0%84%EC%9F%81%EA%B8%B0%EB%85%90%EA%B4%80_(%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "전쟁기념관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q6940911"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.98212 37.57441)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%95%9C%EA%B5%AD%EB%AF%B8%EC%88%A0%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "한국미술박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7990635"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.966 37.5944)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%99%98%EA%B8%B0%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "환기미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4801558"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.982 37.5794)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%95%84%ED%8A%B8%EC%84%A0%EC%9E%AC%EC%84%BC%ED%84%B0"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "아트선재센터"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27207690"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.980555555 37.579166666)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%ED%98%84%EB%8C%80%EB%AF%B8%EC%88%A0%EA%B4%80_%EC%84%9C%EC%9A%B8%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국립현대미술관 서울"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7451507"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.93778 37.57655)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EB%8C%80%EB%AC%B8%EC%9E%90%EC%97%B0%EC%82%AC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서대문자연사박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5516945"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9856 37.5822)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B0%80%ED%9A%8C%EB%AF%BC%ED%99%94%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "가회민화박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12613236"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97125556 37.56577222)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8_%EC%9D%B4%ED%99%94%EC%97%AC%EC%9E%90%EA%B3%A0%EB%93%B1%ED%95%99%EA%B5%90_%EC%8B%AC%EC%8A%A8%EA%B8%B0%EB%85%90%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "이화여자고등학교 심슨기념관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q10855565"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.996972222 37.58225)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%EC%96%B4%EB%A6%B0%EC%9D%B4%EA%B3%BC%ED%95%99%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국립어린이과학관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137994573"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.973791 37.564075)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울시립미술관 서소문본관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137516156"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.042784 37.538462)"
+        },
+        "itemLabel": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "water museum"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5104180"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.984219444 37.558119444)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B4%88%EC%A0%84%EC%84%AC%EC%9C%A0%ED%80%BC%ED%8A%B8%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "초전섬유퀼트박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5102609"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.01232 37.45777)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9C%A0%EB%A6%AC%EC%A7%80%EA%B3%B5%EC%98%88%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "유리지공예관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4986824"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9846 37.5803)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%B6%81%EC%B4%8C%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "북촌미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q486358"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.91861111 37.48083333)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%98%B8%EB%A6%BC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "호림박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q21575845"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.8763 37.566213)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%82%9C%EC%A7%80%ED%95%9C%EA%B0%95%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "난지한강공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7828041"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.976 37.612)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%86%A0%ED%83%88%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "토탈미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q12619063"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.035094 37.571301)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B2%AD%EA%B3%84%EC%B2%9C%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "청계천박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7428260"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.985 37.5765)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%82%AC%EB%B9%84%EB%82%98%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "사비나미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483014"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.03984444 37.544625)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%88%B2"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울숲"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q120799063"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9190653 37.5318645)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%ED%9A%8C%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국회박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16172386"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.103 37.51)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9D%EC%B4%8C%ED%98%B8%EC%88%98%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "석촌호수공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q626115"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.98211 37.58023)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%8B%B0%EB%B2%A0%ED%8A%B8_%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "티베트 박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q139722499"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.971744 37.540691)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "민주화운동기념관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483110"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q490616"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.071972 37.512389)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%A2%85%ED%95%A9%EC%9A%B4%EB%8F%99%EC%9E%A5_%EC%95%BC%EA%B5%AC%EC%9E%A5"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "잠실야구장"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q124669743"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0076 37.58055)"
+        },
+        "itemLabel": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Naksan Park"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7093835"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0146 37.6545)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%98%B9%EA%B8%B0%EB%AF%BC%EC%86%8D%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "옹기민속박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q55729081"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9543 37.576)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD%EC%9E%84%EC%8B%9C%EC%A0%95%EB%B6%80%EA%B8%B0%EB%85%90%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국립대한민국임시정부기념관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7392065"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.118256 37.517086)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%86%8C%EB%A7%88%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "소마미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q494407"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.980277777 37.523888888)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%EC%A4%91%EC%95%99%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국립중앙박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15060384"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.035205 37.471695)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%A7%A4%ED%97%8C%EC%8B%9C%EB%AF%BC%EC%9D%98%EC%88%B2"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "시민의숲"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7990635"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.966 37.5944)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%99%98%EA%B8%B0%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "환기미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q15060384"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.035833333 37.470833333)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%A7%A4%ED%97%8C%EC%8B%9C%EB%AF%BC%EC%9D%98%EC%88%B2"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "시민의숲"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q121406424"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9818433 37.5685073)"
+        },
+        "itemLabel": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "HiKR Ground"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4801558"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.982 37.5794)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%95%84%ED%8A%B8%EC%84%A0%EC%9E%AC%EC%84%BC%ED%84%B0"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "아트선재센터"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q124669919"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9689 37.56883)"
+        },
+        "itemLabel": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Donuimun Museum Village"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5731573"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.851 37.568)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%97%88%EC%A4%80%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "허준박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q27207690"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.980555555 37.579166666)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%ED%98%84%EB%8C%80%EB%AF%B8%EC%88%A0%EA%B4%80_%EC%84%9C%EC%9A%B8%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국립현대미술관 서울"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7451652"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.98333333 37.57976667)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EA%B5%90%EC%9C%A1%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울교육박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q11268929"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.0043 37.557730555)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9E%A5%EC%B6%A9%EB%8B%A8%EA%B3%B5%EC%9B%90"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "장충단공원"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q23044897"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.105538442 37.594357213)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9A%A9%EB%A7%88%EB%9E%9C%EB%93%9C"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "용마랜드"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q483110"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q490165"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.880978 37.530706)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%AA%A9%EB%8F%99%EC%95%BC%EA%B5%AC%EC%9E%A5"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "목동야구장"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q137994573"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.973791 37.564075)"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울시립미술관 서소문본관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5104180"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.984219444 37.558119444)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%B4%88%EC%A0%84%EC%84%AC%EC%9C%A0%ED%80%BC%ED%8A%B8%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "초전섬유퀼트박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q4986824"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9846 37.5803)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%B6%81%EC%B4%8C%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "북촌미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5102609"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.01232 37.45777)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%9C%A0%EB%A6%AC%EC%A7%80%EA%B3%B5%EC%98%88%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "유리지공예관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q5570762"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.9813 37.5546)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%A7%80%EA%B5%AC%EC%B4%8C%EB%AF%BC%EC%86%8D%EA%B5%90%EC%9C%A1%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "지구촌민속교육박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q486358"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.91861111 37.48083333)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%98%B8%EB%A6%BC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "호림박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q65248886"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.894166666 37.570833333)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EB%AC%B8%ED%99%94%EB%B9%84%EC%B6%95%EA%B8%B0%EC%A7%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "문화비축기지"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q22698"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q20010807"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(127.076 37.5103)"
+        },
+        "itemLabel": {
+          "xml:lang": "en",
+          "type": "literal",
+          "value": "Asia Park"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7828041"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.976 37.612)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%ED%86%A0%ED%83%88%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "토탈미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q207694"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q7428260"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.985 37.5765)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%82%AC%EB%B9%84%EB%82%98%EB%AF%B8%EC%88%A0%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "사비나미술관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q16630774"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.980937 37.521173)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EA%B5%AD%EB%A6%BD%ED%95%9C%EA%B8%80%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "국립한글박물관"
+        }
+      },
+      {
+        "kind": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q33506"
+        },
+        "item": {
+          "type": "uri",
+          "value": "http://www.wikidata.org/entity/Q484862"
+        },
+        "coord": {
+          "datatype": "http://www.opengis.net/ont/geosparql#wktLiteral",
+          "type": "literal",
+          "value": "Point(126.97065833 37.570475)"
+        },
+        "article": {
+          "type": "uri",
+          "value": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EC%97%AD%EC%82%AC%EB%B0%95%EB%AC%BC%EA%B4%80"
+        },
+        "itemLabel": {
+          "xml:lang": "ko",
+          "type": "literal",
+          "value": "서울역사박물관"
+        }
+      }
+    ]
+  }
+}

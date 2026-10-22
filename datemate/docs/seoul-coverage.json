@@ -1,0 +1,2735 @@
+{
+  "checked_at": "2026-10-22T01:37:46.336548+00:00",
+  "scope": "25개 구의 대표 주소 각 1곳 · 구 전체 위치 보장 아님",
+  "conditions": {
+    "visit_date": "2026-10-24",
+    "start": "11:00",
+    "end": "19:00",
+    "people": 2,
+    "budget": 100000,
+    "count": 3,
+    "max_leg": 30,
+    "stay_minutes": 60,
+    "allow_estimates": true
+  },
+  "summary": {
+    "도보·전체": {
+      "passed": 25,
+      "best_effort": 9,
+      "total": 25
+    },
+    "대중교통·전체": {
+      "passed": 25,
+      "best_effort": 0,
+      "total": 25
+    },
+    "대중교통·비 오는 날": {
+      "passed": 25,
+      "best_effort": 18,
+      "total": 25
+    },
+    "대중교통·카페": {
+      "passed": 25,
+      "best_effort": 18,
+      "total": 25
+    },
+    "대중교통·즐거운 데이트": {
+      "passed": 25,
+      "best_effort": 18,
+      "total": 25
+    }
+  },
+  "rows": [
+    {
+      "district": "종로구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 2,
+      "reachable_candidates": 39,
+      "reasons": [],
+      "places": [
+        "한국미술박물관",
+        "쌈지길 체험공방",
+        "경인미술관 전통다원"
+      ]
+    },
+    {
+      "district": "종로구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 9,
+      "reachable_candidates": 74,
+      "reasons": [],
+      "places": [
+        "목인박물관",
+        "쌈지길 체험공방",
+        "경인미술관 전통다원"
+      ]
+    },
+    {
+      "district": "종로구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 11,
+      "reachable_candidates": 8,
+      "reasons": [],
+      "places": [
+        "아름다운 차박물관",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "종로구",
+      "scenario": "대중교통·카페",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 11,
+      "reachable_candidates": 3,
+      "reasons": [],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "종로구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 11,
+      "reachable_candidates": 5,
+      "reasons": [],
+      "places": [
+        "쌈지길 체험공방",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "중구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 18,
+      "reachable_candidates": 13,
+      "reasons": [],
+      "places": [
+        "탑골공원",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "중구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 12,
+      "reachable_candidates": 76,
+      "reasons": [],
+      "places": [
+        "탑골공원",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "중구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 14,
+      "reachable_candidates": 8,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "중구",
+      "scenario": "대중교통·카페",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 15,
+      "reachable_candidates": 3,
+      "reasons": [],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "중구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 14,
+      "reachable_candidates": 5,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "용산구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 21,
+      "reachable_candidates": 4,
+      "reasons": [],
+      "places": [
+        "국립중앙박물관",
+        "국립한글박물관",
+        "이촌한강공원"
+      ]
+    },
+    {
+      "district": "용산구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 13,
+      "reachable_candidates": 50,
+      "reasons": [],
+      "places": [
+        "한양공원",
+        "지구촌민속교육박물관",
+        "하이커 그라운드"
+      ]
+    },
+    {
+      "district": "용산구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 27,
+      "reachable_candidates": 6,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "용산구",
+      "scenario": "대중교통·카페",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 29,
+      "reachable_candidates": 2,
+      "reasons": [
+        "구간 이동 시간 초과"
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "용산구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 27,
+      "reachable_candidates": 4,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "성동구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 19,
+      "reachable_candidates": 1,
+      "reasons": [
+        "구간 이동 시간 초과"
+      ],
+      "places": [
+        "청계천박물관",
+        "서울대학교병원 의학박물관",
+        "고려대학교 박물관"
+      ]
+    },
+    {
+      "district": "성동구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 13,
+      "reachable_candidates": 38,
+      "reasons": [],
+      "places": [
+        "동대문운동장",
+        "종묘광장공원",
+        "런닝맨 인사동점"
+      ]
+    },
+    {
+      "district": "성동구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 29,
+      "reachable_candidates": 5,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "성동구",
+      "scenario": "대중교통·카페",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 29,
+      "reachable_candidates": 2,
+      "reasons": [
+        "구간 이동 시간 초과"
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "성동구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 29,
+      "reachable_candidates": 3,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "광진구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 18,
+      "reachable_candidates": 4,
+      "reasons": [],
+      "places": [
+        "건국대학교박물관",
+        "서울어린이대공원",
+        "어린이대공원"
+      ]
+    },
+    {
+      "district": "광진구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 12,
+      "reachable_candidates": 23,
+      "reasons": [],
+      "places": [
+        "건국대학교박물관",
+        "서울어린이대공원",
+        "어린이대공원"
+      ]
+    },
+    {
+      "district": "광진구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "서울올림픽전시관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "잠실야구장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "뮤지엄 김치간 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 50,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서울올림픽전시관",
+        "잠실야구장",
+        "뮤지엄 김치간"
+      ]
+    },
+    {
+      "district": "광진구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 광진구 자양로 117 → 아름다운 차박물관: 50분 (요청 30분보다 20분 초과)",
+          "penalty": 1.333
+        }
+      ],
+      "nearest_minutes": 50,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "광진구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 광진구 자양로 117 → 런닝맨 인사동점: 50분 (요청 30분보다 20분 초과)",
+          "penalty": 1.333
+        }
+      ],
+      "nearest_minutes": 50,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "동대문구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 12,
+      "reachable_candidates": 2,
+      "reasons": [
+        "구간 이동 시간 초과"
+      ],
+      "places": [
+        "청계천박물관",
+        "서울대학교병원 의학박물관",
+        "고려대학교 박물관"
+      ]
+    },
+    {
+      "district": "동대문구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 11,
+      "reachable_candidates": 34,
+      "reasons": [],
+      "places": [
+        "한양도성박물관",
+        "종묘광장공원",
+        "런닝맨 인사동점"
+      ]
+    },
+    {
+      "district": "동대문구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 29,
+      "reachable_candidates": 6,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "동대문구",
+      "scenario": "대중교통·카페",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 30,
+      "reachable_candidates": 2,
+      "reasons": [
+        "구간 이동 시간 초과"
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "동대문구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 29,
+      "reachable_candidates": 4,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "중랑구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 중랑구 봉화산로 179 중랑구청 → 서울생활사박물관: 42분 (요청 30분보다 12분 초과)",
+          "penalty": 0.8
+        },
+        {
+          "condition": "max_leg",
+          "message": "서울생활사박물관 → 북서울미술관: 51분 (요청 30분보다 21분 초과)",
+          "penalty": 1.4
+        }
+      ],
+      "nearest_minutes": 36,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서울생활사박물관",
+        "북서울미술관",
+        "노원마들스타디움"
+      ]
+    },
+    {
+      "district": "중랑구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 16,
+      "reachable_candidates": 7,
+      "reasons": [],
+      "places": [
+        "경희대학교 한의학역사박물관",
+        "Naksan Park",
+        "북촌전통공예체험관"
+      ]
+    },
+    {
+      "district": "중랑구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "고려대학교 박물관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 중랑구 봉화산로 179 중랑구청 → 고려대학교 박물관: 33분 (요청 30분보다 3분 초과)",
+          "penalty": 0.2
+        }
+      ],
+      "nearest_minutes": 52,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "고려대학교 박물관",
+        "북촌전통공예체험관",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "중랑구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 중랑구 봉화산로 179 중랑구청 → 오설록 티하우스 북촌점: 53분 (요청 30분보다 23분 초과)",
+          "penalty": 1.533
+        }
+      ],
+      "nearest_minutes": 53,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "오설록 티하우스 북촌점",
+        "경인미술관 전통다원",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "중랑구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 중랑구 봉화산로 179 중랑구청 → 북촌전통공예체험관: 52분 (요청 30분보다 22분 초과)",
+          "penalty": 1.467
+        }
+      ],
+      "nearest_minutes": 52,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "북촌전통공예체험관",
+        "쌈지길 체험공방",
+        "런닝맨 인사동점"
+      ]
+    },
+    {
+      "district": "성북구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 26,
+      "reachable_candidates": 1,
+      "reasons": [],
+      "places": [
+        "Naksan Park",
+        "국립어린이과학관",
+        "북촌전통공예체험관"
+      ]
+    },
+    {
+      "district": "성북구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 14,
+      "reachable_candidates": 64,
+      "reasons": [],
+      "places": [
+        "국립어린이과학관",
+        "창덕궁",
+        "북촌전통공예체험관"
+      ]
+    },
+    {
+      "district": "성북구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 21,
+      "reachable_candidates": 8,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "성북구",
+      "scenario": "대중교통·카페",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 22,
+      "reachable_candidates": 3,
+      "reasons": [],
+      "places": [
+        "오설록 티하우스 북촌점",
+        "경인미술관 전통다원",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "성북구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 21,
+      "reachable_candidates": 5,
+      "reasons": [],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "강북구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강북구 도봉로89길 13 강북구청 → 서울시립 사진미술관: 56분 (요청 30분보다 26분 초과)",
+          "penalty": 1.733
+        },
+        {
+          "condition": "max_leg",
+          "message": "서울시립 사진미술관 → 노원마들스타디움: 31분 (요청 30분보다 1분 초과)",
+          "penalty": 0.067
+        }
+      ],
+      "nearest_minutes": 40,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서울시립 사진미술관",
+        "노원마들스타디움",
+        "북서울미술관"
+      ]
+    },
+    {
+      "district": "강북구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 17,
+      "reachable_candidates": 7,
+      "reasons": [],
+      "places": [
+        "서울드림랜드",
+        "간송미술관",
+        "북촌전통공예체험관"
+      ]
+    },
+    {
+      "district": "강북구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "상원미술관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강북구 도봉로89길 13 강북구청 → 상원미술관: 32분 (요청 30분보다 2분 초과)",
+          "penalty": 0.133
+        }
+      ],
+      "nearest_minutes": 41,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "상원미술관",
+        "북촌전통공예체험관",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "강북구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강북구 도봉로89길 13 강북구청 → 오설록 티하우스 북촌점: 42분 (요청 30분보다 12분 초과)",
+          "penalty": 0.8
+        }
+      ],
+      "nearest_minutes": 42,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "오설록 티하우스 북촌점",
+        "경인미술관 전통다원",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "강북구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강북구 도봉로89길 13 강북구청 → 북촌전통공예체험관: 41분 (요청 30분보다 11분 초과)",
+          "penalty": 0.733
+        }
+      ],
+      "nearest_minutes": 41,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "북촌전통공예체험관",
+        "쌈지길 체험공방",
+        "런닝맨 인사동점"
+      ]
+    },
+    {
+      "district": "도봉구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울시립 사진미술관 → 노원마들스타디움: 31분 (요청 30분보다 1분 초과)",
+          "penalty": 0.067
+        }
+      ],
+      "nearest_minutes": 30,
+      "reachable_candidates": 1,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서울시립 사진미술관",
+        "노원마들스타디움",
+        "북서울미술관"
+      ]
+    },
+    {
+      "district": "도봉구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 15,
+      "reachable_candidates": 5,
+      "reasons": [],
+      "places": [
+        "서울시립 사진미술관",
+        "노원마들스타디움",
+        "노해근린공원"
+      ]
+    },
+    {
+      "district": "도봉구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "옹기민속박물관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "max_leg",
+          "message": "옹기민속박물관 → 북촌전통공예체험관: 46분 (요청 30분보다 16분 초과)",
+          "penalty": 1.067
+        }
+      ],
+      "nearest_minutes": 58,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "옹기민속박물관",
+        "북촌전통공예체험관",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "도봉구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 도봉구 마들로 656 도봉구청 → 오설록 티하우스 북촌점: 59분 (요청 30분보다 29분 초과)",
+          "penalty": 1.933
+        }
+      ],
+      "nearest_minutes": 59,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "오설록 티하우스 북촌점",
+        "경인미술관 전통다원",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "도봉구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 도봉구 마들로 656 도봉구청 → 북촌전통공예체험관: 58분 (요청 30분보다 28분 초과)",
+          "penalty": 1.867
+        }
+      ],
+      "nearest_minutes": 58,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "북촌전통공예체험관",
+        "쌈지길 체험공방",
+        "런닝맨 인사동점"
+      ]
+    },
+    {
+      "district": "노원구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 14,
+      "reachable_candidates": 3,
+      "reasons": [
+        "구간 이동 시간 초과"
+      ],
+      "places": [
+        "노원마들스타디움",
+        "북서울미술관",
+        "노해근린공원"
+      ]
+    },
+    {
+      "district": "노원구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 12,
+      "reachable_candidates": 9,
+      "reasons": [],
+      "places": [
+        "서울드림랜드",
+        "간송미술관",
+        "북촌전통공예체험관"
+      ]
+    },
+    {
+      "district": "노원구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "고려대학교 박물관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 노원구 노해로 437 노원구청 → 고려대학교 박물관: 42분 (요청 30분보다 12분 초과)",
+          "penalty": 0.8
+        }
+      ],
+      "nearest_minutes": 54,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "고려대학교 박물관",
+        "북촌전통공예체험관",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "노원구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 노원구 노해로 437 노원구청 → 오설록 티하우스 북촌점: 55분 (요청 30분보다 25분 초과)",
+          "penalty": 1.667
+        }
+      ],
+      "nearest_minutes": 55,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "오설록 티하우스 북촌점",
+        "경인미술관 전통다원",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "노원구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 노원구 노해로 437 노원구청 → 북촌전통공예체험관: 54분 (요청 30분보다 24분 초과)",
+          "penalty": 1.6
+        }
+      ],
+      "nearest_minutes": 54,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "북촌전통공예체험관",
+        "쌈지길 체험공방",
+        "런닝맨 인사동점"
+      ]
+    },
+    {
+      "district": "은평구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 은평구 은평로 195 은평구청 → 서대문자연사박물관: 62분 (요청 30분보다 32분 초과)",
+          "penalty": 2.133
+        }
+      ],
+      "nearest_minutes": 62,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서대문자연사박물관",
+        "국립대한민국임시정부기념관",
+        "서대문형무소"
+      ]
+    },
+    {
+      "district": "은평구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 22,
+      "reachable_candidates": 15,
+      "reasons": [],
+      "places": [
+        "청와대",
+        "서울교육박물관",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "은평구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "환기미술관 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 33,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "환기미술관",
+        "오설록 티하우스 북촌점",
+        "북촌전통공예체험관"
+      ]
+    },
+    {
+      "district": "은평구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 은평구 은평로 195 은평구청 → 오설록 티하우스 북촌점: 33분 (요청 30분보다 3분 초과)",
+          "penalty": 0.2
+        }
+      ],
+      "nearest_minutes": 33,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "오설록 티하우스 북촌점",
+        "경인미술관 전통다원",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "은평구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 은평구 은평로 195 은평구청 → 북촌전통공예체험관: 33분 (요청 30분보다 3분 초과)",
+          "penalty": 0.2
+        }
+      ],
+      "nearest_minutes": 33,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "북촌전통공예체험관",
+        "쌈지길 체험공방",
+        "런닝맨 인사동점"
+      ]
+    },
+    {
+      "district": "서대문구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 2,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 7,
+      "reachable_candidates": 1,
+      "reasons": [
+        "구간 이동 시간 초과"
+      ],
+      "places": [
+        "서대문자연사박물관",
+        "국립대한민국임시정부기념관",
+        "서대문형무소"
+      ]
+    },
+    {
+      "district": "서대문구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 10,
+      "reachable_candidates": 63,
+      "reasons": [],
+      "places": [
+        "경찰박물관",
+        "덕수궁",
+        "하이커 그라운드"
+      ]
+    },
+    {
+      "district": "서대문구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 27,
+      "reachable_candidates": 8,
+      "reasons": [],
+      "places": [
+        "아름다운 차박물관",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "서대문구",
+      "scenario": "대중교통·카페",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 27,
+      "reachable_candidates": 3,
+      "reasons": [],
+      "places": [
+        "오설록 티하우스 북촌점",
+        "경인미술관 전통다원",
+        "아름다운 차박물관"
+      ]
+    },
+    {
+      "district": "서대문구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 27,
+      "reachable_candidates": 5,
+      "reasons": [],
+      "places": [
+        "쌈지길 체험공방",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "마포구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 9,
+      "reachable_candidates": 4,
+      "reasons": [],
+      "places": [
+        "서울월드컵경기장",
+        "문화비축기지",
+        "난지천공원"
+      ]
+    },
+    {
+      "district": "마포구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 10,
+      "reachable_candidates": 17,
+      "reasons": [],
+      "places": [
+        "경의선숲길",
+        "동은의학박물관",
+        "하이커 그라운드"
+      ]
+    },
+    {
+      "district": "마포구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "서울월드컵경기장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "목동운동장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "목동야구장 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 40,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서울월드컵경기장",
+        "목동운동장",
+        "목동야구장"
+      ]
+    },
+    {
+      "district": "마포구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 마포구 월드컵로 212 마포구청 → 아름다운 차박물관: 42분 (요청 30분보다 12분 초과)",
+          "penalty": 0.8
+        }
+      ],
+      "nearest_minutes": 42,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "마포구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 마포구 월드컵로 212 마포구청 → 하이커 그라운드: 40분 (요청 30분보다 10분 초과)",
+          "penalty": 0.667
+        }
+      ],
+      "nearest_minutes": 40,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "하이커 그라운드",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "양천구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 1,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 24,
+      "reachable_candidates": 2,
+      "reasons": [
+        "구간 이동 시간 초과"
+      ],
+      "places": [
+        "Anyangcheon Stream Walkway",
+        "목동야구장",
+        "목동운동장"
+      ]
+    },
+    {
+      "district": "양천구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 14,
+      "reachable_candidates": 13,
+      "reasons": [],
+      "places": [
+        "Anyangcheon Stream Walkway",
+        "목동야구장",
+        "목동운동장"
+      ]
+    },
+    {
+      "district": "양천구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "목동야구장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "목동운동장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "국회박물관 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 61,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "목동야구장",
+        "목동운동장",
+        "국회박물관"
+      ]
+    },
+    {
+      "district": "양천구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 양천구 목동동로 105 양천구청 → 아름다운 차박물관: 63분 (요청 30분보다 33분 초과)",
+          "penalty": 2.2
+        }
+      ],
+      "nearest_minutes": 63,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "양천구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 양천구 목동동로 105 양천구청 → 하이커 그라운드: 61분 (요청 30분보다 31분 초과)",
+          "penalty": 2.067
+        }
+      ],
+      "nearest_minutes": 61,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "하이커 그라운드",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "강서구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "우장산공원 → 허준박물관: 31분 (요청 30분보다 1분 초과)",
+          "penalty": 0.067
+        }
+      ],
+      "nearest_minutes": 12,
+      "reachable_candidates": 1,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "우장산공원",
+        "허준박물관",
+        "궁산공원"
+      ]
+    },
+    {
+      "district": "강서구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 11,
+      "reachable_candidates": 17,
+      "reasons": [],
+      "places": [
+        "우장산공원",
+        "허준박물관",
+        "궁산공원"
+      ]
+    },
+    {
+      "district": "강서구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "목동야구장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "목동운동장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "국회박물관 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 62,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "목동야구장",
+        "목동운동장",
+        "국회박물관"
+      ]
+    },
+    {
+      "district": "강서구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강서구 화곡로 302 강서구청 → 아름다운 차박물관: 64분 (요청 30분보다 34분 초과)",
+          "penalty": 2.267
+        }
+      ],
+      "nearest_minutes": 64,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "강서구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강서구 화곡로 302 강서구청 → 하이커 그라운드: 62분 (요청 30분보다 32분 초과)",
+          "penalty": 2.133
+        }
+      ],
+      "nearest_minutes": 62,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "하이커 그라운드",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "구로구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 구로구 가마산로 245 구로구청 → 고척스카이돔: 38분 (요청 30분보다 8분 초과)",
+          "penalty": 0.533
+        },
+        {
+          "condition": "max_leg",
+          "message": "고척스카이돔 → 계남근린공원: 31분 (요청 30분보다 1분 초과)",
+          "penalty": 0.067
+        }
+      ],
+      "nearest_minutes": 38,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "고척스카이돔",
+        "계남근린공원",
+        "고척근린공원"
+      ]
+    },
+    {
+      "district": "구로구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 17,
+      "reachable_candidates": 13,
+      "reasons": [],
+      "places": [
+        "고척스카이돔",
+        "계남근린공원",
+        "고척근린공원"
+      ]
+    },
+    {
+      "district": "구로구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "고척스카이돔 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "목동운동장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "목동야구장 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 61,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "고척스카이돔",
+        "목동운동장",
+        "목동야구장"
+      ]
+    },
+    {
+      "district": "구로구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 구로구 가마산로 245 구로구청 → 아름다운 차박물관: 63분 (요청 30분보다 33분 초과)",
+          "penalty": 2.2
+        }
+      ],
+      "nearest_minutes": 63,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "구로구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 구로구 가마산로 245 구로구청 → 하이커 그라운드: 61분 (요청 30분보다 31분 초과)",
+          "penalty": 2.067
+        }
+      ],
+      "nearest_minutes": 61,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "하이커 그라운드",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "금천구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 금천구 시흥대로73길 70 금천구청종합청사 → 호림박물관: 68분 (요청 30분보다 38분 초과)",
+          "penalty": 2.533
+        },
+        {
+          "condition": "max_leg",
+          "message": "보라매공원 → 영등포공원: 56분 (요청 30분보다 26분 초과)",
+          "penalty": 1.733
+        }
+      ],
+      "nearest_minutes": 68,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "호림박물관",
+        "보라매공원",
+        "영등포공원"
+      ]
+    },
+    {
+      "district": "금천구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 24,
+      "reachable_candidates": 2,
+      "reasons": [],
+      "places": [
+        "호림박물관",
+        "보라매공원",
+        "영등포공원"
+      ]
+    },
+    {
+      "district": "금천구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "호림박물관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "서울대학교 미술관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "남서울미술관 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 74,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "호림박물관",
+        "서울대학교 미술관",
+        "남서울미술관"
+      ]
+    },
+    {
+      "district": "금천구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 금천구 시흥대로73길 70 금천구청종합청사 → 아름다운 차박물관: 77분 (요청 30분보다 47분 초과)",
+          "penalty": 3.133
+        }
+      ],
+      "nearest_minutes": 77,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "금천구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 금천구 시흥대로73길 70 금천구청종합청사 → 하이커 그라운드: 74분 (요청 30분보다 44분 초과)",
+          "penalty": 2.933
+        }
+      ],
+      "nearest_minutes": 74,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "하이커 그라운드",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "영등포구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 24,
+      "reachable_candidates": 3,
+      "reasons": [],
+      "places": [
+        "목동운동장",
+        "목동야구장",
+        "Anyangcheon Stream Walkway"
+      ]
+    },
+    {
+      "district": "영등포구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 14,
+      "reachable_candidates": 21,
+      "reasons": [],
+      "places": [
+        "Anyangcheon Stream Walkway",
+        "목동운동장",
+        "목동야구장"
+      ]
+    },
+    {
+      "district": "영등포구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "목동운동장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "목동야구장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "국회박물관 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 48,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "목동운동장",
+        "목동야구장",
+        "국회박물관"
+      ]
+    },
+    {
+      "district": "영등포구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 영등포구 당산로 123 영등포구청 → 아름다운 차박물관: 51분 (요청 30분보다 21분 초과)",
+          "penalty": 1.4
+        }
+      ],
+      "nearest_minutes": 51,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "영등포구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 영등포구 당산로 123 영등포구청 → 하이커 그라운드: 48분 (요청 30분보다 18분 초과)",
+          "penalty": 1.2
+        }
+      ],
+      "nearest_minutes": 48,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "하이커 그라운드",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "동작구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 17,
+      "reachable_candidates": 4,
+      "reasons": [],
+      "places": [
+        "퐁피두센터한화서울",
+        "사육신공원",
+        "노들나루공원"
+      ]
+    },
+    {
+      "district": "동작구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 12,
+      "reachable_candidates": 19,
+      "reasons": [],
+      "places": [
+        "퐁피두센터한화서울",
+        "손기정체육공원",
+        "하이커 그라운드"
+      ]
+    },
+    {
+      "district": "동작구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "퐁피두센터한화서울 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "국립중앙박물관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "국립한글박물관 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 41,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "퐁피두센터한화서울",
+        "국립중앙박물관",
+        "국립한글박물관"
+      ]
+    },
+    {
+      "district": "동작구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 동작구 장승배기로 161 → 아름다운 차박물관: 44분 (요청 30분보다 14분 초과)",
+          "penalty": 0.933
+        }
+      ],
+      "nearest_minutes": 44,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "동작구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 동작구 장승배기로 161 → 하이커 그라운드: 41분 (요청 30분보다 11분 초과)",
+          "penalty": 0.733
+        }
+      ],
+      "nearest_minutes": 41,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "하이커 그라운드",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "관악구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "낙성대 → 남서울미술관: 37분 (요청 30분보다 7분 초과)",
+          "penalty": 0.467
+        }
+      ],
+      "nearest_minutes": 23,
+      "reachable_candidates": 2,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서울대학교 미술관",
+        "낙성대",
+        "남서울미술관"
+      ]
+    },
+    {
+      "district": "관악구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 13,
+      "reachable_candidates": 11,
+      "reasons": [],
+      "places": [
+        "노들나루공원",
+        "식민지역사박물관",
+        "하이커 그라운드"
+      ]
+    },
+    {
+      "district": "관악구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "숭실대학교 한국기독교박물관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "국립한글박물관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "국립중앙박물관 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 55,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "숭실대학교 한국기독교박물관",
+        "국립한글박물관",
+        "국립중앙박물관"
+      ]
+    },
+    {
+      "district": "관악구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 관악구 관악로 145 관악구청 → 아름다운 차박물관: 58분 (요청 30분보다 28분 초과)",
+          "penalty": 1.867
+        }
+      ],
+      "nearest_minutes": 58,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "관악구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 관악구 관악로 145 관악구청 → 하이커 그라운드: 55분 (요청 30분보다 25분 초과)",
+          "penalty": 1.667
+        }
+      ],
+      "nearest_minutes": 55,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "하이커 그라운드",
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점"
+      ]
+    },
+    {
+      "district": "서초구",
+      "scenario": "도보·전체",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "녹지광장 → 유리지공예관: 42분 (요청 30분보다 12분 초과)",
+          "penalty": 0.8
+        }
+      ],
+      "nearest_minutes": 28,
+      "reachable_candidates": 1,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "시민의숲",
+        "녹지광장",
+        "유리지공예관"
+      ]
+    },
+    {
+      "district": "서초구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 15,
+      "reachable_candidates": 14,
+      "reasons": [],
+      "places": [
+        "잠원한강공원",
+        "리움미술관",
+        "하이커 그라운드"
+      ]
+    },
+    {
+      "district": "서초구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "포스코미술관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "뮤지엄 김치간 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "잠실야구장 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 56,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "포스코미술관",
+        "뮤지엄 김치간",
+        "잠실야구장"
+      ]
+    },
+    {
+      "district": "서초구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 서초구 남부순환로 2584 서초구청, 서초구의회 → 아름다운 차박물관: 57분 (요청 30분보다 27분 초과)",
+          "penalty": 1.8
+        }
+      ],
+      "nearest_minutes": 57,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "서초구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 서초구 남부순환로 2584 서초구청, 서초구의회 → 런닝맨 인사동점: 56분 (요청 30분보다 26분 초과)",
+          "penalty": 1.733
+        }
+      ],
+      "nearest_minutes": 56,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "강남구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 23,
+      "reachable_candidates": 3,
+      "reasons": [],
+      "places": [
+        "도산공원",
+        "코리아나 화장박물관",
+        "학동공원"
+      ]
+    },
+    {
+      "district": "강남구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 14,
+      "reachable_candidates": 20,
+      "reasons": [],
+      "places": [
+        "도산공원",
+        "리움미술관",
+        "하이커 그라운드"
+      ]
+    },
+    {
+      "district": "강남구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "뮤지엄 김치간 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "잠실야구장 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "서울올림픽전시관 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 45,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "뮤지엄 김치간",
+        "잠실야구장",
+        "서울올림픽전시관"
+      ]
+    },
+    {
+      "district": "강남구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강남구 학동로 426 강남구청 → 아름다운 차박물관: 45분 (요청 30분보다 15분 초과)",
+          "penalty": 1.0
+        }
+      ],
+      "nearest_minutes": 45,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "강남구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강남구 학동로 426 강남구청 → 런닝맨 인사동점: 45분 (요청 30분보다 15분 초과)",
+          "penalty": 1.0
+        }
+      ],
+      "nearest_minutes": 45,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "송파구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 12,
+      "reachable_candidates": 4,
+      "reasons": [],
+      "places": [
+        "소마미술관",
+        "올림픽 벨로드롬",
+        "올림픽공원"
+      ]
+    },
+    {
+      "district": "송파구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 11,
+      "reachable_candidates": 19,
+      "reasons": [],
+      "places": [
+        "소마미술관",
+        "올림픽공원",
+        "올림픽 벨로드롬"
+      ]
+    },
+    {
+      "district": "송파구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "서울올림픽기념관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "소마미술관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "올림픽 벨로드롬 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 64,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서울올림픽기념관",
+        "소마미술관",
+        "올림픽 벨로드롬"
+      ]
+    },
+    {
+      "district": "송파구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 송파구 올림픽로 326 송파구청 → 아름다운 차박물관: 64분 (요청 30분보다 34분 초과)",
+          "penalty": 2.267
+        }
+      ],
+      "nearest_minutes": 64,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "송파구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 송파구 올림픽로 326 송파구청 → 런닝맨 인사동점: 64분 (요청 30분보다 34분 초과)",
+          "penalty": 2.267
+        }
+      ],
+      "nearest_minutes": 64,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    },
+    {
+      "district": "강동구",
+      "scenario": "도보·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 23,
+      "reachable_candidates": 3,
+      "reasons": [],
+      "places": [
+        "올림픽공원",
+        "올림픽 벨로드롬",
+        "소마미술관"
+      ]
+    },
+    {
+      "district": "강동구",
+      "scenario": "대중교통·전체",
+      "status": "ok",
+      "plans": 3,
+      "best_effort": false,
+      "deviations": [],
+      "nearest_minutes": 13,
+      "reachable_candidates": 15,
+      "reasons": [],
+      "places": [
+        "올림픽공원",
+        "올림픽 벨로드롬",
+        "소마미술관"
+      ]
+    },
+    {
+      "district": "강동구",
+      "scenario": "대중교통·비 오는 날",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "setting",
+          "message": "서울올림픽기념관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "소마미술관 — 실내 조건 미확인",
+          "penalty": 3
+        },
+        {
+          "condition": "setting",
+          "message": "올림픽 벨로드롬 — 실내 조건 미확인",
+          "penalty": 3
+        }
+      ],
+      "nearest_minutes": 67,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "서울올림픽기념관",
+        "소마미술관",
+        "올림픽 벨로드롬"
+      ]
+    },
+    {
+      "district": "강동구",
+      "scenario": "대중교통·카페",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강동구 성내로 25 강동구청 → 아름다운 차박물관: 67분 (요청 30분보다 37분 초과)",
+          "penalty": 2.467
+        }
+      ],
+      "nearest_minutes": 67,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "아름다운 차박물관",
+        "경인미술관 전통다원",
+        "오설록 티하우스 북촌점"
+      ]
+    },
+    {
+      "district": "강동구",
+      "scenario": "대중교통·즐거운 데이트",
+      "status": "best_effort",
+      "plans": 3,
+      "best_effort": true,
+      "deviations": [
+        {
+          "condition": "max_leg",
+          "message": "서울특별시 강동구 성내로 25 강동구청 → 런닝맨 인사동점: 67분 (요청 30분보다 37분 초과)",
+          "penalty": 2.467
+        }
+      ],
+      "nearest_minutes": 67,
+      "reachable_candidates": 0,
+      "reasons": [
+        "모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다."
+      ],
+      "places": [
+        "런닝맨 인사동점",
+        "다이나믹메이즈 인사동점",
+        "쌈지길 체험공방"
+      ]
+    }
+  ],
+  "elapsed_seconds": 56.33
+}

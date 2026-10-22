@@ -1,0 +1,22 @@
+{
+  "passed": [
+    "real_gyeongbokgung_web_image_and_attribution",
+    "live_wikidata_commons_dynamic_lookup",
+    "dynamic_photo_image_loaded",
+    "timeline_photo_integration_with_mocked_plan",
+    "mobile_timeline_photo_no_overflow",
+    "no_real_photo_for_demo"
+  ],
+  "page_errors": [],
+  "dynamic_api": {
+    "count": 1,
+    "licenses": [
+      "CC BY 4.0"
+    ],
+    "association": [
+      "Wikidata Q7451676의 P18 대표 이미지"
+    ]
+  },
+  "plan_integration": "mocked_plan_real_photo",
+  "llm_calls": 0
+}

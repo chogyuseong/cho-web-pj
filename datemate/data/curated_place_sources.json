@@ -1,0 +1,107 @@
+[
+  {
+    "id": "seoul:runningman-insadong",
+    "name": "런닝맨 인사동점",
+    "address": "서울 종로구 인사동길 12",
+    "category": "오락·놀이",
+    "themes": [
+      "오락·놀이",
+      "레저·활동"
+    ],
+    "setting": "indoor",
+    "description": "미션을 수행하며 몸을 움직이는 실내 게임 체험관입니다.",
+    "source": "https://korean.visitseoul.net/entertainment/RunningManExperienceCenter/KOPf78gji"
+  },
+  {
+    "id": "seoul:dynamicmaze-insadong",
+    "name": "다이나믹메이즈 인사동점",
+    "address": "서울 종로구 인사동길 12",
+    "category": "레저·활동",
+    "themes": [
+      "레저·활동",
+      "오락·놀이"
+    ],
+    "setting": "indoor",
+    "description": "장애물을 넘고 협동 미션을 수행하는 실내 미로 체험 공간입니다.",
+    "source": "https://booking.kakao.com/detail/ticketStore/35002"
+  },
+  {
+    "id": "Q121406424",
+    "name": "하이커 그라운드",
+    "address": "서울 중구 청계천로 40",
+    "category": "오락·놀이",
+    "themes": [
+      "오락·놀이",
+      "문화·예술",
+      "레저·활동"
+    ],
+    "setting": "indoor",
+    "description": "K팝 무대와 미디어아트를 체험하고 사진을 남길 수 있는 관광 홍보 공간입니다.",
+    "source": "https://english.visitkorea.or.kr/svc/contents/contentsView.do?vcontsId=31124"
+  },
+  {
+    "id": "seoul:ssamziegil-workshop",
+    "name": "쌈지길 체험공방",
+    "address": "서울 종로구 인사동길 44",
+    "category": "체험·제작",
+    "themes": [
+      "체험·제작"
+    ],
+    "setting": "indoor",
+    "description": "쌈지길 지하 체험공방에서 공예 프로그램을 선택할 수 있습니다. 당일 프로그램과 접수 가능 여부는 사전 확인하세요.",
+    "source": "https://korean.visitseoul.net/palace/쌈지길-체험공방_/6367"
+  },
+  {
+    "id": "seoul:bukchon-craft",
+    "name": "북촌전통공예체험관",
+    "address": "서울 종로구 북촌로12길 24-5",
+    "category": "체험·제작",
+    "themes": [
+      "체험·제작",
+      "문화·예술"
+    ],
+    "setting": "indoor",
+    "description": "요일별 전통공예 프로그램을 운영하는 공공한옥입니다. 체험 종류와 접수 여부는 운영기관에서 확인하세요.",
+    "source": "https://hanok.seoul.go.kr/front/kor/exp/expPlaceView.do?searchGubun=P300&spmSeq=128"
+  },
+  {
+    "id": "seoul:osulloc-bukchon",
+    "name": "오설록 티하우스 북촌점",
+    "address": "서울 종로구 북촌로 45",
+    "category": "카페·미식",
+    "themes": [
+      "카페·미식",
+      "휴식·힐링"
+    ],
+    "setting": "indoor",
+    "description": "차와 디저트를 즐길 수 있는 북촌의 티하우스입니다. 실내 좌석을 기준으로 분류했습니다.",
+    "source": "https://www.osulloc.com/kr/ko/life/event/bukchon"
+  },
+  {
+    "id": "seoul:beautiful-tea-museum",
+    "name": "아름다운 차박물관",
+    "address": "서울 종로구 인사동길 19-11",
+    "category": "카페·미식",
+    "themes": [
+      "카페·미식",
+      "문화·예술",
+      "휴식·힐링"
+    ],
+    "setting": "indoor",
+    "description": "차 관련 전시와 차를 즐길 수 있는 인사동 공간입니다.",
+    "source": "https://english.visitkorea.or.kr/svc/contents/contentsView.do?vcontsId=104043"
+  },
+  {
+    "id": "seoul:kyungin-teahouse",
+    "name": "경인미술관 전통다원",
+    "address": "서울 종로구 인사동10길 11-4",
+    "category": "카페·미식",
+    "themes": [
+      "카페·미식",
+      "휴식·힐링"
+    ],
+    "setting": "indoor",
+    "description": "경인미술관 안에 있는 전통 찻집입니다. 실내 좌석을 기준으로 분류했으며 정원 공간도 있습니다.",
+    "source": "https://korean.visitseoul.net/hallyu/경인미술관/KOP002011"
+  }
+]

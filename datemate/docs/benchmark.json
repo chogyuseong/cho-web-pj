@@ -1,0 +1,8 @@
+{
+  "mode": "키 없는 규칙 기반 응답 / 로컬 Chroma 문자 해시 검색",
+  "first_ms": 510.52,
+  "cache_ms": 5.85,
+  "first_cache_hit": false,
+  "second_cache_hit": true,
+  "note": "동일 질문·근거·빈 대화 이력. 검색은 재실행하고 생성 결과만 SQLite 캐시에서 읽음. 실제 외부 API 성능 아님."
+}

@@ -1,0 +1,11 @@
+{
+  "passed": [
+    "desktop_generate_3_plans",
+    "lock_and_replace",
+    "undo_and_place_chat",
+    "review_create_delete",
+    "real_catalog_100_plus",
+    "mobile_generate_no_horizontal_overflow"
+  ],
+  "page_errors": []
+}

@@ -1,0 +1,101 @@
+/* 공개 클라이언트 ID가 설정된 경우에만 로드한다. 비밀 API 키는 사용하지 않는다. */
+let naverLoader;
+function loadNaverMaps(key,force=false){
+  if(force){naverLoader=null;window.naverMapAuthFailed=false;}
+  if(window.naverMapAuthFailed)return Promise.reject(Error('지도 인증 실패'));
+  if(!force&&window.naver?.maps)return Promise.resolve();
+  if(naverLoader)return naverLoader;
+  naverLoader=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');
+    script.dataset.datemateNaver='true';
+    const timeout=setTimeout(()=>{script.remove();reject(Error('지도 응답 시간 초과'));},20000);
+    window.navermap_authFailure=()=>{
+      window.naverMapAuthFailed=true;clearTimeout(timeout);reject(Error('지도 인증 실패'));
+      // 인증 실패는 SDK onload 이후에도 도착할 수 있다.
+      document.querySelectorAll('.plan-map').forEach(w=>w.showMapFallback?.());
+    };
+    script.src='https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId='+encodeURIComponent(key);
+    script.onload=()=>{clearTimeout(timeout);window.naver?.maps?resolve():reject(Error('지도 인증 실패'));};
+    script.onerror=()=>{clearTimeout(timeout);reject(Error('지도 로딩 실패'));};
+    document.head.append(script);
+  });
+  const pending=naverLoader;
+  pending.catch(()=>{if(naverLoader===pending)naverLoader=null;});
+  return pending;
+}
+
+function drawPlanMap(plan){
+  const wrap=node('section',undefined,'plan-map');
+  const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
+  canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
+  const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
+  caption.setAttribute('role','status');
+  wrap.append(canvas,caption);
+  wrap.showMapFallback=()=>fallback('네이버 지도 인증에 실패했습니다. Dynamic Map 권한과 등록 웹 주소를 확인해 주세요.');
+  requestAnimationFrame(()=>render());
+  async function render(force=false){
+    if(!wrap.isConnected)return;
+    if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
+    canvas.textContent='네이버 지도를 불러오는 중…';
+    wrap.replaceChildren(canvas,caption);
+    try{
+      await loadNaverMaps(statusData.map_js_key,force);
+      if(window.naverMapAuthFailed)throw Error('지도 인증 실패');
+      if(!wrap.isConnected)return;
+      canvas.replaceChildren();
+      const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])];
+      const coord=p=>new naver.maps.LatLng(p.lat,p.lon);
+      const map=new naver.maps.Map(canvas,{center:coord(points[0]),zoom:14,zoomControl:true,scrollWheel:false});
+      const bounds=new naver.maps.LatLngBounds();
+      points.forEach((point,i)=>{
+        const label=i===0?'출발':i>plan.places.length?'귀가':String(i);
+        // 장소명은 HTML에 삽입하지 않고 텍스트·title로만 전달한다.
+        const marker=new naver.maps.Marker({map,position:coord(point),title:label+' · '+point.name,
+          icon:{content:'<span class="route-marker '+(i===0?'route-start':'')+'">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
+        bounds.extend(coord(point));
+      });
+      let actual=0;
+      for(let i=0;i<points.length-1;i++){
+        const leg=plan.legs[i];
+        const isRoad=plan.conditions.mode==='real'&&plan.conditions.transport==='car'&&leg?.status==='api'&&leg.path?.length>1;
+        const path=isRoad?leg.path.map(([lon,lat])=>new naver.maps.LatLng(lat,lon)):[coord(points[i]),coord(points[i+1])];
+        if(isRoad){actual++;path.forEach(p=>bounds.extend(p));}
+        new naver.maps.Polyline({map,path,strokeColor:isRoad?'#294d3d':'#a16b45',strokeWeight:isRoad?5:3,
+          strokeOpacity:.9,strokeStyle:isRoad?'solid':'shortdash'});
+      }
+      map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
+      caption.textContent=actual===points.length-1
+        ?'네이버 지도 · 자동차 실제 도로 경로 (조회 시점 기준)'
+        :'네이버 지도 · 점선은 방문 순서의 직선 연결이며 실제 이동 경로가 아닙니다.';
+      if(plan.conditions.mode==='demo')caption.textContent+=' 가상 장소 데모입니다.';
+      else if(actual)caption.textContent+=' 실선만 자동차 실제 경로입니다.';
+    }catch(error){if(wrap.isConnected){
+      const reasons={'지도 인증 실패':'네이버 지도 인증에 실패했습니다. 등록 웹 주소와 Dynamic Map 권한을 확인해 주세요.',
+        '지도 응답 시간 초과':'지도 서버의 응답이 늦어 연결이 중단됐습니다.',
+        '지도 로딩 실패':'네이버 지도 스크립트를 받지 못했습니다. 네트워크나 콘텐츠 차단 설정을 확인해 주세요.'};
+      fallback(reasons[error.message]||'네이버 지도 화면을 표시하지 못했습니다. 다시 연결해 주세요.');
+    }}
+  }
+  function fallback(message){
+    const notice=node('div',undefined,'map-reconnect');
+    notice.setAttribute('role','status');
+    notice.append(node('strong','네이버 지도 연결이 잠시 끊겼어요'),node('p',message,'hint'),
+      button('지도 다시 연결',()=>render(true),'primary'));
+    const schematic=node('details',undefined,'map-schematic');
+    schematic.append(node('summary','방문 순서 개략도 보기 (실제 지도 아님)'),drawMap(plan));
+    wrap.replaceChildren(notice,schematic);
+  }
+  return wrap;
+}
+async function officialPlaceMap(container,place,key){
+  try{
+    await loadNaverMaps(key);
+    if(!container.isConnected)return;
+    const coordinates=new naver.maps.LatLng(place.lat,place.lon);
+    container.replaceChildren();
+    const map=new naver.maps.Map(container,{center:coordinates,zoom:15});
+    new naver.maps.Marker({position:coordinates,map,title:place.name});
+  }catch{
+    container.textContent='네이버 지도 로딩 실패. 아래 지도 링크에서 위치를 확인해 주세요.';
+  }
+}

@@ -1,0 +1,1262 @@
+[
+  {
+    "id": "demo-01",
+    "name": "가상 작은 전시실 1",
+    "region": "서울",
+    "category": "문화·예술",
+    "tags": [
+      "문화·예술",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.573,
+    "lon": 126.982,
+    "description": "문화·예술 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "문화·예술"
+    ],
+    "price": [
+      8000,
+      8000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [
+      0
+    ],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-02",
+    "name": "가상 느린 커피 1",
+    "region": "서울",
+    "category": "카페·미식",
+    "tags": [
+      "카페·미식",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5742,
+    "lon": 126.982,
+    "description": "카페·미식 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "카페·미식"
+    ],
+    "price": [
+      6500,
+      8500
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [
+      [
+        900,
+        930
+      ]
+    ],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 50,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-03",
+    "name": "가상 초록 산책길 1",
+    "region": "서울",
+    "category": "산책·풍경",
+    "tags": [
+      "산책·풍경",
+      "산책"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5754,
+    "lon": 126.982,
+    "description": "산책·풍경 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "산책·풍경"
+    ],
+    "price": [
+      0,
+      0
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 45,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "outdoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-04",
+    "name": "가상 도자기 작업실 1",
+    "region": "서울",
+    "category": "체험·제작",
+    "tags": [
+      "체험·제작",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5766,
+    "lon": 126.982,
+    "description": "체험·제작 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "체험·제작"
+    ],
+    "price": [
+      18000,
+      18000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": true,
+    "reservation_url": null,
+    "stay": 70,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-05",
+    "name": "가상 책과 쉼 1",
+    "region": "서울",
+    "category": "휴식·힐링",
+    "tags": [
+      "휴식·힐링",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5778,
+    "lon": 126.982,
+    "description": "휴식·힐링 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "휴식·힐링"
+    ],
+    "price": [
+      4000,
+      4000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 50,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-06",
+    "name": "가상 보드게임 라운지 1",
+    "region": "서울",
+    "category": "오락·놀이",
+    "tags": [
+      "오락·놀이",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.579,
+    "lon": 126.982,
+    "description": "오락·놀이 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "오락·놀이"
+    ],
+    "price": [
+      10000,
+      10000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-07",
+    "name": "가상 클라이밍 스튜디오 1",
+    "region": "서울",
+    "category": "레저·활동",
+    "tags": [
+      "레저·활동",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5802,
+    "lon": 126.982,
+    "description": "레저·활동 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "레저·활동"
+    ],
+    "price": [
+      15000,
+      15000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-08",
+    "name": "가상 작은 전시실 2",
+    "region": "서울",
+    "category": "문화·예술",
+    "tags": [
+      "문화·예술",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.573,
+    "lon": 126.984,
+    "description": "문화·예술 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "문화·예술"
+    ],
+    "price": [
+      8000,
+      8000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [
+      0
+    ],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-09",
+    "name": "가상 느린 커피 2",
+    "region": "서울",
+    "category": "카페·미식",
+    "tags": [
+      "카페·미식",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5742,
+    "lon": 126.984,
+    "description": "카페·미식 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "카페·미식"
+    ],
+    "price": [
+      6500,
+      8500
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [
+      [
+        900,
+        930
+      ]
+    ],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 50,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-10",
+    "name": "가상 초록 산책길 2",
+    "region": "서울",
+    "category": "산책·풍경",
+    "tags": [
+      "산책·풍경",
+      "산책"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5754,
+    "lon": 126.984,
+    "description": "산책·풍경 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "산책·풍경"
+    ],
+    "price": [
+      0,
+      0
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 45,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "outdoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-11",
+    "name": "가상 도자기 작업실 2",
+    "region": "서울",
+    "category": "체험·제작",
+    "tags": [
+      "체험·제작",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5766,
+    "lon": 126.984,
+    "description": "체험·제작 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "체험·제작"
+    ],
+    "price": [
+      18000,
+      18000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": true,
+    "reservation_url": null,
+    "stay": 70,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-12",
+    "name": "가상 책과 쉼 2",
+    "region": "서울",
+    "category": "휴식·힐링",
+    "tags": [
+      "휴식·힐링",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5778,
+    "lon": 126.984,
+    "description": "휴식·힐링 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "휴식·힐링"
+    ],
+    "price": [
+      4000,
+      4000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 50,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-13",
+    "name": "가상 보드게임 라운지 2",
+    "region": "서울",
+    "category": "오락·놀이",
+    "tags": [
+      "오락·놀이",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.579,
+    "lon": 126.984,
+    "description": "오락·놀이 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "오락·놀이"
+    ],
+    "price": [
+      10000,
+      10000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-14",
+    "name": "가상 클라이밍 스튜디오 2",
+    "region": "서울",
+    "category": "레저·활동",
+    "tags": [
+      "레저·활동",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5802,
+    "lon": 126.984,
+    "description": "레저·활동 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "레저·활동"
+    ],
+    "price": [
+      15000,
+      15000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-15",
+    "name": "가상 작은 전시실 3",
+    "region": "서울",
+    "category": "문화·예술",
+    "tags": [
+      "문화·예술",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.573,
+    "lon": 126.986,
+    "description": "문화·예술 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "문화·예술"
+    ],
+    "price": [
+      8000,
+      8000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [
+      0
+    ],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-16",
+    "name": "가상 느린 커피 3",
+    "region": "서울",
+    "category": "카페·미식",
+    "tags": [
+      "카페·미식",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5742,
+    "lon": 126.986,
+    "description": "카페·미식 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "카페·미식"
+    ],
+    "price": [
+      6500,
+      8500
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [
+      [
+        900,
+        930
+      ]
+    ],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 50,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-17",
+    "name": "가상 초록 산책길 3",
+    "region": "서울",
+    "category": "산책·풍경",
+    "tags": [
+      "산책·풍경",
+      "산책"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5754,
+    "lon": 126.986,
+    "description": "산책·풍경 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "산책·풍경"
+    ],
+    "price": [
+      0,
+      0
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 45,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "outdoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-18",
+    "name": "가상 도자기 작업실 3",
+    "region": "서울",
+    "category": "체험·제작",
+    "tags": [
+      "체험·제작",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5766,
+    "lon": 126.986,
+    "description": "체험·제작 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "체험·제작"
+    ],
+    "price": [
+      18000,
+      18000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": true,
+    "reservation_url": null,
+    "stay": 70,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-19",
+    "name": "가상 책과 쉼 3",
+    "region": "서울",
+    "category": "휴식·힐링",
+    "tags": [
+      "휴식·힐링",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5778,
+    "lon": 126.986,
+    "description": "휴식·힐링 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "휴식·힐링"
+    ],
+    "price": [
+      4000,
+      4000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 50,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-20",
+    "name": "가상 보드게임 라운지 3",
+    "region": "서울",
+    "category": "오락·놀이",
+    "tags": [
+      "오락·놀이",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.579,
+    "lon": 126.986,
+    "description": "오락·놀이 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "오락·놀이"
+    ],
+    "price": [
+      10000,
+      10000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-21",
+    "name": "가상 클라이밍 스튜디오 3",
+    "region": "서울",
+    "category": "레저·활동",
+    "tags": [
+      "레저·활동",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5802,
+    "lon": 126.986,
+    "description": "레저·활동 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "레저·활동"
+    ],
+    "price": [
+      15000,
+      15000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-22",
+    "name": "가상 작은 전시실 4",
+    "region": "서울",
+    "category": "문화·예술",
+    "tags": [
+      "문화·예술",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.573,
+    "lon": 126.988,
+    "description": "문화·예술 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "문화·예술"
+    ],
+    "price": [
+      8000,
+      8000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [
+      0
+    ],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-23",
+    "name": "가상 느린 커피 4",
+    "region": "서울",
+    "category": "카페·미식",
+    "tags": [
+      "카페·미식",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5742,
+    "lon": 126.988,
+    "description": "카페·미식 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "카페·미식"
+    ],
+    "price": [
+      6500,
+      8500
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [
+      [
+        900,
+        930
+      ]
+    ],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 50,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-24",
+    "name": "가상 초록 산책길 4",
+    "region": "서울",
+    "category": "산책·풍경",
+    "tags": [
+      "산책·풍경",
+      "산책"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5754,
+    "lon": 126.988,
+    "description": "산책·풍경 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "산책·풍경"
+    ],
+    "price": [
+      0,
+      0
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 45,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "outdoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-25",
+    "name": "가상 도자기 작업실 4",
+    "region": "서울",
+    "category": "체험·제작",
+    "tags": [
+      "체험·제작",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5766,
+    "lon": 126.988,
+    "description": "체험·제작 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "체험·제작"
+    ],
+    "price": [
+      18000,
+      18000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": true,
+    "reservation_url": null,
+    "stay": 70,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-26",
+    "name": "가상 책과 쉼 4",
+    "region": "서울",
+    "category": "휴식·힐링",
+    "tags": [
+      "휴식·힐링",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5778,
+    "lon": 126.988,
+    "description": "휴식·힐링 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "휴식·힐링"
+    ],
+    "price": [
+      4000,
+      4000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 50,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-27",
+    "name": "가상 보드게임 라운지 4",
+    "region": "서울",
+    "category": "오락·놀이",
+    "tags": [
+      "오락·놀이",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.579,
+    "lon": 126.988,
+    "description": "오락·놀이 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "오락·놀이"
+    ],
+    "price": [
+      10000,
+      10000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  },
+  {
+    "id": "demo-28",
+    "name": "가상 클라이밍 스튜디오 4",
+    "region": "서울",
+    "category": "레저·활동",
+    "tags": [
+      "레저·활동",
+      "실내"
+    ],
+    "address": "가상 시연 구역 (실제 주소 아님)",
+    "lat": 37.5802,
+    "lon": 126.988,
+    "description": "레저·활동 일정 계산용 가상 장소입니다. 실제 방문할 수 없습니다.",
+    "activities": [
+      "레저·활동"
+    ],
+    "price": [
+      15000,
+      15000
+    ],
+    "price_unit": "person",
+    "price_status": "estimated",
+    "hours": [
+      600,
+      1260
+    ],
+    "closed_days": [],
+    "breaks": [],
+    "last_entry": 1200,
+    "reservation": false,
+    "reservation_url": null,
+    "stay": 60,
+    "stay_basis": "시연용 설계 가정",
+    "setting": "indoor",
+    "source": "demo:fixture",
+    "checked_at": "2026-10-21",
+    "source_type": "가상 시연 데이터",
+    "license": "프로젝트 자체 생성 가상 데이터",
+    "photos": [],
+    "videos": [],
+    "rating": null,
+    "atmosphere": null,
+    "demo": true
+  }
+]

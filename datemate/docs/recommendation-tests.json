@@ -1,0 +1,11 @@
+{
+  "passed": [
+    "default_demo_returns_three",
+    "real_missing_data_is_not_reported_as_success",
+    "explicit_demo_reset_recovers",
+    "far_origin_explained_without_silent_change",
+    "invalid_form_explained"
+  ],
+  "page_errors": [],
+  "llm_calls": 0
+}

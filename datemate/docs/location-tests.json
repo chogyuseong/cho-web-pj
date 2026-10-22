@@ -1,0 +1,13 @@
+{
+  "passed": [
+    "live_osm_map_click_select_origin",
+    "missing_key_message",
+    "mock_address_selection_submits_matching_coordinates",
+    "home_picker_and_payload",
+    "real_mode_requires_explicit_location",
+    "mobile_picker_no_overflow",
+    "mobile_confirm_visible_without_scrolling_and_clickable"
+  ],
+  "page_errors": [],
+  "naver_live_api": "not_run_missing_key"
+}

@@ -1,0 +1,25 @@
+.env
+# Local secrets at every directory level; keep the empty template.
+.env.*
+!.env.example
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+/datemate/runtime/
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
+
+# Local logs and OS metadata
+*.log
+.DS_Store
+Thumbs.db

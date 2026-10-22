@@ -8,3 +8,7 @@
 .plan-photo-preview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}.plan-photo-preview:empty{display:none}.plan-photo-item{min-width:0}.plan-photo-name{display:block;font-size:12px;margin-bottom:6px;overflow-wrap:anywhere}.plan-photo-preview .place-photo-panel{display:block;padding:0;margin:0;border:0;background:transparent}.plan-photo-preview .place-photo-copy{display:none}.plan-photo-preview .place-photo img{height:145px}.plan-photo-preview .place-photo figcaption{font-size:9px}.plan-photo-preview .photo-status{font-size:11px;padding:8px}.photo-retry{font-size:11px;margin:6px 0}@media(max-width:600px){.plan-photo-preview{gap:6px}.plan-photo-preview .place-photo img{height:105px}}
 
 .place-blogs h5{font-size:14px;margin:14px 0 6px}.blog-search-post{padding:12px 0;border-bottom:1px solid var(--line)}.blog-search-post>a{font-size:13px;font-weight:600}.blog-search-post p{font-size:12px;line-height:1.8;margin:7px 0}.blog-search-post small{font-size:10px;color:var(--muted)}
+
+.chat-box .message{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.timeline-card .hint{overflow-wrap:anywhere}

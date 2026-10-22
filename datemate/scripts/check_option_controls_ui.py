@@ -40,6 +40,7 @@ with sync_playwright() as pw:
     page.locator('#plan-detail .stop').first.get_by_role('button',name='↻ 다른 장소로 변경',exact=True).click()
     page.locator('#dialog-content .plan-card,#dialog-content .warning').first.wait_for(timeout=45000)
     replacement=page.locator('#dialog-content').get_by_role('button',name='이 장소로 교체',exact=True)
+    page.locator('[name=replacement_reason]').select_option('distance')
     replaced=False
     if replacement.count():
         old=page.evaluate('selected.id')
@@ -60,8 +61,8 @@ with sync_playwright() as pw:
     page.locator('#close-dialog').click()
     card.locator('.place-blogs > summary').click()
     card.locator('.blog-search-post,.place-blog-content > .hint').first.wait_for(timeout=20000)
-    page.locator('#plan-detail .meal-more').first.click()
-    page.locator('#plan-detail .meal-more-results .meal-card,#plan-detail .meal-more-results > a').first.wait_for(timeout=20000)
+    page.locator('#plan-detail .regional-restaurants h4').wait_for(timeout=30000)
+    assert page.locator('#plan-detail .meal-suggestions:not(.regional-restaurants)').count()==page.evaluate('selected.places.length')
     # 사진이 있는 식당 카드의 실제 표시 및 옆 배치를 확인한다.
     page.wait_for_function('document.querySelector("#plan-detail .meal-card-with-photo .meal-photo img")?.naturalWidth>0',timeout=30000)
     assert page.evaluate('(()=>{const box=compactConditionSummary(selected);return box.children.length===4&&Array.from(box.children).every(p=>p.querySelector("strong"))})()')
@@ -82,7 +83,7 @@ with sync_playwright() as pw:
     page.get_by_role('button',name='주소 검색',exact=True).click()
     page.locator('.location-result').first.wait_for(timeout=20000)
     page.locator('.location-result').first.click()
-    page.get_by_role('button',name='이 위치를 출발지로 사용').click()
+    page.get_by_role('button',name='이 지역에서 데이트하기').click()
     assert page.locator('[name=origin_name]').input_value()
     page.locator('[name=max_leg]').evaluate("i=>i.closest('details').open=true")
     page.locator('[name=return_home]').check()
@@ -101,6 +102,7 @@ with sync_playwright() as pw:
         page.evaluate('p=>{plans=[p];selected=p;locks.clear();renderResults();renderDetail();}',fixture)
         page.locator('#plan-detail .stop').first.get_by_role('button',name='↻ 다른 장소로 변경',exact=True).click()
         page.locator('#dialog-content').get_by_role('button',name='이 장소로 교체',exact=True).first.wait_for(timeout=30000)
+        page.locator('[name=replacement_reason]').select_option('distance')
         page.locator('#dialog-content').get_by_role('button',name='이 장소로 교체',exact=True).first.click()
         page.wait_for_function('id=>selected.id!==id',arg=fixture['id'])
         cleanup.append(page.evaluate('selected.id'))

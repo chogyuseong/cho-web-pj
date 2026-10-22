@@ -5,18 +5,29 @@ from .taxonomy import classification_themes
 
 def audit_plan(plan,c=None):
     c=c or Conditions.model_validate(plan['conditions'])
+    from .taxonomy import CONCEPT_PROFILES,concept_signals
+    plan['concept_matches']=[dict(place_id=p['id'],signals=concept_signals(p,c)) for p in plan['places']] if c.date_subcategory in CONCEPT_PROFILES else []
     checks=[];venues=plan['places'];routes=plan['legs'];real=c.mode=='real'
     def add(key,label,state,message):checks.append(dict(condition=key,label=label,state=state,message=message))
     def test(key,label,ok,yes,no):add(key,label,'met' if ok else 'unmet',yes if ok else no)
+    from .request_intent import intent,matches,INTENTS
+    parsed=intent(c)
+    plan['request_interpretation']=dict(intents=[INTENTS[k][1][0] for k in parsed['intents']],excluded=[INTENTS[k][1][0] for k in parsed['excluded']],applied=parsed['patch'])
+    for key in parsed['intents']:
+        matched=[p['name'] for p in venues if matches(p,key)]
+        if parsed['exclusive']:
+            ok=len(matched)==len(venues)
+        else:ok=bool(matched)
+        test('request_activity','입력한 활동',ok,INTENTS[key][1][0]+' 요청 반영: '+', '.join(matched),INTENTS[key][1][0]+' 요청에 맞는 장소가 부족해 다른 활동을 보완했어요. 입력한 지역·범위에서 후보를 확인해 주세요.')
     def mins(value):
         h,m=map(int,value.split(':'));return h*60+m
     names=lambda rows:', '.join(p['name'] for p in rows)
-    from .quality import in_area,meal_due,meal_penalty
+    from .quality import in_area,meal_due,meal_time_matches
     if c.area_center:
         test('neighborhood','동네 범위',all(in_area(p,c) for p in venues),f'{c.area_center.name} 반경 {c.neighborhood_radius_km:g}km 안의 장소로 구성했어요.','선택한 동네 범위 밖 장소가 있어요.')
     if meal_due(c):
-        penalty=meal_penalty(plan,c)
-        add('meal','식사 구성','met' if penalty==0 else 'unmet','식사 시간대에 음식점 방문을 포함했어요.' if penalty==0 else '조건에 맞는 식사 시간대의 음식점 구성을 찾지 못했어요. 식사 후보 또는 시간 조건을 확인해 주세요.')
+        timed=meal_time_matches(plan)
+        add('meal','식사 구성','met' if timed else 'unmet','식사 시간대에 음식점 방문을 포함했어요.' if timed else '조건에 맞는 식사 시간대의 음식점 구성을 찾지 못했어요. 식사 후보 또는 시간 조건을 확인해 주세요.')
     test('region','지역',all(p['region'] in ('서울','서울시','서울특별시') for p in venues),'방문 장소가 모두 서울 안에 있어요.','서울 밖 장소가 포함되어 있어요.')
     test('origin','출발지',bool(routes) and routes[0]['origin']==c.origin.name,'선택한 출발지에서 코스를 시작해요.','선택한 출발지가 경로에 반영되지 않았어요.')
     add('mode','장소 데이터','info','실제 장소로 구성했어요.' if real else '가상 장소 데모예요. 실제 방문할 수 없어요.')
@@ -95,8 +106,8 @@ def audit_plan(plan,c=None):
     else:add('return_home','귀가 포함','info','귀가 포함을 선택하지 않았어요.')
     actual=[t['stay'] for t in plan['timeline']]
     test('stay_minutes','체류 시간',all(t==c.stay_minutes for t in actual),f'장소당 {c.stay_minutes}분으로 계산했어요.',f'요청은 장소당 {c.stay_minutes}분이지만 실제 계획은 '+', '.join(map(str,actual))+'분이에요.')
-    if any(p['stay'] is None for p in venues):add('stay_minutes','체류 시간','estimated' if all(t==c.stay_minutes for t in actual) else 'info','체류 시간은 사용자 설정으로 계산해요. 실제 프로그램 소요시간과 다를 수 있어요.')
-    used=estimated or any(p['stay'] is None for p in venues)
+    if any(p['stay'] is None or p.get('stay_assumed') for p in venues):add('stay_minutes','체류 시간','estimated' if all(t==c.stay_minutes for t in actual) else 'info','체류 시간은 사용자 설정·식사 체류 가정으로 계산해요. 실제 소요시간과 다를 수 있어요.')
+    used=estimated or any(p['stay'] is None or p.get('stay_assumed') for p in venues)
     if used and not c.allow_estimates and real:add('allow_estimates','추정 사용','unmet','추정 비허용 요청이지만 참고 코스를 만들기 위해 이동·체류 시간을 추정했어요.')
     else:add('allow_estimates','추정 사용','info','이동·체류 추정을 허용한 조건이에요.' if c.allow_estimates else '데모 또는 등록 운영정보로 계산했어요.')
     if c.use_mbti and not c.mbti:add('mbti','MBTI 참고','unknown','MBTI 참고를 선택했지만 유형을 입력하지 않아 적용하지 못했어요.')
@@ -109,6 +120,7 @@ def audit_plan(plan,c=None):
             if match and int(match[1])*multiplier!=actual:add(key,label,'unmet',f'자유 요청의 {label} 값과 폼 조건이 달라요. 자유 요청: {match[0]} / 적용값: {actual}')
             residual=re.sub(pattern,' ',residual)
         words=['서울에서','서울','박물관','전시','미술','카페','커피','식사','산책','풍경','공방','도자기','휴식','힐링','게임','놀이','운동','레저','데이트','코스','보고','가고','싶어요','싶어','추천','해주세요','해줘','정도','둘이서','명이서','함께','에서','하고','그리고']
+        words += [word for _,synonyms in INTENTS.values() for word in synonyms]+['투어','위주','둘이','셋이','넷이']
         for word in sorted(words,key=len,reverse=True):residual=residual.replace(word,' ')
         residual=re.sub(r'[\s,.!?~·]+','',residual)
         add('request','자유 요청','unknown' if residual else 'info',('세부 요청은 추가 확인이 필요해요: '+c.request[:200]) if residual else '자유 요청의 테마·인원·방문 수·예산을 구조화 조건과 대조했어요.')

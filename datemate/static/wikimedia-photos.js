@@ -12,12 +12,12 @@ function publicPhotoJson(host,params){
 }
 async function discoverPlacePhotos(place,data){
   if(!data.wikidata_id||!/^Q[1-9][0-9]*$/.test(data.wikidata_id)||data.photos.length)return data;
-  const key='datemate-photos-v1:'+data.wikidata_id;
+  const key='datemate-photos-v2:'+data.wikidata_id;
   try{const cached=JSON.parse(localStorage.getItem(key));if(cached?.expires>Date.now())return {...data,photos:cached.photos};}catch{}
   const claims=await publicPhotoJson('www.wikidata.org',{action:'wbgetclaims',entity:data.wikidata_id,property:'P18'});
   const titles=[...new Set((claims.claims?.P18||[]).filter(c=>c.rank!=='deprecated').map(c=>c.mainsnak?.datavalue?.value).filter(value=>typeof value==='string'&&/\.jpe?g$/i.test(value)))].slice(0,5);
   if(!titles.length)return data;
-  const response=await publicPhotoJson('commons.wikimedia.org',{action:'query',titles:titles.map(t=>'File:'+t).join('|'),prop:'imageinfo',iiprop:'url|extmetadata|mime',iiurlwidth:640,iiextmetadatalanguage:'ko'});
+  const response=await publicPhotoJson('commons.wikimedia.org',{action:'query',titles:titles.map(t=>'File:'+t).join('|'),prop:'imageinfo',iiprop:'url|extmetadata|mime',iiurlwidth:1280,iiextmetadatalanguage:'ko'});
   const photos=[];
   for(const page of Object.values(response.query?.pages||{})){
     const info=page.imageinfo?.[0];if(!info||info.mime!=='image/jpeg')continue;

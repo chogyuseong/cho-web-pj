@@ -32,7 +32,9 @@ def test_standard_results_also_explain_unknown_budget_and_reservations():
     c=Conditions(mode='real',allow_estimates=True,visit_date=date(2026,10,24))
     plan=recommend(c)['plans'][0]
     assert not plan.get('best_effort')
-    assert {'budget','reservation','visit_date'}<={r['condition'] for r in plan['deviations']}
+    assert {'budget','reservation'}<={r['condition'] for r in plan['deviations']}
+    missing=any(p['hours'] is None or p['closed_days'] is None for p in plan['places'])
+    assert any(r['condition']=='visit_date' and r['state']==('unknown' if missing else 'met') for r in plan['condition_checks'])
     assert {'region','mode','origin','visit_date','start','end','people','budget','transport','count','themes',
         'date_subcategory','theme_mode','setting','avoid','reservation','max_leg','max_walk','return_home',
         'stay_minutes','allow_estimates','mbti','request','locked'}<={r['condition'] for r in plan['condition_checks']}

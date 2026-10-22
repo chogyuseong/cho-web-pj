@@ -69,6 +69,33 @@ function drawPlanMap(plan){
         :'네이버 지도 · 점선은 방문 순서의 직선 연결이며 실제 이동 경로가 아닙니다.';
       if(plan.conditions.mode==='demo')caption.textContent+=' 가상 장소 데모입니다.';
       else if(actual)caption.textContent+=' 실선만 자동차 실제 경로입니다.';
+      if(plan.conditions.mode==='real'){
+        const originalCaption=caption.textContent;
+        // 반경은 각 방문 장소 중심의 직선거리이며 추천 식당은 경로선에 포함하지 않는다.
+        plan.places.forEach(place=>new naver.maps.Circle({map,center:coord(place),radius:500,
+          strokeColor:'#8758c7',strokeOpacity:.4,strokeWeight:1,fillColor:'#8758c7',fillOpacity:.06}));
+        fetchRestaurantMatches(plan).then(data=>{
+          if(!wrap.isConnected||!canvas.isConnected)return;
+          const locations=new Map();let count=0;
+          const mapGroups=[...data.groups,...(data.popular?[{label_prefix:'맛',restaurants:data.popular.restaurants}]:[])];
+          for(const group of mapGroups){for(const [j,food] of group.restaurants.entries()){
+            const key=food.lat.toFixed(5)+','+food.lon.toFixed(5);
+            const label=(group.label_prefix||(group.after_index+1))+'-'+(j+1);
+            if(locations.has(key))locations.get(key).labels.push(label);
+            else locations.set(key,{food,labels:[label]});
+          }}
+          for(const {food,labels} of locations.values()){
+            const label=labels.join(' / ');
+            const marker=new naver.maps.Marker({map,position:coord(food),title:label+' · '+food.name,
+              icon:{content:'<span class="route-marker restaurant-marker">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
+            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),link('네이버 지도·메뉴 ↗','https://map.naver.com/p/search/'+encodeURIComponent(food.name+' '+(food.address||''))));
+            const info=new naver.maps.InfoWindow({content});naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
+            bounds.extend(coord(food));count++;
+          }
+          if(count)map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
+          caption.textContent=originalCaption+' 보라색 원: 각 코스 반경 500m · 주황색 번호: 식당 '+count+'곳 (일정 미포함, 맛: 지역 추천).';
+        }).catch(()=>{caption.textContent=originalCaption+' 주변 식당 표시를 불러오지 못했어요.';});
+      }
     }catch(error){if(wrap.isConnected){
       const reasons={'지도 인증 실패':'네이버 지도 인증에 실패했습니다. 등록 웹 주소와 Dynamic Map 권한을 확인해 주세요.',
         '지도 응답 시간 초과':'지도 서버의 응답이 늦어 연결이 중단됐습니다.',

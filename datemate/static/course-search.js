@@ -1,6 +1,11 @@
 function courseSearchPanel(evidence,plan){
   const box=node('section',undefined,'course-search-panel');
   box.append(node('p','NAVER COURSE RESEARCH','eyebrow'),node('h3',evidence.query),node('p',evidence.provider+' · 통합검색 화면 순위와 다를 수 있어요.','hint'));
+  if(evidence.concept)box.append(node('p','선택한 콘셉트: '+evidence.concept+' · 장소명과 설명의 관련 단서를 우선 반영해요.','hint'));
+  if(evidence.search_relaxed)box.append(node('p','콘셉트 검색 결과가 없어 지역 기본 검색으로 넓혔어요. 콘셉트 적합성이 보장되는 결과는 아니에요.','warning'));
+  if(evidence.search_history?.length){const history=node('details'),items=node('div');history.append(node('summary','실제 검색 기록 보기'));for(const item of evidence.search_history)items.append(node('p',item.query+' · 검색 결과 '+item.result_count+'개','hint'));history.append(items);box.append(history);}
+  if(plan){const reasons=node('div',undefined,'concept-place-reasons');for(const place of plan.places){const row=plan.concept_matches?.find(r=>r.place_id===place.id);if(row)reasons.append(node('p',place.name+' · '+(row.signals.length?'콘셉트 단서: '+row.signals.join(', '):'구체적인 콘셉트 단서 부족 · 조건 보완 후보'),'hint'));}box.append(reasons);}
+  if(plan?.request_interpretation){const parsed=plan.request_interpretation;if(parsed.intents.length)box.append(node('p','입력에서 반영한 활동: '+parsed.intents.join(' · '),'hint'));if(parsed.excluded.length)box.append(node('p','제외한 활동: '+parsed.excluded.join(' · '),'hint'));}
   const count=plan?.places.filter(p=>evidence.matches[p.id]).length||0;
   if(plan?.conditions.area_center)box.append(node('p',`${plan.conditions.area_center.name} 반경 ${plan.conditions.neighborhood_radius_km}km · ${plan.conditions.include_meal?'식사 시간대 밥집 포함 우선':'식사 자유 선택'}`,'hint'));
   const discovery=evidence.discovery;
@@ -10,7 +15,7 @@ function courseSearchPanel(evidence,plan){
   for(const post of evidence.posts){const item=node('div',undefined,'course-source');item.append(link(`${post.rank}. ${post.title}`,post.url),node('small',post.content_scope+' · '+(post.posted_at||'작성일 미제공')));box.append(item);}
   box.append(node('p',evidence.rating_note,'hint'));return box;
 }
-(()=>{const label=node('label','네이버에서 찾을 데이트 코스');const input=node('input');input.name='course_query';input.maxLength=120;input.placeholder='예: 연남동 데이트 코스 (비우면 출발지 기준)';label.append(input,node('small','검색 상위 3개 글에 등장하는 장소를 우선 추천해요.','hint'));form.prepend(label);})();
+(()=>{const label=node('label','네이버에서 찾을 데이트 코스');const input=node('input');input.name='course_query';input.maxLength=120;input.placeholder='예: 연남동 데이트 코스 (비우면 선택한 지역 기준)';label.append(input,node('small','검색 상위 3개 글에 등장하는 장소를 우선 추천해요.','hint'));form.prepend(label);})();
 (()=>{
   const label=node('label','동네 안에서 이동할 범위'),select=node('select');select.name='neighborhood_radius_km';
   for(const [value,text] of [[1.5,'가까운 골목 위주 · 반경 1.5km'],[2.5,'인근 동네까지 · 반경 2.5km'],[5,'넓게 둘러보기 · 반경 5km']]){const o=node('option',text);o.value=value;o.selected=value===2.5;select.append(o);}label.append(select);

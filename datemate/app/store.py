@@ -21,6 +21,9 @@ def init():
         CREATE TABLE IF NOT EXISTS chats(owner TEXT, scope TEXT, role TEXT, content TEXT, created REAL);
         CREATE TABLE IF NOT EXISTS cache(key TEXT PRIMARY KEY, payload TEXT, expires REAL);
         CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, created REAL);
+        CREATE TABLE IF NOT EXISTS experience_events(id TEXT PRIMARY KEY, owner TEXT, plan_id TEXT, kind TEXT, payload TEXT, created REAL);
+        CREATE TABLE IF NOT EXISTS place_reports(id TEXT PRIMARY KEY, owner TEXT, place_id TEXT, reason TEXT, note TEXT, created REAL, resolved INTEGER DEFAULT 0, resolution TEXT DEFAULT '', UNIQUE(owner,place_id,reason));
+        CREATE TABLE IF NOT EXISTS partner_votes(plan_id TEXT, owner TEXT, payload TEXT, updated REAL, PRIMARY KEY(plan_id,owner));
         ''')
 
 def aggregate_key(ids):

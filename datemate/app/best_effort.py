@@ -49,14 +49,18 @@ def annotate(plan,c):
 
 def suggest(c,evidence=None):
     from .planner import evaluate
-    from .quality import pool as quality_pool,meal_penalty
+    from .quality import pool as quality_pool,meal_penalty,meal_due,is_meal
     pool=[p for p in quality_pool(c) if not any(w.lower() in (p['name']+' '+p['category']+' '+' '.join(p['tags'])).lower() for w in c.avoid if w)]
     # 후보 수를 제한하되 가까운 장소와 요청 테마에 맞는 장소 모두 포함한다.
     pool.sort(key=lambda p:distance(c.origin.model_dump(),p))
     desired=set(c.themes)|set(classification_themes(c))
     matching=[p for p in pool if desired.intersection(p.get('themes') or [p['category']])]
+    from .taxonomy import concept_score
+    matching.sort(key=lambda p:-concept_score(p,c))
+    from .request_intent import place_score,plan_penalty
+    requested=sorted([p for p in pool if place_score(p,c)>0],key=lambda p:-place_score(p,c))
     mentioned=[p for p in pool if p['id'] in (evidence or {}).get('matches',{})]
-    chosen={p['id']:p for p in pool[:40]+matching[:25]+mentioned+[p for p in pool if p['id'] in c.locked.values()]}
+    chosen={p['id']:p for p in pool[:40]+matching[:25]+requested[:30]+mentioned+[p for p in pool if p['id'] in c.locked.values()]}
     pool=list(chosen.values());beam=[[]];final=[]
     target=min(c.count,len(pool))
     if not target or any(i>=target for i in c.locked):return []
@@ -64,7 +68,9 @@ def suggest(c,evidence=None):
     def score(plan):
         relevance=sum(w in (p['name']+' '+p['category']) for w in words for p in plan['places'])
         from .course_search import priority
-        return (meal_penalty(plan,c) if len(plan['places'])==target else 0,-priority(plan,evidence or {}),plan['penalty'],sum(r['minutes'] for r in plan['legs'])-.1*relevance,plan['total'][1])
+        from .preferences import fit_score
+        food_penalty=meal_penalty(plan,c) if len(plan['places'])==target else max(0,sum(is_meal(p) for p in plan['places'])-1) if meal_due(c) else 0
+        return (plan_penalty(plan,c),food_penalty,-fit_score(plan,c),-priority(plan,evidence or {}),plan['penalty'],sum(r['minutes'] for r in plan['legs'])-.1*relevance,plan['total'][1])
     for position in range(target):
         options=[]
         for selected in beam:

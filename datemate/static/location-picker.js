@@ -4,7 +4,7 @@ let locationMap=null;
 function mountLocationFields(){
   for(const kind of ['origin','home']){
     const host=document.getElementById(kind+'-location');
-    const title=kind==='origin'?'출발지':'귀가지';
+    const title=kind==='origin'?'데이트할 지역':'귀가지';
     const label=node('label',title),selectedInput=node('input');
     selectedInput.name=kind+'_name';selectedInput.readOnly=true;
     selectedInput.value=locationState[kind]?.name||'';
@@ -15,7 +15,7 @@ function mountLocationFields(){
 }
 function selectedLocation(kind){
   const point=locationState[kind];
-  if(!point)throw Error((kind==='origin'?'출발지':'귀가지')+'를 주소 검색 또는 지도에서 선택해 주세요.');
+  if(!point)throw Error((kind==='origin'?'데이트할 지역을':'귀가지를')+' 주소 검색 또는 지도에서 선택해 주세요.');
   return {...point};
 }
 function clearLocationsForMode(){
@@ -25,7 +25,7 @@ function clearLocationsForMode(){
 }
 async function openLocationPicker(kind){
   if(locationMap){locationMap.remove();locationMap=null;}
-  const title=kind==='origin'?'출발지':'귀가지';
+  const title=kind==='origin'?'데이트할 지역':'귀가지';
   const root=openDialog(title+' 선택');
   $('#dialog').classList.add('location-dialog');
   const content=node('div',undefined,'location-body');
@@ -34,14 +34,14 @@ async function openLocationPicker(kind){
   const label=node('label','도로명 주소 또는 지번 주소'),query=node('input');
   query.placeholder='예: 서울 중구 세종대로 110 / 태평로1가 31';query.maxLength=200;query.required=true;query.minLength=2;
   label.append(query);const searchButton=node('button','주소 검색','primary');searchForm.append(label,searchButton);
-  const message=node('p','주소를 검색하거나 지도를 움직여 원하는 위치를 선택하세요.','hint');message.setAttribute('role','status');
+  const message=node('p',kind==='origin'?'데이트할 지역의 주소를 검색하거나 지도에서 선택하세요. 선택한 위치가 코스의 시작 기준이 됩니다.':'주소를 검색하거나 지도를 움직여 원하는 위치를 선택하세요.','hint');message.setAttribute('role','status');
   const results=node('div',undefined,'location-results');
   const canvas=node('div',undefined,'location-map');canvas.id='location-map';canvas.setAttribute('aria-label',title+' 선택 지도');
   const picked=node('p','위치를 선택하면 아래 버튼으로 확정할 수 있어요.','location-picked');picked.setAttribute('aria-live','polite');
-  const confirm=button('이 위치를 '+title+'로 사용',()=>{
+  const confirm=button(kind==='origin'?'이 지역에서 데이트하기':'이 위치를 귀가지로 사용',()=>{
     if(!candidate)return;
     locationState[kind]={...candidate};form.elements[kind+'_name'].value=candidate.name;
-    $('#dialog').close();toast(title+'를 선택했습니다.');
+    $('#dialog').close();toast((kind==='origin'?'데이트할 지역을':'귀가지를')+' 선택했습니다.');
   },'primary full');confirm.disabled=true;
   content.append(searchForm,message,results,canvas);
   footer.append(picked,confirm);

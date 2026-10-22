@@ -8,6 +8,16 @@ with sync_playwright() as pw:
     page=browser.new_page(viewport={'width':1200,'height':900})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    # Both are valid: prefer the large original rather than a search thumbnail.
+    page.evaluate('''async()=>{
+      const photo={title:'quality',kind:'search_result',image_url:'/static/images/seoul-evening.jpg?thumbnail',source:'/static/images/seoul-evening.jpg?original'};
+      const img=document.createElement('img');document.querySelector('#results').append(img);
+      await loadSafePhoto(img,[photo],null,()=>{throw Error('valid original failed');});
+      if(!img.src.endsWith('?original'))throw Error('thumbnail selected before original');
+      const fallback={...photo,source:'/test-broken-quality',image_url:'/static/images/seoul-evening.jpg?fallback'};
+      await loadSafePhoto(img,[fallback],null,()=>{throw Error('thumbnail fallback failed');});
+      if(!img.src.endsWith('?fallback'))throw Error('original failure did not recover');
+    }''')
     page.route('**/test-broken-*',lambda r:r.fulfill(status=404,body='missing'))
     page.evaluate('''()=>{
       const photos=[{title:'first photo',kind:'search_result',image_url:'/test-broken-thumbnail',source:'/static/images/seoul-evening.jpg',search_url:'https://search.naver.com/'},{title:'extra photo',kind:'search_result',image_url:'/test-broken-extra',source:'/test-broken-original',search_url:'https://search.naver.com/'}];
@@ -21,5 +31,5 @@ with sync_playwright() as pw:
     page.locator('#results .photo-retry').wait_for()
     assert page.locator('#results img').count()==0
     assert not errors,errors
-    print(json.dumps({'broken_thumbnail_original_recovered':True,'broken_gallery_handled':True,'all_failed_no_broken_icon':True,'page_errors':errors}))
+    print(json.dumps({'original_preferred':True,'blocked_original_thumbnail_recovered':True,'broken_thumbnail_original_recovered':True,'broken_gallery_handled':True,'all_failed_no_broken_icon':True,'page_errors':errors}))
     browser.close()

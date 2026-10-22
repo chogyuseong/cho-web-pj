@@ -24,3 +24,23 @@ DATE_THEMES = {
 
 def classification_themes(conditions):
     return DATE_THEMES.get(conditions.date_subcategory, [])
+
+
+CONCEPT_PROFILES = {
+    '즐거운 데이트': {'search':'놀거리 체험', 'keywords':['방탈출','보드게임','오락실','게임','놀이','레저','액티비티']},
+    '편안한 데이트': {'search':'산책 힐링', 'keywords':['정원','공원','숲','산책','휴식','힐링','한옥','북카페']},
+    '지적인 데이트': {'search':'전시 박물관', 'keywords':['박물관','미술관','전시','서점','도서관','역사','문학','과학']},
+    '동심 데이트': {'search':'장난감 오락실', 'keywords':['장난감','인형','오락실','놀이공원','테마파크','만화','애니메이션','레고','캐릭터']},
+}
+
+
+def concept_signals(place,c):
+    profile=CONCEPT_PROFILES.get(c.date_subcategory,{})
+    text=' '.join(str(value) for value in [place.get('name'),place.get('description'),*(place.get('tags') or []),*(place.get('search_aliases') or [])] if value)
+    return [word for word in profile.get('keywords',[]) if word.casefold() in text.casefold()]
+
+
+def concept_score(place,c):
+    if c.date_subcategory not in CONCEPT_PROFILES:return 0
+    # 구체적인 장소 단서를 큰 유형 분류보다 우선하되 적합성이 검증됐다고 주장하지 않는다.
+    return min(3,len(concept_signals(place,c)))*2+(.25 if place.get('category') in classification_themes(c) else 0)

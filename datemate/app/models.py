@@ -11,6 +11,12 @@ class Point(BaseModel):
     lon: float = Field(ge=-180, le=180)
 
 class Conditions(BaseModel):
+    meeting_type: Literal['regular','first','anniversary'] = 'regular'
+    priority: Literal['balanced','talk','food','photo','activity'] = 'balanced'
+    trust_mode: Literal['balanced','operating_sources','discovery'] = 'balanced'
+    hard_constraints: list[Literal['budget','end','max_leg','max_walk','setting','reservation','themes','meal','neighborhood','avoid']] = Field(default_factory=list,max_length=10)
+    use_feedback: bool = False
+    excluded_place_ids: list[str] = Field(default_factory=list,max_length=100)
     include_meal: bool = False
     neighborhood_radius_km: float = Field(default=2.5,ge=0.5,le=10)
     area_center: Point | None = None

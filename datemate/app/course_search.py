@@ -49,8 +49,13 @@ def public_body(url):
     except (httpx.HTTPError,ValueError):return ''
 
 
-def course_query(c):
-    if c.course_query.strip():return c.course_query.strip()
+def base_course_query(c):
+    if c.course_query.strip():
+        query=c.course_query.strip()
+        from .quality import AREAS
+        if any(area.rstrip('동') in query for area in AREAS) or re.search(r'[가-힣]{2,8}(?:동|구|역)',query):return query
+        area=base_course_query(c.model_copy(update={'course_query':''})).replace(' 데이트 코스','')
+        return area+' '+query
     name=c.origin.name
     area=re.search(r'[가-힣]{2,8}동',c.request+' '+name)
     if area:return area[0]+' 데이트 코스'
@@ -58,6 +63,17 @@ def course_query(c):
     closest=min(anchors,key=lambda a:distance(c.origin.model_dump(),dict(lat=a[1],lon=a[2])))
     if distance(c.origin.model_dump(),dict(lat=closest[1],lon=closest[2]))<2:return closest[0]+' 데이트 코스'
     return re.sub(r'\s*(지역 중심|지도에서 선택.*)$','',name)+' 데이트 코스'
+
+
+def course_query(c):
+    from .taxonomy import CONCEPT_PROFILES
+    base=base_course_query(c)
+    profile=CONCEPT_PROFILES.get(c.date_subcategory)
+    from .request_intent import search_terms
+    additions=search_terms(c)
+    if profile:additions+=[c.date_subcategory,*profile['search'].split()]
+    if not additions:return base
+    return base+' '+ ' '.join(word for word in additions if word not in base)
 
 
 def compact(text):return re.sub(r'[^가-힣a-z0-9]','',text.casefold())
@@ -81,16 +97,25 @@ def match_places(posts,rows):
 def search_courses(c):
     query=course_query(c)
     result=dict(query=query,provider='네이버 블로그 검색 정확도순 상위 3개',posts=[],matches={},
+                requested_query=query,search_history=[],concept=c.date_subcategory,search_relaxed=False,
                 rating_status='unavailable',rating_note='현재 연결된 공식 API는 네이버 장소 평점을 제공하지 않아 평점을 순위에 반영하지 않았어요.',
                 checked_at=datetime.now(timezone.utc).isoformat(),status='key_missing')
     if not search_enabled():return result
-    key='course-blog-v3:'+query
+    key='course-blog-concept-v1:'+query+':'+str(c.visit_date)
     cached=store.cached(key)
     if cached:return cached
     try:
         response=httpx.get('https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=3,start=1,sort='sim',format='json'),
             headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
         response.raise_for_status()
+        result['search_history'].append(dict(query=query,result_count=len(response.json().get('items',[]))))
+        if not response.json().get('items') and query!=base_course_query(c):
+            query=base_course_query(c)
+            response=httpx.get('https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=3,start=1,sort='sim',format='json'),
+                headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
+            response.raise_for_status()
+            result.update(query=query,search_relaxed=True)
+            result['search_history'].append(dict(query=query,result_count=len(response.json().get('items',[]))))
         for rank,item in enumerate(response.json().get('items',[])[:3],1):
             url=item.get('link','');parsed=urlsplit(url)
             if parsed.scheme!='https' or parsed.hostname not in ('blog.naver.com','m.blog.naver.com'):continue
@@ -99,7 +124,7 @@ def search_courses(c):
             bodies=list(pool.map(public_body,[p['url'] for p in result['posts']]))
         for post,body in zip(result['posts'],bodies):post.update(_body=body,content_scope='공개 본문 + 검색 요약' if body else '검색 요약만 확인')
         from .discovery import discover
-        new_places,discovery=discover(result['posts'],query)
+        new_places,discovery=discover(result['posts'],base_course_query(c))
         result['discovery']=discovery
         result['discovered_ids']=[p['id'] for p in new_places]
         result['matches']=match_places(result['posts'],places('real',c.visit_date))

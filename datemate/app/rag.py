@@ -32,9 +32,19 @@ class State(TypedDict,total=False):
     history:list[dict]
     trace:list[str]
     cache_hit:bool
+    plan:dict
 
 def retrieve_node(state):
-    return dict(evidence=retrieve(state['ids'],state['question'],state['mode'],int(os.getenv('TOP_K','4'))),trace=['retrieve'])
+    plan=state.get('plan')
+    try:evidence=retrieve(state['ids'],state['question'],state['mode'],int(os.getenv('TOP_K','4')))
+    except Exception:
+        if not plan:raise
+        evidence=[]
+    if plan:
+        # 새로 검색된 장소는 미색인 상태일 수 있어 저장한 일정도 근거에 포함한다.
+        evidence.append(dict(number=len(evidence)+1,type='saved_plan',title='現在選択したデートコース',
+            source='/api/plans/'+plan['id'],body=json.dumps(plan,ensure_ascii=False)))
+    return dict(evidence=evidence,trace=['retrieve'])
 
 def validate_quotes(answer,evidence):
     # 번호 검증과 원문 포함 검증을 별도로 수행한다. 자유 생성 주장은 화면에 보내지 않는다.
@@ -90,9 +100,9 @@ def build_graph():
 
 graph=build_graph()
 
-def ask(ids,question,mode,history=None):
+def ask(ids,question,mode,history=None,plan=None):
     started=time.perf_counter()
-    result=graph.invoke(dict(ids=ids,question=question,mode=mode,history=history or []))
+    result=graph.invoke(dict(ids=ids,question=question,mode=mode,history=history or [],plan=plan))
     return {k:result[k] for k in ('answer','citations','status','trace')} | {'embedding':embedding_mode(),
         'cache_hit':result.get('cache_hit',False),'elapsed_ms':round((time.perf_counter()-started)*1000,2),
         'validation':'근거 번호 및 원문 일치 검증. 질문 관련성·문맥적 함의는 별도 사람 평가 필요.'}

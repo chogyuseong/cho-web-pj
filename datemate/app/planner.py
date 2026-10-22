@@ -3,7 +3,7 @@ import re
 from .catalog import places
 from .models import Conditions
 from .routes import leg, distance
-from .taxonomy import classification_themes
+from .taxonomy import classification_themes,concept_score
 
 def minutes(value):
     hour,minute=map(int,value.split(':'))
@@ -30,6 +30,9 @@ def candidates(c):
     preferred='휴식·힐링' if c.mbti.startswith('I') else '레저·활동'
     words=[w for w in re.findall(r'[가-힣A-Za-z0-9]+',c.request) if len(w)>1]
     rows.sort(key=lambda p: (-sum(w in (p['name']+' '+p['category']+' '+' '.join(p['tags'])) for w in words),-(.1 if c.use_mbti and c.mbti and not c.themes and not classified and p['category']==preferred else 0),distance(c.origin.model_dump(),p)))
+    rows.sort(key=lambda p:-concept_score(p,c))
+    from .request_intent import place_score
+    rows.sort(key=lambda p:-place_score(p,c))
     return rows
 
 def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
@@ -68,6 +71,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         costs.append(dict(category=p['category'],name=p['name'],unit=price,quantity=quantity,
             formula=f'단가 × {quantity}',amount=amount,status=p.get('price_status','unknown' if price is None else 'confirmed'),
             source=p.get('operations_source',p['source']),checked_at=p.get('operations_checked_at',p['checked_at'])))
+        if p.get('menu_pricing'):costs[-1].update(p['menu_pricing'])
         if price is None:unknown.append(p['name']+' 가격')
         if c.transport=='car':unknown.append(p['name']+' 주차비')
         previous=p
@@ -133,8 +137,13 @@ def recommend_strict(c,evidence=None):
         if evidence:
             from .course_search import priority
             next_beam.sort(key=lambda p:-priority(p,evidence))
-        from .quality import meal_penalty
+        from .quality import meal_penalty,meal_due,is_meal
+        from .preferences import fit_score
+        next_beam.sort(key=lambda p:-fit_score(p,c))
+        if meal_due(c) and position<c.count-1:next_beam.sort(key=lambda p:max(0,sum(is_meal(x) for x in p['places'])-1))
         if position==c.count-1:next_beam.sort(key=lambda p:meal_penalty(p,c))
+        from .request_intent import plan_penalty
+        next_beam.sort(key=lambda p:plan_penalty(p,c))
         unique=[];seen=set()
         for p in next_beam:
             key=tuple(x['id'] for x in p['places'])
@@ -155,6 +164,8 @@ def recommend_strict(c,evidence=None):
         search_note='최대 60개 빔 후보 내 탐색 결과이며 가능한 모든 일정의 존재를 보장하지 않습니다.')
 
 def recommend(c,evidence=None):
+    from .request_intent import normalize,plan_penalty
+    c=normalize(c)
     from .condition_audit import audit_plan
     result=recommend_strict(c,evidence)
     # 검색 글에서 확인한 장소가 일반 조건 필터에서 빠졌다면, 차이를 명시한 대안도 비교한다.
@@ -163,7 +174,7 @@ def recommend(c,evidence=None):
         if not any(priority(p,evidence) for p in result['plans']):
             from .best_effort import suggest
             sourced=suggest(c,evidence)
-            if sourced and priority(sourced[0],evidence):
+            if sourced and priority(sourced[0],evidence) and (not result['plans'] or plan_penalty(sourced[0],c)<=plan_penalty(result['plans'][0],c)):
                 return dict(plans=[audit_plan(p,c) for p in sourced],status='best_effort',
                             reasons=['네이버 상위 글에 등장하는 장소를 우선 포함한 대안입니다. 입력 조건과의 차이를 확인하세요.'])
     if result['plans']:
@@ -179,7 +190,7 @@ def recommend(c,evidence=None):
 def replacements(plan,index,locked):
     c=Conditions.model_validate(plan['conditions'])
     if index<0 or index>=len(plan['places']):raise ValueError('잘못된 장소 순서입니다.')
-    if index in locked:raise ValueError('고정한 장소는 먼저 고정을 해제하세요.')
+    if index in set(locked)|set(c.locked):raise ValueError('고정한 장소는 먼저 고정을 해제하세요.')
     alternatives=[]
     from .quality import pool as quality_pool
     pool=quality_pool(c) if plan.get('best_effort') else candidates(c)

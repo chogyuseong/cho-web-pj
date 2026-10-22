@@ -75,6 +75,7 @@ def apply_prices(plan,lookups):
     allow=plan['conditions'].get('allow_price_estimates',True);people=plan['conditions']['people'];updates=[]
     for index,place in enumerate(plan['places']):
         row=plan['costs'][index]
+        if row.get('price_kind')=='naver_menu':continue
         if row['unit'] is not None and not row.get('price_kind'):
             row['price_basis']='공식 등록 단가' if row['status']=='confirmed' else '기존 단가';continue
         result=lookups.get(place['id'],{});quotes=result.get('quotes',[])

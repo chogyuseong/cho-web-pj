@@ -1,7 +1,9 @@
 const placePhotoRequests=new Map();
 const photoLoads=new Map();
 function photoCandidates(photo){
-  const urls=[photo.image_url,photo.url];if(photo.kind==='search_result')urls.push(photo.source);
+  // 검색 썸네일은 카드 크기로 확대하면 흐려지므로 원본을 먼저 시도한다.
+  // Commons의 source는 이미지가 아닌 설명 페이지이므로 후보로 쓰지 않는다.
+  const urls=photo.kind==='search_result'?[photo.source,photo.image_url,photo.url]:[photo.image_url,photo.url];
   return [...new Set(urls.filter(Boolean))].filter(url=>{try{return ['https:','http:'].includes(new URL(url,location.origin).protocol);}catch{return false;}});
 }
 function probePhoto(url){

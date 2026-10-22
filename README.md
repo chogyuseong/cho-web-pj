@@ -13,6 +13,8 @@ cd C:\Users\SSAFY\Desktop\streamlit_lab\datemate
 
 - [환경 준비·데이터·기능·검증 안내](datemate/README.md)
 - [Cloud Run 발표용 배포 순서](datemate/docs/cloud-run-deployment.md)
+- [작업 재개 메모 — 배포는 2번부터](PROJECT_NOTES.md)
+- [식당 변경·필수 조건·피드백·두 사람 합의 사용 흐름](datemate/docs/product-improvements.md)
 - 실제 API 키: `datemate/.env` (외부 공유 및 Git 등록 금지)
 - 키 없는 설정 양식: `datemate/.env.example`
 - Python 가상환경: `datemate/.venv`

@@ -33,6 +33,8 @@ async def lifespan(app):
     yield
 
 app=FastAPI(title='서울 데이트메이트 · 서울 데이트 코스 추천',version='0.1.0',lifespan=lifespan)
+from .experience_api import router as experience_router
+app.include_router(experience_router)
 
 @app.get('/healthz',include_in_schema=False)
 def health():
@@ -75,7 +77,10 @@ def plan_row(id,owner=None):
     if not row:raise HTTPException(404,'일정을 찾을 수 없습니다.')
     if owner is not None and row['owner']!=owner:raise HTTPException(403,'이 브라우저에서 만든 일정만 수정할 수 있습니다.')
     from .condition_audit import audit_plan
-    return row,audit_plan(json.loads(row['payload']))
+    plan=audit_plan(json.loads(row['payload']))
+    from .experience import verification_summary
+    plan['verification']=verification_summary(plan)
+    return row,plan
 
 @app.get('/api/status')
 def status():
@@ -133,29 +138,37 @@ def place_blog_results(id:str,mode:Literal['demo','real']='real'):
     if p is None:raise HTTPException(404,'장소를 찾을 수 없습니다.')
     return place_blogs(p)
 
+@app.get('/api/places/{id}/menu')
+def place_menu(id:str,mode:Literal['demo','real']='real'):
+    p=get_place(id,mode)
+    if p is None:raise HTTPException(404,'장소를 찾을 수 없습니다.')
+    from .menus import restaurant_menu
+    return restaurant_menu(p)
+
 @app.post('/api/conditions/parse')
 def parse(data:ParseInput):
-    import re
-    text=data.text; patch={}; warnings=[]
-    aliases={'문화·예술':['전시','미술','박물관'],'카페·미식':['카페','커피','식사'],'산책·풍경':['산책','풍경'],
-        '체험·제작':['공방','도자기'],'휴식·힐링':['휴식','힐링'],'오락·놀이':['게임','놀이'],'레저·활동':['운동','레저']}
-    patch['themes']=[theme for theme,words in aliases.items() if any(w in text for w in words)]
-    if re.search(r'싫|말고|제외|피하|안\s*가',text):
-        patch.pop('themes',None);warnings.append('부정 표현은 자동 적용하지 않았습니다. 테마와 피할 활동을 직접 확인하세요.')
-    match=re.search(r'(\d+)\s*만\s*원',text)
-    if match:patch['budget']=int(match[1])*10000
-    match=re.search(r'([2-5])\s*(?:곳|군데)',text)
-    if match:patch['count']=int(match[1])
-    patch['region']=REGION
-    return dict(patch=patch,warnings=warnings+['추천 지역은 서울특별시로 고정됩니다. 서울 밖 장소는 추천하지 않습니다.', '키 없는 제한적 규칙 해석입니다. 날짜·출발지·시간·교통 및 미해석 요청을 직접 확인하세요.'],unparsed=text)
+    from .request_intent import interpret
+    parsed=interpret(data.text)
+    patch=dict(parsed['patch'],region=REGION)
+    warnings=['입력 글에서 확인한 활동·인원·예산·이동수단을 적용했어요. 폼에서 확인하고 수정할 수 있어요.', '추천 지역은 서울특별시로 고정됩니다. 서울 밖 장소는 추천하지 않습니다.']
+    if parsed['excluded']:warnings.append('제외 요청은 코스 추천 시 장소 유형과 대조해 적용해요.')
+    return dict(patch=patch,warnings=warnings,unparsed=data.text)
 
 @app.post('/api/plans')
 def create(data:Conditions,request:Request):
+    calculation_started=time.perf_counter()
+    from .request_intent import normalize
+    data=normalize(data)
+    if data.use_feedback:
+        from .experience import feedback_exclusions
+        data=data.model_copy(update={'excluded_place_ids':list(set(data.excluded_place_ids)|set(feedback_exclusions(request.state.owner)))[:100]})
     from .course_search import search_courses,priority
     evidence=search_courses(data) if data.mode=='real' else None
     if data.mode=='real':
         from .quality import configure
         data=configure(data,evidence['query'])
+        from .intent_discovery import discover_requested_places
+        evidence['intent_discovery']=discover_requested_places(data)
     result=recommend(data,evidence)
     if not result['plans'] and data.area_center:
         result.setdefault('suggestions',[]).insert(0,f'{data.area_center.name} 반경 {data.neighborhood_radius_km:g}km 안에서 찾고 있어요. 동네 이동 범위나 방문 수를 조정해 주세요.')
@@ -180,14 +193,27 @@ def create(data:Conditions,request:Request):
                 plan['route_verification']='네이버 자동차 길찾기 조회 반영 (조회 시점 기준)'
             else:plan['route_verification']='자동차 실제 경로 확인 실패: '+str(error)+' · 추정 동선을 유지했어요.'
     result['plans']=price_plans(result['plans'])
-    if data.mode=='real':result['plans'].sort(key=lambda p:(p['total'][1]>data.budget,max(0,p['total'][1]-data.budget)))
+    from .preferences import filter_required,hard_blocks
+    blocked=[p for p in result['plans'] if hard_blocks(p)]
+    result['plans']=filter_required(result['plans'])
+    if blocked and not result['plans']:
+        result.update(status='required_unmet',reasons=['선택한 필수 조건을 충족하는 코스를 확인하지 못했어요.'],suggestions=['필수 조건 또는 입력 범위를 직접 조정해 주세요. 미확인 조건을 충족으로 처리하지 않습니다.'])
+    if data.mode=='real':
+        from .request_intent import plan_penalty
+        result['plans'].sort(key=lambda p:(plan_penalty(p,data),p['total'][1]>data.budget,max(0,p['total'][1]-data.budget)))
     if result['plans'] and all(p.get('best_effort') for p in result['plans']):result['status']='best_effort'
+    from .experience import verification_summary
+    for p in result['plans']:p['verification']=verification_summary(p)
     result['plans']=[store.save_plan(p,request.state.owner) for p in result['plans']]
+    from .experience import event
+    event(request.state.owner,'','recommendation',dict(plans=len(result['plans']),elapsed_ms=round((time.perf_counter()-calculation_started)*1000),api_cost_status='not_measured'))
     return result
 
 @app.get('/api/plans/{id}')
-def get_plan(id:str):
-    return plan_row(id)[1]
+def get_plan(id:str,request:Request):
+    row,plan=plan_row(id)
+    plan['can_edit']=row['owner']==request.state.owner
+    return plan
 
 @app.post('/api/plans/{id}/prices')
 def refresh_prices(id:str,request:Request):
@@ -197,7 +223,15 @@ def refresh_prices(id:str,request:Request):
     store.cache(rate_key,True,5)
     from .pricing import price_plans
     updated=price_plans([plan],force=True)[0]
+    from .preferences import hard_blocks
+    if hard_blocks(updated):raise HTTPException(409,'재조회 가격 또는 조건이 필수 조건을 넘어요. 필수 조건을 조정한 뒤 다시 추천해 주세요.')
     return store.save_plan(updated,request.state.owner,parent=id)
+
+@app.get('/api/plans/{id}/restaurant-matches')
+def matched_restaurants(id:str):
+    _,plan=plan_row(id)
+    from .restaurants import restaurant_matches
+    return restaurant_matches(plan)
 
 @app.get('/api/plans/{id}/restaurants')
 def nearby_restaurants(id:str,request:Request,after_index:int=Query(default=0,ge=0,le=4)):
@@ -227,6 +261,8 @@ def alternatives(id:str,data:ReplaceInput,request:Request):
     try:
         from .pricing import price_plans
         options=price_plans(replacements(plan,data.index,data.locked))
+        from .preferences import filter_required
+        options=filter_required(options)
         for option in options:option['delta']['cost']=[option['total'][i]-plan['total'][i] for i in (0,1)]
         return {'alternatives':options}
     except ValueError as exc:raise HTTPException(422,str(exc))
@@ -240,6 +276,8 @@ def replace(id:str,data:ReplaceInput,request:Request):
     if not chosen:raise HTTPException(422,'선택 조건을 만족하는 대체 장소가 없습니다.')
     from .pricing import price_plans
     updated=price_plans([chosen])[0]
+    from .preferences import hard_blocks
+    if hard_blocks(updated):raise HTTPException(409,'필수 조건을 충족하지 않아 교체할 수 없어요.')
     updated['delta']['cost']=[updated['total'][i]-plan['total'][i] for i in (0,1)]
     return store.save_plan(updated,request.state.owner,parent=id)
 
@@ -296,7 +334,11 @@ def chat_history(kind:Literal['place','plan'],id:str,request:Request,mode:Litera
 @app.post('/api/chat/{kind}/{id}')
 def chat(kind:Literal['place','plan'],id:str,data:ChatInput,request:Request):
     ids=scope_ids(kind,id,data.mode);scope=f'{data.mode}:{kind}:{id}'
-    result=ask(ids,data.question,data.mode,store.history(request.state.owner,scope))
+    from .plan_chat import answer_plan
+    plan=plan_row(id)[1] if kind=='plan' else None
+    result=answer_plan(plan,data.question) if plan else None
+    if result is None:
+        result=ask(ids,data.question,data.mode,store.history(request.state.owner,scope),plan=plan)
     store.chat_save(request.state.owner,scope,data.question,result['answer'])
     return result
 

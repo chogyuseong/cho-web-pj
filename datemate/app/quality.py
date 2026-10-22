@@ -6,7 +6,7 @@ AREAS={'연남동':(37.562,126.925),'성수동':(37.5446,127.0559),'종로':(37.
 def configure(c,query):
     from .models import Point
     for name,(lat,lon) in AREAS.items():
-        if name in query or name.rstrip('동')+'역' in query:
+        if name.rstrip('동') in query:
             return c.model_copy(update={'area_center':Point(name=name+' 중심',lat=lat,lon=lon)})
     return c.model_copy(update={'area_center':c.origin})
 
@@ -37,12 +37,21 @@ def pool(c):
     if c.mode=='real' and c.include_meal:
         from .restaurants import restaurants
         rows+=restaurants()
-    return list({p['id']:dict(p,price_unit=p.get('price_unit') or 'person',meal=is_meal(p)) for p in rows if in_area(p,c)}.values())
+    from .preferences import operating_source_current
+    from .request_intent import intent,matches
+    denied=intent(c)['excluded']
+    from . import store
+    with store.connect() as db:pending={r[0] for r in db.execute('SELECT DISTINCT place_id FROM place_reports WHERE resolved=0')}
+    excluded=[p for p in rows if p['id'] in c.excluded_place_ids]
+    return list({p['id']:dict(p,price_unit=p.get('price_unit') or 'person',meal=is_meal(p),report_pending=p['id'] in pending) for p in rows if in_area(p,c) and not any(matches(p,k) for k in denied) and p['id'] not in c.excluded_place_ids and not any(same_place(p,other) for other in excluded) and (c.trust_mode!='operating_sources' or operating_source_current(p) and p['id'] not in pending)}.values())
+
+def meal_time_matches(plan):
+    def mins(s):h,m=map(int,s.split(':'));return h*60+m
+    return [i for i,p in enumerate(plan['places']) if is_meal(p) and any(min(mins(plan['timeline'][i]['departure']),b)-max(mins(plan['timeline'][i]['arrival']),a)>=30 for a,b in [(690,870),(1050,1230)])]
 
 def meal_penalty(plan,c):
     if not meal_due(c):return 0
     meal_indices=[i for i,p in enumerate(plan['places']) if is_meal(p)]
     if not meal_indices:return 4
-    def mins(s):h,m=map(int,s.split(':'));return h*60+m
-    if not any(any(min(mins(plan['timeline'][i]['departure']),b)-max(mins(plan['timeline'][i]['arrival']),a)>=30 for a,b in [(690,870),(1050,1230)]) for i in meal_indices):return 2
+    if not meal_time_matches(plan):return 2
     return max(0,len(meal_indices)-1)

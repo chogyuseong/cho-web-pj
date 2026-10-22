@@ -22,7 +22,7 @@ function updatePricePreview(plan){
 }
 function priceRefreshControl(plan){
   const box=node('div',undefined,'price-refresh-control');
-  if(plan.conditions.mode==='demo')return box;
+  if(plan.conditions.mode==='demo'||plan.can_edit===false)return box;
   const status=node('span',plan.pricing_checked_at?'최근 계산 '+new Date(plan.pricing_checked_at).toLocaleString('ko-KR'):'추천 시 단가 조회','hint');
   const refresh=button('현재 단가 다시 검색',async()=>{
     refresh.disabled=true;status.textContent='장소별 단가 검색·인원별 합계 재계산 중…';

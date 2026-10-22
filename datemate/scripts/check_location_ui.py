@@ -15,7 +15,7 @@ with sync_playwright() as pw:
     page.locator('#origin-location button').click()
     page.locator('#location-map .leaflet-tile-loaded').first.wait_for()
     page.locator('#location-map').click(position={'x':200,'y':130})
-    page.get_by_role('button',name='이 위치를 출발지로 사용').click()
+    page.get_by_role('button',name='이 지역에서 데이트하기').click()
     assert page.locator('[name=origin_name]').input_value()=='지도에서 선택한 출발지'
     results.append('live_osm_map_click_select_origin')
     page.locator('#origin-location button').click()
@@ -31,7 +31,7 @@ with sync_playwright() as pw:
     page.locator('.location-search input').fill('테스트 주소')
     page.locator('.location-search input').press('Enter')
     page.locator('.location-result').click()
-    page.get_by_role('button',name='이 위치를 출발지로 사용').click()
+    page.get_by_role('button',name='이 지역에서 데이트하기').click()
     assert page.locator('[name=origin_name]').input_value()=='서울 종로구 테스트로 1'
     page.locator('[name=visit_date]').fill('2026-10-24')
     with page.expect_request('**/api/plans') as request:
@@ -56,7 +56,7 @@ with sync_playwright() as pw:
     page.set_viewport_size({'width':390,'height':844})
     page.locator('#origin-location button').click()
     page.locator('#location-map .leaflet-tile-loaded').first.wait_for()
-    confirm=page.get_by_role('button',name='이 위치를 출발지로 사용')
+    confirm=page.get_by_role('button',name='이 지역에서 데이트하기')
     assert confirm.is_visible()
     bounds=confirm.bounding_box()
     assert bounds['y']>=0 and bounds['y']+bounds['height']<=844

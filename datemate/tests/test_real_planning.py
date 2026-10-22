@@ -15,7 +15,9 @@ def test_real_inputs_change_actual_places_without_fabricating_operations():
     assert len(first['places'])==3 and len(other['places'])==2
     assert first['places'][0]['id']!=other['places'][0]['id']
     assert all(not p['demo'] and (p['hours'] is None or p.get('operations_source')) for p in first['places'])
-    assert any('영업시간' in u for u in first['unknown'])
+    for p in first['places']:
+        if p['hours'] is None:assert p['name']+' 영업시간' in first['unknown']
+        else:assert p.get('operations_source')
     assert all(r['status']=='estimated' and not r['path'] for r in first['legs'])
     assert all(t['stay']==60 for t in first['timeline'])
     assert all(p['hours'] is None for p in places('real') if not p.get('operations_source'))

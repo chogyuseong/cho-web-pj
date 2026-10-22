@@ -1,6 +1,18 @@
 'use strict';
 const $=s=>document.querySelector(s), form=$('#conditions');
 let statusData, plans=[], selected=null, locks=new Set(), mode='real';
+function showPlannerPage(results, navigate=true){
+  document.body.classList.toggle('show-date-plan',results);
+  document.querySelector('.results-area').hidden=!results;
+  document.querySelector('.conditions.panel').hidden=results;
+  if(navigate){location.hash=results?'date-plan':'planner-section';}
+  requestAnimationFrame(()=>{
+    const heading=document.querySelector(results?'.results-area .section-heading h2':'.conditions .section-heading h2');
+    heading.tabIndex=-1;heading.focus({preventScroll:true});
+    document.getElementById('planner-section').scrollIntoView({block:'start'});
+  });
+}
+window.addEventListener('hashchange',()=>showPlannerPage(location.hash==='#date-plan',false));
 const won=n=>n==null?'미확인':Number(n).toLocaleString('ko-KR')+'원';
 const range=v=>v==null?'미확인':v[0]===v[1]?won(v[0]):won(v[0])+' ~ '+won(v[1]);
 const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -18,12 +30,12 @@ function values(){const f=new FormData(form), number=k=>Number(f.get(k));const d
  return data;}
 async function init(){try{statusData=await api('/status');$('#status').textContent=`서울 전용 · 가상 장소 ${statusData.counts.demo.places}건 · 실제 장소 메타데이터 ${statusData.counts.real.places}건 / 색인 ${statusData.counts.real.indexed}건 · ${statusData.llm} · ${statusData.embedding==='demo'?'문자 해시 임베딩 데모 (의미 검색 아님)':'의미 임베딩 설정'} · 실제 운영정보 확인 필요`;
 for(const theme of statusData.themes){const l=node('label'),i=node('input');i.type='checkbox';i.name='themes';i.value=theme;l.append(i,node('span',theme));$('#themes').append(l);}form.elements.region.value=statusData.region;mountDateCategories(statusData.date_categories);
-const id=new URLSearchParams(location.search).get('plan');if(id){selected=await api('/plans/'+encodeURIComponent(id));mode=selected.conditions.mode;locks=new Set(Object.keys(selected.conditions.locked||{}).map(Number));form.elements.count.value=selected.conditions.count;plans=[selected];renderResults();renderDetail();}
+const id=new URLSearchParams(location.search).get('plan');if(id){selected=await api('/plans/'+encodeURIComponent(id));mode=selected.conditions.mode;locks=new Set(Object.keys(selected.conditions.locked||{}).map(Number));form.elements.count.value=selected.conditions.count;plans=[selected];renderResults();renderDetail();showPlannerPage(true);}
 }catch(e){$('#status').textContent=e.message;}}
 let parsedRequest='';
 async function applyRequest(){const text=form.elements.request.value.trim();if(!text||text===parsedRequest)return;const result=await api('/conditions/parse',{text});for(const [key,value] of Object.entries(result.patch)){if(key==='themes'){setDateClassification('콘셉트별','');document.querySelectorAll('[name=themes]').forEach(c=>c.checked=value.includes(c.value));}else if(form.elements[key]){if(form.elements[key].type==='checkbox')form.elements[key].checked=Boolean(value);else form.elements[key].value=value;}}$('#parse-notice').textContent=result.warnings.join(' ');parsedRequest=text;}
 $('#parse').onclick=()=>applyRequest().then(()=>toast('해석된 조건을 폼에서 확인하고 수정해 주세요.')).catch(e=>toast(e.message));
-form.addEventListener('submit',async e=>{e.preventDefault();const submit=$('#submit-plan');try{submit.disabled=true;await applyRequest();const data=values();mode=data.mode;$('#progress').textContent='조건 확인 → 코스 탐색 → 실시간 단가 검색·비용 계산 중…';const result=await api('/plans',data);plans=result.plans;selected=plans[0]||null;renderResults(result);renderDetail();$('#progress').textContent=plans.length?`추천 완료 · ${plans.length}개의 일정`:(result.reasons?.[0]||'추천 조건을 확인해 주세요.');if(window.innerWidth<720)$('#results').scrollIntoView({behavior:'smooth'});}catch(error){toast(error.message);$('#progress').textContent=error.message;}finally{submit.disabled=false;}});
+form.addEventListener('submit',async e=>{e.preventDefault();const submit=$('#submit-plan');try{submit.disabled=true;await applyRequest();const data=values();mode=data.mode;setTab(false);showPlannerPage(true);$('#progress').textContent='조건 확인 → 코스 탐색 → 실시간 단가 검색·비용 계산 중…';const result=await api('/plans',data);plans=result.plans;selected=plans[0]||null;renderResults(result);renderDetail();$('#progress').textContent=plans.length?`추천 완료 · ${plans.length}개의 일정`:(result.reasons?.[0]||'추천 조건을 확인해 주세요.');if(window.innerWidth<720)$('#results').scrollIntoView({behavior:'smooth'});}catch(error){toast(error.message);$('#progress').textContent=error.message;}finally{submit.disabled=false;}});
 form.elements.mode.addEventListener('change',()=>{selected=null;locks.clear();plans=[];mode=form.elements.mode.value;clearLocationsForMode();$('#mode-badge').textContent=mode==='demo'?'DEMO SPACE':'REAL DATA';renderResults();renderDetail();});
 function renderResults(result={}){
   const root=$('#results'),detail=$('#plan-detail')||node('div');detail.id='plan-detail';
@@ -88,7 +100,10 @@ function chatWidget(kind,id,chatMode){
   };return container;
 }
 async function loadReviews(root,p){const data=await api('/plans/'+p.id+'/reviews');root.replaceChildren(node('h3','우리 서비스의 일정 이용 후기'),node('strong',data.average==null?data.label:`★ ${data.average} / 5 · ${data.count}건`),node('p',data.verification,'hint'));const f=node('form',undefined,'review-form'),grid=node('div',undefined,'field-grid');function field(label,type,name,value){const l=node('label',label),i=node(type==='textarea'?'textarea':'input');i.name=name;if(type!=='textarea')i.type=type;i.required=true;i.value=value||'';l.append(i);return [l,i];}const [nick,n]=field('공개 별명','text','nickname','산책하는 우리');n.maxLength=40;const [rating,r]=field('별점 (1~5)','number','rating','5');r.min=1;r.max=5;const [visit,v]=field('방문일 (자기 신고)','date','visited',today());v.max=today();const [body,b]=field('후기 내용','textarea','body');b.rows=4;grid.append(nick,rating,visit);const save=node('button','후기 저장 / 내 후기 수정','primary');f.append(grid,body,save,node('p','최대 2 MiB 요청. 같은 브라우저의 동일 방문 순서 후기는 한 건으로 갱신됩니다.','hint'));const mine=data.rows.find(x=>x.mine);if(mine){n.value=mine.nickname;r.value=mine.rating;v.value=mine.visited;b.value=mine.body;}f.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{await api('/plans/'+p.id+'/review',{nickname:n.value,rating:Number(r.value),visited:v.value,body:b.value},'PUT');await loadReviews(root,p);toast('후기를 저장했습니다.');}catch(error){toast(error.message);}finally{save.disabled=false;}};root.append(f);for(const review of data.rows){const row=node('article',undefined,'review');row.append(node('strong',`${review.nickname} · ★ ${review.rating}`),node('p',`방문 ${review.visited} · 작성 ${new Date(review.created*1000).toLocaleDateString('ko-KR')} · 자기 신고`,'review-meta'),node('p',review.body,'review-body'));const actions=node('div',undefined,'actions');if(review.mine)actions.append(button('내 후기 삭제',async()=>{await api('/reviews/'+review.id,null,'DELETE');await loadReviews(root,p);}));actions.append(button('신고',async()=>{const reason=prompt('신고 사유를 입력해 주세요.');if(reason?.trim()){const answer=await api('/reviews/'+review.id+'/report',{reason});toast(answer.notice);}}));row.append(actions);root.append(row);}}
-function setTab(explore){$('#planner-section').hidden=explore;$('#explore-section').hidden=!explore;$('#nav-plan').classList.toggle('active',!explore);$('#nav-explore').classList.toggle('active',explore);}
+function setTab(explore){document.body.classList.remove('show-date-plan');if(!explore)showPlannerPage(false,false);$('#planner-section').hidden=explore;$('#explore-section').hidden=!explore;$('#nav-plan').classList.toggle('active',!explore);$('#nav-explore').classList.toggle('active',explore);}
 $('#nav-plan').onclick=()=>setTab(false);$('#nav-explore').onclick=()=>{setTab(true);search().catch(e=>toast(e.message));};
 async function search(){const root=$('#catalog');root.replaceChildren(node('p','장소 자료를 검색하고 있어요.'));const m=$('#explore-mode').value,result=await api('/places?mode='+m+'&q='+encodeURIComponent($('#search').value));root.replaceChildren();$('#search-info').textContent=`${result.places.length}건 · ${result.search} · 실제 데이터의 가격·운영시간은 미확인일 수 있습니다.`;result.places.forEach(p=>{const card=button('',()=>showPlace(p.id,m),'place-card');card.append(placePhotoPanel(p,m),node('span',p.demo?'가상 장소':p.category,'tag'),node('h3',p.name),node('p',p.demo?'시연 조건으로 계산 가능':'출처 확인 · 운영정보 별도 확인 필요','hint'));root.append(card);});if(!result.places.length)root.append(node('p','검색 결과가 없습니다. 다른 단어를 입력해 보세요.'));}
 $('#search-button').onclick=()=>search().catch(e=>toast(e.message));$('#search').addEventListener('keydown',e=>{if(e.key==='Enter')search().catch(e=>toast(e.message));});$('#explore-mode').onchange=()=>search().catch(e=>toast(e.message));mountLocationFields();mountPriceControls();init();
+
+$('#edit-conditions').onclick=()=>{setTab(false);showPlannerPage(false);};
+$('#nav-plan').onclick=()=>{setTab(false);showPlannerPage(false);};

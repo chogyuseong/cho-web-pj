@@ -15,7 +15,7 @@
     locationState.origin={...points[region]};form.elements.origin_name.value=points[region].name;
     setDateClassification(['사교적인','활동적인'].includes(mood)?'타입별':'콘셉트별',mood);
     document.getElementById('nav-plan').click();
-    document.querySelector('.results-area').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+
     form.requestSubmit();
   };
   document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{region=b.dataset.preset;mood=region==='연남'?'편안한 데이트':'지적인 데이트';sync();document.querySelector('.quick-builder').scrollIntoView({behavior:'smooth',block:'center'});toast(region+'에서 시작하는 취향을 골랐어요. 예산을 확인하고 코스를 만들어 보세요.');});

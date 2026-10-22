@@ -40,9 +40,18 @@ app.include_router(experience_router)
 def health():
     return {'status':'ok'}
 
+@app.get('/readyz',include_in_schema=False)
+def readiness():
+    try:
+        with store.connect() as db:
+            db.execute('SELECT 1 FROM sessions LIMIT 1').fetchone()
+        return {'status':'ready','scope':'database_only','external_services_verified':False}
+    except Exception:
+        return JSONResponse({'status':'not_ready'},status_code=503)
+
 @app.middleware('http')
 async def safety(request:Request,call_next):
-    if request.url.path=='/healthz':return await call_next(request)
+    if request.url.path in ('/healthz','/readyz'):return await call_next(request)
     started=time.perf_counter()
     # 전체 요청 본문 2 MiB. Content-Length가 없는 요청도 스트림을 읽으며 제한한다.
     if request.method in ('POST','PUT','PATCH','DELETE'):
@@ -69,6 +78,9 @@ async def safety(request:Request,call_next):
     response.headers['X-Content-Type-Options']='nosniff'
     response.headers['Referrer-Policy']='strict-origin-when-cross-origin'
     response.headers['X-Frame-Options']='DENY'
+    if request.url.path.startswith('/api/'):
+        response.headers['Cache-Control']='no-store'
+        response.headers['Referrer-Policy']='no-referrer'
     response.headers['Server-Timing']=f'total;dur={(time.perf_counter()-started)*1000:.2f}'
     return response
 
@@ -81,6 +93,27 @@ def plan_row(id,owner=None):
     from .experience import verification_summary
     plan['verification']=verification_summary(plan)
     return row,plan
+
+@app.delete('/api/me/data')
+def delete_my_data(request:Request,response:Response):
+    owner=request.state.owner
+    with store.connect() as db:
+        db.execute('BEGIN IMMEDIATE')
+        # Remove related records before removing the user's plans and reviews.
+        db.execute('DELETE FROM partner_votes WHERE plan_id IN (SELECT id FROM plans WHERE owner=?)',(owner,))
+        db.execute('DELETE FROM reports WHERE review_id IN (SELECT id FROM reviews WHERE author=?)',(owner,))
+        for table,column in (('plans','owner'),('chats','owner'),('reviews','author'),
+                             ('reports','author'),('experience_events','owner'),
+                             ('place_reports','owner'),('partner_votes','owner')):
+            db.execute(f'DELETE FROM {table} WHERE {column}=?',(owner,))
+        # Draft caches embed owner identity; rate-limit keys also contain it.
+        for row in db.execute('SELECT key,payload FROM cache').fetchall():
+            payload=json.loads(row['payload'])
+            if owner in row['key'] or isinstance(payload,dict) and payload.get('owner')==owner:
+                db.execute('DELETE FROM cache WHERE key=?',(row['key'],))
+        db.execute('DELETE FROM sessions WHERE token=?',(owner,))
+    response.delete_cookie('dm_session')
+    return {'deleted':True,'notice':'현재 브라우저에 연결된 저장 데이터를 삭제했습니다. 별도 백업과 외부 서비스 기록은 포함되지 않습니다.'}
 
 @app.get('/api/status')
 def status():

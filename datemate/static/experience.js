@@ -64,7 +64,7 @@ async function showMealChange(food,plan,afterIndex=0){
   },'primary');preview.disabled=true;root.append(preview);
   try{
     const data=await (restaurantMenuRequests.get(food.id)||api('/places/'+encodeURIComponent(food.id)+'/menu?mode=real'));
-    menus.replaceChildren();const items=data.items.filter(item=>item.amount!=null).sort((a,b)=>Number(/냉동|밀키트|택배|선물|포장|\d+\s*(?:g|kg)/i.test(a.name))-Number(/냉동|밀키트|택배|선물|포장|\d+\s*(?:g|kg)/i.test(b.name))||Number(!a.representative)-Number(!b.representative));
+    menus.replaceChildren();const items=data.items.filter(item=>item.amount!=null&&item.price_scope!=='delivery').sort((a,b)=>Number(/냉동|밀키트|택배|선물|포장|\d+\s*(?:g|kg)/i.test(a.name))-Number(/냉동|밀키트|택배|선물|포장|\d+\s*(?:g|kg)/i.test(b.name))||Number(!a.representative)-Number(!b.representative));
     if(items.length){const placeholder=node('option','가격 기준 메뉴를 직접 선택해 주세요 (1인 1개 가정)');placeholder.value='';menus.append(placeholder);items.forEach((item,i)=>{const option=node('option',item.name+' · '+item.display_price+' / 1개');option.value=i;menus.append(option);});}
     else{const option=node('option','확인된 메뉴 단가 없음 · 웹 참고/계획용 비용을 구분해 계산');option.value=0;menus.append(option);}
   }catch{menus.replaceChildren(node('option','가격 조회 실패 · 추정 비용과 구분해 계산'));menus.firstChild.value=0;}

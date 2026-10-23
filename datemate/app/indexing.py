@@ -81,8 +81,16 @@ def retrieve(ids,question,mode,k=4):
         matching=docs.get(where=scope,include=[])['ids']
         if matching:
             # 청크 갱신 후 전역 개수가 아닌 필터 결과 개수로 Top-k를 제한한다.
-            results=docs.query(query_embeddings=[embedder(embedding_mode()).embed_query(question)],where=scope,n_results=min(k,len(matching)))
-            for body,meta in zip(results['documents'][0],results['metadatas'][0]):evidence.append(dict(body=body,**meta))
+            from chromadb.errors import InternalError
+            try:
+                results=docs.query(query_embeddings=[embedder(embedding_mode()).embed_query(question)],where=scope,n_results=min(k,len(matching)))
+                for body,meta in zip(results['documents'][0],results['metadatas'][0]):evidence.append(dict(body=body,**meta))
+            except InternalError:
+                # Preserve scoped source access when the vector segment is unavailable.
+                import logging
+                logging.getLogger(__name__).exception('vector_query_failed; using scoped stored documents')
+                fallback=docs.get(where=scope,include=['documents','metadatas'],limit=k)
+                for body,meta in zip(fallback['documents'],fallback['metadatas']):evidence.append(dict(body=body,**meta))
     unique=[];seen=set()
     for e in evidence:
         key=(e['source'],e['body'])

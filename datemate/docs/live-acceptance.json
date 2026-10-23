@@ -1,0 +1,45 @@
+[
+  {
+    "area": "종로구",
+    "plans": 3,
+    "seconds": 1.1,
+    "stages": [
+      "완료",
+      "장소 검색"
+    ],
+    "adjusted": 0
+  },
+  {
+    "area": "은평구",
+    "plans": 3,
+    "seconds": 20.8,
+    "stages": [
+      "완료",
+      "장소 검색",
+      "코스 구성"
+    ],
+    "adjusted": 3
+  },
+  {
+    "area": "구로구",
+    "plans": 3,
+    "seconds": 11.2,
+    "stages": [
+      "가격 확인",
+      "완료",
+      "장소 검색",
+      "코스 구성"
+    ],
+    "adjusted": 0
+  },
+  {
+    "area": "성수동",
+    "plans": 3,
+    "seconds": 11.3,
+    "stages": [
+      "완료",
+      "장소 검색"
+    ],
+    "adjusted": 0
+  }
+]

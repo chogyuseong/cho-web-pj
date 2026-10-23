@@ -8,7 +8,8 @@ with sync_playwright() as pw:
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
     records=[]
-    for field,text in [('course_query','종로 카페투어'),('request','카페 투어 하고 싶어')]:
+    for field,text in [('request','종로 카페투어'),('request','카페 투어 하고 싶어')]:
+        page.locator('#nav-plan').click()
         page.evaluate('''()=>{locationState.origin={name:'종로',lat:37.5765,lon:126.9855};form.elements.origin_name.value='종로';
           form.elements.visit_date.value='2026-10-24';form.elements.budget.value='150000';
           form.elements.course_query.value='';form.elements.request.value='';

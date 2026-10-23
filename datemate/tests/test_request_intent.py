@@ -12,7 +12,7 @@ from app.planner import recommend
  ('맛집 투어',['meal']),('밥집 추천',['meal']),('전시 보고 산책',['culture','walk']),
  ('박물관 데이트',['museum']),('독립서점 책방 투어',['book']),('도자기 공방 원데이',['workshop']),
  ('한강 피크닉',['walk']),('야경과 전망',['view']),('방탈출 보드게임',['game']),
- ('클라이밍 볼링',['activity']),('소품샵 쇼핑',['shopping']),('비 오는 날 실내 카페',['cafe']),
+ ('클라이밍 볼링',['climbing','bowling']),('소품샵 쇼핑',['shopping']),('비 오는 날 실내 카페',['cafe']),
  ('카페 말고 전시',['culture']),('박물관 제외하고 산책',['walk']),
  ('카페 안 가고 맛집',['meal']),('전시 빼고 서점',['book']),
 ])

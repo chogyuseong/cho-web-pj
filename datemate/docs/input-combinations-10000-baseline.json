@@ -1,0 +1,427 @@
+{
+  "label": "baseline",
+  "total": 10000,
+  "counts": {
+    "preferences_total": 5000,
+    "preferences_passed": 4000,
+    "chat_total": 5000,
+    "chat_passed": 1300
+  },
+  "failures": {
+    "preferences:['missing_exclusion']": 1000,
+    "chat:cost": 100,
+    "chat:movement": 300,
+    "chat:location": 100,
+    "chat:caution": 500,
+    "chat:weather": 500,
+    "chat:menu": 500,
+    "chat:reservation": 500,
+    "chat:meal": 500,
+    "chat:parking": 500,
+    "chat:change": 200
+  },
+  "examples": {
+    "preferences:['missing_exclusion']": [
+      {
+        "kind": "preferences",
+        "input": "종로구 카페 하고 박물관는 안 좋아해. 2명, 30,000원, 2곳. 실내",
+        "expected": {
+          "intent": "cafe",
+          "people": 2,
+          "budget": 30000,
+          "count": 2,
+          "excluded": "museum",
+          "setting": "indoor"
+        },
+        "passed": false,
+        "detail": [
+          "missing_exclusion"
+        ]
+      },
+      {
+        "kind": "preferences",
+        "input": "종로구 카페 하고 박물관는 안 좋아해. 3명, 50,000원, 3곳. 야외",
+        "expected": {
+          "intent": "cafe",
+          "people": 3,
+          "budget": 50000,
+          "count": 3,
+          "excluded": "museum",
+          "setting": "outdoor"
+        },
+        "passed": false,
+        "detail": [
+          "missing_exclusion"
+        ]
+      },
+      {
+        "kind": "preferences",
+        "input": "종로구 카페 하고 박물관는 안 좋아해. 11명, 100,000원, 4곳. 비 오는 날",
+        "expected": {
+          "intent": "cafe",
+          "people": 11,
+          "budget": 100000,
+          "count": 4,
+          "excluded": "museum",
+          "setting": "indoor"
+        },
+        "passed": false,
+        "detail": [
+          "missing_exclusion"
+        ]
+      }
+    ],
+    "chat:cost": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: cost and budget?",
+        "expected": "cost",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \ncost and budget? 부탁해요",
+        "expected": "cost",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  cost and budget? 자세히",
+        "expected": "cost",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      }
+    ],
+    "chat:movement": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: 몇 분 걸려?",
+        "expected": "movement",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \n몇 분 걸려? 부탁해요",
+        "expected": "movement",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  몇 분 걸려? 자세히",
+        "expected": "movement",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      }
+    ],
+    "chat:location": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: address of each place?",
+        "expected": "location",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \naddress of each place? 부탁해요",
+        "expected": "location",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  address of each place? 자세히",
+        "expected": "location",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      }
+    ],
+    "chat:caution": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: 주의할 점 알려줘",
+        "expected": "caution",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \n주의할 점 알려줘 부탁해요",
+        "expected": "caution",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  주의할 점 알려줘 자세히",
+        "expected": "caution",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      }
+    ],
+    "chat:weather": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: 오늘 날씨 알려줘",
+        "expected": "weather",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \n오늘 날씨 알려줘 부탁해요",
+        "expected": "weather",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  오늘 날씨 알려줘 자세히",
+        "expected": "weather",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      }
+    ],
+    "chat:menu": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: 대표 메뉴 추천해줘",
+        "expected": "menu",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "2명 기준 계산된 총비용은 29,000~33,000원입니다. 확정 비용 0원, 추정 비용 29,000~33,000원입니다.\n· 가상 초록 산책길 2: 0원 (추정)\n· 가상 느린 커피 2: 13,000~17,000원 (추정)\n· 가상 작은 전시실 2: 16,000원 (추정)\n· 데모 출발점 → 가상 초록 산책길 2: 0원 (추정)\n· 가상 초록 산책길 2 → 가상 느린 커피 2: 0원 (추정)\n· 가상 느린 커피 2 → 가상 작은 전시실 2: 0원 (추정)\n입력 예산은 500,000원이며, 실제 주문·현장 요금에 따라 달라질 수 있어요."
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \n대표 메뉴 추천해줘 부탁해요",
+        "expected": "menu",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "2명 기준 계산된 총비용은 29,000~33,000원입니다. 확정 비용 0원, 추정 비용 29,000~33,000원입니다.\n· 가상 초록 산책길 2: 0원 (추정)\n· 가상 느린 커피 2: 13,000~17,000원 (추정)\n· 가상 작은 전시실 2: 16,000원 (추정)\n· 데모 출발점 → 가상 초록 산책길 2: 0원 (추정)\n· 가상 초록 산책길 2 → 가상 느린 커피 2: 0원 (추정)\n· 가상 느린 커피 2 → 가상 작은 전시실 2: 0원 (추정)\n입력 예산은 500,000원이며, 실제 주문·현장 요금에 따라 달라질 수 있어요."
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  대표 메뉴 추천해줘 자세히",
+        "expected": "menu",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "2명 기준 계산된 총비용은 29,000~33,000원입니다. 확정 비용 0원, 추정 비용 29,000~33,000원입니다.\n· 가상 초록 산책길 2: 0원 (추정)\n· 가상 느린 커피 2: 13,000~17,000원 (추정)\n· 가상 작은 전시실 2: 16,000원 (추정)\n· 데모 출발점 → 가상 초록 산책길 2: 0원 (추정)\n· 가상 초록 산책길 2 → 가상 느린 커피 2: 0원 (추정)\n· 가상 느린 커피 2 → 가상 작은 전시실 2: 0원 (추정)\n입력 예산은 500,000원이며, 실제 주문·현장 요금에 따라 달라질 수 있어요."
+        }
+      }
+    ],
+    "chat:reservation": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: 예약해야 돼?",
+        "expected": "reservation",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 가상 초록 산책길 2 — 등록 정보상 예약이 필수는 아니에요.\n· 가상 느린 커피 2 — 등록 정보상 예약이 필수는 아니에요.\n· 가상 작은 전시실 2 — 등록 정보상 예약이 필수는 아니에요.\n· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \n예약해야 돼? 부탁해요",
+        "expected": "reservation",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 가상 초록 산책길 2 — 등록 정보상 예약이 필수는 아니에요.\n· 가상 느린 커피 2 — 등록 정보상 예약이 필수는 아니에요.\n· 가상 작은 전시실 2 — 등록 정보상 예약이 필수는 아니에요.\n· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  예약해야 돼? 자세히",
+        "expected": "reservation",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 가상 초록 산책길 2 — 등록 정보상 예약이 필수는 아니에요.\n· 가상 느린 커피 2 — 등록 정보상 예약이 필수는 아니에요.\n· 가상 작은 전시실 2 — 등록 정보상 예약이 필수는 아니에요.\n· 요청은 장소당 60분이지만 실제 계획은 45, 50, 60분이에요."
+        }
+      }
+    ],
+    "chat:meal": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: 어디서 밥 먹어?",
+        "expected": "meal",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 가상 초록 산책길 2: 가상 시연 구역 (실제 주소 아님)\n· 가상 느린 커피 2: 가상 시연 구역 (실제 주소 아님)\n· 가상 작은 전시실 2: 가상 시연 구역 (실제 주소 아님)"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \n어디서 밥 먹어? 부탁해요",
+        "expected": "meal",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 가상 초록 산책길 2: 가상 시연 구역 (실제 주소 아님)\n· 가상 느린 커피 2: 가상 시연 구역 (실제 주소 아님)\n· 가상 작은 전시실 2: 가상 시연 구역 (실제 주소 아님)"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  어디서 밥 먹어? 자세히",
+        "expected": "meal",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "plan_facts",
+          "answer": "· 가상 초록 산책길 2: 가상 시연 구역 (실제 주소 아님)\n· 가상 느린 커피 2: 가상 시연 구역 (실제 주소 아님)\n· 가상 작은 전시실 2: 가상 시연 구역 (실제 주소 아님)"
+        }
+      }
+    ],
+    "chat:parking": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: 주차 가능해?",
+        "expected": "parking",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \n주차 가능해? 부탁해요",
+        "expected": "parking",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  주차 가능해? 자세히",
+        "expected": "parking",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      }
+    ],
+    "chat:change": [
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: 이 장소 대신 다른 곳으로 해줘",
+        "expected": "change",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문: \n이 장소 대신 다른 곳으로 해줘 부탁해요",
+        "expected": "change",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      },
+      {
+        "kind": "chat",
+        "input": "커플 1의 질문:  이 장소 대신 다른 곳으로 해줘 자세히",
+        "expected": "change",
+        "passed": false,
+        "detail": {
+          "http": 200,
+          "status": "test_fallback",
+          "answer": "자료 부족"
+        }
+      }
+    ]
+  },
+  "elapsed_seconds": 86.15,
+  "scope": "5000 local HTTP parse+normalization; 5000 local HTTP saved-plan chat; isolated DB; external LLM fallback stubbed, no live venue/image/search validation"
+}

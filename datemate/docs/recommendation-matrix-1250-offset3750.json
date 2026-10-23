@@ -1,0 +1,10 @@
+{
+  "total": 1250,
+  "offset": 3750,
+  "resumed_rows": 1087,
+  "passed": 1250,
+  "failed": 0,
+  "examples": [],
+  "seconds": 21.4,
+  "scope": "local HTTP /api/plans, 5 known synthetic matching venues + excluded decoy; search/discovery/pricing mocked; real planner and persistence; no live venue availability validation"
+}

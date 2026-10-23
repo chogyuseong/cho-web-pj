@@ -11,7 +11,13 @@ INTENTS={
  'workshop':('체험·제작',['공방','도자기','원데이','향수','반지 만들','만들기']),
  'walk':('산책·풍경',['산책','공원','정원','숲길','피크닉','한강']),
  'game':('오락·놀이',['방탈출','보드게임','오락실','게임','만화카페']),
- 'activity':('레저·활동',['운동','레저','클라이밍','볼링','스포츠']),
+ 'activity':('레저·활동',['운동','레저','스포츠']),
+ 'climbing':('레저·활동',['클라이밍','볼더링','암벽']),
+ 'bowling':('레저·활동',['볼링']),
+ 'table_tennis':('레저·활동',['탁구']),
+ 'badminton':('레저·활동',['배드민턴']),
+ 'skating':('레저·활동',['스케이트','스케이팅','아이스링크']),
+ 'screen_golf':('레저·활동',['스크린골프','스크린 골프']),
  'view':('산책·풍경',['야경','전망','노을','일몰']),
  'shopping':('오락·놀이',['쇼핑','소품샵','소품숍','편집샵','편집숍']),
 }
@@ -26,7 +32,7 @@ def interpret(text):
         for word in sorted(words,key=len,reverse=True):
             for m in re.finditer(re.escape(word),text,re.I):
                 tail=text[m.end():m.end()+16]
-                negative=bool(re.match(r'\s*(?:는|은|을|를|도|에)?\s*(?:말고|빼|제외|싫|안\s*가|안\s*갈|안\s*먹|피하|없이|없[는이])',tail))
+                negative=bool(re.match(r'\s*(?:는|은|을|를|도|에)?\s*(?:말고|빼|제외|싫|별로|좋아하지|안\s*(?:좋아|원해|가|갈|먹|마[시셔])|못\s*(?:가|먹|마[시셔])|피하|없이|없[는이])',tail))
                 no|=negative;yes|=not negative
         if no:excluded.append(key)
         elif yes:active.append(key)
@@ -81,7 +87,11 @@ def matches(place,key):
     text=' '.join(str(v) for v in [place.get('name'),place.get('description'),place.get('cuisine'),*(place.get('tags') or [])] if v).casefold()
     meal=bool(place.get('meal')) or place.get('id','').startswith('food:') or 'restaurant' in (place.get('tags') or [])
     if key=='meal':return meal
-    if key=='cafe':return not meal and (bool(re.search(r'카페|커피|디저트|베이커리|티하우스|찻집|cafe|coffee',text)) or 'cafe' in (place.get('tags') or []))
+    if key=='cafe':
+        # A broad dining theme attached to a museum is not evidence of a cafe.
+        cafe_text=' '.join(str(v) for v in [place.get('name'),place.get('description'),place.get('cuisine'),
+            *(t for t in (place.get('tags') or []) if t!='카페·미식')] if v).casefold()
+        return not meal and (bool(re.search(r'카페|커피|디저트|베이커리|티하우스|찻집|cafe|coffee',cafe_text)) or 'cafe' in (place.get('tags') or []))
     if key in (place.get('tags') or []):return True
     return any(w.casefold() in text for w in INTENTS[key][1])
 

@@ -1,0 +1,4002 @@
+[
+  {
+    "place_id": "discovered:f060f0cdc3c3c49cbe31",
+    "name": "정원 레스토랑 어반가든",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3e0037647fd12a6e7a92",
+    "name": "비주얼 콜렉트",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:000642bc72a79fbd64b6",
+    "name": "브리즈밀",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:da32a6c4b49989e7d581",
+    "name": "꾼낚시카페 홍대신촌점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f13269e64118b6eea103",
+    "name": "오누이",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:95544a0e48c31150749b",
+    "name": "어퍼앤언더",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:15fa11f777e05cd9525f",
+    "name": "부암동 카페 스탐티쉬",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6c8d11af20e7c820aff6",
+    "name": "룸익스케이프 화이트점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7f195e3c1c1a19e65761",
+    "name": "어썸로즈",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8c905fa9a11216e664a1",
+    "name": "코드이스케이프 가로수길",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e225f454340f951a18e2",
+    "name": "덕수궁 리에제와플 더뷰 디저트카페",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:73c25ed335afeb3635a3",
+    "name": "오스테리아 오티보",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3852837b12f39daf6176",
+    "name": "도란도란 홍대입구점",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:536bea70f10728aa441e",
+    "name": "정석 볼링 장",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:17e8252c528d191f91ae",
+    "name": "코드케이 강남점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c1902be3802c2a5267ef",
+    "name": "1984",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9ae2400aae423cb82530",
+    "name": "서촌만두",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:016ca831a4b40cc3931d",
+    "name": "부강탕",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8184fd3617eb48a79b47",
+    "name": "머더파커 건대1호점",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:12100405775cbf4645c5",
+    "name": "썸띵어바웃커피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f8c0a5e22d6748a98051",
+    "name": "드림이스케이프 건대점",
+    "before": 2,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:12bb5e37f3990987c87f",
+    "name": "헤르만의  정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ec154a4b4f236f2e7993",
+    "name": "공상온도",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d0bf5571cdb0a7802b6d",
+    "name": "드플로허",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a0e346a084e30942fb27",
+    "name": "거울못식당",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1680d57f964f351cdcc4",
+    "name": "제이앤제이 볼링 센터",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f2c94ad7e5b728fc010c",
+    "name": "더메이즈 노원",
+    "before": 2,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:941a6d6a5d49e6fca3a9",
+    "name": "쿠방플러스",
+    "before": 3,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fea0bc2672de77109665",
+    "name": "쌍문나이스락 볼링 센터",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b1982b83b8f3752f4d4a",
+    "name": "옐로우문",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:af9d8a75b3438c8ca610",
+    "name": "미어캣파크  이색 체험  동물 카페",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c5933bc908d101be1888",
+    "name": "와코타코 길음점",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1b28366c3fb0c291d69d",
+    "name": "스모어 마켓",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d860e805b5447765bad9",
+    "name": "오밀 홍대",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2b332e977a1fcb8a3d29",
+    "name": "더숲 초소책방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2cc0bc135278021bb7d2",
+    "name": "로다컴퍼니",
+    "before": 1,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e6453824e7da617b5667",
+    "name": "카페 자작나무",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7ab8cd6140fa729d7d73",
+    "name": "더 시옷",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:33a730cd227c21823ed4",
+    "name": "일상 정원  코엑스점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e9ab8b7b3f56f051ecc3",
+    "name": "오동 공원  오동물빛 정원",
+    "before": 2,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:151d17dc7e90736b809f",
+    "name": "키미아트",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9fea85b691d4eaa0b55c",
+    "name": "비테도산",
+    "before": 5,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1770210e33e359372a75",
+    "name": "도란도란 연남점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c3872daa0082cf1cf819",
+    "name": "가배도 남대문시장점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c17bf4f79d7a473ee3dc",
+    "name": "브리비트 강남역",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9bc88ea7d224c74ddef9",
+    "name": "정원 생고기 영등포구청점",
+    "before": 3,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3e8e75495cbe98b2345d",
+    "name": "성수다락",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:cae9cf12595c4f8b8ba7",
+    "name": "큐브이스케이프 천호점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b17cf227a4b3046dbb47",
+    "name": "지구별 방탈출  어드벤처점",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8abefe48e6bdb460126a",
+    "name": "포레스트검프",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7f00331baae50b71e1e4",
+    "name": "초안산하늘꽃 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a4fae250199c6b52fbe2",
+    "name": "커피의 정원",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5d73d9fd25abe8fd50a8",
+    "name": "엑스이스케이프 홍대놀이터점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:37aa512dfe8f5e0e23f4",
+    "name": "진서의 정원  카페",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5bc74ce2cbdeaf48eac5",
+    "name": "디핀옥수",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c4b7cef5d756391a28d0",
+    "name": "브리비트 성수",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:588ff15be99b552d442d",
+    "name": "셀렉티드닉스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:82d507731fad5ade573a",
+    "name": "비투프로젝트",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1487a732ac2fef948028",
+    "name": "광진장미 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:da866839dea12ff54c7c",
+    "name": "아이스아트카페",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2f5c144ae7afacc1f0ad",
+    "name": "티키룸 홍대점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5219aeae7447546e897b",
+    "name": "메이씨진",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8f75d69ba58a8d7e5cd1",
+    "name": "레스피레베이커리 카페  서촌",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:cdbbcfcb1efa161a9bc1",
+    "name": "월드컵 공원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0871cae1196516fef87b",
+    "name": "아트스페이스와이 카페 & 갤러리",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:53a09b289e951b7cb6ce",
+    "name": "더코드 회기점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a78eaf7ae6600f87fce0",
+    "name": "코아르",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2fa1b4db2b3393b53088",
+    "name": "정원 쌈밥보리밥",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:75760d6eb6a91cefa04c",
+    "name": "어양",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e6aefcc0166430a296e2",
+    "name": "우노네",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d7597f0b08ee85f7d361",
+    "name": "서 서울 호수 공원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8ddb5bd189299cc46995",
+    "name": "투또톤토",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e2cebc5715518e2f16f7",
+    "name": "더 스팟 패뷸러스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:234bb2080b14025f2d28",
+    "name": "우이사계",
+    "before": 5,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c7c243e39920fd521361",
+    "name": "제주 정원",
+    "before": 2,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f237ddda9dc581d8fab1",
+    "name": "무르무르드구스토",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:174ad5241ec127bf9e38",
+    "name": "그라스 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:304da480be2b2e3e3d2d",
+    "name": "덤앤더머  방탈출 카페",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c89d8ecc0cd2707b3303",
+    "name": "메릴러번 Marylebone",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1970d0a6709ea245d1b3",
+    "name": "시즌모먼트",
+    "before": 4,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:86d456bb860f727ae97a",
+    "name": "한화불꽃 정원",
+    "before": 1,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fce95fc5e3cae293ee8e",
+    "name": "히피스케빈",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:46b03d246d12a2b89862",
+    "name": "올티드 커피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:31773e26baf19e06e1b2",
+    "name": "카페  마트리",
+    "before": 3,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9c8f8da11723023e0514",
+    "name": "달달한카페",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:84755a77719290f7ebab",
+    "name": "아민 이화",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ee20b13dffb80beec11e",
+    "name": "블러프 bluff Dine & Bar",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:538f610f1d9058db3d5f",
+    "name": "오밀 성수",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:95148797f49fdc30beda",
+    "name": "비아트 성수",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:92124ba42370bcd2d787",
+    "name": "작은따옴표 도림천점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e465f35f6037b078da0d",
+    "name": "감정선프로젝트 베이킹 용산점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ac469994b1ef3e2c87bd",
+    "name": "봄의 정원  성수점",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4b8958bced00279b9990",
+    "name": "카페 토리",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d17a40a30bc76ccdfdd3",
+    "name": "문래동꽃밭 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fd4a5725ea8bca714e63",
+    "name": "앤트러사이트 합정점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:228c16cb1dfade1065b3",
+    "name": "보라앤드 연남 소품샵",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2388a2d3e5b9b1e58e23",
+    "name": "용산어린이정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e204a5795eb38995224f",
+    "name": "일상 정원   서울 역점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7e98800e172f93d05f6f",
+    "name": "넥스트에디션 신림점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:720e464974ee122acd63",
+    "name": "만수의 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c368a18da182fb5160c3",
+    "name": "리얼월드 성수",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c34d8d5f8f30cf9cad24",
+    "name": "닷닷닷2",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:98d8deddd02edd131fab",
+    "name": "큐브이스케이프 잠실점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c0f4cc53b91d21f862f7",
+    "name": "셜록홈즈 대학로점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1d31fdfda00191bc0c6d",
+    "name": "도탑다",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1ab54879f4c6ed9f9296",
+    "name": "까루나",
+    "before": 3,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8641d7b8073d54222223",
+    "name": "그림라이트",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:201d1703f1ccb4fdc3f5",
+    "name": "일상 정원  센트럴시티점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:83d39065f69149e9f5c0",
+    "name": "아세도라",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:67add82230a1f00f1c62",
+    "name": "스피키지",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2a449546e87701916048",
+    "name": "아민 연남",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:46de578a81a7fd1fb0ff",
+    "name": "책방 시행과착오",
+    "before": 5,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8a33d21a15cdbadac049",
+    "name": "룸익스케이프 블랙점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e2670c1b9d7d53a5ab4a",
+    "name": "카페이립스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d4ce3c3432595eefbdd5",
+    "name": "당산 공원 이끼 정원",
+    "before": 0,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ddffcee0a4fd58c04303",
+    "name": "옐로우버터드림",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:38b6a9c92ef2d3788a49",
+    "name": "이룸에이트  방탈출 카페",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2debc0e1d87785cfe0fe",
+    "name": "채그로",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f6a27bb3485401e0de1d",
+    "name": "카페&바  정원 들",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:abc871c07ccc36887908",
+    "name": "아트쉬프트",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:40c3edd4f42df166990f",
+    "name": "리가 플스방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:05eb583b8fe304507b5e",
+    "name": "아차산 어울림 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b2933376e54cbcc804b8",
+    "name": "서 서울 호수 공원 몬드리안 정원",
+    "before": 3,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8f089ed92d15ca265ce1",
+    "name": "호왕 서래본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ed9cd7826e04a5051191",
+    "name": "노을 공원 도시농부 정원",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fbad499ae7b71518ec18",
+    "name": "오붓 도예 공방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b38ec787d8a6599dd870",
+    "name": "뉴문",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8a5afd157ed7d0ff7dda",
+    "name": "안양천가족 정원  장미원",
+    "before": 1,
+    "count": 0,
+    "status": "not_found",
+    "provider": "not_found"
+  },
+  {
+    "place_id": "discovered:67888de7985e99b121ef",
+    "name": "셜록홈즈 잠실점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b2e8103ca56c379fc162",
+    "name": "석계치유 정원",
+    "before": 2,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7e739dba4ca1840cb565",
+    "name": "퍼스트커피랩 강남점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5bf21e8512cb45b0de90",
+    "name": "그림서재",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7c0c0e016b29cb77883e",
+    "name": "큐브이스케이프 홍대점",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:a52b37bc844428475668",
+    "name": "대성식당",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:30b41a09a443efbcf6c6",
+    "name": "카페  산아래",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:47aa3ccf53e84266b357",
+    "name": "온초점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:338e0ca2090dde216f24",
+    "name": "맨홀커피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ae1ea9067ee66d9ecec1",
+    "name": "카페 페퍼",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:19862bf6ca06a7366324",
+    "name": "미감각 도예 공방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9f75d60a4f8427baa809",
+    "name": "콘피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:abc70c1594f2e6123faf",
+    "name": "펍피맥 가산디지털단지점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:35bc66617c5c638c8076",
+    "name": "다코르 커피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d5de0e56622234b88a68",
+    "name": "카페  스파츠",
+    "before": 3,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0034e7da57890147be72",
+    "name": "냠 공방 &미유디저트",
+    "before": 2,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:e921f6bba9e7c5f2bac2",
+    "name": "티하우스 다드림",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e49f528fb7a8f1f32fe9",
+    "name": "1인1잔",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6d7b7161a1d56006bca9",
+    "name": "스페이스헬레나",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e0815c3f42117542d54f",
+    "name": "네모네 아이파크몰 고척점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6cfc1ae3f1610039a9b4",
+    "name": "듀레스트 샤로수길 본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f9d3a70540ff2f5a0dfb",
+    "name": "카페 그린포레스트",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:89da23e162adbe667922",
+    "name": "카페  오텀",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5d2fb3f3a7d6930a2c06",
+    "name": "도토리 용산점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:90413629431eddc0beec",
+    "name": "엔터팟",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:96a7a98b0c7044af6ede",
+    "name": "정원 소 공원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3e9af5bbcb6ea5be1032",
+    "name": "와인공장L075",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f95fbd0323aac479582e",
+    "name": "이도 여의도",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:549d39df08c024f86eb8",
+    "name": "짱탁구장 성신여대점",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:619d20c71dd01b3fd0f4",
+    "name": "비단가죽 공방",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:6d3d9695d61c38ab6aeb",
+    "name": "성신옥",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8a91b21ca6be8adbdd06",
+    "name": "문래 마이스페이스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8ffdc3d27df290856511",
+    "name": "장미화실",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d6ab8a1cc2e667d7f1f7",
+    "name": "쿠운 신논현본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:340d7d0ced4f5768acf4",
+    "name": "담금",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f51adc390f1358ca7c40",
+    "name": "용비쉼터 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8593b492ac710c46e658",
+    "name": "더코드 왕십리점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:135880470e34a7ceb26c",
+    "name": "제이홉숲 벤치 정원",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:421f983d7169bbbe207e",
+    "name": "윤숲 후르츠산도점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:13c43e78ec25808ab77f",
+    "name": "무아레  서점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:431c82d7b4f609398fd1",
+    "name": "불빛 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:dbe7e78a809eed1c22f6",
+    "name": "히어로보드게임카페 신도림점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:45157ae27b76e9c85b01",
+    "name": "미도인 대학로",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ce5de2353995b3b378a3",
+    "name": "크림시크",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e4b8bc4c51e30c9eccaa",
+    "name": "참치 공방  상암점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4ee8a05ebf31505ed28c",
+    "name": "띵크프룻",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1dba635ca869a18e9bca",
+    "name": "썸머스테어",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d08bb87fcc2e50e64b44",
+    "name": "노르웨이안우드",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ef402a93c758b827e8fa",
+    "name": "플레이포인트랩 노원점",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6d1e4eee813949102d75",
+    "name": "일도커피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9719573c7448ed5cbf14",
+    "name": "943 킹스크로스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d4da3234c3ef534a94fe",
+    "name": "상상라오회전훠궈구이 건대점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:47389a6fde5f45374dfb",
+    "name": "참치 공방  시청점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9702ecd98e47323ccd85",
+    "name": "케익다방 건대본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ce98c1e16431c4290972",
+    "name": "포터리카페 더미",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:89157380bde8b75c63ab",
+    "name": "트윈엉클스",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0c73138be2a8dcd97754",
+    "name": "효원미술",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d04d022911c6abf3ab15",
+    "name": "르브리에",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:40bddef1efaff0c2f8db",
+    "name": "도토리책방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:cfdb4a907091cd11e13d",
+    "name": "셜록홈즈 성신여대점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:513550f459ced614f7cd",
+    "name": "봉화산옹기테마 공원 흔적의 정원",
+    "before": 0,
+    "count": 0,
+    "status": "not_found",
+    "provider": "not_found"
+  },
+  {
+    "place_id": "discovered:bf7359196f732cb0b579",
+    "name": "그림책공간틈",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:a9b66ec3646ae13febfa",
+    "name": "더트랩 수유  방탈출",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:91a1c8db914a9ed4f46d",
+    "name": "패닉이스케이프",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f36fb866226417dc096c",
+    "name": "방탈출 카페 탈출브라더스",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c693555d8169e1569b56",
+    "name": "엉금책방",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9b001cca1ff3786ba746",
+    "name": "위에트 성수",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:aea5da4e6d7907bb355e",
+    "name": "피피에스 신용산",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7b7509433546d26598ce",
+    "name": "아마츄어작업실 청량리점",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bb7d8c47c12bdff6b755",
+    "name": "황홀경",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:305ce1459f16d6452e08",
+    "name": "숙성회 화도",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3cdca9aa52592a96ba00",
+    "name": "종각 한우 공방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6f97b302c76e2fbd9ea5",
+    "name": "밀크허니  서울",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:65891f23b8b3b9954f0b",
+    "name": "옥류헌릴렉스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:49df565af7bc3384b30c",
+    "name": "캠핑포차",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2d98e040186f28c776eb",
+    "name": "롤러팡팡스케이트장",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:24c50c389d7b25356ec8",
+    "name": "클라르테 반지 공방  여의도점",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d44be608b074569aa4c9",
+    "name": "커피마켓",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e604f09b69b3f5fff9bd",
+    "name": "책방스콜레",
+    "before": 1,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:317f23a7ebfd04aa603c",
+    "name": "유어마인드",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b5320ff97af1334cafc2",
+    "name": "참치 공방  종각본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9abe41b3cb0333977414",
+    "name": "봄의 정원  왕십리점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a614adba3738cddb7ec5",
+    "name": "영앤링",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:223ff6206d31c7c0d06e",
+    "name": "커피베스코 노원점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3881c34f022ee0acce41",
+    "name": "오월상점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:58eef7fa69614ac88ff9",
+    "name": "카페 397 삼구칠",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:469e2461a006d5a8dcbe",
+    "name": "메종크로키",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4ea0368bac28aaaab88c",
+    "name": "맨홀커피웨스턴책방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a7cf01bad5f274103a57",
+    "name": "노엘베 금호",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e0ef8dd18ffa68f4cc06",
+    "name": "별빛 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ef37c22c771110a038a4",
+    "name": "오후",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fa122efc4b970ae71520",
+    "name": "호박이넝쿨책",
+    "before": 1,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d2ab99d3d5409ed7e974",
+    "name": "카페  엉클두",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e398918696d6d75df5ae",
+    "name": "평화의 공원 평화의 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c8e1610045ea7be499d6",
+    "name": "광선집 까치산역 본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6f6df9ab4195c2ce6770",
+    "name": "고움",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b824a9a186c6d8ba24c3",
+    "name": "머더파커 WOW잠실점",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ffae7ce9182e89a7116c",
+    "name": "익선요록",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6453c5ac9c80858092e9",
+    "name": "공간갑",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3ea9be01892dd62b1cab",
+    "name": "브루크 성수",
+    "before": 5,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:45698a036b8ab0074912",
+    "name": "카페 브릭",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d3d46878c4434551b44b",
+    "name": "카멜커피 상도점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:97368f4256d48aab7ee9",
+    "name": "불이아 삼성점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d1666c697548cf3e48fd",
+    "name": "투데이 오브 베이킹 (Today of baking)",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fdd857479a8d8d734e16",
+    "name": "히어로보드게임카페 노원점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:78b0cd889aef1b926a35",
+    "name": "룸엘이스케이프",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:54fe879790bc77789063",
+    "name": "빛의 화실",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fe0032854f13bd5967b8",
+    "name": "딥코브 커피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c0637dc107f924f0a9a9",
+    "name": "메모아",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a601f939ac956a7b7b16",
+    "name": "소극장 페르소나",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:43edabaa8607e559afc6",
+    "name": "베르데커피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:19032f7097c73114e91e",
+    "name": "사드락사드락라탄",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a729c5cd031c16ab185e",
+    "name": "상상의문 대학로점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b65af0989f869c900b26",
+    "name": "방스",
+    "before": 2,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7f1969d74a40443d5fa7",
+    "name": "이스케이프시티 성신여대점",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9b83f8cadaac638345da",
+    "name": "푸름 공원",
+    "before": 0,
+    "count": 0,
+    "status": "not_found",
+    "provider": "not_found"
+  },
+  {
+    "place_id": "discovered:8b1796dac8d61b061065",
+    "name": "동네책방 브론테살롱",
+    "before": 0,
+    "count": 0,
+    "status": "not_found",
+    "provider": "not_found"
+  },
+  {
+    "place_id": "discovered:1d9c6a62a8f032542966",
+    "name": "정원 소 공원 음수대",
+    "before": 0,
+    "count": 0,
+    "status": "not_found",
+    "provider": "not_found"
+  },
+  {
+    "place_id": "discovered:524dd26135a668828e0c",
+    "name": "비포어커피로스터스 구로디지털단지점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:01872683ecd8fbec13bf",
+    "name": "OPCI 영등포 타임스퀘어점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:090f445e6941f921bd79",
+    "name": "에밀앤폴",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:45db5b991afe8c8c21a0",
+    "name": "도자기작업실 soosoo",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bdcea90e88385e9cc61b",
+    "name": "메종드쌍문",
+    "before": 3,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:123c4261e51712674390",
+    "name": "에피소드",
+    "before": 2,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f69e768448343ee3423e",
+    "name": "오린지",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:20c2fe0a029019ea54fe",
+    "name": "정원 송파나루",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c4900cb5e1757c12142a",
+    "name": "오늘의 한 페이지",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:190bfdf8c3d1d466acbb",
+    "name": "북촌탁구",
+    "before": 1,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:cf9f125121243161da68",
+    "name": "더메이즈 건대점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e3e3b6c427452dcfa1ad",
+    "name": "브라운헤이븐 미아",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ec9465ff0c4583823776",
+    "name": "데이오브베이킹",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:14a730152dfcf6e82801",
+    "name": "그날봄",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a07638b2de1667df4c28",
+    "name": "도꼬마리",
+    "before": 2,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f923550b0bcae4de4ccb",
+    "name": "펀스터 증산점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:74060ac4429089494520",
+    "name": "남춘네숯불닭갈비 목동사거리본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a5659d49a6dde6ade0b2",
+    "name": "카페 구움",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0032491a476318dda37c",
+    "name": "회전문서재",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:47f7133dbf43575d8ece",
+    "name": "슈 공방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:91f11f58d6c44925abe8",
+    "name": "카미더가든 갤러리&카페",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c1e0bcbab6c7568019c3",
+    "name": "국화 정원",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2a5d0814c095a376a227",
+    "name": "체셔하우스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:21b263005640ecac7602",
+    "name": "카페  아르무아",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f273a19b04c9518d0af0",
+    "name": "백조다방",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5b4c1f1fa9df3f4978e7",
+    "name": "5TO7",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7c03d3bfc44d9eca67bd",
+    "name": "아이아오",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:287b190a179ea4c86fa1",
+    "name": "서울 숲나비 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:cdc70a0562a527853d9d",
+    "name": "아차산 어울림 정원 약수터",
+    "before": 0,
+    "count": 0,
+    "status": "not_found",
+    "provider": "not_found"
+  },
+  {
+    "place_id": "discovered:bf34d59a9094533c61be",
+    "name": "Paulette",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:c25bcdfcea5c312288ac",
+    "name": "셜록홈즈 노원점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:966c4cceb26d8262df3d",
+    "name": "상암동쉼터 정원",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d7d9e30ac5dd92a042e4",
+    "name": "킷사텐 도봉점",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:99c52e4f55ee4d1f822a",
+    "name": "디아버",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:9aa6523d2593aa88076c",
+    "name": "스페이스노들케이",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:16799876f2e38200f5eb",
+    "name": "카페 가비",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bc256f565f8783977d82",
+    "name": "불나방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ecaff88eb397a453a709",
+    "name": "룸엘이스케이프 신림3호점",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e3766ea5bcc169603588",
+    "name": "쿄오모라멘",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7445ef74367a29d0d4de",
+    "name": "오잇",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4621bd90913daee37a67",
+    "name": "그리노 성수",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0c66a5d0808b5b83fb8e",
+    "name": "카츠 공방  성수점",
+    "before": 4,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:faad9e4fb130d07ec54f",
+    "name": "8번가",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c02930ad29386bced64e",
+    "name": "재벌국수 신설동점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e288b8201512ff7e1e28",
+    "name": "마할로가죽 공방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:01e30ab8913accdd9e99",
+    "name": "봄의 정원  회기점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:62a1c1f3d0941d037bda",
+    "name": "빈스로드 상봉본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2036a1bcb2ff79842990",
+    "name": "망우식당 우림시장 본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:503e48cd9614fd9a9639",
+    "name": "츠루츠루 마제소바",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6374d304a6f21e668969",
+    "name": "선양식당",
+    "before": 2,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ddd5a3d2318819a83ebb",
+    "name": "편의점포차 야장 미아",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:701aaea17e305a2641aa",
+    "name": "우지커피 창동점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bdf8f1763eceea92b02a",
+    "name": "감동식당 노원본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:061f12f53c04f97d0be1",
+    "name": "우지커피 불광중앙점",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:0350208a96ef540e4370",
+    "name": "꼼작",
+    "before": 1,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0ffdb3472d2454f1de84",
+    "name": "해피플스방",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ec987e4f08a9a874539a",
+    "name": "샌드커피 논탄토 신촌",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:60a12893a6bb0dac1964",
+    "name": "씨케이브",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8e34236e58df29852efe",
+    "name": "증가로커피",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7af86d3ceb8239caef0d",
+    "name": "젠틀한식탁 목동본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0b0821d3fdcb08a8a93b",
+    "name": "콜트클럽 마곡",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c1796990b1effce52771",
+    "name": "롯데백화점 김포공항점",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:54beb8913bb6cd20666a",
+    "name": "홀데이",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:2db79ee1356a75507740",
+    "name": "우미학 아이파크몰 고척점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:75f9c70e08a678055d5e",
+    "name": "영향 가산본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bf57d7aa155bbdba0ff9",
+    "name": "백리향",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9d3acb1cb4bc7bf871ab",
+    "name": "동작노을 카페",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:73a3332212c0bff9baf9",
+    "name": "히어로낚시카페 신대방삼거리점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3faecdaa77cb9c841f46",
+    "name": "프레디버거  서울 대입구역 본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b653d69929774dd3dde0",
+    "name": "플루아  공방",
+    "before": 5,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e39442a3f1fb96891c6d",
+    "name": "쎄봉 크루아상",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b5f24462ff5e62dfef65",
+    "name": "살롱드호우섬 신세계백화점 강남점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1e3787c9424f57cd9881",
+    "name": "잠수부네 해산물 실내 포차 교대직영점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:707cab821bb05339db08",
+    "name": "모스가든",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:11a30440ed26778f9a3a",
+    "name": "참치 공방  강남점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:23375ab8185995c9dbd8",
+    "name": "무드이너프",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:45fdbc9d44b4b466a465",
+    "name": "왓어브레드 갤럭시 로봇파크점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:83ea228958827b7ac6fd",
+    "name": "오브젝트 삼청점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2a876eb4e2aac8d88158",
+    "name": "세종이야기 충무공이야기",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:117b8161b7271d703937",
+    "name": "도트온",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e64cc8651494ebd46d77",
+    "name": "칠린",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3ab955a8576f2efccec1",
+    "name": "한정선 녹  서울 역점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d448939f2f269125e632",
+    "name": "소수책방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a1510d83aa94283e938f",
+    "name": "피크닉",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fac6c396d40642150cfc",
+    "name": "랩포터리",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8fb502fdbad6c7af170a",
+    "name": "방탈출 결",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fc27f4c3158bf24ffd69",
+    "name": "픽셀 퍼 인치",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:554226e0d872799fe6ef",
+    "name": "전쟁기념사업회 전쟁기념관",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:606793758cfd91f8d3c4",
+    "name": "요요도예 공방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d6dfc9c88604b9b428f6",
+    "name": "미션브레이크 용산",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a8f78dc1aa7e4f13229c",
+    "name": "콰이어트 스윙",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9e4352dd96b81062fe4f",
+    "name": "수도박물관",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:610224ed0aaf7059a165",
+    "name": "크래프트 프랙티스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9bc3f9ce6977b6191bfb",
+    "name": "빛의 시어터",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f3b20a68314916d0c5b5",
+    "name": "아트앤도예 공방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2fdd910aa3fe4aaf11eb",
+    "name": "방탈출 카페 넥스트에디션 건대2호점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4ba1babdf2e1bb0854f5",
+    "name": "카페  디그딥",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4a1e506ec7946140e328",
+    "name": "답십리영화미디어아트센터",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8e54d4f0b25256fabde6",
+    "name": "정연 도자기",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:855a2e105976ff07fc1f",
+    "name": "한시십일분",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:320bb3a3079635eab9a3",
+    "name": "코프키노 시네필 책방",
+    "before": 3,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6916762dbf66cf5d8a0b",
+    "name": "탓츠포터리",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ce68741a3ae84d9e8ad5",
+    "name": "FUMD",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4c2a1ec9e6d687eaee77",
+    "name": "지식을담다",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:942574caa44923eb7014",
+    "name": "성북근현대문학관",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c7055edc8840235c7e62",
+    "name": "정유정 도예작업실",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b2b9fc4ab08a9f7e57e0",
+    "name": "펫터니아 하우스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:72e8fc1cde11bfa191b2",
+    "name": "공예 전시관  강북ANC",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:23676666a2914b0023bd",
+    "name": "모아스튜디오",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:864f7fa3f8f996d19fb2",
+    "name": "HAM pottery",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:114c873d3d65baea854a",
+    "name": "시즌",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:68c52102d2d3301fe689",
+    "name": "노원기차마을",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:99281bfe7dd73423fd98",
+    "name": "초안산 도자기 체험장",
+    "before": 3,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:491802b9ef17ada0de82",
+    "name": "블루마일스커피로스터스",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f98ae751c96cbd7da5aa",
+    "name": "책방시나브로",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:20f53a9bc8968216ce31",
+    "name": "스프링샤인",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9465345c506d9f8f3f40",
+    "name": "방탈출 미로",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9194cf33fc767948ab24",
+    "name": "하이드미플리즈 홍제",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:60e9d7a076365e356ee6",
+    "name": "도자기공방 도돔",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:a486c2d8e613a588224b",
+    "name": "파이홀",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ef48f2c2873d19fb6696",
+    "name": "4233마음센터 연남점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:420db06e31a0a6eb04a8",
+    "name": "도자기 카페줄",
+    "before": 5,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:55660db68925873de503",
+    "name": "다수제과",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:cd8d688d87271c2dfcfb",
+    "name": "열두달책방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:285b369ebee8365675d0",
+    "name": "끝없는이야기",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:79e01b444b476e8c2640",
+    "name": "논오프  서울 목동점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:dbc366b77449d290a5cb",
+    "name": "다시 서점",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1d7cac0fda1d1fca6908",
+    "name": "손길도예 공방",
+    "before": 1,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:dc68c296acc42bcee3aa",
+    "name": "까치화방 마곡점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9ef3c2050b0dc1a0904d",
+    "name": "인공위성",
+    "before": 2,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fec574fcbbcc89bc9db6",
+    "name": "서울 특별시교육청융합과학교육원 남부분원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ebba71309e953e1f0a80",
+    "name": "potteryCHO",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:9b1d9f289efed6a5f0e3",
+    "name": "올오어낫싱",
+    "before": 3,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:62e3bd0c66001522354a",
+    "name": "시흥행궁 전시관",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a5eff0b14a1f0cd09686",
+    "name": "리리작업실 도자기공방",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:dcece4e04352194bc84e",
+    "name": "동물책방 정글핌피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:34ac654aec6ff8648ccb",
+    "name": "Hall 1",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:77163db804861d9dc4fc",
+    "name": "오비움 세라믹 스튜디오",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:267043d21d41016c3757",
+    "name": "소셜서재",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:edc3c868a5418f56d0df",
+    "name": "윌로우하우스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:cb5989d7049047c17786",
+    "name": "포유클레이세라믹스튜디오",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:25c6516812f7275fc0c1",
+    "name": "도어이스케이프 이수역점",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:57c021ed989debdaa96b",
+    "name": "낙성대공원",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bc4b4eb08c4f43883d26",
+    "name": "도자기공방  무구",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:798c2ec8e66e8db4012a",
+    "name": "남현예술 정원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bacdf1e018989c612534",
+    "name": "셰입오브타임",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b96cb6055cfcde62cfee",
+    "name": "길상도예",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:912f7b065770a07d0e6e",
+    "name": "플레이더월드 강남점",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1f58c7f0b9aba1e0c22d",
+    "name": "노브북스",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d11b2ae234e0a913c7cb",
+    "name": "더샵갤러리",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:235630587be1dc0d12cb",
+    "name": "세라듀",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:59dfa9ae18c34972f08c",
+    "name": "뷰클런즈",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:98beb9ec5d32da955380",
+    "name": "무수책방",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:85fe602faf9f38d70b06",
+    "name": "래미안갤러리",
+    "before": 3,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:70d6c4f0df43cead1f1d",
+    "name": "아트링크도예학원",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0c92de91d63b2713b7d1",
+    "name": "셜록홈즈 잠실새내점",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ae2e4fc73c88691fbb3c",
+    "name": "채스우드커피",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a9cebad777be95d6228b",
+    "name": "어느날",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ef90fdef3e819bd51d32",
+    "name": "서울  암사동 유적 박물관전시실",
+    "before": 0,
+    "count": 0,
+    "status": "not_found",
+    "provider": "not_found"
+  },
+  {
+    "place_id": "discovered:32f4b0a25288dc6d14a3",
+    "name": "강동공동체 정원",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8c55767e060faa17dbd4",
+    "name": "동백양과점 익선점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:188030ebb5bfef3dc431",
+    "name": "우메돈",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:afc2b83a56b622b18e6f",
+    "name": "원앤지니움",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:92ff3eda54375985947f",
+    "name": "왓어브레드 용산점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7db97afb3908846f01cf",
+    "name": "난포 한남",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:efb062c824f564468d72",
+    "name": "프레젠트프로젝트 해방촌",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e2f2357f14213eb0c1ee",
+    "name": "피요르드",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0212abd1725d04c5195c",
+    "name": "조조칼국수 성수점",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b777d95ce82f2b6a1de9",
+    "name": "제리백 아프로룸",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:26bd8a6cee529d887066",
+    "name": "뚝딱 성수점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:76eef8dca93f2371ed79",
+    "name": "도우터 건대점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:03f4eb60fc14c9d3cb4c",
+    "name": "테시오",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:92c0b1a89eb45072f9c2",
+    "name": "우박아뜰리에 취미미술 화실",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:cf79b650d95c84f82617",
+    "name": "민들레영토 경희대점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5202c1f7e5e6e8960834",
+    "name": "오모 브런치 바",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5765672324eb8becce48",
+    "name": "티우드 다락방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d1da5197671a0783d7b4",
+    "name": "우지커피  중랑구 청점",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:caba8109dcc4ceea7aaf",
+    "name": "선잠",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f8de4e0396bbeff04fa6",
+    "name": "삼선",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9e74d1e2aea79510e932",
+    "name": "국화 정원",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:529ce01048be327a5676",
+    "name": "주노샌드",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:311264eebf66ec8fb27e",
+    "name": "우지커피 미아역점",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:a7737d91f0053c7de1a1",
+    "name": "감희리",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:95a9823a28db96604811",
+    "name": "드로잉카페 여백",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ae5d41466620fa11276b",
+    "name": "우지커피 불광역점",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8771dac9d20b2e5c1f4f",
+    "name": "센티멘트",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a891867973e7cab88b37",
+    "name": "연희 에스프레소 바",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7a6c0b902bc08ee68068",
+    "name": "루나밍",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4cf812f7dbe14381f429",
+    "name": "해옫 연남",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b833ff97462c594e1880",
+    "name": "아키바코믹스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3bdbd41721b36f7b3882",
+    "name": "바숨",
+    "before": 4,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7f09e535214cb7a18439",
+    "name": "우지커피 목동역점",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:a6887e0484241b4258a8",
+    "name": "브런치나인",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ce48c7875d93f208c59c",
+    "name": "금각도 마곡발산점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c3a1dacfb7186b59f115",
+    "name": "숨인솝 수제 비누 공방",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:85843b314a3576ee5643",
+    "name": "수목원국수",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a6cf9c8c2c47e3a5e7a2",
+    "name": "구름 위",
+    "before": 1,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1d2c999462c9f37fe6c1",
+    "name": "아로케",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9cbea253124a3d10c156",
+    "name": "GTS버거 가산점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:8f5f8be735735888811e",
+    "name": "우이락 상도점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d708552ce5efb28fd535",
+    "name": "칠리향도삭면",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a479325ae2c2028cfaca",
+    "name": "달쓰브릿지",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a43b37a17f36be8cb83a",
+    "name": "헬무트커피로스터스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:5e6fb18d43de63eea046",
+    "name": "카몽",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b5105f7edb1cf30f2ebe",
+    "name": "오브제작업실",
+    "before": 3,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:2e69f01f102827a8d760",
+    "name": "스트라이크존  서울  강남역구장",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3c20d769eda98911ff1a",
+    "name": "미쓰양꼬치",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f5f86f76726e659e1b7d",
+    "name": "반지대학 강남캠퍼스",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:fb811fd89f01e7125035",
+    "name": "을지다락 강남역",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0b13b678bfd223bcd447",
+    "name": "카페 드로잉 석촌호수점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:24696fbefaba71a3faff",
+    "name": "고든램지버거 롯데월드몰점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f770796d03f2eb21e1f0",
+    "name": "도야지 공방  잠실새내 본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a71279d3be4f1777a216",
+    "name": "놀이터낚시카페",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f6612278b029b28553e4",
+    "name": "더 화이트 라운지",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9b63144dc1b1466c5016",
+    "name": "담다",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e9856eb9ec6aa58480e5",
+    "name": "카페 랑솜",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b394a143205c3369037c",
+    "name": "서촌 그 책방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:193f7f8926b22d5e2708",
+    "name": "우물길정원",
+    "before": 0,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:f7023d63b35782a47c9b",
+    "name": "이띵룸",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:18fa001f8a6ea65ed5bd",
+    "name": "피롤츠커피하우스 회현점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1c54dd1302b2d1419fa3",
+    "name": "더북소사이어티",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:03859162529ab10db3d2",
+    "name": "그라운드시소 센트럴",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:a71da58a67a85b69923e",
+    "name": "aa ceramic studio",
+    "before": 4,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bb637d0d939015c786d2",
+    "name": "알카트래즈",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:36e1f746a898625a83cc",
+    "name": "테디뵈르하우스 용산점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:f43800b33a83aa876c8a",
+    "name": "스토리지북앤필름",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ef2ca90af68c6271282d",
+    "name": "국립중앙박물관",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:63da7668f5a7822d1e93",
+    "name": "포터림",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:7687fea783bef70cb347",
+    "name": "비트포비아 아이파크몰점",
+    "before": 0,
+    "count": 0,
+    "status": "not_found",
+    "provider": "not_found"
+  },
+  {
+    "place_id": "discovered:fe6dfe49ba060eed8a5d",
+    "name": "5to7 성수본점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:96f7dc0c8a74268d700e",
+    "name": "옥수서재",
+    "before": 2,
+    "count": 3,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:eb934e5bb95d7939934b",
+    "name": "더 서울 라이티움",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:b51983c1049f3123d277",
+    "name": "컬러온스튜디오",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:d93c3c98cca5b1a74d7e",
+    "name": "크라임씬카페 퍼즐팩토리 성수점",
+    "before": 2,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:3fad7a57f794801ddcb9",
+    "name": "라에비뉴 성수",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:9643c3182e83c540c206",
+    "name": "따우전드",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:1c0b062dfd2cf51462ea",
+    "name": "우연과감상 책방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:58571d1b3ffa5ae5ff0e",
+    "name": "그라운드시소 이스트",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:06b112f969da8a605cec",
+    "name": "안나도예공감",
+    "before": 4,
+    "count": 4,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ace4b6c011d384e70f2f",
+    "name": "건대 방탈출  넥스트에디션 건대1호점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:172b5423243bcdc20041",
+    "name": "담소",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:e45663c6eac756231a5d",
+    "name": "한국경제발전 전시관",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:c38202dc72927a88d802",
+    "name": "정춘정 도예교실",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:63ad6c442fbaca63628d",
+    "name": "커피한약방 청량리점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:ed1e9eb456acc6f3843e",
+    "name": "카페 이포크",
+    "before": 3,
+    "count": 2,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:543174098fe247552356",
+    "name": "부자 책방",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:bc1ddc43d3f53effd854",
+    "name": "카리도예스튜디오",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0e142952a2aedc57d558",
+    "name": "TINC",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:4b57331532d9f5c5b122",
+    "name": "핸디스도예학원",
+    "before": 1,
+    "count": 1,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:46d67c0186eb49d17147",
+    "name": "Los Dias cafe",
+    "before": 0,
+    "count": 5,
+    "status": "available",
+    "provider": "naver_public_place"
+  },
+  {
+    "place_id": "discovered:9b7844907dc6750ff9c0",
+    "name": "야옹서가&책방 냥냥헌",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:6f3781b593543956b46f",
+    "name": "토기장이의집",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:0667de8fa6ab5f6b48d3",
+    "name": "큐브이스케이프 수유점",
+    "before": 5,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  },
+  {
+    "place_id": "discovered:022d0eb407e6240f1ebf",
+    "name": "책가도",
+    "before": 2,
+    "count": 5,
+    "status": "available",
+    "provider": "available"
+  }
+]

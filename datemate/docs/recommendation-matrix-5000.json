@@ -1,0 +1,49 @@
+{
+  "total": 5000,
+  "passed": 5000,
+  "failed": 0,
+  "resumed_rows": 4327,
+  "scope": "local HTTP /api/plans, 5 known synthetic matching venues + excluded decoy; search/discovery/pricing mocked; real planner and persistence; no live venue availability validation",
+  "parts": [
+    {
+      "total": 1250,
+      "offset": 0,
+      "resumed_rows": 1071,
+      "passed": 1250,
+      "failed": 0,
+      "examples": [],
+      "seconds": 23.69,
+      "scope": "local HTTP /api/plans, 5 known synthetic matching venues + excluded decoy; search/discovery/pricing mocked; real planner and persistence; no live venue availability validation"
+    },
+    {
+      "total": 1250,
+      "offset": 1250,
+      "resumed_rows": 1085,
+      "passed": 1250,
+      "failed": 0,
+      "examples": [],
+      "seconds": 21.8,
+      "scope": "local HTTP /api/plans, 5 known synthetic matching venues + excluded decoy; search/discovery/pricing mocked; real planner and persistence; no live venue availability validation"
+    },
+    {
+      "total": 1250,
+      "offset": 2500,
+      "resumed_rows": 1084,
+      "passed": 1250,
+      "failed": 0,
+      "examples": [],
+      "seconds": 21.79,
+      "scope": "local HTTP /api/plans, 5 known synthetic matching venues + excluded decoy; search/discovery/pricing mocked; real planner and persistence; no live venue availability validation"
+    },
+    {
+      "total": 1250,
+      "offset": 3750,
+      "resumed_rows": 1087,
+      "passed": 1250,
+      "failed": 0,
+      "examples": [],
+      "seconds": 21.4,
+      "scope": "local HTTP /api/plans, 5 known synthetic matching venues + excluded decoy; search/discovery/pricing mocked; real planner and persistence; no live venue availability validation"
+    }
+  ]
+}

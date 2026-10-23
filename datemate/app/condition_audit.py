@@ -133,4 +133,6 @@ def audit_plan(plan,c=None):
         confirmed_facts=[dict(name=p['name'],source=p['operations_source'],checked_at=p['operations_checked_at'],scope=p['operations_scope'],hours=p.get('hours'),price=p.get('price')) for p in venues if p.get('operations_source')],
         condition_summary=f'요청과 다른 조건 {bad}개 · 방문 전 확인 {unknown}개. 계산에 사용한 추정값은 전체 조건에서 확인할 수 있어요.')
     if real and not plan.get('best_effort'):plan['status']='실제 장소 · '+('이동 추정' if estimated else '경로 확인')+(f' · 방문 전 확인 {unknown}개' if unknown else ' · 등록 정보 확인')
+    if plan.get('search_adjustments'):
+        plan['search_adjustments']['differences']=[dict(label=r['label'],message=r['message']) for r in checks if r['state']=='unmet']
     return plan

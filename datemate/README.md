@@ -1,157 +1,139 @@
-# 서울 데이트메이트
+# 서울 데이트메이트 — 실행 및 설정
 
-서울특별시 내 장소만 검색·추천하는 한국어 데이트 일정 비교 서비스입니다. 서비스 지역은 서울 25개 자치구로 고정하며 경기·인천 등 다른 지역의 장소는 카탈로그에서 제외합니다. 출발지·귀가지는 방문 장소와 구분하므로 서울 밖 위치도 사용할 수 있습니다. 웹사이트와 무관한 상위 Streamlit 실습 파일·중복 가상환경은 사용자 요청으로 정리했습니다. 실행 환경과 키는 이 폴더의 `.venv`, `.env`를 사용합니다.
+프로젝트 소개와 주요 기능은 [저장소 README](../README.md)를 참고하세요. 아래 명령은 `datemate` 폴더에서 실행합니다.
 
-**현재 실행 범위:** 키 없는 가상 장소 일정 생성·교체·비용 계산·후기·대화와 실제 장소 자료 열람이 가능합니다. GMS 키는 비워 두었습니다. 실제 LLM/의미 임베딩·네이버 지도/자동차 경로는 키를 넣은 뒤 별도 검증이 필요합니다. 실제 장소의 운영정보가 부족한 상황에서는 검증된 방문 일정을 만들어 내지 않습니다.
+## 1. 환경 준비
 
-## 빠른 실행 (Windows PowerShell)
-
-VS Code에서 `streamlit_lab`을 열었다면:
+검증 환경: Windows PowerShell, Python 3.12. 가상환경을 활성화하지 않고 Python 실행 파일을 직접 사용합니다.
 
 ```powershell
-cd C:\Users\SSAFY\Desktop\streamlit_lab\datemate
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-Copy-Item .env.example .env
-# .env의 GMS_KEY는 지금은 빈 값으로 둡니다.
-.\.venv\Scripts\python.exe scripts/seed_demo.py
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+이미 가상환경과 `.env`가 있으면 재생성하지 않아도 됩니다. 공유용 `.env.example`에는 실제 키를 적지 마세요.
+
+## 2. API 설정
+
+기본 설정 파일은 `datemate/.env`입니다. 서버 환경변수도 사용할 수 있습니다. `DATEMATE_ENV_FILE`을 지정하면 설정 파일 경로를 변경할 수 있습니다. 키 변경 후 서버를 재시작하세요.
+
+| 변수 | 용도 | 필요 조건 |
+| --- | --- | --- |
+| `NAVER_SEARCH_CLIENT_ID`, `NAVER_SEARCH_CLIENT_SECRET` | 장소·블로그·이미지 검색 | 현재 구현은 NAVER API HUB의 NAVER 검색 엔드포인트 사용. 발급 Application에서 지역·블로그·이미지 권한 활성화 |
+| `NAVER_MAPS_KEY_ID`, `NAVER_MAPS_KEY` | 주소 검색, 역지오코딩, 자동차 경로 | 해당 Maps API 사용 권한 |
+| `NAVER_MAPS_JS_KEY_ID` | 브라우저 네이버 지도 | Dynamic Map 활성화 및 접속 Web 서비스 URL 등록 |
+| `GMS_KEY` | LLM 답변·조건 해석 및 선택적 의미 임베딩 | 해당 GMS 계정의 모델 사용 권한 |
+| `GMS_BASE_URL`, `GMS_MODEL` | GMS 연결 주소·모델 | `.env.example`의 기본값을 기준으로 계정 지원 여부 확인 |
+| `EMBEDDING_MODE` | `demo`: 문자 해시 / `real`: 의미 임베딩 | `real` 사용 시 키·모델 권한 및 재색인 필요 |
+| `EMBEDDING_MODEL` | 의미 임베딩 모델 | 계정에서 사용 가능한 모델 |
+
+일반 NAVER Developers용 키와 NAVER API HUB용 키를 혼동하지 마세요. 현재 서버가 호출하는 API의 발급 키를 사용해야 합니다. 서버 비밀키는 브라우저에 전달하지 않으며, 지도 JS용 공개 클라이언트 ID는 브라우저에서 사용합니다.
+
+그 밖의 타일 주소·청크 크기 등은 [.env.example](.env.example)에 있습니다. 서비스 장소 범위는 서울특별시입니다.
+
+### 키가 없는 경우
+
+- 실제 네이버 장소·블로그·이미지 검색은 제한됩니다. 사진은 다른 공개 출처가 있는 장소만 표시될 수 있습니다.
+- 네이버 지도 JS 키가 없으면 위치 선택에 Leaflet/OpenStreetMap을 사용합니다. 지도 타일에는 인터넷 연결이 필요합니다.
+- GMS 키가 없으면 규칙 기반 답변을 사용하며, 실제 LLM 답변으로 표시하지 않습니다.
+- 기본 임베딩 `demo`는 문자 bigram 해시로, 의미 임베딩이 아닙니다.
+- API로 만든 가상 시연 일정은 실제 방문할 수 있는 장소가 아닙니다.
+
+## 3. 색인 및 서버 실행
+
+배포된 장소·문서 JSON으로 초기 색인을 생성합니다. 기본 실행을 위해 장소를 다시 수집할 필요는 없습니다.
+
+```powershell
 .\.venv\Scripts\python.exe scripts/index_data.py --mode demo
 .\.venv\Scripts\python.exe scripts/index_data.py --mode real
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-이미 만들어 둔 `.venv`가 있으면 생성·설치 단계는 생략할 수 있습니다. `.env`가 있으면 덮어쓰지 말고 누락 설정만 추가하세요. 활성화 스크립트 실행 정책을 바꿀 필요 없이 위 Python 경로를 직접 사용합니다. 확인한 환경은 Python 3.12 / Windows입니다. 소스는 Python 3.10+ 문법을 사용하지만 다른 Python 버전의 의존성 설치는 별도 검증하지 않았습니다.
+<http://127.0.0.1:8000>에 접속합니다. `/docs`에서 API를 확인하고 `/api/status`에서 키·색인 상태를 확인합니다. 종료는 `Ctrl+C`입니다. 개발 중 자동 재시작이 필요하면 서버 명령 뒤에 `--reload`를 추가하세요.
 
-- 웹사이트: <http://127.0.0.1:8000>
-- API 명세 및 실행: <http://127.0.0.1:8000/docs>
-- 상태/실제 색인 수: <http://127.0.0.1:8000/api/status>
-- 서버 종료: 실행한 터미널에서 `Ctrl+C`
+의미 임베딩으로 전환했다면 `EMBEDDING_MODE=real` 설정 후 위 두 색인을 다시 만들고 서버를 재시작하세요. 해시 색인과 의미 색인은 분리합니다.
 
-방문일은 2026-10-24, 시작 11:00, 종료 19:00, 2명, 예산 100,000원, 도보, 3곳으로 시연했습니다. 장소 고정 → 다른 장소 교체 → 되돌리기 → 장소 질문 → 후기 작성·삭제 순서로 확인할 수 있습니다. 추천을 다시 누르면 고정한 순서의 장소를 유지합니다.
+### 키 없이 API로 데모 확인
 
-## 데이터와 동작의 구분
-
-### 장소 사진 (2026-10-22 추가)
-
-일정 타임라인·장소 상세·실제 장소 목록에서 사진과 설명을 함께 제공합니다. 실제 장소 ID의 공개 대표 이미지와 이용 조건을 확인하며 별도 사진 API 키는 필요하지 않습니다. 최초 사진 조회에는 인터넷 연결이 필요합니다. 가상 장소는 실제 사진을 표시하지 않습니다. 현재 실제 일정 생성은 운영정보 부족으로 제한되므로, 실사진을 바로 보려면 **서울 장소 둘러보기**에서 실제 장소를 선택하세요. [사진 기능·출처·검증 범위](docs/place-photos.md).
-
-### 출발지·귀가지 선택
-
-위도·경도를 직접 입력하지 않습니다. **주소 검색 · 지도에서 선택**을 눌러 위치를 고른 뒤 **이 위치를 출발지/귀가지로 사용**으로 확정하세요. 좌표는 내부에서 처리하며 실제 모드 전환 시 데모 출발지를 자동으로 해제합니다.
-
-- 지도: 네이버 JS 키가 있으면 네이버 지도 우선. 키가 없으면 Leaflet/OpenStreetMap으로 클릭·터치 선택 가능. 인터넷 연결 필요.
-- 주소 검색: 도로명 또는 지번을 입력하면 네이버 Geocoding 결과를 보여줍니다. `NAVER_MAPS_KEY_ID`, `NAVER_MAPS_KEY`와 Geocoding 사용 권한이 필요합니다. 키 누락/실패 시 지도 선택 안내.
-- 주소 검색 버튼을 눌렀을 때만 검색어를 서버와 네이버에 전달하며 검색어/주소 검색 결과를 영구 캐시하지 않습니다. 확정 후 만든 일정에는 출발지/귀가지가 저장됩니다.
-- 네이버 주소 검색의 실호출은 키가 없어 미검증. 결과 선택·좌표 전달은 모의 API와 단위 테스트로 검증했습니다. OpenStreetMap 지도 클릭은 실제 타일을 불러와 검증했습니다.
-
-관련 설정·출처·검증: [위치 선택 변경 기록](docs/location-picker.md).
-
-| 구분 | 현재 자료 | 의미 |
-|---|---|---|
-| 실제 장소 | 152건 | Wikidata CC0 ID·명칭·좌표·유형. 운영기관이 보증하는 최신 영업 카탈로그가 아님 |
-| 실제 외부 문서 | 공식 HTML 2건 | 국립중앙박물관 관람 안내·어린이박물관 예약 안내. 전체 장소에 대한 문서를 확보한 것은 아님 |
-| 가상 장소 | 28건 | 이름·운영·가격을 명시적으로 만든 테스트 데이터. 실제 152건에 포함하지 않음 |
-| 가상 안내 문서 | 28건 | 데모 검색/청킹/대화 파이프라인용 |
-| 로컬 색인 | ChromaDB | 실제/가상 데이터 및 해시/의미 모델별 컬렉션 분리 |
-| 기본 검색 | 문자 bigram 해시 | 네트워크 없는 동작 확인용. 의미 임베딩이라고 주장하지 않음 |
-| 기본 답변 | 규칙 기반 메타데이터 응답 | 실제 LLM 생성 아님. 알 수 없는 질문에는 확인 불가 표시 |
-| 기본 경로 | 직선거리 / 가정 속도 | 실제 경로 아님. 실제 모드는 미지원/키 없음 시 계산 불가 |
-| 사진 | 검수 사진 3곳 + 공개 대표 이미지 동적 조회 | 출처·촬영자·라이선스 표시. 없는 장소는 빈 상태 |
-| 영상·외부 평점 | 미확보 | 빈 상태, 원문/검색 링크 제공. 가짜 영상·리뷰·평점 없음 |
-
-실제 장소의 가격·시간·예약·휴무는 `null`이며 자료가 확인되지 않았다는 뜻입니다. 공식 문서의 내용과 정규화된 일정 필드는 별개입니다. 날짜별 운영시간·예외일·요금 적용 조건을 검수하여 구조화하기 전까지 실제 일정 검증에 사용하지 않습니다.
-
-## 실제 API 설정
-
-`datemate/.env`만 읽습니다. 비밀값은 서버 환경변수에 넣으며 브라우저에 전달하지 않습니다.
-
-```dotenv
-GMS_KEY=
-GMS_BASE_URL=https://gms.ssafy.io/gmsapi/api.openai.com/v1/
-GMS_MODEL=gpt-5.4-nano
-EMBEDDING_MODE=demo
-EMBEDDING_MODEL=text-embedding-3-small
-NAVER_MAPS_KEY_ID=
-NAVER_MAPS_KEY=
-NAVER_MAPS_JS_KEY_ID=
-```
-
-GMS 모델명/주소는 기존 실습 설정을 재사용했으며 이용 가능한 모델과 임베딩 권한은 발급 계정에서 확인해야 합니다. 키를 받은 뒤 `EMBEDDING_MODE=real`로 바꾸고 양쪽 데이터를 재색인하고 서버를 재시작합니다. 해시 색인을 실제 의미 색인으로 재사용하지 않습니다. LLM만 연결하고 해시 검색을 유지할 수도 있으나 상태에 구분됩니다.
-
-네이버 서버 키 2개는 자동차 Directions에만 사용합니다. `NAVER_MAPS_JS_KEY_ID`는 실제 장소 상세 지도용 공개 클라이언트 ID로, Dynamic Map 사용 설정과 localhost 도메인 등록이 필요합니다. 도보·대중교통·자전거는 앱 길찾기 연결을 제공하며 서버의 실제 경로 계산은 연결하지 않았습니다. 앱 링크는 네이버 지도 앱 설치가 필요할 수 있고 웹 지도 검색도 함께 제공합니다. 가입·결제·배포는 수행하지 않았습니다.
-
-## 수집·색인·갱신
-
-배포된 JSON으로는 네트워크 없이 색인할 수 있습니다. 새로 수집하려면:
+서버를 켠 상태에서 새 PowerShell 터미널에서 실행합니다. 반환되는 이름에 ‘가상’이 표시되며 실제 장소 추천이 아닙니다.
 
 ```powershell
-# Wikidata 공개 장소 목록 재수집 (유형과 서울 행정구역 관계 기준)
-.\.venv\Scripts\python.exe scripts/collect_places.py
-# robots.txt를 확인한 공식 박물관 안내문 수집, 7일 파일 캐시
-.\.venv\Scripts\python.exe scripts/collect_official_html.py
-# 색인 재실행: 고정 ID upsert와 이전 청크 정리
-.\.venv\Scripts\python.exe scripts/index_data.py --mode real
-.\.venv\Scripts\python.exe scripts/index_data.py --mode demo
-# 만료 캐시 / 생성 응답 캐시 / 전체 HTTP·응답 캐시 삭제
-.\.venv\Scripts\python.exe scripts/cache_admin.py --clear expired
-.\.venv\Scripts\python.exe scripts/cache_admin.py --clear answers
-# 필요할 때만: --clear all
+$demoBody = @{ visit_date = (Get-Date).AddDays(1).ToString('yyyy-MM-dd'); mode = 'demo' } | ConvertTo-Json
+$demo = Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/plans' -Method Post -ContentType 'application/json' -Body $demoBody
+$demo.plans | Select-Object id, finish, minutes
 ```
 
-`CHUNK_SIZE`, `CHUNK_OVERLAP`을 바꾸고 `index_data.py`를 다시 실행하면 문서별 낡은 청크가 제거됩니다. 수집된 공식 HTML의 갱신은 7일 후 원문을 다시 요청합니다. 최신 원문 재확인이 급하면 `runtime/html`에서 해당 URL의 캐시 파일만 직접 삭제하고 수집하세요. SQLite 캐시 초기화는 후기·일정·대화에 영향을 주지 않습니다.
+일반 웹 입력 화면은 실제 장소 검색을 기본으로 합니다. 위 API 데모는 외부 키가 없는 환경에서 계산 로직을 확인하는 용도입니다.
 
-추가 수집 어댑터도 제공하나 이번 환경에서 성공한 것으로 표시하지 않습니다:
+## 4. 사용 흐름
 
-```powershell
-# 위키백과 API: 이번 환경은 403. 접근 제한을 우회하지 않습니다.
-.\.venv\Scripts\python.exe scripts/collect_documents.py --limit 5
-# 키 수령 후 전문가 검색어/선별 프롬프트 포함 실행
-.\.venv\Scripts\python.exe scripts/collect_documents.py --limit 5 --llm --refresh
-# 공원 PDF: 조사된 링크가 404. 유효한 공식 URL로 SOURCES를 갱신한 후 사용
-.\.venv\Scripts\python.exe scripts/collect_official_pdfs.py
-```
+1. 서울 지역명·주소를 검색하거나 지도에서 위치를 선택합니다.
+2. 방문 날짜·시간·전체 예산과 원하는 활동을 입력합니다. 인원·교통 등은 선택 설정에서 바꿉니다.
+3. 추천받은 최대 3개 옵션의 장소·비용·이동·조건 차이를 비교합니다.
+4. 사진·블로그 검색 결과·메뉴 근거를 확인하고, 원하는 장소를 고정하거나 교체합니다.
+5. 추천 근거와 상세 일정 사이의 **이 동선에서 즐길 레저 골라보기**에서 방문지별 항목을 펼쳐 반경 1.5km의 스포츠 후보를 확인합니다. 선택 시 해당 방문지만 교체하며 다른 방문지는 유지합니다. 고정한 장소는 먼저 해제해야 합니다.
+6. 코스 카드 PNG 저장, 링크 공유 또는 인쇄/PDF로 일정을 활용합니다.
 
-원문 페이지를 자동으로 이미지·영상 다운로드 권한으로 취급하지 않습니다. 실제 데이터 JSON의 `photos`는 `url`, `source`, `license`, `videos`는 `source`, `title`을 검수해 입력할 때만 표시됩니다.
+후보 부족 시 조건을 단계적으로 넓혀 찾고 차이를 표시하지만 결과를 항상 보장하지는 않습니다. 필수 조건과 제외 활동은 별도 검사합니다. 레저 후보의 거리는 직선거리이며 영업·예약 여부는 별도 확인해야 합니다.
 
-## 검증
+## 5. 데이터와 한계
+
+| 구분 | 동작과 한계 |
+| --- | --- |
+| 장소 | 로컬 실제 장소 자료와 네이버 검색으로 확보한 장소·캐시를 사용. 가상 데이터와 분리 |
+| 서울 장소 둘러보기 | 지역·활동별 검색 결과를 중복 제거해 최대 500곳. 통합 인기순·평점순 목록이 아님 |
+| 사진 | 장소 일치 여부를 비교해 검색 이미지·공개 장소 사진·일부 검수 자료 사용. 원본/썸네일 대체 및 실패 안내 제공. 모든 장소의 사진 확보를 보장하지 않음 |
+| 블로그 | 네이버 검색 결과의 링크·검색 요약. 전체 본문이나 방문 사실을 검증한 리뷰가 아님 |
+| 메뉴·가격 | 식당명과 도로명 건물번호까지 정리해 공개 자료 조회. 숫자 메뉴 또는 메뉴 이미지 제공. 확인되지 않은 가격을 만들어 채우지 않음 |
+| 이동 | 직선거리와 가정 속도에 기반한 추정 포함. 자동차 실제 경로는 별도 API 연결·권한 필요. 도보/대중교통 실제 길찾기 계산과 구분 |
+| 운영정보 | 영업·휴무·예약·가격의 미확인 항목을 표시. 예상 코스는 방문 가능 여부를 보증하지 않음 |
+| 평점·방문자 수 | 네이버 공식 검색 API로 확보하지 않음. 서비스 자체 후기는 외부 평점과 별개이며 방문 사실은 자기 신고 |
+| 저장·공유 | SQLite와 로컬 캐시 사용. 공유 링크는 해당 서버에 접속 가능해야 사용 가능 |
+
+사진·블로그·메뉴 원문은 각 권리자의 자료입니다. 출처 링크 표시는 모든 자료의 재사용 허가를 뜻하지 않습니다. 공개 운영 전 외부 서비스 이용 조건과 미디어 권리를 검토해야 합니다.
+
+## 6. 테스트
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -q
-node --check static/app.js
-node --check static/maps.js
 .\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe scripts/benchmark.py
-.\.venv\Scripts\python.exe scripts/evaluate_rag.py
 ```
 
-브라우저 검증은 별도 터미널에서 서버가 켜진 상태로 실행합니다. 이 환경에 설치된 Edge를 사용했으며 브라우저를 추가 다운로드하지 않았습니다.
+단위/API 테스트는 임시 저장소를 사용하며 외부 검색 키를 비워 실제 검색 API 사용을 막습니다. 외부 API의 현재 응답이나 모든 장소의 정보 정확성을 보증하는 검사는 아닙니다.
+
+브라우저 검증은 서버가 켜진 상태에서 실행합니다. Playwright는 별도 개발 도구이며 아래 스크립트는 설치된 Microsoft Edge를 사용합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install playwright==1.64.0
-.\.venv\Scripts\python.exe scripts/browser_check.py
+.\.venv\Scripts\python.exe -m pip install playwright
+.\.venv\Scripts\python.exe scripts/check_editorial_design.py
+.\.venv\Scripts\python.exe scripts/check_photo_carousel_ui.py
+.\.venv\Scripts\python.exe scripts/check_leisure_results_ui.py
 ```
 
-스크린샷은 `docs/screenshots`, 실제 실행 결과는 `docs/test-results.md`, `docs/browser-results.json`에 있습니다. 단위 테스트는 임시 DB를 쓰고 브라우저 테스트는 현재 로컬 DB에 테스트 일정을 만들고 후기는 삭제합니다. `benchmark.py`는 생성 응답 캐시만 초기화한 뒤 첫 요청과 캐시 요청을 측정합니다. F2015는 GMS 키가 없어 대표 질문 5개가 **미실행** 상태입니다. 정확도·상호평가 점수를 생성해 채우지 않았습니다.
+일부 브라우저 검증은 현재 로컬 DB에 테스트 일정을 만듭니다. 모바일 모의 환경과 실제 휴대폰 검증은 구분합니다. 위 스크립트 전체를 실기기/iOS Safari 검증으로 간주하지 마세요.
 
-## 구성 및 문서
+## 7. 구조 및 참고 문서
 
 ```text
-app/       설정, 검증 모델, SQLite, 수집, Chroma 색인, RAG, 경로, 일정, FastAPI
-static/    직접 작성한 HTML / CSS / JavaScript
-data/      실제/가상 장소 및 문서 JSON, 수집 원본 메타데이터
-scripts/   재현 가능한 수집·색인·캐시·평가·브라우저 검증
-tests/     핵심 로직과 API 테스트
-runtime/   로컬 DB·캐시·색인 (Git 제외)
-docs/      요구사항·설계·출처·검증·제한·스크린샷
+app/       FastAPI, 추천·조건 검사, 검색·RAG, 가격·이동, 저장
+static/    HTML / CSS / JavaScript
+data/     실제·가상 장소와 문서 JSON
+scripts/   색인·수집·진단·브라우저 점검
+tests/     단위·API 테스트
+runtime/   실행 중 DB·캐시·색인 (Git 제외)
+docs/      설계·출처·기능별 검증 기록
 ```
 
-- [요구사항 및 F/NF 대조표](docs/requirements.md)
-- [RAG·데이터·일정·후기 설계](docs/design.md)
-- [API 명세](docs/api.md)
-- [외부 의존성 조사](docs/dependencies.md)
-- [데이터 출처와 이용 조건](docs/sources.md)
-- [검증 결과](docs/test-results.md)
-- [남은 작업·문제 해결 기록](docs/limitations.md)
-- [셀프·상호 점검 양식](docs/checklists.md)
+- [API 문서(실행 서버)](http://127.0.0.1:8000/docs)
+- [장소 탐색 500곳](docs/explore-500.md)
+- [사진 복구와 한계](docs/explore-photo-recovery.md)
+- [메뉴·사진 검색 주소 정규화](docs/road-address-search.md)
+- [결과창 레저 선택 및 검증](docs/leisure-selection.md)
+- [모바일 점검](docs/mobile-check-2026-10-23.md)
+- [디자인 참고·독립 구현 기록](docs/reference-design-selection.md)
+- [Cloud Run 배포 순서](docs/cloud-run-deployment.md)
 
-공개 운영 전 실인증, 실제 이용 확인, 다중 계정/스팸 차단, 관리자 신고 검토, 외부 API 계약·미디어 권리·운영정보 검수를 추가해야 합니다. 현재 후기 식별은 서버 발급 브라우저 쿠키에 한정하며 새 브라우저로 위장할 수 있습니다.
+기존 `docs/`의 날짜별 기록은 해당 시점의 검증 결과입니다. 초기 기록의 건수·제한은 현재 기능과 다를 수 있습니다. 현재 기능 설명은 이 README와 최신 기능별 기록을 함께 참고하세요.
+
+배포는 별도 작업이며 이 README 정리 과정에서 수행하지 않았습니다. 단일 서버 로컬 저장을 사용하는 현재 구성은 인증·영속 저장·다중 인스턴스 운영 검토가 필요합니다.

@@ -18,7 +18,7 @@ class Mention(BaseModel):
     name:str=Field(max_length=100)
     address:str=Field(default='',max_length=180)
     kind:str=Field(description='restaurant, cafe, culture, workshop, park 중 하나')
-    rank:int=Field(ge=1,le=3)
+    rank:int=Field(ge=1,le=5)
     quote:str=Field(max_length=600,description='장소 이름과 주소가 포함된 원문 그대로의 연속 인용. 주소가 없으면 장소 이름을 포함한 문장')
 
 class Mentions(BaseModel):

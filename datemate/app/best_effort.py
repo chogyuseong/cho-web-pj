@@ -82,12 +82,18 @@ def suggest(c,evidence=None):
                 if not error:options.append(annotate(plan,c))
         options.sort(key=score)
         if not options:break
-        final=options[:40];beam=[p['places'] for p in final]
+        from .option_diversity import diverse_beam
+        final=diverse_beam(options,40);beam=[p['places'] for p in final]
     results=[];seen=set()
     for plan in final:
         if len(plan['places'])!=target:continue
         ids=frozenset(p['id'] for p in plan['places'])
         if ids in seen:continue
         seen.add(ids);results.append(plan)
-        if len(results)==3:break
-    return results
+    from .option_diversity import select_options
+    return select_options(results,c)
+
+
+def progressive_suggest(c,evidence=None):
+    from .search_relaxation import search_progressively
+    return search_progressively(c,evidence)

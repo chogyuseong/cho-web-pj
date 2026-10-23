@@ -9,7 +9,12 @@ def places(mode='demo',visit_date=None):
         import time
         with store.connect() as db:
             saved=db.execute("SELECT payload FROM cache WHERE key LIKE 'discovered-place:%' AND expires>?",(time.time(),)).fetchall()
-        rows += [json.loads(r['payload']) for r in saved]
+        discovered=[json.loads(r['payload']) for r in saved]
+        # Cached local results may have matched 'gallery' inside a car showroom category.
+        discovered=[p for p in discovered if not (
+            p.get('source_type')=='네이버 지역 검색 · 요청 활동 유형 연결' and
+            any(word in ' '.join(p.get('tags',[])) for word in ('자동차','주차장','부동산','병원','의원')))]
+        rows += discovered
         curated=ROOT/'data'/'curated_places.json'
         if curated.exists():
             additions=json.loads(curated.read_text(encoding='utf-8'))
@@ -27,6 +32,9 @@ def places(mode='demo',visit_date=None):
 
 def get_place(place_id, mode):
     found=next((p for p in places(mode) if p['id']==place_id), None)
+    if found is None and mode=='real':
+        from . import store
+        found=store.cached('explore-place:'+place_id)
     if found is None and mode=='real' and place_id.startswith('food:'):
         from .restaurants import restaurants,live_restaurant
         return next((p for p in restaurants() if p['id']==place_id),None) or (live_restaurant(place_id) if place_id.startswith('food:naver-') else None)

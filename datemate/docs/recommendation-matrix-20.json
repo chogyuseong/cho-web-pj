@@ -1,0 +1,8 @@
+{
+  "total": 20,
+  "passed": 20,
+  "failed": 0,
+  "examples": [],
+  "seconds": 2.27,
+  "scope": "local HTTP /api/plans, 5 known synthetic matching venues + excluded decoy; search/discovery/pricing mocked; real planner and persistence; no live venue availability validation"
+}

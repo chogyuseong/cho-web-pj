@@ -5,8 +5,14 @@ import time
 import uuid
 from .config import RUNTIME
 
+class ClosingConnection(sqlite3.Connection):
+    def __exit__(self,*args):
+        try:return super().__exit__(*args)
+        finally:self.close()
+
+
 def connect():
-    db = sqlite3.connect(RUNTIME / 'datemate.sqlite', timeout=20)
+    db = sqlite3.connect(RUNTIME / 'datemate.sqlite', timeout=20, factory=ClosingConnection)
     db.row_factory = sqlite3.Row
     return db
 

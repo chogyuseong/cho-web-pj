@@ -1,0 +1,14 @@
+{
+  "label": "final",
+  "total": 10000,
+  "counts": {
+    "preferences_total": 5000,
+    "preferences_passed": 5000,
+    "chat_total": 5000,
+    "chat_passed": 5000
+  },
+  "failures": {},
+  "examples": {},
+  "elapsed_seconds": 163.42,
+  "scope": "5000 local HTTP parse+normalization; 5000 local HTTP saved-plan chat; isolated DB; external LLM fallback stubbed, no live venue/image/search validation"
+}

@@ -13,7 +13,7 @@ def test_far_origin_returns_ranked_alternatives_with_original_conditions():
     c=conditions()
     result=recommend(c)
     assert result['status']=='best_effort' and result['plans']
-    assert [p['penalty'] for p in result['plans']]==sorted(p['penalty'] for p in result['plans'])
+    assert [p['option_purpose'] for p in result['plans']]==['취향 우선','다른 매력','편안한 동선'][:len(result['plans'])]
     for plan in result['plans']:
         assert plan['conditions']==c.model_dump(mode='json')
         assert len(plan['places'])==3

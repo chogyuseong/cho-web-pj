@@ -1,4 +1,6 @@
 function courseTitle(plan){
+  if(plan.decision_summary?.title)return plan.decision_summary.title;
+  if(plan.option_purpose)return plan.option_purpose+' · '+courseTitle({...plan,option_purpose:null});
   const kinds=new Set(plan.places.map(p=>p.category));
   if(kinds.has('체험·제작'))return '함께 만들며 추억을 쌓는 하루';
   if(kinds.has('산책·풍경')&&kinds.has('문화·예술'))return '자연과 문화를 천천히 즐기며';
@@ -24,6 +26,19 @@ function compactConditionSummary(plan){
   return root;
 }
 function conditionDifferences(plan){
+  if(plan.search_adjustments){
+    const box=node('section',undefined,'condition-differences search-adjustments');
+    box.append(node('strong','이렇게 조건을 조정해 찾았어요'));
+    const change=plan.search_adjustments;
+    const messages=change.messages||[],brief=messages.length>3?[messages[0],messages.at(-1)]:messages;
+    box.append(node('p','선택한 위치는 유지했어요. '+brief.join(' '),'condition-summary'));
+    if(change.attempts?.length)box.append(node('p',change.attempts.length+'단계까지 조건을 넓혀 검색했어요. 원래 입력은 그대로 유지됩니다.','hint'));
+    const details=node('details');details.append(node('summary','요청과 달라진 조건 확인'));
+    for(const message of messages)details.append(node('p',message,'hint'));
+    for(const row of change.differences)details.append(node('p',row.label+' · '+row.message));
+    if(change.differences.length||messages.length)box.append(details);
+    return box;
+  }
   if(!(plan.deviations||[]).some(item=>item.state==='unmet'))return document.createDocumentFragment();
   const box=node('section',undefined,'condition-differences');
   box.append(node('strong','조건 차이와 방문 준비'));

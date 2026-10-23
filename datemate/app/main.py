@@ -3,6 +3,8 @@ import os
 import secrets
 import time
 import mimetypes
+import logging
+import uuid
 import hashlib
 import re
 from contextlib import asynccontextmanager
@@ -35,6 +37,12 @@ async def lifespan(app):
 app=FastAPI(title='서울 데이트메이트 · 서울 데이트 코스 추천',version='0.1.0',lifespan=lifespan)
 from .experience_api import router as experience_router
 app.include_router(experience_router)
+from .plan_jobs import router as jobs_router
+app.include_router(jobs_router)
+from .inspiration import router as inspiration_router
+app.include_router(inspiration_router)
+from .explore import router as explore_router
+app.include_router(explore_router)
 
 @app.get('/healthz',include_in_schema=False)
 def health():
@@ -53,6 +61,7 @@ def readiness():
 async def safety(request:Request,call_next):
     if request.url.path in ('/healthz','/readyz'):return await call_next(request)
     started=time.perf_counter()
+    request_id=uuid.uuid4().hex
     # 전체 요청 본문 2 MiB. Content-Length가 없는 요청도 스트림을 읽으며 제한한다.
     if request.method in ('POST','PUT','PATCH','DELETE'):
         origin=request.headers.get('origin')
@@ -73,6 +82,7 @@ async def safety(request:Request,call_next):
     try:
         response=await call_next(request)
     except Exception:
+        logging.getLogger(__name__).exception('request_failed id=%s method=%s path=%s',request_id,request.method,request.url.path)
         response=JSONResponse({'detail':'요청 처리 중 오류가 발생했습니다. 입력이나 서버 상태를 확인하세요.'},status_code=500)
     if not exists:response.set_cookie('dm_session',token,httponly=True,samesite='strict',secure=request.url.scheme=='https',max_age=2592000)
     response.headers['X-Content-Type-Options']='nosniff'
@@ -81,6 +91,8 @@ async def safety(request:Request,call_next):
     if request.url.path.startswith('/api/'):
         response.headers['Cache-Control']='no-store'
         response.headers['Referrer-Policy']='no-referrer'
+    response.headers['X-Request-ID']=request_id
+    logging.getLogger(__name__).info('request_complete id=%s method=%s path=%s status=%s duration_ms=%.1f',request_id,request.method,request.url.path,response.status_code,(time.perf_counter()-started)*1000)
     response.headers['Server-Timing']=f'total;dur={(time.perf_counter()-started)*1000:.2f}'
     return response
 
@@ -92,6 +104,8 @@ def plan_row(id,owner=None):
     plan=audit_plan(json.loads(row['payload']))
     from .experience import verification_summary
     plan['verification']=verification_summary(plan)
+    from .recommendation_summary import enrich
+    enrich(plan)
     return row,plan
 
 @app.delete('/api/me/data')
@@ -160,10 +174,10 @@ class ParseInput(BaseModel):
     text:str=Field(max_length=4000)
 
 @app.get('/api/places/{id}/media')
-def place_media(id:str,mode:Literal['demo','real']='real'):
+def place_media(id:str,mode:Literal['demo','real']='real',fallback:Literal['','place']='',refresh:bool=False):
     p=get_place(id,mode)
     if p is None:raise HTTPException(404,'장소를 찾을 수 없습니다.')
-    return media_info(p)
+    return media_info(p,prefer_public=fallback=='place',force=refresh)
 
 @app.get('/api/places/{id}/blogs')
 def place_blog_results(id:str,mode:Literal['demo','real']='real'):
@@ -172,11 +186,15 @@ def place_blog_results(id:str,mode:Literal['demo','real']='real'):
     return place_blogs(p)
 
 @app.get('/api/places/{id}/menu')
-def place_menu(id:str,mode:Literal['demo','real']='real'):
+def place_menu(id:str,request:Request,mode:Literal['demo','real']='real',refresh:bool=False):
     p=get_place(id,mode)
     if p is None:raise HTTPException(404,'장소를 찾을 수 없습니다.')
     from .menus import restaurant_menu
-    return restaurant_menu(p)
+    if refresh:
+        key='menu-refresh:'+request.state.owner
+        if store.cached(key):raise HTTPException(429,'메뉴 새로 조회는 잠시 후 다시 시도해 주세요.')
+        store.cache(key,True,5)
+    return restaurant_menu(p,force=refresh)
 
 @app.post('/api/conditions/parse')
 def parse(data:ParseInput):
@@ -190,6 +208,8 @@ def parse(data:ParseInput):
 @app.post('/api/plans')
 def create(data:Conditions,request:Request):
     calculation_started=time.perf_counter()
+    from .plan_jobs import report
+    report("장소 검색", "선택 지역의 후기와 실제 장소를 찾고 있어요")
     from .request_intent import normalize
     data=normalize(data)
     if data.use_feedback:
@@ -202,7 +222,28 @@ def create(data:Conditions,request:Request):
         data=configure(data,evidence['query'])
         from .intent_discovery import discover_requested_places
         evidence['intent_discovery']=discover_requested_places(data)
+    report("코스 구성", "취향·필수 조건·이동 동선을 비교하고 있어요")
     result=recommend(data,evidence)
+    if data.mode=='real' and (not result['plans'] or any(p.get('search_adjustments') for p in result['plans'])):
+        # Retry live research without taste keywords before accepting a wider-area fallback.
+        local=data.model_copy(update={'course_query':'','request':'','themes':[],
+            'date_category':'','date_subcategory':'','setting':'any','trust_mode':'balanced'})
+        broad=search_courses(local)
+        discover_requested_places(local)
+        if broad['status']=='available' and (broad['query']!=evidence['query'] or not result['plans']):
+            original_query=evidence['query']
+            broad['search_history']=[*evidence.get('search_history',[]),*broad.get('search_history',[])]
+            broad['requested_query']=original_query
+            broad['search_relaxed']=broad['query']!=original_query
+            broad['relaxation_note']='위치는 유지하고 취향 검색어를 줄여 같은 지역의 일반 데이트 후기를 다시 검색했어요.'
+            retried=recommend(data,broad)
+            if retried['plans']:
+                result=retried;evidence=broad
+                for p in result['plans']:
+                    adjustments=p.setdefault('search_adjustments',dict(stage='same_location',origin_unchanged=True,
+                        original_radius_km=data.neighborhood_radius_km,effective_radius_km=data.neighborhood_radius_km,
+                        messages=[],differences=[dict(label=r['label'],message=r['message']) for r in p.get('condition_checks',[]) if r['state']=='unmet']))
+                    if original_query!=broad['query']:adjustments['messages'].insert(0,f'후기 검색어를 ‘{original_query}’ → ‘{broad["query"]}’로 넓혔어요.')
     if not result['plans'] and data.area_center:
         result.setdefault('suggestions',[]).insert(0,f'{data.area_center.name} 반경 {data.neighborhood_radius_km:g}km 안에서 찾고 있어요. 동네 이동 범위나 방문 수를 조정해 주세요.')
     if evidence:
@@ -210,7 +251,7 @@ def create(data:Conditions,request:Request):
         for plan in result['plans']:
             plan['course_search']=evidence
             plan['blog_score']=priority(plan,evidence)
-            plan['recommendation_method']='naver_blog_top3' if plan['blog_score'] else 'conditions_fallback'
+            plan['recommendation_method']='naver_blog_selected5' if plan['blog_score'] else 'conditions_fallback'
             for i,place in enumerate(plan['places']):
                 matched=evidence['matches'].get(place['id'])
                 if matched:plan['reasons'][i]='네이버 코스 검색 '+', '.join(str(n)+'위 글' for n in matched['ranks'])+'에 등장 · '+plan['reasons'][i]
@@ -225,6 +266,7 @@ def create(data:Conditions,request:Request):
                 result['plans'][i]=audit_plan(plan,data)
                 plan['route_verification']='네이버 자동차 길찾기 조회 반영 (조회 시점 기준)'
             else:plan['route_verification']='자동차 실제 경로 확인 실패: '+str(error)+' · 추정 동선을 유지했어요.'
+    report('가격 확인', '코스 후보를 찾았어요. 가격과 필수 조건을 마지막으로 확인해요',preview=[[p['name'] for p in plan['places']] for plan in result['plans']])
     result['plans']=price_plans(result['plans'])
     from .preferences import filter_required,hard_blocks
     blocked=[p for p in result['plans'] if hard_blocks(p)]
@@ -232,11 +274,13 @@ def create(data:Conditions,request:Request):
     if blocked and not result['plans']:
         result.update(status='required_unmet',reasons=['선택한 필수 조건을 충족하는 코스를 확인하지 못했어요.'],suggestions=['필수 조건 또는 입력 범위를 직접 조정해 주세요. 미확인 조건을 충족으로 처리하지 않습니다.'])
     if data.mode=='real':
-        from .request_intent import plan_penalty
-        result['plans'].sort(key=lambda p:(plan_penalty(p,data),p['total'][1]>data.budget,max(0,p['total'][1]-data.budget)))
+        from .option_diversity import select_options
+        result['plans']=select_options(result['plans'],data)
     if result['plans'] and all(p.get('best_effort') for p in result['plans']):result['status']='best_effort'
     from .experience import verification_summary
     for p in result['plans']:p['verification']=verification_summary(p)
+    from .recommendation_summary import enrich
+    for p in result['plans']:enrich(p)
     result['plans']=[store.save_plan(p,request.state.owner) for p in result['plans']]
     from .experience import event
     event(request.state.owner,'','recommendation',dict(plans=len(result['plans']),elapsed_ms=round((time.perf_counter()-calculation_started)*1000),api_cost_status='not_measured'))
@@ -389,3 +433,27 @@ def home():
     return HTMLResponse(html,headers={'Cache-Control':'no-store'})
 
 app.mount('/static',StaticFiles(directory=ROOT/'static'),name='static')
+@app.post('/api/plans/{id}/leisure-options')
+def leisure_options(id:str,data:ReplaceInput,request:Request):
+    _,plan=plan_row(id,request.state.owner)
+    from .leisure import options
+    try:
+        rows=options(plan,data.index,data.locked,discover=True)
+        return {'options':[{'place':r['plan']['places'][data.index],'distance_m':r['distance_m'],'delta':r['plan']['delta']} for r in rows], 'message':'현재 코스 장소 반경 1.5km의 스포츠 후보예요. 선택하면 해당 순서의 장소를 교체합니다. 직선거리 기준이며 영업·예약은 별도 확인해 주세요.'}
+    except ValueError as exc:raise HTTPException(422,str(exc))
+
+@app.post('/api/plans/{id}/leisure-select')
+def leisure_select(id:str,data:ReplaceInput,request:Request):
+    _,plan=plan_row(id,request.state.owner)
+    from .leisure import options
+    try:rows=options(plan,data.index,data.locked)
+    except ValueError as exc:raise HTTPException(422,str(exc))
+    chosen=next((r['plan'] for r in rows if r['plan']['places'][data.index]['id']==data.replacement_id),None)
+    if not chosen:raise HTTPException(409,'현재 조건에 맞지 않거나 후보가 바뀌었어요. 주변 레저를 다시 확인해 주세요.')
+    from .pricing import price_plans
+    from .preferences import hard_blocks
+    updated=price_plans([chosen])[0]
+    if hard_blocks(updated):raise HTTPException(409,'필수 조건에 맞지 않아 교체하지 않았어요.')
+    from .recommendation_summary import enrich
+    enrich(updated)
+    return store.save_plan(updated,request.state.owner,parent=id)

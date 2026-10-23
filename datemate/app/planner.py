@@ -144,12 +144,8 @@ def recommend_strict(c,evidence=None):
         if position==c.count-1:next_beam.sort(key=lambda p:meal_penalty(p,c))
         from .request_intent import plan_penalty
         next_beam.sort(key=lambda p:plan_penalty(p,c))
-        unique=[];seen=set()
-        for p in next_beam:
-            key=tuple(x['id'] for x in p['places'])
-            if key not in seen:unique.append(p);seen.add(key)
-            if len(unique)>=60:break
-        beam=[p['places'] for p in unique]
+        from .option_diversity import diverse_beam
+        beam=[p['places'] for p in diverse_beam(next_beam,60)]
         if not beam:break
     final=[];sets=[]
     if beam and len(beam[0])==c.count:
@@ -158,7 +154,8 @@ def recommend_strict(c,evidence=None):
             if ids in sets:continue
             plan,error=evaluate(selected,c)
             if plan:final.append(plan);sets.append(ids)
-            if len(final)==3:break
+    from .option_diversity import select_options
+    final=select_options(final,c)
     return dict(plans=final,status='ok' if final else 'constraints_unmet',reasons=[k for k,_ in reasons.most_common(5)] if len(final)<3 else [],
         suggestions=['조건은 자동 완화하지 않았습니다. 시간·예산·테마·예약 가능 여부를 수정해 다시 검색하세요.'] if len(final)<3 else [],
         search_note='최대 60개 빔 후보 내 탐색 결과이며 가능한 모든 일정의 존재를 보장하지 않습니다.')
@@ -168,8 +165,11 @@ def recommend(c,evidence=None):
     c=normalize(c)
     from .condition_audit import audit_plan
     result=recommend_strict(c,evidence)
+    # Activity and meal composition are scored during beam search; retry them too if unmet.
+    checked=[audit_plan(p,c) for p in result['plans']]
+    result['plans']=[p for p in checked if not any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in p['condition_checks'])]
     # 검색 글에서 확인한 장소가 일반 조건 필터에서 빠졌다면, 차이를 명시한 대안도 비교한다.
-    if evidence and evidence.get('matches'):
+    if result['plans'] and evidence and evidence.get('matches'):
         from .course_search import priority
         if not any(priority(p,evidence) for p in result['plans']):
             from .best_effort import suggest
@@ -180,8 +180,8 @@ def recommend(c,evidence=None):
     if result['plans']:
         result['plans']=[audit_plan(p,c) for p in result['plans']]
         return result
-    from .best_effort import suggest
-    alternatives=suggest(c,evidence)
+    from .search_relaxation import search_progressively
+    alternatives=search_progressively(c,evidence)
     if not alternatives:return result
     return dict(plans=[audit_plan(p,c) for p in alternatives],status='best_effort',reasons=['모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다.'],
         suggestions=['각 코스에 표시된 차이를 보고 조건을 수정하거나 장소를 교체해 주세요.'],strict_failure=result.get('status'),

@@ -32,8 +32,13 @@ function priceRefreshControl(plan){
 }
 function appendPriceEvidence(cell,cost){
   if(cost.price_basis)cell.append(node('small',cost.price_basis,'price-basis'));
-  if(/^https:\/\//.test(cost.source||''))cell.append(link('단가 출처 ↗',cost.source));
+  if(/^https?:\/\//i.test(cost.source||''))cell.append(sourceLinks('단가 출처 ↗',cost.source,cost.name+' 가격'));
   else cell.append(node('span',cost.source||'등록 출처 없음'));
   if(cost.checked_at)cell.append(node('small','조회·확인 '+cost.checked_at,'price-basis'));
-  for(const quote of cost.price_evidence||[]){const note=node('details');note.append(node('summary','게시글 근거 · '+quote.posted_at),node('p',quote.evidence),link('원문 보기 ↗',quote.source));cell.append(note);}
+  const sources=[...new Set((cost.price_evidence||[]).map(quote=>quote.source).filter(Boolean))];
+  if(sources.length){
+    const blogs=node('div',undefined,'price-blog-evidence');blogs.append(node('strong','참고한 블로그'));
+    for(const source of sources)blogs.append(sourceLinks(source,source,cost.name+' 메뉴 가격'));
+    cell.append(blogs);
+  }
 }

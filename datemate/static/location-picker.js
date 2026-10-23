@@ -1,5 +1,5 @@
 /* 주소 입력과 선택 좌표를 분리해 주소만 바꾼 채 이전 좌표로 제출되는 것을 막는다. */
-const locationState={origin:{name:'데모 출발점',lat:37.575,lon:126.985},home:null};
+const locationState={origin:null,home:null};
 let locationMap=null;
 function mountLocationFields(){
   for(const kind of ['origin','home']){

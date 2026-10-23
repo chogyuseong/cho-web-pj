@@ -15,7 +15,7 @@ def live_restaurant(place_id):
     from . import store
     return store.cached('restaurant:'+place_id)
 
-def search_nearby(plan,index,*,district=None,query_suffix='맛집'):
+def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500):
     """권한 활성화 후 바로 쓸 수 있는 주변 업체 검색. 영업·가격 API는 아니다."""
     from . import store
     from .image_search import search_enabled,plain
@@ -26,7 +26,7 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집'):
     search_url='https://map.naver.com/p/search/'+query
     if not search_enabled():return dict(status='key_missing',restaurants=[],message='네이버 검색 키를 설정해 주세요.',search_url=search_url)
     avoid=plan.get('conditions',{}).get('avoid',[])
-    key='local-restaurants-500m-v2:'+hashlib.sha256(json.dumps([a,b,avoid,district,query_suffix],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+    key='local-restaurants-radius-v3:'+hashlib.sha256(json.dumps([a,b,avoid,district,query_suffix,radius_m],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
     cached=store.cached(key)
     if cached:return cached
     try:
@@ -51,18 +51,18 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집'):
             if any(word.casefold() in (name+' '+category).casefold() for word in avoid if word):continue
             offset=segment_distance(r,a,b);extra=max(0,distance(a,r)+distance(r,b)-distance(a,b))
             near=distance(a,r)
-            if not district and near>0.5:continue
+            if not district and near*1000>radius_m:continue
             id='food:naver-'+hashlib.sha256((name+address).encode()).hexdigest()[:16]
             r.update(id=id,address=address,cuisine=category,category='카페·미식',region='서울',demo=False,review_search_rank=rank,meal=True,setting=None,breaks=None,last_entry=None,
                 recognition=f'네이버 카페·블로그 리뷰순 검색 {rank}번째 결과 · 별점 미제공',source=search_url,source_type='네이버 지역 검색',
                 hours_text='운영시간·메뉴는 지도에서 확인',extra_distance_km=round(extra,1),route_offset_km=round(offset,1),
-                distance_m=round(near*1000),
+                distance_m=round(near*1000),search_radius_m=radius_m,
                 checked_at=datetime.now(timezone.utc).isoformat(),description=category,tags=[category],photos=[],videos=[],license='검색 결과',
                 price=None,hours=None,closed_days=None,stay=None,reservation=None,rating=None,stay_basis=None,price_unit=None)
             store.cache('restaurant:'+id,r,604800);rows.append(r)
             if len(rows)==(5 if district else 3):break
         result=dict(status='available' if rows else 'not_found',restaurants=rows,search_url=search_url,
-            message='' if rows else ('해당 구의 음식점 검색 결과가 없습니다.' if district else '이 장소 반경 500m 안의 음식점 검색 결과가 없습니다.'))
+            message='' if rows else ('해당 구의 음식점 검색 결과가 없습니다.' if district else f'이 장소 반경 {radius_m:,}m 안의 음식점 검색 결과가 없습니다.'))
         store.cache(key,result,3600);return result
     except (httpx.HTTPError,ValueError,TypeError):return dict(status='unavailable',restaurants=[],message='지역 검색에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',search_url=search_url)
 
@@ -151,20 +151,31 @@ def restaurant_matches(plan):
     curated=meal_suggestions(plan)
     jobs=list(range(len(plan['places'])))
     def nearby(i):
-        result=search_nearby(plan,i)
-        if not result['restaurants'] and result['status']=='not_found':
-            return search_nearby(plan,i,query_suffix='음식점')
-        return result
+        choices=[];attempts=[];last={}
+        for radius in (500,1000,1500):
+            attempts.append(radius)
+            # Keep closer matches first; never replace them with a wider search result.
+            sources=[dict(food,search_radius_m=500) for food in curated[i]['restaurants']] if radius==500 else []
+            for suffix in ('맛집','음식점'):
+                last=search_nearby(plan,i,query_suffix=suffix,radius_m=radius)
+                sources=last['restaurants']+sources
+                for food in sources:
+                    if distance(plan['places'][i],food)*1000>radius:continue
+                    if any(same_place(food,p) for p in plan['places']+choices):continue
+                    choices.append(dict(food,after_index=i,near_place=plan['places'][i]['name'],
+                        search_radius_m=radius,distance_m=round(distance(plan['places'][i],food)*1000)))
+                    if len(choices)>=3:break
+                sources=[]
+                if len(choices)>=3 or last['status'] not in ('available','not_found'):break
+            if len(choices)>=3 or last.get('status') not in ('available','not_found'):break
+        return dict(last,restaurants=choices[:3],status='available' if choices else last.get('status','not_found'),
+            searched_radii_m=attempts,effective_radius_m=attempts[-1],
+            note='500m부터 찾고, 3곳 미만이면 1,000m → 1,500m 순서로 보충해요. 표시는 코스 장소에서의 직선거리이며 일정에는 미포함입니다.')
     with ThreadPoolExecutor(max_workers=3) as pool:
         results=list(pool.map(nearby,jobs))
     groups=[]
     for i,(base,live) in enumerate(zip(curated,results)):
-        choices=[]
-        for food in live['restaurants']+base['restaurants']:
-            if any(same_place(food,p) for p in plan['places']+choices):continue
-            if distance(plan['places'][i],food)>0.5:continue
-            choices.append(dict(food,after_index=i,near_place=plan['places'][i]['name']))
-        groups.append(dict(base,restaurants=choices[:3],status=live['status'],message=live.get('message','')))
+        groups.append(dict(base,**{key:value for key,value in live.items() if key!='search_url'}))
     popular=None
     if district:
         result=search_nearby(plan,0,district=district)

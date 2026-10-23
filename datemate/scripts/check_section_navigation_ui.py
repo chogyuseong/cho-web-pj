@@ -1,0 +1,27 @@
+﻿from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    browser=p.chromium.launch(channel='msedge',headless=True)
+    page=browser.new_page(viewport={'width':1440,'height':900});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+    page.goto('http://127.0.0.1:8000',wait_until='networkidle');page.wait_for_function('Boolean(statusData)')
+    def theme():
+        page.locator('header a[href="#curation"]').click()
+        page.wait_for_function('location.hash==="#curation"&&!document.body.classList.contains("show-explore")&&!document.body.classList.contains("show-date-plan")')
+        page.wait_for_function('document.querySelector("#curation").getBoundingClientRect().top<innerHeight/2')
+        assert page.locator('#curation').is_visible()
+    theme()
+    page.locator('#nav-explore').click();page.locator('#catalog .place-card').first.wait_for()
+    theme()
+    page.locator('#nav-explore').click();page.locator('header a[href="#planner-section"]').click()
+    page.wait_for_function('location.hash==="#planner-section"&&!document.querySelector(".conditions.panel").hidden&&!document.querySelector("#planner-section").hidden')
+    page.evaluate("form.elements.mode.value='demo';clearLocationsForMode();form.elements.visit_date.value='2026-10-24';form.elements.budget.value='1000000';form.requestSubmit()")
+    page.wait_for_function('Boolean(selected?.id)&&!document.querySelector("#submit-plan").disabled',timeout=60000)
+    theme()
+    page.evaluate('window.scrollTo(0,0)');theme()
+    page.reload(wait_until='networkidle');page.wait_for_function('document.querySelector("#curation").getBoundingClientRect().top<innerHeight/2')
+    page.locator('.curation-card').first.click();page.wait_for_function('location.hash==="#planner-section"&&!document.querySelector(".conditions.panel").hidden')
+    page.locator('#nav-explore').click();page.locator('#nav-plan').click();page.wait_for_function('location.hash==="#planner-section"&&!document.querySelector(".conditions.panel").hidden')
+    page.set_viewport_size({'width':390,'height':844});page.locator('#nav-explore').click();page.locator('#nav-plan').click()
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+    assert not errors,errors
+    print('PASS: theme from home/explore/results, repeated clicks, hash reload, theme preset, planner CTA from explore, mobile nav, no JS errors')
+    browser.close()

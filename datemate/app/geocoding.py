@@ -1,9 +1,27 @@
 """도로명·지번 주소를 네이버 공식 Geocoding으로 검색한다."""
 import os
+import re
 import httpx
 from .models import Point
 
+
+def district_at(lat,lon):
+    """지도에서 선택한 좌표의 행정구역을 공식 Reverse Geocoding으로 확인."""
+    if not os.getenv('NAVER_MAPS_KEY_ID') or not os.getenv('NAVER_MAPS_KEY'):return ''
+    try:
+        r=httpx.get('https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc',
+                    params={'coords':f'{lon},{lat}','orders':'admcode','output':'json'},
+                    headers={'x-ncp-apigw-api-key-id':os.environ['NAVER_MAPS_KEY_ID'],'x-ncp-apigw-api-key':os.environ['NAVER_MAPS_KEY']},timeout=5)
+        r.raise_for_status()
+        region=r.json().get('results',[{}])[0].get('region',{})
+        if not region.get('area1',{}).get('name','').startswith('서울'):return ''
+        return ' '.join(region.get(k,{}).get('name','') for k in ('area2','area3')).strip()
+    except (httpx.HTTPError,ValueError,IndexError,KeyError,TypeError):return ''
+
 def search_address(query):
+    district=re.fullmatch(r'(?:서울(?:특별시)?\s*)?([가-힣]{1,6}구)',query.strip())
+    from .seoul_districts import DISTRICT_ADDRESSES
+    if district and district[1] in DISTRICT_ADDRESSES:query='서울 '+district[1]+' '+DISTRICT_ADDRESSES[district[1]]
     key_id=os.getenv('NAVER_MAPS_KEY_ID')
     key=os.getenv('NAVER_MAPS_KEY')
     if not key_id or not key:
@@ -24,6 +42,7 @@ def search_address(query):
             try:
                 point=Point(name=name,lat=float(row['y']),lon=float(row['x']))
             except (ValueError,KeyError,TypeError):continue
+            if district:point=point.model_copy(update={'name':district[1]+' 대표 위치 · '+name})
             results.append(dict(**point.model_dump(),road_address=row.get('roadAddress'),jibun_address=row.get('jibunAddress')))
         return dict(status='ok',results=results,provider='NAVER Maps',message='' if results else '주소를 찾지 못했습니다. 시·군·구와 도로명 또는 지번을 함께 입력하거나 지도에서 선택해 주세요.')
     except (httpx.HTTPError,ValueError,KeyError,TypeError):

@@ -1,0 +1,18 @@
+{
+  "status": "ready",
+  "target": 500,
+  "queries_done": 565,
+  "queries_max": 565,
+  "duplicates_removed": 514,
+  "rejected": 233,
+  "failed_queries": 0,
+  "checked_at": "2026-10-23T06:16:17.551381+00:00",
+  "ranking_method": "지역·활동별 정확도순 결과 합산 · 네이버 전체 순위/별점 순위 아님",
+  "unique_found": 1045,
+  "message": "중복 제거한 서울 장소 최대 500곳이에요.",
+  "total": 500,
+  "collected": 500,
+  "offset": 0,
+  "has_more": true,
+  "search": "네이버 지역 검색 · 중복 제거"
+}

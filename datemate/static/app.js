@@ -15,7 +15,7 @@ function showPlannerPage(results, navigate=true){
 window.addEventListener('hashchange',()=>{if(location.hash==='#explore-section'){setTab(true);search().catch(e=>toast(e.message));}else if(location.hash==='#date-plan'){setTab(false);showPlannerPage(true,false);}else if(['#curation','#inspiration'].includes(location.hash)){navigateHomeSection(location.hash,false);}else if(location.hash==='#planner-section'||!location.hash){setTab(false);showPlannerPage(false,false);}});
 const won=n=>n==null?'미확인':Number(n).toLocaleString('ko-KR')+'원';
 const range=v=>v==null?'미확인':v[0]===v[1]?won(v[0]):won(v[0])+' ~ '+won(v[1]);
-const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=typeof text==='string'?text.replaceAll('근거','참조'):text;if(cls)n.className=cls;return n;};
+const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
 function button(text,action,cls='secondary'){const b=node('button',text,cls);b.type='button';b.addEventListener('click',()=>Promise.resolve(action()).catch(error=>toast(error.message)));return b;}
 function searchQueryAddressOnly(value){
   const text=String(value||'').normalize('NFKC').replace(/\s+/g,' ').trim().replace(/((?:대로|로))\s+(\d+(?:번)?길)/g,'$1$2');
@@ -56,7 +56,7 @@ function sourceLinks(text,url,query){
 }
 
 function linkedText(tag,text,cls){
-  const root=node(tag,undefined,cls),value=String(text||'').replaceAll('근거','참조');
+  const root=node(tag,undefined,cls),value=String(text||'');
   const pattern=/https?:\/\/[^\s<>"'`]+/gi;let offset=0;
   for(const match of value.matchAll(pattern)){
     let url=match[0].replace(/[.,;!]+$/,'');
@@ -67,7 +67,6 @@ function linkedText(tag,text,cls){
   root.append(document.createTextNode(value.slice(offset)));return root;
 }
 function toast(text){$('#toast').textContent=text;$('#toast').style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').style.display='none',6500);}
-async function api(path,body,method){const r=await fetch('/api'+path,{method:method||(body?'POST':'GET'),headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});let data;try{data=await r.json();}catch{throw Error('서버 응답을 읽을 수 없습니다.');}if(!r.ok)throw Error(typeof data.detail==='string'?data.detail:Array.isArray(data.detail)?data.detail.map(x=>`${x.loc.at(-1)}: ${x.msg}`).join('\n'):'요청에 실패했습니다.');return data;}
 function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 form.elements.visit_date.value=today();
 function values(){const f=new FormData(form), number=k=>Number(f.get(k));const data={course_query:f.get('course_query')||'',mode:f.get('mode'),allow_price_estimates:f.has('allow_price_estimates'),allow_estimates:f.has('allow_estimates'),stay_minutes:number('stay_minutes'),region:f.get('region'),origin:selectedLocation('origin'),visit_date:f.get('visit_date'),start:f.get('start'),end:f.get('end'),people:number('people'),budget:number('budget'),transport:f.get('transport'),count:number('count'),themes:f.getAll('themes'),date_category:f.get('date_category')||'',date_subcategory:f.get('date_subcategory')||'',theme_mode:f.get('theme_mode'),setting:f.get('setting'),avoid:f.get('avoid').split(',').map(x=>x.trim()).filter(Boolean),reservation:f.has('reservation'),max_leg:number('max_leg'),max_walk:f.get('max_walk')===''?null:number('max_walk'),return_home:f.has('return_home'),home:null,mbti:f.get('mbti').toUpperCase(),use_mbti:f.has('use_mbti'),request:f.get('request'),locked:{}};
@@ -82,7 +81,7 @@ const id=new URLSearchParams(location.search).get('plan');if(id){selected=await 
 if(location.hash==='#explore-section'){setTab(true);await search();}else if(['#curation','#inspiration'].includes(location.hash)){navigateHomeSection(location.hash,false);}else await resumePlanSearch();
 }catch(e){$('#status').textContent=e.message;}}
 let parsedRequest='';
-async function applyRequest(){const text=form.elements.request.value.trim();if(!text||text===parsedRequest)return;const result=await api('/conditions/parse',{text});for(const [key,value] of Object.entries(result.patch)){if(key==='themes'){setDateClassification('콘셉트별','');document.querySelectorAll('[name=themes]').forEach(c=>c.checked=value.includes(c.value));}else if(form.elements[key]){if(form.elements[key].type==='checkbox')form.elements[key].checked=Boolean(value);else form.elements[key].value=value;}}$('#parse-notice').textContent=result.warnings.join(' ');parsedRequest=text;}
+async function applyRequest(){const text=form.elements.request.value.trim();if(!text||text===parsedRequest)return;const result=await api('/conditions/parse',{text});for(const [key,value] of Object.entries(result.patch)){if(FormState.edited.has(key))continue;if(key==='themes'){if(!FormState.edited.has('date_subcategory'))setDateClassification('콘셉트별','');document.querySelectorAll('[name=themes]').forEach(c=>c.checked=value.includes(c.value));}else if(form.elements[key]){if(form.elements[key].type==='checkbox')form.elements[key].checked=Boolean(value);else form.elements[key].value=value;}}$('#parse-notice').textContent=result.warnings.join(' ')+' 직접 수정한 조건은 유지해요.';parsedRequest=text;}
 $('#parse').onclick=()=>applyRequest().then(()=>toast('해석된 조건을 폼에서 확인하고 수정해 주세요.')).catch(e=>toast(e.message));
 function beginPlanSearch(){
   plans=[];selected=null;locks.clear();
@@ -94,13 +93,16 @@ function beginPlanSearch(){
   const icon=node('span',undefined,'search-spinner');icon.setAttribute('aria-hidden','true');
   const copy=node('div',undefined,'search-progress-copy');
   copy.append(node('strong','우리에게 맞는 코스를 찾고 있어요'),node('p','조건 확인 → 코스 탐색 → 실시간 단가 검색·비용 계산 중…'),node('small','검색을 진행 중이에요. 결과가 준비되면 여기에 보여드릴게요.'));
-  progress.replaceChildren(icon,copy);
+  progress.replaceChildren(icon,copy,button('검색 취소',async()=>{await PlanSearch.cancel();showPlannerPage(false);}));
 }
 form.addEventListener('submit',async e=>{
   e.preventDefault();const submit=$('#submit-plan');if(submit.disabled)return;
   try{
-    submit.disabled=true;beginPlanSearch();setTab(false);showPlannerPage(true);
-    await applyRequest();const data=values();mode=data.mode;
+    submit.disabled=true;
+    await applyRequest();if(!form.reportValidity())return;
+    const data=values();data.explicit_fields=[...FormState.edited];mode=data.mode;
+    beginPlanSearch();setTab(false);showPlannerPage(true);
+    $('#progress').append(node('p','적용 조건: '+FormState.summary(data),'applied-conditions'));
     const result=await createPlanWithProgress(data);plans=result.plans;selected=plans[0]||null;
     renderResults(result);renderDetail();
     $('#progress').textContent=plans.length?`추천 완료 · ${plans.length}개의 일정`:(result.reasons?.[0]||'추천 조건을 확인해 주세요.');

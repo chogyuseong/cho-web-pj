@@ -7,6 +7,7 @@ from urllib.parse import quote
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime,timezone
 import httpx
+from .telemetry import observed_http
 from pydantic import BaseModel,Field
 from . import store
 from .config import llm
@@ -45,7 +46,7 @@ def extract(posts):
 def local_lookup(name,area):
     if store.cached('discovery-local-permission'):return [],'permission_required'
     try:
-        r=httpx.get('https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=area+' '+name,display=5,sort='random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.getenv('NAVER_SEARCH_CLIENT_ID',''),'X-NCP-APIGW-API-KEY':os.getenv('NAVER_SEARCH_CLIENT_SECRET','')},timeout=6)
+        r=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=area+' '+name,display=5,sort='random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.getenv('NAVER_SEARCH_CLIENT_ID',''),'X-NCP-APIGW-API-KEY':os.getenv('NAVER_SEARCH_CLIENT_SECRET','')},timeout=6)
         if r.status_code in (401,403):
             store.cache('discovery-local-permission',True,60)
             return [],'permission_required'

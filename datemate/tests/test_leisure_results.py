@@ -48,4 +48,4 @@ def test_leisure_api_replace_undo_permissions(monkeypatch):
         assert client.post(url+'/leisure-select',json={'index':0,'locked':[0],'replacement_id':'api-sport'}).status_code==422
         assert client.post(url+'/leisure-select',json={'index':0,'replacement_id':'unknown'}).status_code==409
         with TestClient(app) as other:
-            assert other.post(url+'/leisure-options',json={'index':0}).status_code==403
+            assert other.post(url+'/leisure-options',json={'index':0}).status_code==404

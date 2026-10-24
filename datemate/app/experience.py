@@ -140,11 +140,13 @@ def vote_status(plan,viewer):
             if pid in counts:counts[pid][value]+=1
     return dict(participants=len(rows),mine=mine,places=counts,verification='브라우저별 의견 · 실제 신원·방문 인증 아님')
 
-def save_votes(plan,viewer,plan_owner,choices):
+def save_votes(plan,viewer,plan_owner,choices,share_token=None):
     ids={p['id'] for p in plan['places']}
     if set(choices)!=ids:raise ValueError('모든 장소의 의견을 선택해 주세요.')
     with store.connect() as db:
         db.execute('BEGIN IMMEDIATE')
+        if share_token is not None and not db.execute('SELECT 1 FROM plan_shares WHERE token_hash=? AND plan_id=? AND expires>?',(share_token,plan['id'],time.time())).fetchone():
+            raise ValueError('공유 링크가 만료되었거나 취소됐어요.')
         others=[r[0] for r in db.execute('SELECT owner FROM partner_votes WHERE plan_id=?',(plan['id'],)) if r[0]!=plan_owner]
         if viewer!=plan_owner and viewer not in others and others:raise ValueError('이 코스에는 이미 다른 브라우저의 상대방 의견이 있어요. 두 브라우저까지만 참여할 수 있어요.')
         db.execute('INSERT INTO partner_votes VALUES(?,?,?,?) ON CONFLICT(plan_id,owner) DO UPDATE SET payload=excluded.payload,updated=excluded.updated',(plan['id'],viewer,json.dumps(choices),time.time()))

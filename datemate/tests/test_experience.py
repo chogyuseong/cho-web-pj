@@ -57,7 +57,7 @@ def test_required_budget_blocks_draft_and_other_browser_cannot_apply(monkeypatch
         assert response.status_code==200,response.text
         draft=response.json();assert not draft['can_apply'] and hard_blocks(draft['plan'])
         assert owner.post('/api/plans/'+original['id']+'/draft-apply',json=dict(token=draft['token'])).status_code==409
-        assert guest.post('/api/plans/'+original['id']+'/draft-apply',json=dict(token=draft['token'])).status_code==403
+        assert guest.post('/api/plans/'+original['id']+'/draft-apply',json=dict(token=draft['token'])).status_code==404
 
 
 def test_locked_replacement_and_duplicate_restaurant_rejected(monkeypatch):
@@ -75,9 +75,12 @@ def test_two_browser_votes_preserve_shared_likes_and_exclude_dislikes():
         ids=[p['id'] for p in plan['places']]
         choices={ids[0]:'yes',ids[1]:'no',ids[2]:'neutral'}
         assert owner.post('/api/plans/'+plan['id']+'/agreement',json=dict(choices=choices)).status_code==200
-        assert guest.post('/api/plans/'+plan['id']+'/agreement',json=dict(choices=choices)).json()['participants']==2
-        assert third.post('/api/plans/'+plan['id']+'/agreement',json=dict(choices=choices)).status_code==409
-        assert guest.post('/api/plans/'+plan['id']+'/agreement-preview',json={}).status_code==403
+        token=owner.post('/api/plans/'+plan['id']+'/shares').json()['url'].split('#')[1]
+        headers={'Authorization':'Bearer '+token}
+        assert guest.post('/api/shared-plan/vote',headers=headers,json=dict(choices=choices)).status_code==200
+        assert owner.get('/api/plans/'+plan['id']+'/agreement').json()['participants']==2
+        assert third.post('/api/shared-plan/vote',headers=headers,json=dict(choices=choices)).status_code==409
+        assert guest.post('/api/plans/'+plan['id']+'/agreement-preview',json={}).status_code==404
         response=owner.post('/api/plans/'+plan['id']+'/agreement-preview',json={})
         assert response.status_code==200,response.text
         proposed=response.json()['plan']
@@ -105,10 +108,13 @@ def test_changed_partner_vote_invalidates_existing_preview():
     with TestClient(app) as owner,TestClient(app) as guest:
         plan=owner.post('/api/plans',json={'visit_date':'2026-10-24','max_leg':180,'budget':1000000}).json()['plans'][0]
         votes={p['id']:'neutral' for p in plan['places']}
-        for client in (owner,guest):client.post('/api/plans/'+plan['id']+'/agreement',json=dict(choices=votes))
+        owner.post('/api/plans/'+plan['id']+'/agreement',json=dict(choices=votes))
+        token=owner.post('/api/plans/'+plan['id']+'/shares').json()['url'].split('#')[1]
+        headers={'Authorization':'Bearer '+token}
+        guest.post('/api/shared-plan/vote',headers=headers,json=dict(choices=votes))
         draft=owner.post('/api/plans/'+plan['id']+'/agreement-preview',json={}).json()
         votes[plan['places'][0]['id']]='no'
-        guest.post('/api/plans/'+plan['id']+'/agreement',json=dict(choices=votes))
+        guest.post('/api/shared-plan/vote',headers=headers,json=dict(choices=votes))
         response=owner.post('/api/plans/'+plan['id']+'/draft-apply',json=dict(token=draft['token']))
         assert response.status_code==409 and '의견이 바뀌' in response.json()['detail']
 
@@ -170,8 +176,8 @@ def test_personal_feedback_read_and_delete_does_not_touch_other_browser():
         plan=owned(owner);path='/api/plans/'+plan['id']+'/feedback'
         owner.post(path,json=dict(kind='visit',visited='yes',obstacle='none',reuse='yes'))
         assert owner.get(path).json()['visit']['visited']=='yes'
-        assert guest.get(path).json()['visit'] is None
-        guest.delete(path)
+        assert guest.get(path).status_code==404
+        assert guest.delete(path).status_code==404
         assert owner.get('/api/my/feedback-summary').json()['self_reported_visits']==1
         owner.delete(path)
         assert owner.get(path).json()['visit'] is None

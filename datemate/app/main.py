@@ -7,11 +7,14 @@ import logging
 import uuid
 import hashlib
 import re
+import asyncio
+from contextlib import suppress
 from contextlib import asynccontextmanager
 from typing import Literal
 from fastapi import FastAPI, HTTPException, Request, Response, Query
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 from . import store
 from .catalog import places,get_place
@@ -24,15 +27,22 @@ from .geocoding import search_address
 from .taxonomy import DATE_CATEGORIES
 from .media import media_info
 from .blog_search import place_blogs
+from .execution import bounded_recommendation
 
 # Windows 레지스트리의 .js=text/plain 매핑에서도 nosniff와 호환되도록 고정한다.
 mimetypes.add_type('text/javascript', '.js')
+mimetypes.add_type('text/javascript', '.mjs')
 mimetypes.add_type('text/css', '.css')
 
 @asynccontextmanager
 async def lifespan(app):
     store.init()
-    yield
+    from .maintenance import loop
+    task=asyncio.create_task(loop())
+    try:yield
+    finally:
+        task.cancel()
+        with suppress(asyncio.CancelledError):await task
 
 app=FastAPI(title='서울 데이트메이트 · 서울 데이트 코스 추천',version='0.1.0',lifespan=lifespan)
 from .experience_api import router as experience_router
@@ -43,6 +53,8 @@ from .inspiration import router as inspiration_router
 app.include_router(inspiration_router)
 from .explore import router as explore_router
 app.include_router(explore_router)
+from .sharing import router as sharing_router
+app.include_router(sharing_router)
 
 @app.get('/healthz',include_in_schema=False)
 def health():
@@ -60,6 +72,10 @@ def readiness():
 @app.middleware('http')
 async def safety(request:Request,call_next):
     if request.url.path in ('/healthz','/readyz'):return await call_next(request)
+    if request.url.path.startswith('/static/'):
+        response=await call_next(request)
+        response.headers['X-Content-Type-Options']='nosniff'
+        return response
     started=time.perf_counter()
     request_id=uuid.uuid4().hex
     # 전체 요청 본문 2 MiB. Content-Length가 없는 요청도 스트림을 읽으며 제한한다.
@@ -72,23 +88,31 @@ async def safety(request:Request,call_next):
             body.extend(chunk)
             if len(body)>2*1024*1024:return JSONResponse({'detail':'요청은 2 MiB 이하로 보내주세요.'},status_code=413)
         request._body=bytes(body)
-    token=request.cookies.get('dm_session','')
-    with store.connect() as db:
-        exists=db.execute('SELECT 1 FROM sessions WHERE token=?',(token,)).fetchone()
-        if not exists:
-            token=secrets.token_urlsafe(32)
-            db.execute('INSERT INTO sessions VALUES(?,?)',(token,time.time()))
+    def identify():
+        token=request.cookies.get('dm_session','')
+        with store.connect() as db:
+            exists=db.execute('SELECT 1 FROM sessions WHERE token=?',(token,)).fetchone()
+            if not exists:
+                token=secrets.token_urlsafe(32)
+                db.execute('INSERT INTO sessions VALUES(?,?)',(token,time.time()))
+        return token,bool(exists)
+    token,exists=await run_in_threadpool(identify)
     request.state.owner=token
+    match=re.match(r'^/api/(?:plans/|chat/plan/)([^/]+)',request.url.path)
+    if match:
+        row=await run_in_threadpool(store.get_plan,match.group(1))
+        if not row or row['owner']!=token:
+            return JSONResponse({'detail':'일정을 찾을 수 없습니다. 공유 링크로 접속해 주세요.'},status_code=404,headers={'Cache-Control':'no-store'})
     try:
         response=await call_next(request)
     except Exception:
         logging.getLogger(__name__).exception('request_failed id=%s method=%s path=%s',request_id,request.method,request.url.path)
         response=JSONResponse({'detail':'요청 처리 중 오류가 발생했습니다. 입력이나 서버 상태를 확인하세요.'},status_code=500)
-    if not exists:response.set_cookie('dm_session',token,httponly=True,samesite='strict',secure=request.url.scheme=='https',max_age=2592000)
+    if not exists and request.url.path!='/api/me/data':response.set_cookie('dm_session',token,httponly=True,samesite='strict',secure=request.url.scheme=='https',max_age=2592000)
     response.headers['X-Content-Type-Options']='nosniff'
     response.headers['Referrer-Policy']='strict-origin-when-cross-origin'
     response.headers['X-Frame-Options']='DENY'
-    if request.url.path.startswith('/api/'):
+    if request.url.path.startswith('/api/') or request.url.path=='/shared':
         response.headers['Cache-Control']='no-store'
         response.headers['Referrer-Policy']='no-referrer'
     response.headers['X-Request-ID']=request_id
@@ -113,6 +137,9 @@ def delete_my_data(request:Request,response:Response):
     owner=request.state.owner
     with store.connect() as db:
         db.execute('BEGIN IMMEDIATE')
+        db.execute('INSERT OR IGNORE INTO revoked_sessions VALUES(?,?)',(owner,time.time()))
+        db.execute('DELETE FROM plan_shares WHERE owner=?',(owner,))
+        db.execute('DELETE FROM request_budgets WHERE scope=?',('recommendations:'+owner,))
         # Remove related records before removing the user's plans and reviews.
         db.execute('DELETE FROM partner_votes WHERE plan_id IN (SELECT id FROM plans WHERE owner=?)',(owner,))
         db.execute('DELETE FROM reports WHERE review_id IN (SELECT id FROM reviews WHERE author=?)',(owner,))
@@ -120,13 +147,13 @@ def delete_my_data(request:Request,response:Response):
                              ('reports','author'),('experience_events','owner'),
                              ('place_reports','owner'),('partner_votes','owner')):
             db.execute(f'DELETE FROM {table} WHERE {column}=?',(owner,))
-        # Draft caches embed owner identity; rate-limit keys also contain it.
-        for row in db.execute('SELECT key,payload FROM cache').fetchall():
-            payload=json.loads(row['payload'])
-            if owner in row['key'] or isinstance(payload,dict) and payload.get('owner')==owner:
-                db.execute('DELETE FROM cache WHERE key=?',(row['key'],))
+        db.execute('DELETE FROM cache WHERE key IN (SELECT key FROM cache_owners WHERE owner=?)',(owner,))
+        for prefix in ('geocode-rate:','menu-refresh:','price-refresh:','local-rate:'):
+            db.execute('DELETE FROM cache WHERE key=?',(prefix+owner,))
         db.execute('DELETE FROM sessions WHERE token=?',(owner,))
     response.delete_cookie('dm_session')
+    from .plan_jobs import forget_owner
+    forget_owner(owner)
     return {'deleted':True,'notice':'현재 브라우저에 연결된 저장 데이터를 삭제했습니다. 별도 백업과 외부 서비스 기록은 포함되지 않습니다.'}
 
 @app.get('/api/status')
@@ -206,6 +233,7 @@ def parse(data:ParseInput):
     return dict(patch=patch,warnings=warnings,unparsed=data.text)
 
 @app.post('/api/plans')
+@bounded_recommendation
 def create(data:Conditions,request:Request):
     calculation_started=time.perf_counter()
     from .plan_jobs import report
@@ -281,6 +309,8 @@ def create(data:Conditions,request:Request):
     for p in result['plans']:p['verification']=verification_summary(p)
     from .recommendation_summary import enrich
     for p in result['plans']:enrich(p)
+    from .plan_jobs import check_current
+    check_current()
     result['plans']=[store.save_plan(p,request.state.owner) for p in result['plans']]
     from .experience import event
     event(request.state.owner,'','recommendation',dict(plans=len(result['plans']),elapsed_ms=round((time.perf_counter()-calculation_started)*1000),api_cost_status='not_measured'))
@@ -415,7 +445,7 @@ def chat(kind:Literal['place','plan'],id:str,data:ChatInput,request:Request):
     plan=plan_row(id)[1] if kind=='plan' else None
     result=answer_plan(plan,data.question) if plan else None
     if result is None:
-        result=ask(ids,data.question,data.mode,store.history(request.state.owner,scope),plan=plan)
+        result=ask(ids,data.question,data.mode,store.history(request.state.owner,scope),plan=plan,owner=request.state.owner)
     store.chat_save(request.state.owner,scope,data.question,result['answer'])
     return result
 

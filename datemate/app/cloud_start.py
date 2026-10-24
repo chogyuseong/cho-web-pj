@@ -14,6 +14,8 @@ def prepare_runtime():
 
 
 def main():
+    if os.getenv('K_SERVICE') and os.getenv('DATEMATE_EPHEMERAL_DEMO')!='1':
+        raise RuntimeError('Cloud Run의 임시 파일시스템에는 사용자 데이터를 보존할 수 없습니다. 영속 DB를 연결하기 전에는 DATEMATE_EPHEMERAL_DEMO=1로 명시한 데모만 실행하세요.')
     port=int(os.getenv('PORT','8080'))
     if not 1<=port<=65535:raise ValueError('PORT must be between 1 and 65535')
     prepare_runtime()

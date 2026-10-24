@@ -79,6 +79,8 @@ def normalize(c):
     # Explicit free text takes precedence over the generic quick-start concept.
     if parsed['intents']:
         patch.update(date_category='',date_subcategory='')
+    for key in c.explicit_fields:
+        patch.pop(key,None)
     if 'count' in patch and any(i>=patch['count'] for i in c.locked):patch.pop('count')
     return type(c).model_validate(c.model_dump()|patch)
 

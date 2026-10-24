@@ -22,6 +22,7 @@ class Answer(BaseModel):
     quotes:list[Quote]=Field(default_factory=list,max_length=5)
 
 class State(TypedDict,total=False):
+    owner:str|None
     ids:list[str]
     question:str
     mode:str
@@ -83,13 +84,13 @@ def generate_node(state):
 
 def cached_generate_node(state):
     # 근거 내용·대화·모델이 바뀌면 자동으로 새 캐시 키를 만든다. 오류는 캐시하지 않는다.
-    material=dict(version=1,evidence=state['evidence'],question=state['question'],mode=state['mode'],
+    material=dict(version=2,owner=state.get('owner'),evidence=state['evidence'],question=state['question'],mode=state['mode'],
                   history=state.get('history',[])[-6:],model=os.getenv('GMS_MODEL','gpt-5.4-nano'),llm=bool(os.getenv('GMS_KEY')))
     key='answer:'+hashlib.sha256(json.dumps(material,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
     hit=store.cached(key)
     if hit:return dict(hit,cache_hit=True)
     result=generate_node(state)
-    if result['status'] not in ('external_error','index_missing'):store.cache(key,result,86400)
+    if result['status'] not in ('external_error','index_missing'):store.cache(key,dict(result,owner=state.get('owner')),86400)
     return dict(result,cache_hit=False)
 
 def build_graph():
@@ -100,9 +101,9 @@ def build_graph():
 
 graph=build_graph()
 
-def ask(ids,question,mode,history=None,plan=None):
+def ask(ids,question,mode,history=None,plan=None,owner=None):
     started=time.perf_counter()
-    result=graph.invoke(dict(ids=ids,question=question,mode=mode,history=history or [],plan=plan))
+    result=graph.invoke(dict(ids=ids,question=question,mode=mode,history=history or [],plan=plan,owner=owner))
     return {k:result[k] for k in ('answer','citations','status','trace')} | {'embedding':embedding_mode(),
         'cache_hit':result.get('cache_hit',False),'elapsed_ms':round((time.perf_counter()-started)*1000,2),
         'validation':'근거 번호 및 원문 일치 검증. 질문 관련성·문맥적 함의는 별도 사람 평가 필요.'}

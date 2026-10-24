@@ -2,6 +2,7 @@
 import os
 import re
 import httpx
+from .telemetry import observed_http
 from .models import Point
 
 
@@ -9,7 +10,7 @@ def district_at(lat,lon):
     """지도에서 선택한 좌표의 행정구역을 공식 Reverse Geocoding으로 확인."""
     if not os.getenv('NAVER_MAPS_KEY_ID') or not os.getenv('NAVER_MAPS_KEY'):return ''
     try:
-        r=httpx.get('https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc',
+        r=observed_http(httpx.get,'https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc',
                     params={'coords':f'{lon},{lat}','orders':'admcode','output':'json'},
                     headers={'x-ncp-apigw-api-key-id':os.environ['NAVER_MAPS_KEY_ID'],'x-ncp-apigw-api-key':os.environ['NAVER_MAPS_KEY']},timeout=5)
         r.raise_for_status()
@@ -29,7 +30,7 @@ def search_address(query):
     # 개인 주소를 로그·영구 캐시에 남기지 않으며, 버튼으로 요청할 때만 호출한다.
     try:
         with httpx.Client(timeout=10) as client:
-            response=client.get('https://maps.apigw.ntruss.com/map-geocode/v2/geocode',
+            response=observed_http(client.get,'https://maps.apigw.ntruss.com/map-geocode/v2/geocode',
                 params={'query':query,'count':5},headers={'Accept':'application/json',
                 'x-ncp-apigw-api-key-id':key_id,'x-ncp-apigw-api-key':key})
             response.raise_for_status()

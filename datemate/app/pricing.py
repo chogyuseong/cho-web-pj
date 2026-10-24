@@ -6,6 +6,7 @@ from urllib.parse import unquote,urlsplit
 from datetime import datetime,timezone,date
 from concurrent.futures import ThreadPoolExecutor
 import httpx
+from .telemetry import observed_http
 from . import store
 from .image_search import plain,safe_https,search_enabled
 
@@ -56,7 +57,7 @@ def lookup_price(place,force=False):
             search_name=' '.join(keys) if len(keys)>=2 else price_name(place)
             if len(keys)<2 and ' ' in search_name:search_name='"'+search_name+'"'
             query=search_name+' '+('메뉴 가격' if place['category']=='카페·미식' else '입장료')
-            response=httpx.get('https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=30,start=1,sort='sim',format='json'),
+            response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=30,start=1,sort='sim',format='json'),
                 headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=7)
             response.raise_for_status();quotes=[];seen=set()
             for item in response.json().get('items',[]):

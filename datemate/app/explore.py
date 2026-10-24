@@ -10,6 +10,7 @@ from threading import Lock
 from urllib.parse import quote
 from datetime import datetime,timezone
 import httpx
+from .telemetry import observed_http
 from fastapi import APIRouter,HTTPException,Query
 from . import store
 from .image_search import plain,search_enabled
@@ -69,7 +70,7 @@ def lookup(client,query):
     cached=store.cached(key)
     if cached is not None:return query,cached['items'],'available'
     try:
-        response=client.get('https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=query,display=5,start=1,sort='random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']})
+        response=observed_http(client.get,'https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=query,display=5,start=1,sort='random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']})
         if response.status_code in (401,403):return query,[],'permission_required'
         response.raise_for_status();items=response.json().get('items',[])
         if not isinstance(items,list):raise ValueError('items')

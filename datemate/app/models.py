@@ -11,6 +11,7 @@ class Point(BaseModel):
     lon: float = Field(ge=-180, le=180)
 
 class Conditions(BaseModel):
+    explicit_fields: list[Literal['people','budget','count','transport','setting','reservation','priority','max_walk','include_meal','themes','theme_mode','date_category','date_subcategory']] = Field(default_factory=list,max_length=14)
     meeting_type: Literal['regular','first','anniversary'] = 'regular'
     priority: Literal['balanced','talk','food','photo','activity'] = 'balanced'
     trust_mode: Literal['balanced','operating_sources','discovery'] = 'balanced'

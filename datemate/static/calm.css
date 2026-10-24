@@ -57,17 +57,6 @@ nav a,.nav,.nav-cta,.quick-label,.quick-regions button,.quick-moods button,.quic
 .search-progress-copy p{color:#253d63;font-weight:600}
 #progress.is-searching .search-spinner{animation:search-spin 1.1s linear infinite!important;will-change:transform}
 @media(prefers-reduced-motion:reduce){#progress.is-searching .search-spinner{animation-duration:2.4s!important}}
-body:not(.show-date-plan) .plan-map-rail{display:none}
-@media(min-width:801px){body.show-date-plan #planner-section.workspace.has-plan-map{grid-template-columns:minmax(0,1fr) 340px;max-width:1400px}body.show-date-plan .has-plan-map>.results-area{grid-column:1;grid-row:1}body.show-date-plan .has-plan-map>.plan-map-rail{grid-column:2;grid-row:1}}
-[hidden]{display:none!important}
-#planner-section.workspace{grid-template-columns:minmax(0,1fr);max-width:1000px;margin-inline:auto;scroll-margin-top:100px}
-#planner-section .conditions.panel{width:100%;position:static;max-height:none;overflow:visible}
-#planner-section .results-area{min-width:0}
-#edit-conditions{margin-bottom:24px}
-body.show-date-plan .hero,body.show-date-plan .service-details,body.show-date-plan .workspace-intro,body.show-date-plan #curation{display:none}
-body.show-date-plan #planner-section{padding-top:32px}
-@media(min-width:801px){#conditions>.field-grid,#conditions fieldset>.field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
 /* One entry point and compact comparison cards. */
 body:not(.show-date-plan) .quick-builder{display:none}
 body:not(.show-date-plan) .romance-hero{grid-template-columns:1fr;min-height:0;padding-block:32px}

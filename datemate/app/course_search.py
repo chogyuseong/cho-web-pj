@@ -6,6 +6,7 @@ from urllib.parse import urlsplit, unquote
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 import httpx
+from .telemetry import observed_http
 from . import store
 from .image_search import plain, search_enabled
 from .catalog import places
@@ -146,13 +147,13 @@ def search_courses(c):
     cached=store.cached(key)
     if cached:return cached
     try:
-        response=httpx.get('https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=20,start=1,sort='sim',format='json'),
+        response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=20,start=1,sort='sim',format='json'),
             headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
         response.raise_for_status()
         result['search_history'].append(dict(query=query,result_count=len(response.json().get('items',[]))))
         if not response.json().get('items') and query!=base_course_query(c):
             query=base_course_query(c)
-            response=httpx.get('https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=20,start=1,sort='sim',format='json'),
+            response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=20,start=1,sort='sim',format='json'),
                 headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
             response.raise_for_status()
             result.update(query=query,search_relaxed=True)

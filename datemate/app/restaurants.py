@@ -4,6 +4,7 @@ import hashlib
 import os
 from urllib.parse import urlencode
 import httpx
+from .telemetry import observed_http
 from .config import ROOT
 from .routes import distance
 
@@ -30,7 +31,7 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500)
     cached=store.cached(key)
     if cached:return cached
     try:
-        response=httpx.get('https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=query,display=5,sort='comment',format='json'),
+        response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=query,display=5,sort='comment',format='json'),
             headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=10)
         if response.status_code in (401,403):return dict(status='permission_required',restaurants=[],message='네이버 클라우드 NAVER API HUB의 기존 Application에서 NAVER 검색 > 지역 API를 활성화해 주세요. 이미지·블로그 키는 그대로 사용할 수 있습니다.',search_url=search_url)
         response.raise_for_status();items=response.json().get('items',[]);rows=[]

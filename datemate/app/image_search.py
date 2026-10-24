@@ -6,6 +6,7 @@ import threading
 from datetime import datetime, timezone
 from urllib.parse import urlencode, urlsplit, unquote
 import httpx
+from .telemetry import observed_http
 from .search_address_text import place_query,street_address
 
 _lock=threading.Lock()
@@ -70,7 +71,7 @@ def _search_place_images(place):
             district=re.search(r'서울(?:특별시|시)?\s+([가-힣]+구)',(place.get('address') or ''))
             queries=place.get('image_queries') or list(dict.fromkeys([query,*([place_query(place)] if street_address(place.get('address')) else []),*([place['name']+' '+district[1]+' 사진'] if district else [])]))
             for search_query in queries[:3]:
-                response=client.get('https://naverapihub.apigw.ntruss.com/search/v1/image',params={'query':search_query,'display':30,'start':1,'sort':'sim','filter':'all','format':'json'},
+                response=observed_http(client.get,'https://naverapihub.apigw.ntruss.com/search/v1/image',params={'query':search_query,'display':30,'start':1,'sort':'sim','filter':'all','format':'json'},
                     headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']})
                 response.raise_for_status();batch=response.json()
                 if not isinstance(batch,dict) or not isinstance(batch.get('items',[]),list):raise ValueError('invalid_response')

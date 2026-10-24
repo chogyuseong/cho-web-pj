@@ -30,7 +30,7 @@ def test_full_api_flow(client):
 def test_permissions_validation_and_error_states(client):
     p=client.post('/api/plans',json={'visit_date':'2026-10-24'}).json()['plans'][0]
     with TestClient(app) as other:
-        assert other.post('/api/plans/'+p['id']+'/alternatives',json={'index':0}).status_code==403
+        assert other.post('/api/plans/'+p['id']+'/alternatives',json={'index':0}).status_code==404
     assert client.post('/api/plans',json={'visit_date':'2026-10-24','count':9}).status_code==422
     assert client.post('/api/plans',json={'visit_date':'2026-10-24'},headers={'Origin':'https://malicious.example'}).status_code==403
     assert client.post('/api/conditions/parse',content='x'*(2*1024*1024+1)).status_code==413

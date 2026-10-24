@@ -2,6 +2,7 @@
 import os
 from urllib.parse import urlsplit,urlencode
 import httpx
+from .telemetry import observed_http
 from .image_search import search_enabled,plain,safe_https,_lock
 
 def place_blogs(place):
@@ -11,7 +12,7 @@ def place_blogs(place):
     query=f'{place["name"]} 서울 방문 후기'
     try:
         with _lock,httpx.Client(timeout=10) as client:
-            response=client.get('https://naverapihub.apigw.ntruss.com/search/v1/blog',params={'query':query,'display':10,'start':1,'sort':'sim','format':'json'},
+            response=observed_http(client.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params={'query':query,'display':10,'start':1,'sort':'sim','format':'json'},
                 headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']})
             response.raise_for_status();data=response.json()
         if not isinstance(data,dict) or not isinstance(data.get('items',[]),list):raise ValueError('invalid_response')

@@ -1,0 +1,35 @@
+name: datemate-cloud-check
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: datemate_check
+      POSTGRES_USER: datemate_check
+      POSTGRES_PASSWORD: disposable-local-check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datemate_check -d datemate_check"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  web:
+    build: .
+    image: datemate-cloudrun:review
+    ports: ["127.0.0.1:18080:8080"]
+    environment: &environment
+      DATABASE_URL: postgresql://datemate_check:disposable-local-check@db:5432/datemate_check
+      K_SERVICE: datemate-local-cloud-check
+      DATEMATE_ENV: production
+      DATEMATE_ALLOWED_HOSTS: datemate.test
+      DATEMATE_PUBLIC_ORIGIN: https://datemate.test
+      EMBEDDING_MODE: demo
+      DATEMATE_PROVIDER_CALLS_PER_HOUR: "100"
+    depends_on:
+      db:
+        condition: service_healthy
+  web2:
+    image: datemate-cloudrun:review
+    ports: ["127.0.0.1:18081:8080"]
+    environment: *environment
+    depends_on:
+      db:
+        condition: service_healthy

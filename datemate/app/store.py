@@ -4,22 +4,9 @@ import sqlite3
 import time
 import uuid
 from .config import RUNTIME
+from .database import postgres_enabled
 
-class ClosingConnection(sqlite3.Connection):
-    def __exit__(self,*args):
-        try:return super().__exit__(*args)
-        finally:self.close()
-
-
-def connect():
-    db = sqlite3.connect(RUNTIME / 'datemate.sqlite', timeout=20, factory=ClosingConnection)
-    db.row_factory = sqlite3.Row
-    return db
-
-def init():
-    with connect() as db:
-        db.executescript('''
-        PRAGMA journal_mode=WAL;
+SCHEMA = """
         CREATE TABLE IF NOT EXISTS plans(id TEXT PRIMARY KEY, owner TEXT, parent TEXT, aggregate_key TEXT, payload TEXT);
         CREATE TABLE IF NOT EXISTS reviews(id TEXT PRIMARY KEY, aggregate_key TEXT, author TEXT, nickname TEXT, rating INTEGER,
           body TEXT, visited TEXT, created REAL, updated REAL, valid INTEGER DEFAULT 1, UNIQUE(aggregate_key,author));
@@ -43,7 +30,28 @@ def init():
         CREATE INDEX IF NOT EXISTS reviews_aggregate ON reviews(aggregate_key,valid,updated);
         CREATE INDEX IF NOT EXISTS cache_expiry ON cache(expires);
         CREATE INDEX IF NOT EXISTS shares_plan ON plan_shares(plan_id);
-        ''')
+"""
+
+class ClosingConnection(sqlite3.Connection):
+    def __exit__(self,*args):
+        try:return super().__exit__(*args)
+        finally:self.close()
+
+
+def connect():
+    if postgres_enabled():
+        from .database import PostgresConnection
+        return PostgresConnection()
+    db = sqlite3.connect(RUNTIME / 'datemate.sqlite', timeout=20, factory=ClosingConnection)
+    db.row_factory = sqlite3.Row
+    return db
+
+def init():
+    if postgres_enabled():
+        from .database import initialize
+        return initialize(SCHEMA)
+    with connect() as db:
+        db.executescript('PRAGMA journal_mode=WAL;' + SCHEMA)
         if db.execute("INSERT OR IGNORE INTO schema_migrations VALUES('owned-answer-cache-v1',?)",(time.time(),)).rowcount:
             db.execute("DELETE FROM cache WHERE key LIKE 'answer:%' AND json_extract(payload,'$.owner') IS NULL")
         if db.execute("INSERT OR IGNORE INTO schema_migrations VALUES('cache-owner-index-v1',?)",(time.time(),)).rowcount:
@@ -91,7 +99,7 @@ def reserve_budget(limits,bucket):
             row=db.execute('SELECT calls FROM request_budgets WHERE scope=? AND bucket=?',(scope,bucket)).fetchone()
             if row and row[0]>=limit:return False
         for scope,limit in limits:
-            db.execute('INSERT INTO request_budgets VALUES(?,?,1) ON CONFLICT(scope,bucket) DO UPDATE SET calls=calls+1',(scope,bucket))
+            db.execute('INSERT INTO request_budgets VALUES(?,?,1) ON CONFLICT(scope,bucket) DO UPDATE SET calls=request_budgets.calls+1',(scope,bucket))
     return True
 
 def aggregate_key(ids):
@@ -117,7 +125,7 @@ def cached(key):
 
 def cache(key, value, ttl=86400):
     with connect() as db:
-        db.execute('INSERT OR REPLACE INTO cache VALUES(?,?,?)', (key, json.dumps(value, ensure_ascii=False), time.time()+ttl))
+        db.execute('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires', (key, json.dumps(value, ensure_ascii=False), time.time()+ttl))
 
 def history(owner, scope):
     with connect() as db:

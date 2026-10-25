@@ -9,6 +9,7 @@ from . import store
 from .routes import distance
 from .image_search import plain,safe_https
 from .search_address_text import place_query
+from .telemetry import observed_stream
 
 _limit=threading.BoundedSemaphore(3)
 
@@ -106,7 +107,7 @@ def extract_menus(html,place):
     return image_result
 
 def fetch_page(client,query):
-    with client.stream('GET','https://search.naver.com/search.naver',params={'query':query}) as response:
+    with observed_stream(client,'GET','https://search.naver.com/search.naver',params={'query':query}) as response:
         response.raise_for_status()
         if response.status_code!=200:raise ValueError('redirect')
         body=bytearray()

@@ -9,7 +9,9 @@ root=Path(__file__).resolve().parents[1]
 with tempfile.TemporaryDirectory(prefix='datemate-cloud-check-') as runtime:
     env=os.environ.copy()
     env.update(DATEMATE_RUNTIME=runtime,DATEMATE_ENV_FILE=str(Path(runtime)/'absent.env'),
-               DATEMATE_BOOTSTRAP_INDEX='1',EMBEDDING_MODE='demo',PYTHONIOENCODING='utf-8')
+               DATEMATE_BOOTSTRAP_INDEX='1',EMBEDDING_MODE='demo',PYTHONIOENCODING='utf-8',
+               DATABASE_URL='',DATEMATE_ENV='development',DATEMATE_PUBLIC_ORIGIN='',DATEMATE_ALLOWED_HOSTS='')
+    env.pop('K_SERVICE',None)
     for key in ['GMS_KEY','NAVER_MAPS_KEY','NAVER_SEARCH_CLIENT_SECRET']:env.pop(key,None)
     code='''
 from app.cloud_start import prepare_runtime
@@ -17,6 +19,8 @@ prepare_runtime()
 from app.indexing import collections
 assert collections('real')[0].count()>0
 assert collections('demo')[0].count()>0
+assert collections('real')[1].count()>0
+assert collections('demo')[1].count()>0
 from fastapi.testclient import TestClient
 from app.main import app
 with TestClient(app) as client:

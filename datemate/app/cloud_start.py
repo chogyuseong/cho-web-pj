@@ -1,27 +1,35 @@
-"""Cloud Run entrypoint. Runtime data is temporary; no API keys are bundled."""
+"""Cloud Run entrypoint: PostgreSQL for user data, rebuildable local indexes."""
 import os
+import json
 import uvicorn
 
 
 def prepare_runtime():
+    from .config import ROOT, validate_runtime
+    validate_runtime()
     from . import store
     store.init()
     if os.getenv('DATEMATE_BOOTSTRAP_INDEX','0')=='1':
         from .catalog import places
-        from .indexing import index_places
+        from .indexing import index_places, index_documents
         for mode in ('demo','real'):
             index_places(places(mode),mode)
+            path = ROOT/'data'/f'{mode}_documents.json'
+            if path.is_file():
+                index_documents(json.loads(path.read_text(encoding='utf-8')), mode)
 
 
 def main():
-    if os.getenv('K_SERVICE') and os.getenv('DATEMATE_EPHEMERAL_DEMO')!='1':
-        raise RuntimeError('Cloud Run의 임시 파일시스템에는 사용자 데이터를 보존할 수 없습니다. 영속 DB를 연결하기 전에는 DATEMATE_EPHEMERAL_DEMO=1로 명시한 데모만 실행하세요.')
+    from .config import validate_runtime
+    validate_runtime()
     port=int(os.getenv('PORT','8080'))
     if not 1<=port<=65535:raise ValueError('PORT must be between 1 and 65535')
     prepare_runtime()
-    # Cloud Run is the trusted ingress proxy; honor HTTPS forwarded by it.
+    # Only Cloud Run's managed ingress may be trusted unconditionally.
+    trusted=os.getenv('FORWARDED_ALLOW_IPS','*' if os.getenv('K_SERVICE') else '127.0.0.1')
     uvicorn.run('app.main:app',host='0.0.0.0',port=port,workers=1,
-                proxy_headers=True,forwarded_allow_ips='*')
+                proxy_headers=True,forwarded_allow_ips=trusted,access_log=False,
+                timeout_graceful_shutdown=8)
 
 
 if __name__=='__main__':main()

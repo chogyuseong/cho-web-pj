@@ -23,7 +23,7 @@ def test_positive_preference_not_reversed():
 
 def test_database_connections_close_and_rollback_on_context_exit():
     with store.connect() as db:db.execute('CREATE TABLE IF NOT EXISTS close_test(value TEXT)')
-    with pytest.raises(sqlite3.ProgrammingError):db.execute('SELECT 1')
+    with pytest.raises(RuntimeError if store.postgres_enabled() else sqlite3.ProgrammingError):db.execute('SELECT 1')
     with pytest.raises(RuntimeError):
         with store.connect() as conn:
             conn.execute("INSERT INTO close_test VALUES('rollback')")

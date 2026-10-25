@@ -15,8 +15,8 @@
     if (!confirm('이 브라우저에서 만든 일정·대화·후기 등을 모두 삭제할까요? 복구할 수 없습니다.')) return;
     action.disabled = true;
     try {
-      const response = await fetch('/api/me/data', {method:'DELETE'});
-      if (!response.ok) throw new Error('삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      await api('/me/data', null, 'DELETE');
+      PlanSearch.forget();
       location.replace('/');
     } catch (error) {
       result.textContent = error.message;

@@ -1,3 +1,4 @@
+from .service_time import today
 """요청 시 가격 검색. 공식 단가 / 웹 참고 단가 / 계획용 가정을 구분한다."""
 import copy
 import os
@@ -32,7 +33,7 @@ def extract_quote(place,item):
     posted=str(item.get('postdate',''))
     try:posted_date=datetime.strptime(posted,'%Y%m%d').date()
     except ValueError:return None
-    if not 0<=(date.today()-posted_date).days<=365:return None
+    if not 0<=(today()-posted_date).days<=365:return None
     category=place['category']
     keywords=r'성인(?:\s*입장료)?|일반(?:\s*관람료)?|입장료|관람료|1인\s*이용료'
     if category=='카페·미식':keywords=r'아메리카노|칼국수|국밥|냉면|돈까스|돈가스|파스타|보이차|우롱차|녹차|홍차|말차|대추차|유자차|쌍화차'

@@ -3,6 +3,18 @@ import sys
 import tempfile
 from pathlib import Path
 os.environ['DATEMATE_RUNTIME']=tempfile.mkdtemp(prefix='datemate-tests-')
+# Never run tests against the application's database or credentials.
+os.environ['DATABASE_URL']=os.getenv('DATEMATE_TEST_DATABASE_URL','')
+if os.environ['DATABASE_URL']:
+    import uuid
+    import psycopg
+    from psycopg import sql
+    os.environ['DATEMATE_DB_SCHEMA']='datemate_test_'+uuid.uuid4().hex
+    with psycopg.connect(os.environ['DATABASE_URL']) as db:
+        db.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(os.environ['DATEMATE_DB_SCHEMA'])))
+os.environ['DATEMATE_ENV_FILE']=str(Path(os.environ['DATEMATE_RUNTIME'])/'absent.env')
+os.environ['DATEMATE_IP_REQUESTS_PER_MINUTE']='100000'
+os.environ['DATEMATE_USER_CHATS_PER_MINUTE']='10000'
 os.environ['EMBEDDING_MODE']='demo'
 os.environ['GMS_KEY']=''
 os.environ['DATEMATE_BACKUP_DIR']=''

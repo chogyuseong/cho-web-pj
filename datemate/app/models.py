@@ -2,6 +2,7 @@ from datetime import date
 from typing import Literal
 from pydantic import BaseModel, Field, model_validator, field_validator
 from .taxonomy import DATE_CATEGORIES
+from .service_time import today
 
 THEMES = ['레저·활동', '카페·미식', '휴식·힐링', '문화·예술', '체험·제작', '오락·놀이', '산책·풍경']
 
@@ -82,7 +83,7 @@ class ReviewInput(BaseModel):
     def valid(self):
         if not self.body.strip() or not self.nickname.strip():
             raise ValueError('내용과 별명을 입력하세요.')
-        if self.visited > date.today():
+        if self.visited > today():
             raise ValueError('미래 방문 후기는 작성할 수 없습니다.')
         return self
 

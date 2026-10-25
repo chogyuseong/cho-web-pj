@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from urllib.parse import quote
@@ -22,6 +23,7 @@ LIMIT=500
 DISTRICTS=['종로구','중구','용산구','성동구','광진구','동대문구','중랑구','성북구','강북구','도봉구','노원구','은평구','서대문구','마포구','양천구','강서구','구로구','금천구','영등포구','동작구','관악구','서초구','강남구','송파구','강동구']
 TERMS=['데이트 카페','데이트 맛집','데이트 전시','데이트 공방','데이트 산책','데이트 실내','데이트 이색체험','데이트 소품샵','데이트 미술관','데이트 박물관','데이트 서점','데이트 방탈출','데이트 볼링','데이트 정원']
 _lock=Lock();_executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='explore-index');_future=None
+_collector=uuid.uuid4().hex
 
 def queries():
     base=['서울 데이트 장소',*[f'서울 {term}' for term in TERMS],*[f'서울 {district} {term}' for district in DISTRICTS for term in TERMS]]
@@ -79,10 +81,15 @@ def lookup(client,query):
     except (httpx.HTTPError,KeyError,ValueError,TypeError):return query,[],'unavailable'
 
 def save(snapshot):
-    store.cache(KEY,snapshot,86400)
+    snapshot=dict(snapshot,collector=_collector,collection_heartbeat=time.time())
     now=time.time()
     with store.connect() as db:
-        db.executemany('INSERT OR REPLACE INTO cache VALUES(?,?,?)',[("explore-place:"+p['id'],json.dumps(p,ensure_ascii=False),now+7*86400) for p in snapshot['places']])
+        db.execute('BEGIN IMMEDIATE')
+        current=db.execute('SELECT payload FROM cache WHERE key=? AND expires>?',(KEY,now)).fetchone()
+        if current and json.loads(current['payload']).get('collector') not in (None,_collector):return
+        db.execute('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',
+                   (KEY,json.dumps(snapshot,ensure_ascii=False),now+86400))
+        db.executemany('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',[("explore-place:"+p['id'],json.dumps(p,ensure_ascii=False),now+7*86400) for p in snapshot['places']])
 
 def collect():
     bank={};duplicate=0;rejected=0;attempts=0;errors=0;permission=False;all_queries=queries()
@@ -117,19 +124,26 @@ def collect():
 def ensure(refresh=False):
     global _future
     with _lock:
-        cached=store.cached(KEY)
-        if _future and not _future.done():return cached or dict(status='collecting',places=[])
-        if not refresh and cached and cached.get('status')!='collecting':return cached
-        if not search_enabled():return dict(status='key_missing',places=[],message='네이버 검색 키가 필요해요.')
-        initial=dict(cached or {},status='collecting',places=(cached or {}).get('places',[]),target=LIMIT,queries_done=0,queries_max=len(queries()),message='서울 지역·활동별 검색 결과를 모으고 있어요.')
-        store.cache(KEY,initial,86400);_future=_executor.submit(collect);return initial
+        with store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row=db.execute('SELECT payload FROM cache WHERE key=? AND expires>?',(KEY,time.time())).fetchone()
+            cached=json.loads(row['payload']) if row else None
+            if _future and not _future.done():return cached or dict(status='collecting',places=[])
+            if cached and cached.get('status')=='collecting' and cached.get('collection_heartbeat',0)>time.time()-120:return cached
+            if not refresh and cached and cached.get('status')!='collecting':return cached
+            if not search_enabled():return dict(status='key_missing',places=[],message='네이버 검색 키가 필요해요.')
+            initial=dict(cached or {},status='collecting',places=(cached or {}).get('places',[]),target=LIMIT,queries_done=0,queries_max=len(queries()),message='서울 지역·활동별 검색 결과를 모으고 있어요.',collector=_collector,collection_heartbeat=time.time())
+            db.execute('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',
+                       (KEY,json.dumps(initial,ensure_ascii=False),time.time()+86400))
+        _future=_executor.submit(collect)
+        return initial
 
 @router.get('/api/explore')
 def explore(q:str=Query(default='',max_length=200),offset:int=Query(default=0,ge=0),limit:int=Query(default=24,ge=1,le=60)):
     snapshot=ensure();rows=snapshot.get('places',[])
     if q.strip() and normalize(q) not in ('서울데이트장소','서울데이트','서울'):
         terms=q.casefold().split();rows=[p for p in rows if all(term in (' '.join([p['name'],p['address'],p['category'],*p['tags']])).casefold() for term in terms)]
-    return {k:v for k,v in snapshot.items() if k!='places'}|dict(places=rows[offset:offset+limit],total=len(rows),collected=len(snapshot.get('places',[])),offset=offset,has_more=offset+limit<len(rows),search='네이버 지역 검색 · 중복 제거')
+    return {k:v for k,v in snapshot.items() if k not in ('places','collector','collection_heartbeat')}|dict(places=rows[offset:offset+limit],total=len(rows),collected=len(snapshot.get('places',[])),offset=offset,has_more=offset+limit<len(rows),search='네이버 지역 검색 · 중복 제거')
 
 @router.post('/api/explore/refresh')
 def refresh():

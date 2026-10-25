@@ -20,6 +20,21 @@ class DemoEmbeddings(Embeddings):
         norm=math.sqrt(sum(v*v for v in vector)) or 1
         return [v/norm for v in vector]
 
+
+class BudgetedEmbeddings(Embeddings):
+    def __init__(self, delegate):
+        self.delegate = delegate
+
+    def embed_documents(self, texts):
+        from .telemetry import operation
+        with operation('sdk:embedding'):
+            return self.delegate.embed_documents(texts)
+
+    def embed_query(self, text):
+        from .telemetry import operation
+        with operation('sdk:embedding'):
+            return self.delegate.embed_query(text)
+
 def embedding_mode():return os.getenv('EMBEDDING_MODE','demo')
 
 @lru_cache
@@ -27,8 +42,8 @@ def embedder(mode):
     if mode=='demo':return DemoEmbeddings()
     if not os.getenv('GMS_KEY'):raise ValueError('실제 임베딩에는 GMS 키가 필요합니다.')
     from langchain_openai import OpenAIEmbeddings
-    return OpenAIEmbeddings(api_key=os.environ['GMS_KEY'],base_url=os.getenv('GMS_BASE_URL','https://gms.ssafy.io/gmsapi/api.openai.com/v1/'),
-        model=os.getenv('EMBEDDING_MODEL','text-embedding-3-small'),request_timeout=30,max_retries=1)
+    return BudgetedEmbeddings(OpenAIEmbeddings(api_key=os.environ['GMS_KEY'],base_url=os.getenv('GMS_BASE_URL','https://gms.ssafy.io/gmsapi/api.openai.com/v1/'),
+        model=os.getenv('EMBEDDING_MODEL','text-embedding-3-small'),request_timeout=30,max_retries=1))
 
 @lru_cache
 def client():

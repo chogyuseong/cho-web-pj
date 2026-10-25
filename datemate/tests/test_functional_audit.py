@@ -1,4 +1,5 @@
 """Full user journeys against a local server and disposable test storage."""
+import os
 import socket
 import threading
 import time
@@ -21,7 +22,7 @@ def audit_page():
         while not server.started and time.monotonic()<deadline:time.sleep(.05)
         assert server.started
         with playwright.sync_playwright() as pw:
-            browser=pw.chromium.launch(channel='msedge',headless=True)
+            browser=pw.chromium.launch(channel=os.getenv('DATEMATE_BROWSER_CHANNEL','msedge'),headless=True)
             page=browser.new_page(viewport={'width':1440,'height':1000});errors=[]
             page.on('pageerror',lambda error:errors.append(str(error)))
             def route(request):

@@ -3,6 +3,8 @@ import pytest
 from scripts.backup_database import backup
 from app import store
 
+pytestmark = pytest.mark.skipif(store.postgres_enabled(), reason='SQLite backup; PostgreSQL uses managed backups')
+
 
 def test_backup_preserves_committed_rows(tmp_path):
     with store.connect() as db:

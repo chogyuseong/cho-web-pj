@@ -7,9 +7,12 @@ from pathlib import Path
 import time
 from . import store
 from .config import RUNTIME
+from .database import postgres_enabled
 
 
 def snapshot(destination, source=None):
+    if source is None and postgres_enabled():
+        raise ValueError('PostgreSQL은 Cloud SQL 백업 또는 pg_dump로 백업하세요.')
     source=Path(source or RUNTIME/'datemate.sqlite').resolve()
     destination=Path(destination).resolve()
     if not source.exists():raise ValueError('원본 데이터베이스가 없습니다.')
@@ -32,8 +35,10 @@ def maintain():
         db.execute('DELETE FROM plan_shares WHERE expires<=?',(time.time(),))
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'recommendations%' AND bucket<?",(int(time.time()//60)-2,))
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'provider:%' AND bucket<?",(int(time.time()//3600)-2,))
+        db.execute("DELETE FROM request_budgets WHERE (scope LIKE 'http:%' OR scope LIKE 'chat:%') AND bucket<?",(int(time.time()//60)-2,))
+        db.execute('DELETE FROM provider_metrics WHERE hour<?',(int(time.time()//3600)-24*30,))
     directory=os.getenv('DATEMATE_BACKUP_DIR','')
-    if directory:
+    if directory and not postgres_enabled():
         stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
         snapshot(Path(directory)/f'datemate-{stamp}.sqlite')
 

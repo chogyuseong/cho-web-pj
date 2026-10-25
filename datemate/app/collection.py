@@ -8,6 +8,7 @@ import httpx
 from pydantic import BaseModel, Field
 from . import store
 from .config import ROOT, llm
+from .telemetry import observed_http, invoke_model
 
 _lock=threading.Lock()
 _last=0.0
@@ -22,7 +23,7 @@ def fetch_json(url,params=None,headers=None):
             _last=time.monotonic()
         try:
             with httpx.Client(timeout=25,follow_redirects=False) as client:
-                response=client.get(url,params=params,headers={'User-Agent':f'DateMate/0.1 educational-local ({contact or "no contact; max 10 calls/min"})',**(headers or {})})
+                response=observed_http(client.get,url,params=params,headers={'User-Agent':f'DateMate/0.2 ({contact or "max 10 calls/min"})',**(headers or {})})
                 response.raise_for_status()
                 return response.json()
         except (httpx.TimeoutException,httpx.NetworkError,httpx.HTTPStatusError) as exc:
@@ -45,7 +46,7 @@ def queries(place,question,use_llm=False):
     own=f'{place["name"]} {place["region"]}'
     result=[own]
     if use_llm:
-        parsed=llm().with_structured_output(Queries).invoke(QUERY_PROMPT+'\n'+json.dumps({'place':own,'question':question},ensure_ascii=False))
+        parsed=invoke_model(llm().with_structured_output(Queries),QUERY_PROMPT+'\n'+json.dumps({'place':own,'question':question},ensure_ascii=False))
         result+=parsed.queries
     elif question.strip():result.append(f'{own} {question[:100]}')
     return list(dict.fromkeys(q[:240] for q in result if q.strip()))[:5]
@@ -53,7 +54,7 @@ def queries(place,question,use_llm=False):
 def select_candidates(place,question,candidates,use_llm=False):
     own=[c for c in candidates if c.get('own')]
     if use_llm:
-        parsed=llm().with_structured_output(Selection).invoke(SELECT_PROMPT+'\n'+json.dumps({'place':place['name'],'region':place['region'],'question':question,'candidates':candidates},ensure_ascii=False))
+        parsed=invoke_model(llm().with_structured_output(Selection),SELECT_PROMPT+'\n'+json.dumps({'place':place['name'],'region':place['region'],'question':question,'candidates':candidates},ensure_ascii=False))
         others=[c for c in candidates if c['id'] in parsed.ids]
     else:
         others=[c for c in candidates if place['name'] in c['title'] and place['region'] in c.get('summary','')]

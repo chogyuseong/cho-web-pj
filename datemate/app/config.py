@@ -1,4 +1,5 @@
 import os
+from urllib.parse import urlsplit
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -8,6 +9,28 @@ load_dotenv(Path(os.getenv('DATEMATE_ENV_FILE', str(ROOT / '.env'))))
 RUNTIME = Path(os.getenv('DATEMATE_RUNTIME', str(ROOT / 'runtime')))
 RUNTIME.mkdir(parents=True, exist_ok=True)
 REGION = '서울'  # 이번 프로젝트의 서비스 범위는 서울특별시로 고정한다.
+
+def production():
+    return os.getenv('DATEMATE_ENV') == 'production' or bool(os.getenv('K_SERVICE'))
+
+
+def public_origin():
+    return os.getenv('DATEMATE_PUBLIC_ORIGIN', '').strip().rstrip('/')
+
+
+def validate_runtime():
+    database = os.getenv('DATABASE_URL', '').strip()
+    if database and urlsplit(database).scheme not in ('postgres', 'postgresql'):
+        raise RuntimeError('DATABASE_URL은 PostgreSQL 연결 주소여야 합니다.')
+    if production() and not database and os.getenv('DATEMATE_EPHEMERAL_DEMO') != '1':
+        raise RuntimeError('운영 환경에는 PostgreSQL DATABASE_URL이 필요합니다. 임시 시연만 DATEMATE_EPHEMERAL_DEMO=1을 사용하세요.')
+    origin = public_origin()
+    if origin:
+        parsed = urlsplit(origin)
+        if (parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username
+                or parsed.password or parsed.path or parsed.query or parsed.fragment
+                or (production() and parsed.scheme != 'https')):
+            raise RuntimeError('DATEMATE_PUBLIC_ORIGIN에는 경로 없는 HTTPS 사이트 주소를 입력하세요.')
 
 def llm():
     from langchain_openai import ChatOpenAI

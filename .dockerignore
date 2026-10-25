@@ -3,6 +3,7 @@
 !Dockerfile
 !datemate/
 !datemate/requirements.txt
+!datemate/requirements-cloud.lock.txt
 !datemate/app/
 !datemate/app/**
 !datemate/data/

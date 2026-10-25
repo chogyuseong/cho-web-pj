@@ -14,7 +14,8 @@ def main():
         # Chroma keeps Windows memory-mapped files open until process exit.
         # Let a parent own cleanup after the worker releases those handles.
         with tempfile.TemporaryDirectory(prefix='datemate-real-course-') as runtime:
-            env=os.environ.copy();env['DATEMATE_RUNTIME']=runtime
+            env=os.environ.copy();env.update(DATEMATE_RUNTIME=runtime,DATABASE_URL='',DATEMATE_ENV='development',DATEMATE_PUBLIC_ORIGIN='',DATEMATE_ALLOWED_HOSTS='')
+            env.pop('K_SERVICE',None)
             subprocess.run([sys.executable,str(Path(__file__).resolve()),'--worker'],env=env,check=True,timeout=240)
         return
     if os.environ.get('DATEMATE_RUNTIME'):

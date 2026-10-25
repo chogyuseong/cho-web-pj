@@ -21,6 +21,7 @@ def main():
     import httpx
     with tempfile.TemporaryDirectory(prefix='datemate-provider-check-') as runtime:
         os.environ['DATEMATE_RUNTIME']=runtime
+        os.environ['DATABASE_URL']=''
         from app import config
         results=[]
         search_headers={'X-NCP-APIGW-API-KEY-ID':os.getenv('NAVER_SEARCH_CLIENT_ID',''),

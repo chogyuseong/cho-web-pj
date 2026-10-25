@@ -1,4 +1,5 @@
-﻿"""Explain evidence without treating search ranking or retrieval dates as ratings."""
+from .service_time import today
+"""Explain evidence without treating search ranking or retrieval dates as ratings."""
 from datetime import date,datetime
 from collections import Counter
 
@@ -16,7 +17,7 @@ def enrich(plan):
         row=plan.get('costs',[])[i] if i<len(plan.get('costs',[])) else {}
         quotes=row.get('price_evidence') or []
         age=None
-        try:age=(date.today()-datetime.fromisoformat(p.get('operations_checked_at') or '').date()).days
+        try:age=(today()-datetime.fromisoformat(p.get('operations_checked_at') or '').date()).days
         except (ValueError,TypeError):pass
         facts.append(dict(place_id=p['id'],address=p.get('address') or '주소 미확인',
             identity='등록 주소·좌표 연결 정보 · 지점 일치 여부는 원문 확인 필요',

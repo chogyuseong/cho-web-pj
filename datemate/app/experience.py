@@ -75,7 +75,7 @@ def apply_draft(parent,token,owner):
         result=dict(plan,id=uuid.uuid4().hex,parent=parent)
         result['aggregate_key']=store.aggregate_key([p['id'] for p in result['places']])
         db.execute('INSERT INTO plans VALUES(?,?,?,?,?)',(result['id'],owner,parent,result['aggregate_key'],json.dumps(result,ensure_ascii=False)))
-        db.execute('INSERT OR REPLACE INTO cache VALUES(?,?,?)',('applied-draft:'+token,json.dumps(dict(id=result['id'],owner=owner,parent=parent)),time.time()+600))
+        db.execute('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',('applied-draft:'+token,json.dumps(dict(id=result['id'],owner=owner,parent=parent)),time.time()+600))
     event(owner,parent,'apply_'+draft['kind'],dict(new_plan_id=result['id']))
     return result
 

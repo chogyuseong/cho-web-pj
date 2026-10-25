@@ -1,0 +1,50 @@
+name: Application checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        storage: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_USER: datemate_test
+          POSTGRES_PASSWORD: disposable-ci-check
+          POSTGRES_DB: datemate_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U datemate_test -d datemate_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: datemate
+    env:
+      DATEMATE_BROWSER_CHANNEL: chromium
+      DATEMATE_TEST_DATABASE_URL: ${{ matrix.storage == 'postgres' && 'postgresql://datemate_test:disposable-ci-check@localhost:5432/datemate_test' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: datemate/requirements*.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: python -m pip check
+      - run: python -m pytest tests -q
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install httpx==0.28.1
+      - run: docker compose -f compose.test.yaml up -d --build
+      - run: python datemate/scripts/check_cloud_containers.py
+      - if: always()
+        run: docker compose -f compose.test.yaml down

@@ -18,7 +18,8 @@ from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 from . import store
 from .catalog import places,get_place
-from .config import ROOT,REGION
+from .config import ROOT,REGION,production,public_origin,validate_runtime
+from . import web_security
 from .models import Conditions,ReviewInput,ChatInput,THEMES
 from .planner import recommend,replacements
 from .indexing import collections,embedding_mode,search_places
@@ -36,15 +37,23 @@ mimetypes.add_type('text/css', '.css')
 
 @asynccontextmanager
 async def lifespan(app):
-    store.init()
+    validate_runtime()
+    await run_in_threadpool(store.init)
     from .maintenance import loop
+    from .plan_jobs import heartbeat_loop
     task=asyncio.create_task(loop())
+    heartbeat_task=asyncio.create_task(heartbeat_loop())
     try:yield
     finally:
         task.cancel()
+        heartbeat_task.cancel()
         with suppress(asyncio.CancelledError):await task
+        with suppress(asyncio.CancelledError):await heartbeat_task
 
-app=FastAPI(title='서울 데이트메이트 · 서울 데이트 코스 추천',version='0.1.0',lifespan=lifespan)
+app=FastAPI(title='서울 데이트메이트 · 서울 데이트 코스 추천',version='0.2.0',lifespan=lifespan,
+            docs_url=None if production() else '/docs',
+            redoc_url=None if production() else '/redoc',
+            openapi_url=None if production() else '/openapi.json')
 from .experience_api import router as experience_router
 app.include_router(experience_router)
 from .plan_jobs import router as jobs_router
@@ -71,54 +80,58 @@ def readiness():
 
 @app.middleware('http')
 async def safety(request:Request,call_next):
-    if request.url.path in ('/healthz','/readyz'):return await call_next(request)
-    if request.url.path.startswith('/static/'):
-        response=await call_next(request)
-        response.headers['X-Content-Type-Options']='nosniff'
-        return response
     started=time.perf_counter()
     request_id=uuid.uuid4().hex
-    # 전체 요청 본문 2 MiB. Content-Length가 없는 요청도 스트림을 읽으며 제한한다.
-    if request.method in ('POST','PUT','PATCH','DELETE'):
-        origin=request.headers.get('origin')
-        if origin and origin.rstrip('/')!=str(request.base_url).rstrip('/'):
-            return JSONResponse({'detail':'다른 사이트에서 보낸 변경 요청은 허용하지 않습니다.'},status_code=403)
-        body=bytearray()
-        async for chunk in request.stream():
-            body.extend(chunk)
-            if len(body)>2*1024*1024:return JSONResponse({'detail':'요청은 2 MiB 이하로 보내주세요.'},status_code=413)
-        request._body=bytes(body)
-    def identify():
-        token=request.cookies.get('dm_session','')
-        with store.connect() as db:
-            exists=db.execute('SELECT 1 FROM sessions WHERE token=?',(token,)).fetchone()
-            if not exists:
-                token=secrets.token_urlsafe(32)
-                db.execute('INSERT INTO sessions VALUES(?,?)',(token,time.time()))
-        return token,bool(exists)
-    token,exists=await run_in_threadpool(identify)
-    request.state.owner=token
-    match=re.match(r'^/api/(?:plans/|chat/plan/)([^/]+)',request.url.path)
-    if match:
-        row=await run_in_threadpool(store.get_plan,match.group(1))
-        if not row or row['owner']!=token:
-            return JSONResponse({'detail':'일정을 찾을 수 없습니다. 공유 링크로 접속해 주세요.'},status_code=404,headers={'Cache-Control':'no-store'})
+    def finish(response):
+        response.headers['Server-Timing']=f'total;dur={(time.perf_counter()-started)*1000:.2f}'
+        return web_security.headers(response,request,request_id)
+    token=None;exists=True
     try:
-        response=await call_next(request)
+        if not web_security.allowed_host(request):
+            return finish(JSONResponse({'detail':'허용되지 않은 사이트 주소입니다.'},status_code=400))
+        if request.url.path in ('/healthz','/readyz') or request.url.path.startswith('/static/'):
+            return finish(await call_next(request))
+        if request.method in ('POST','PUT','PATCH','DELETE'):
+            origin=request.headers.get('origin')
+            expected=public_origin() or str(request.base_url).rstrip('/')
+            if (origin and origin.rstrip('/')!=expected) or request.headers.get('sec-fetch-site')=='cross-site':
+                return finish(JSONResponse({'detail':'다른 사이트에서 보낸 변경 요청은 허용하지 않습니다.'},status_code=403))
+            body=bytearray()
+            try:
+                async with asyncio.timeout(15):
+                    async for chunk in request.stream():
+                        body.extend(chunk)
+                        if len(body)>2*1024*1024:
+                            return finish(JSONResponse({'detail':'요청은 2 MiB 이하로 보내주세요.'},status_code=413))
+            except TimeoutError:
+                return finish(JSONResponse({'detail':'요청 전송 시간이 초과됐어요.'},status_code=408))
+            request._body=bytes(body)
+        if not await run_in_threadpool(web_security.api_budget,request):
+            return finish(JSONResponse({'detail':'요청이 많아요. 잠시 후 다시 시도해 주세요.'},status_code=429,headers={'Retry-After':'60'}))
+        def identify():
+            token=request.cookies.get('dm_session','')[:128]
+            with store.connect() as db:
+                exists=db.execute('SELECT 1 FROM sessions WHERE token=?',(token,)).fetchone()
+                if not exists:
+                    token=secrets.token_urlsafe(32)
+                    db.execute('INSERT INTO sessions VALUES(?,?)',(token,time.time()))
+            return token,bool(exists)
+        token,exists=await run_in_threadpool(identify)
+        request.state.owner=token
+        match=re.match(r'^/api/(?:plans/|chat/plan/)([^/]+)',request.url.path)
+        if match:
+            row=await run_in_threadpool(store.get_plan,match.group(1))
+            if not row or row['owner']!=token:
+                response=JSONResponse({'detail':'일정을 찾을 수 없습니다. 공유 링크로 접속해 주세요.'},status_code=404)
+            else:response=await call_next(request)
+        else:response=await call_next(request)
     except Exception:
         logging.getLogger(__name__).exception('request_failed id=%s method=%s path=%s',request_id,request.method,request.url.path)
-        response=JSONResponse({'detail':'요청 처리 중 오류가 발생했습니다. 입력이나 서버 상태를 확인하세요.'},status_code=500)
-    if not exists and request.url.path!='/api/me/data':response.set_cookie('dm_session',token,httponly=True,samesite='strict',secure=request.url.scheme=='https',max_age=2592000)
-    response.headers['X-Content-Type-Options']='nosniff'
-    response.headers['Referrer-Policy']='strict-origin-when-cross-origin'
-    response.headers['X-Frame-Options']='DENY'
-    if request.url.path.startswith('/api/') or request.url.path=='/shared':
-        response.headers['Cache-Control']='no-store'
-        response.headers['Referrer-Policy']='no-referrer'
-    response.headers['X-Request-ID']=request_id
-    logging.getLogger(__name__).info('request_complete id=%s method=%s path=%s status=%s duration_ms=%.1f',request_id,request.method,request.url.path,response.status_code,(time.perf_counter()-started)*1000)
-    response.headers['Server-Timing']=f'total;dur={(time.perf_counter()-started)*1000:.2f}'
-    return response
+        response=JSONResponse({'detail':'요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'},status_code=500)
+    if token and not exists and request.url.path!='/api/me/data':
+        response.set_cookie('dm_session',token,httponly=True,samesite='strict',secure=production() or request.url.scheme=='https',max_age=2592000)
+    return finish(response)
+
 
 def plan_row(id,owner=None):
     row=store.get_plan(id)
@@ -137,7 +150,7 @@ def delete_my_data(request:Request,response:Response):
     owner=request.state.owner
     with store.connect() as db:
         db.execute('BEGIN IMMEDIATE')
-        db.execute('INSERT OR IGNORE INTO revoked_sessions VALUES(?,?)',(owner,time.time()))
+        db.execute('INSERT INTO revoked_sessions VALUES(?,?) ON CONFLICT(token) DO NOTHING',(owner,time.time()))
         db.execute('DELETE FROM plan_shares WHERE owner=?',(owner,))
         db.execute('DELETE FROM request_budgets WHERE scope=?',('recommendations:'+owner,))
         # Remove related records before removing the user's plans and reviews.
@@ -422,7 +435,7 @@ class ReportInput(BaseModel):
 def report(id:str,data:ReportInput,request:Request):
     with store.connect() as db:
         if not db.execute('SELECT 1 FROM reviews WHERE id=?',(id,)).fetchone():raise HTTPException(404,'후기를 찾을 수 없습니다.')
-        db.execute('INSERT OR REPLACE INTO reports VALUES(?,?,?,?)',(id,request.state.owner,data.reason,time.time()))
+        db.execute('INSERT INTO reports VALUES(?,?,?,?) ON CONFLICT(review_id,author) DO UPDATE SET reason=excluded.reason,created=excluded.created',(id,request.state.owner,data.reason,time.time()))
     return {'reported':True,'notice':'신고 접수됨. 자동 삭제되지 않으며 관리자 검토가 필요합니다.'}
 
 def scope_ids(kind,id,mode):
@@ -440,6 +453,8 @@ def chat_history(kind:Literal['place','plan'],id:str,request:Request,mode:Litera
 
 @app.post('/api/chat/{kind}/{id}')
 def chat(kind:Literal['place','plan'],id:str,data:ChatInput,request:Request):
+    if not store.reserve_budget([('chat:'+request.state.owner,int(os.getenv('DATEMATE_USER_CHATS_PER_MINUTE','6')))],int(time.time()//60)):
+        raise HTTPException(429,'질문이 많아요. 잠시 후 다시 시도해 주세요.',headers={'Retry-After':'60'})
     ids=scope_ids(kind,id,data.mode);scope=f'{data.mode}:{kind}:{id}'
     from .plan_chat import answer_plan
     plan=plan_row(id)[1] if kind=='plan' else None

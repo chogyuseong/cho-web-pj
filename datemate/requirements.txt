@@ -10,3 +10,5 @@ langgraph==1.2.16
 chromadb==1.5.9
 pypdf==6.21.1
 pytest==9.1.1
+psycopg[binary]==3.3.6
+psycopg-pool==3.3.3

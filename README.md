@@ -43,7 +43,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 | --- | --- |
 | 웹 화면 | HTML, CSS, JavaScript, 반응형 UI |
 | 서버 | Python, FastAPI, Uvicorn |
-| 저장 | SQLite, 로컬 파일·캐시 |
+| 저장 | 로컬 SQLite / 운영 PostgreSQL(Cloud SQL), 공유 캐시·세션 |
 | 검색·질문 | ChromaDB, LangChain, 선택적 GMS LLM/임베딩 연결 |
 | 외부 정보 | 네이버 검색 API, Maps API, 공개 장소 자료 |
 | 지도 | 네이버 지도, Leaflet/OpenStreetMap 대체 지도 |
@@ -63,4 +63,6 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 - [장소 500곳 탐색 방식](datemate/docs/explore-500.md)
 - [Cloud Run 배포 안내](datemate/docs/cloud-run-deployment.md)
 
-`.env`, 가상환경, `runtime/`은 Git에 포함하지 않습니다. 현재 일정·후기·캐시는 로컬 저장소를 사용하며, 배포 시 영속 저장소와 비밀값 설정이 별도로 필요합니다.
+`.env`, 가상환경, `runtime/`은 Git에 포함하지 않습니다. 로컬은 SQLite를 사용하며, Cloud Run 운영은 `DATABASE_URL`로 PostgreSQL을 연결합니다. 일정·후기·세션·공유·검색 상태가 외부 DB에 보존됩니다. 컨테이너의 Chroma 장소·문서 색인은 시작 시 재생성합니다.
+
+운영에는 Cloud SQL, Secret Manager, 백그라운드 CPU 할당 설정이 필요합니다. [Cloud Run 운영 배포 안내](datemate/docs/cloud-run-deployment.md)에 명령과 재시작 검증 방법이 있습니다. `compose.test.yaml`은 운영 키 없이 두 인스턴스와 PostgreSQL을 검증하는 로컬 전용 구성입니다.

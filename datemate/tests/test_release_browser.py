@@ -1,4 +1,5 @@
 """End-to-end local UI check. Uses demo data and blocks external browser traffic."""
+import os
 import socket
 import threading
 import time
@@ -19,7 +20,7 @@ def test_input_result_share_and_mobile_flow(tmp_path):
         while not server.started and time.monotonic()<deadline:time.sleep(.05)
         assert server.started
         with playwright.sync_playwright() as pw:
-            browser=pw.chromium.launch(channel='msedge',headless=True)
+            browser=pw.chromium.launch(channel=os.getenv('DATEMATE_BROWSER_CHANNEL','msedge'),headless=True)
             context=browser.new_context(viewport={'width':1440,'height':1000},permissions=['clipboard-read','clipboard-write'])
             def offline(route):
                 path=urlsplit(route.request.url).path

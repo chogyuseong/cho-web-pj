@@ -6,7 +6,7 @@ from urllib.parse import urlsplit, unquote
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 import httpx
-from .telemetry import observed_http
+from .telemetry import observed_http, observed_stream
 from . import store
 from .image_search import plain, search_enabled
 from .catalog import places
@@ -38,7 +38,7 @@ def public_body(url):
     target='https://m.blog.naver.com'+parsed.path+('?' + parsed.query if parsed.query else '')
     try:
         with httpx.Client(timeout=5,follow_redirects=False) as client:
-            with client.stream('GET',target) as response:
+            with observed_stream(client,'GET',target) as response:
                 response.raise_for_status()
                 if response.status_code!=200:return ''
                 data=bytearray()

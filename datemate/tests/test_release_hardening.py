@@ -14,6 +14,11 @@ from types import SimpleNamespace
 from app.execution import bounded_recommendation
 from fastapi import HTTPException
 
+if store.postgres_enabled():
+    from psycopg import IntegrityError
+else:
+    from sqlite3 import IntegrityError
+
 
 def plan_for(client):
     client.get('/')
@@ -55,9 +60,9 @@ def test_delete_blocks_late_writers_and_clears_memory():
         plan_jobs._jobs['late-test']={'owner':owner,'status':'running','started':time.monotonic()}
         assert client.delete('/api/me/data').status_code==200
         assert 'late-test' not in plan_jobs._jobs
-        with pytest.raises(sqlite3.IntegrityError):store.save_plan(plan,owner)
-        with pytest.raises(sqlite3.IntegrityError):store.chat_save(owner,'x','private','answer')
-        with pytest.raises(sqlite3.IntegrityError):store.cache('late-draft',{'owner':owner,'private':'text'})
+        with pytest.raises(IntegrityError):store.save_plan(plan,owner)
+        with pytest.raises(IntegrityError):store.chat_save(owner,'x','private','answer')
+        with pytest.raises(IntegrityError):store.cache('late-draft',{'owner':owner,'private':'text'})
         assert store.get_plan(plan['id']) is None
 
 
@@ -68,6 +73,7 @@ def test_manual_fields_win_over_natural_language():
     assert (result.people,result.budget,result.count)==(4,80000,2)
 
 
+@pytest.mark.skipif(store.postgres_enabled(), reason='SQLite backup/restore')
 def test_backup_restore_roundtrip(tmp_path):
     with store.connect() as db:db.execute('INSERT OR REPLACE INTO sessions VALUES(?,?)',('restore-proof',42))
     backup=snapshot(tmp_path/'backup.sqlite')
@@ -183,10 +189,12 @@ def test_answer_cache_is_session_scoped_and_deleted(monkeypatch):
 def test_cloud_run_requires_explicit_ephemeral_demo(monkeypatch):
     from app import cloud_start
     monkeypatch.setenv('K_SERVICE','test-service')
+    monkeypatch.setenv('DATABASE_URL','')
     monkeypatch.delenv('DATEMATE_EPHEMERAL_DEMO',raising=False)
     with pytest.raises(RuntimeError):cloud_start.main()
 
 
+@pytest.mark.skipif(store.postgres_enabled(), reason='SQLite automatic backup')
 def test_automatic_backup_and_expired_cleanup(monkeypatch,tmp_path):
     from app.maintenance import maintain
     monkeypatch.setenv('DATEMATE_BACKUP_DIR',str(tmp_path/'backups'))

@@ -75,3 +75,20 @@ def test_menu_retry_and_cache_upgrade(monkeypatch):
     assert menus.restaurant_menu(place)['items'] and len(calls)==2
     menus.restaurant_menu(place,force=True)
     assert len(calls)==3
+
+
+def test_menu_keeps_images_when_prices_are_also_available():
+    state,_=json.JSONDecoder().raw_decode(page(),page().index(' = ')+3)
+    state['ROOT_QUERY']['detail']['menuImages']=[{'imageUrl':'https://ldb-phinf.pstatic.net/menu.jpg'}]
+    result=extract_menus('window.__APOLLO_STATE__ = '+json.dumps(state),dict(name='테스트식당',lat=37.56,lon=126.925))
+    assert result['items'][0]['amount']==12000
+    assert result['menu_images']==['https://ldb-phinf.pstatic.net/menu.jpg']
+
+
+def test_listing_prices_keep_same_business_menu_image():
+    state,_=json.JSONDecoder().raw_decode(page(),page().index(' = ')+3)
+    state['ROOT_QUERY']['detail']['placeMenus']=None
+    state['ROOT_QUERY']['detail']['menuImages']=[{'imageUrl':'https://ldb-phinf.pstatic.net/menu.jpg'}]
+    state['ROOT_QUERY']['businesses']=[{'__typename':'PlaceListBusinessesItem','id':'1','name':'테스트식당','x':'126.925','y':'37.56','menus':['칼국수 12,000']}]
+    result=extract_menus('window.__APOLLO_STATE__ = '+json.dumps(state),dict(name='테스트식당',lat=37.56,lon=126.925))
+    assert result['items'] and result['menu_images']

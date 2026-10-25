@@ -27,6 +27,7 @@ function loadNaverMaps(key,force=false){
 function renderPlanMapCard(){
   let rail=document.getElementById('plan-map-rail');
   if(!rail){rail=node('aside',undefined,'plan-map-rail');rail.id='plan-map-rail';rail.setAttribute('aria-label','데이트 코스 지도');document.getElementById('planner-section').append(rail);}
+  rail.querySelectorAll('.plan-map').forEach(map=>map.disposeMap?.());
   rail.replaceChildren();rail.hidden=!selected;
   document.getElementById('planner-section').classList.toggle('has-plan-map',Boolean(selected));
   if(!selected)return;
@@ -50,7 +51,9 @@ function renderPlanMapCard(){
 }
 
 function drawPlanMap(plan){
+  let activeMap=null,resizeObserver=null,disposed=false;
   const wrap=node('section',undefined,'plan-map');
+  wrap.disposeMap=()=>{disposed=true;resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
   canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
   const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
@@ -60,6 +63,7 @@ function drawPlanMap(plan){
   requestAnimationFrame(()=>render());
   async function render(force=false){
     if(!wrap.isConnected)return;
+    resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
     wrap.replaceChildren(canvas,caption);
@@ -70,7 +74,7 @@ function drawPlanMap(plan){
       canvas.replaceChildren();
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])];
       const coord=p=>new naver.maps.LatLng(p.lat,p.lon);
-      const map=new naver.maps.Map(canvas,{center:coord(points[0]),zoom:14,zoomControl:true,scrollWheel:false});
+      const map=new naver.maps.Map(canvas,{center:coord(points[0]),zoom:14,zoomControl:true,scrollWheel:false});activeMap=map;
       const bounds=new naver.maps.LatLngBounds();
       points.forEach((point,i)=>{
         const label=i===0?'출발':i>plan.places.length?'귀가':String(i);
@@ -129,6 +133,8 @@ function drawPlanMap(plan){
     }}
   }
   function fallback(message){
+    if(disposed||!wrap.isConnected)return;
+    resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;
     const notice=node('div',undefined,'map-reconnect');
     notice.setAttribute('role','status');
     notice.append(node('strong','네이버 지도 연결이 잠시 끊겼어요'),node('p',message,'hint'),
@@ -136,6 +142,27 @@ function drawPlanMap(plan){
     const schematic=node('details',undefined,'map-schematic');
     schematic.append(node('summary','방문 순서 개략도 보기 (실제 지도 아님)'),drawMap(plan));
     wrap.replaceChildren(notice,schematic);
+    if(window.L){
+      const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
+      const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
+      wrap.prepend(mapCanvas,mapCaption);
+      const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
+      if(!points.length)return;
+      try{
+        const map=L.map(mapCanvas,{scrollWheelZoom:false}).setView([points[0].lat,points[0].lon],14);activeMap=map;
+        const layer=L.tileLayer(statusData?.map_tile_url||'https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:statusData?.map_tile_attribution||'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
+        layer.on('tileerror',()=>mapCaption.textContent='지도 배경을 불러오지 못했어요. 장소 링크와 아래 개략도를 이용해 주세요.');
+        const coordinates=points.map(point=>[point.lat,point.lon]);
+        points.forEach((point,i)=>{
+          const title=node('span',(i===0?'출발':i>plan.places.length?'귀가':String(i))+' · '+point.name);
+          L.circleMarker([point.lat,point.lon],{radius:9,color:i===0?'#c65b32':'#294d3d',fillOpacity:.85}).addTo(map).bindTooltip(title,{permanent:true,direction:'top'});
+        });
+        L.polyline(coordinates,{color:'#a16b45',weight:3,dashArray:'6 8'}).addTo(map);
+        const fit=()=>{if(!disposed&&mapCanvas.isConnected){map.invalidateSize();map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35],maxZoom:16});}};
+        requestAnimationFrame(fit);
+        if(window.ResizeObserver){resizeObserver=new ResizeObserver(fit);resizeObserver.observe(mapCanvas);}
+      }catch{mapCanvas.replaceWith(node('p','공개 지도를 표시하지 못했어요. 아래 개략도와 장소 링크를 이용해 주세요.','hint'));}
+    }
   }
   return wrap;
 }

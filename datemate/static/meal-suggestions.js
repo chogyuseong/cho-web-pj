@@ -16,6 +16,9 @@ function showMenuImages(food,data){
   const gallery=node('div',undefined,'menu-image-gallery');for(const url of data.menu_images||[])gallery.append(menuImage(url,food.name));root.append(gallery);
   if(data.source_url)root.append(link('네이버 메뉴 원문 ↗',data.source_url));
 }
+function hasPlaceMenu(place){
+  return Boolean(place.meal||place.cuisine||/카페|미식|식당|음식점|베이커리/.test(place.category||'')||(place.tags||[]).some(tag=>['cafe','restaurant','bakery'].includes(tag)));
+}
 function restaurantMenuPanel(food){
   const box=node('div',undefined,'restaurant-menu');box.setAttribute('aria-label',food.name+' 메뉴 가격');box.append(node('p','메뉴 가격을 확인하고 있어요…','hint'));
   async function load(refresh=false){
@@ -24,12 +27,14 @@ function restaurantMenuPanel(food){
       if(refresh)restaurantMenuRequests.delete(food.id);
       if(!restaurantMenuRequests.has(food.id))restaurantMenuRequests.set(food.id,api('/places/'+encodeURIComponent(food.id)+'/menu?mode=real'+(refresh?'&refresh=true':'')).catch(e=>{restaurantMenuRequests.delete(food.id);throw e;}));
       const data=await restaurantMenuRequests.get(food.id);box.replaceChildren(node('strong',data.status==='image_only'?'매장 메뉴판·가격':'대표 메뉴·가격','menu-heading'));
-      if(data.items.length){
+      if(data.items?.length){
         for(const item of data.items.slice(0,4)){const row=node('div',undefined,'menu-price-row');row.append(node('span',item.name),node('b',item.display_price));box.append(row);}
-        box.append(link('네이버 메뉴 원문 ↗',data.source_url),node('small','조회 '+data.checked_at.slice(0,10)+(data.menu_updated_at?' · 메뉴 자료 '+data.menu_updated_at:''),'menu-checked'),node('small',data.note,'menu-checked'));
-      }else if(data.menu_images?.length){
+        if(data.source_url)box.append(link('네이버 메뉴 원문 ↗',data.source_url));
+        box.append(node('small','조회 '+(data.checked_at?.slice(0,10)||'시점 미확인')+(data.menu_updated_at?' · 메뉴 자료 '+data.menu_updated_at:''),'menu-checked'),node('small',data.note||'현재 가격은 원문과 확인해 주세요.','menu-checked'));
+      }
+      if(data.menu_images?.length){
         box.append(node('p',data.message,'hint'));const preview=node('div',undefined,'menu-image-preview');for(const url of data.menu_images.slice(0,2))preview.append(menuImage(url,food.name));box.append(preview,button('메뉴판 크게 보기 · '+data.menu_images.length+'장',()=>showMenuImages(food,data),'secondary'),node('small',data.note,'menu-checked'));
-      }else box.append(node('p',data.message||'공개 메뉴 자료가 없습니다.','hint'),link('지도에서 메뉴 확인 ↗','https://map.naver.com/p/search/'+encodeURIComponent(placeSearchQuery(food))));
+      }else if(!data.items?.length)box.append(node('p',data.message||'공개 메뉴 자료가 없습니다.','hint'),link('지도에서 메뉴 확인 ↗',data.source_url||'https://map.naver.com/p/search/'+encodeURIComponent(placeSearchQuery(food))));
       box.append(button('메뉴 새로 조회',()=>load(true),'secondary menu-refresh'));
     }catch(error){box.replaceChildren(node('p','메뉴 조회를 완료하지 못했어요. '+error.message,'hint'),button('메뉴 다시 확인',()=>load(true)));}
   }

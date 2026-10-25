@@ -18,6 +18,10 @@ async function loadSafePhoto(img,photos,onSelected,onFailed){
   img.hidden=true;img.referrerPolicy='no-referrer';const attempted=new Set(),deadline=Date.now()+20000;
   function select(photo,url,backup){
     if(!active())return;onSelected?.(photo,url);img.alt=photo.title;
+    // A hidden lazy image can never enter the viewport to trigger its load.
+    // The outer panel already delays loading; once a candidate is verified,
+    // load it eagerly so onload can reveal the image.
+    img.loading='eager';
     img.onload=()=>{if(active())img.hidden=false;};
     img.onerror=()=>{if(!active())return;if(backup)select(photo,backup);else next();};img.src=url;
     if(img.complete&&img.naturalWidth>0)img.hidden=false;

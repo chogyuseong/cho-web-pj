@@ -101,7 +101,7 @@ def extract_menus(html,place):
                 if m:
                     row=price_row(m[1],m[2])
                     if row:rows.append(row)
-            if rows:return dict(items=rows,menu_images=[],place_id=str(base['id']),matched_name=plain(base['name']),
+            if rows:return dict(items=rows,menu_images=image_result['menu_images'] if image_result and image_result['place_id']==str(base['id']) else [],place_id=str(base['id']),matched_name=plain(base['name']),
                 address=plain(base.get('roadAddress') or base.get('address','')),menu_updated_at=None,menu_format='business_list')
     return image_result
 
@@ -119,7 +119,7 @@ def restaurant_menu(place,force=False):
     empty=dict(status='not_found',items=[],menu_images=[],checked_at=datetime.now(timezone.utc).isoformat(),source_kind='naver_public_menu')
     if place.get('demo'):return dict(empty,status='demo',message='가상 장소는 실제 메뉴를 조회하지 않아요.')
     # New parser must not reuse old false-negative entries.
-    key='restaurant-menu-v3:'+place['id']
+    key='restaurant-menu-v4:'+place['id']
     if not force:
         cached=store.cached(key)
         if cached:return cached
@@ -132,13 +132,17 @@ def restaurant_menu(place,force=False):
             for query in queries:
                 html=fetch_page(client,query);parsed=extract_menus(html,place)
                 if not parsed:continue
+                if result.get('place_id')==parsed['place_id'] and result.get('menu_images') and not parsed.get('menu_images'):
+                    parsed['menu_images']=result['menu_images']
                 has_prices=bool(parsed['items'])
                 result.update(parsed,query_used=query,status='available' if has_prices else 'image_only',message='' if has_prices else '이 매장은 메뉴판 이미지로 가격을 제공하고 있어요. 아래 메뉴판을 눌러 확대해 주세요.',
                     source_url='https://map.naver.com/p/entry/place/'+parsed['place_id']+'?placePath=%2Fmenu',
                     source_label='네이버 공개 메뉴' if has_prices else '네이버 공개 메뉴판 이미지',reason=None,
                     note='조회 시 공개된 메뉴 정보예요. 현재 매장 가격·수량·세트 구성은 원문과 확인해 주세요. 배달 메뉴 가격은 매장 가격으로 사용하지 않아요.')
                 if has_prices:break
-    except (httpx.HTTPError,ValueError,TypeError):
-        if not result.get('menu_images') and not result['items']:result.update(status='unavailable',reason='provider_unavailable',message='공개 메뉴 조회가 일시적으로 제한됐어요. 다시 조회하거나 지도 메뉴를 확인해 주세요.')
+    except (httpx.HTTPError,ValueError,TypeError) as error:
+        if not result.get('menu_images') and not result['items']:
+            provider_status=getattr(getattr(error,'response',None),'status_code',None)
+            result.update(status='unavailable',reason='provider_unavailable',provider_status=provider_status,message='공개 메뉴 조회가 일시적으로 제한됐어요. 다시 조회하거나 지도 메뉴를 확인해 주세요.')
     store.cache(key,result,3600 if result['status'] in ('available','image_only') else 60)
     return result

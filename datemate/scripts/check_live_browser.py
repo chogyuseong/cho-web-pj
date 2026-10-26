@@ -50,7 +50,7 @@ def main():
                     page.locator('.location-search').get_by_role('button',name='주소 검색',exact=True).click()
                     page.locator('.location-result').first.wait_for(timeout=30000)
                     page.locator('.location-result').first.click()
-                    page.screenshot(path=str(output/'location.png'),full_page=True)
+                    page.screenshot(path=str(output/'location.png'))
                     page.locator('#dialog').get_by_role('button',name='이 지역에서 데이트하기',exact=True).click()
                     # Public fixture coordinates; no personal address or existing plan.
                     page.evaluate('''() => {
@@ -70,15 +70,24 @@ def main():
                     for pid in ids:
                         media=page.request.get(BASE+'/api/places/'+pid+'/media?mode=real',timeout=45000).json()
                         menu=page.request.get(BASE+'/api/places/'+pid+'/menu?mode=real',timeout=45000).json()
-                        assets.append({'photos':len(media.get('photos',[])),'menu_items':len(menu.get('items',[])),'menu_status':menu.get('status')})
+                        assets.append({'photos':len(media.get('photos',[])),'menu_items':len(menu.get('items',[])),
+                                       'menu_status':menu.get('status'),'menu_reason':menu.get('reason'),
+                                       'menu_provider_status':menu.get('provider_status')})
+                    page.wait_for_function('''[...document.querySelectorAll('.timeline-card .place-photo img')]
+                        .some(img=>img.complete&&img.naturalWidth>0)''',timeout=45000)
                     page.wait_for_timeout(2500)
                     page.screenshot(path=str(output/'desktop-results.png'),full_page=True)
-                    for width in (390,768,1440):
+                    page.locator('.results-area .section-heading').scroll_into_view_if_needed()
+                    page.screenshot(path=str(output/'desktop-viewport.png'))
+                    for width in (320,390,768,1440):
                         page.set_viewport_size({'width':width,'height':900})
                         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width
-                        if width==390:page.screenshot(path=str(output/'mobile-results.png'),full_page=True)
+                        if width==390:
+                            page.screenshot(path=str(output/'mobile-results.png'),full_page=True)
+                            page.locator('.results-area .section-heading').scroll_into_view_if_needed()
+                            page.screenshot(path=str(output/'mobile-viewport.png'))
                     assert not errors,errors
-                    result={'real_course_count':count,'assets':assets,'browser_errors':errors,'responsive_widths':[390,768,1440],
+                    result={'real_course_count':count,'assets':assets,'browser_errors':errors,'responsive_widths':[320,390,768,1440],
                             'map_dialog_opened':True,'personal_storage_used':False}
                     (output/'report.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
                     print(json.dumps(result,ensure_ascii=True,indent=2))

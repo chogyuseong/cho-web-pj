@@ -70,9 +70,9 @@ def test_duplicate_start_reuses_job_and_other_conditions_blocked(client,monkeypa
     finally:plan_jobs._jobs.pop(first,None)
 
 def test_failed_job_is_persisted_without_exception_details(client,monkeypatch):
-    from app import main,plan_jobs
+    from app import recommendation_service as service,plan_jobs
     def fail(*args):raise ValueError('private-error-detail')
-    monkeypatch.setattr(main,'create',fail)
+    monkeypatch.setattr(service,'generate',fail)
     response=client.post('/api/plan-jobs',json={'visit_date':'2026-10-24'})
     key=response.json()['id']
     for _ in range(100):

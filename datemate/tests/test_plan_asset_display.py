@@ -1,5 +1,6 @@
 """Asset UI regression tests: hidden lazy photos, menus, and map SDK failure."""
 import base64
+import os
 import socket
 import threading
 import time
@@ -22,7 +23,7 @@ def test_real_plan_assets_and_map_fallback():
         while not server.started and time.monotonic()<deadline:time.sleep(.05)
         assert server.started
         with playwright.sync_playwright() as pw:
-            browser=pw.chromium.launch(channel='msedge',headless=True)
+            browser=pw.chromium.launch(channel=os.getenv('DATEMATE_BROWSER_CHANNEL','msedge'),headless=True)
             page=browser.new_page(viewport={'width':1440,'height':1000});errors=[]
             page.on('pageerror',lambda error:errors.append(str(error)))
             def route(request):

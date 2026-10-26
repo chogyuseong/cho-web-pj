@@ -31,5 +31,5 @@ async function showShareCard(plan){
   const actions=node('div',undefined,'actions');actions.append(button('PNG 이미지 저장',()=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);},'primary'));
   const file=new File([blob],filename,{type:'image/png'});
   if(navigator.canShare?.({files:[file]}))actions.append(button('공유하기',async()=>{try{await navigator.share({files:[file],title:'우리 데이트 코스'});}catch(e){if(e.name!=='AbortError')throw e;}}));
-  actions.append(button('코스 요약 복사',async()=>{await navigator.clipboard.writeText(`${plan.decision_summary?.title||'우리 코스'}\n${plan.places.map((p,i)=>`${i+1}. ${p.name}`).join('\n')}\n예상 ${range(plan.total)} · 추정/미확인 비용 포함 여부 확인 필요\n${location.origin}/?plan=${plan.id}`);toast('코스 요약을 복사했어요.');}));root.append(actions);
+  actions.append(button('코스 요약 복사',async()=>{const share=await api('/plans/'+plan.id+'/shares',{});await navigator.clipboard.writeText(`${plan.decision_summary?.title||'우리 코스'}\n${plan.places.map((p,i)=>`${i+1}. ${p.name}`).join('\n')}\n예상 ${range(plan.total)} · 추정/미확인 비용 포함 여부 확인 필요\n${location.origin}${share.url}`);toast('코스 요약과 24시간 공유 링크를 복사했어요.');}));root.append(actions);
 }

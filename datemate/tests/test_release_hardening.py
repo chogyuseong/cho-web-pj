@@ -85,14 +85,14 @@ def test_backup_restore_roundtrip(tmp_path):
 
 
 def test_running_job_cannot_restore_deleted_data(monkeypatch):
-    import app.main as main
+    import app.recommendation_service as service
     entered,release=Event(),Event()
     with TestClient(app) as client:
         plan=plan_for(client);owner=client.cookies['dm_session'];key='deletion-race'
-        def slow_create(data,request):
+        def slow_create(data,owner):
             entered.set();assert release.wait(5)
-            return {'plans':[store.save_plan(plan,request.state.owner)]}
-        monkeypatch.setattr(main,'create',slow_create)
+            return {'plans':[store.save_plan(plan,owner)]}
+        monkeypatch.setattr(service,'generate',slow_create)
         plan_jobs._jobs[key]={'owner':owner,'status':'running','started':time.monotonic()}
         worker=Thread(target=plan_jobs._run,args=(key,None,owner))
         worker.start()
@@ -122,15 +122,15 @@ def test_shared_admission_control_releases_slot_after_failure():
 
 
 def test_cancelled_job_cannot_publish_result(monkeypatch):
-    import app.main as main
+    import app.recommendation_service as service
     entered,release=Event(),Event()
     with TestClient(app) as client:
         plan=plan_for(client);owner=client.cookies['dm_session'];key='cancel-race'
-        def slow_create(data,request):
+        def slow_create(data,owner):
             entered.set();assert release.wait(5)
             plan_jobs.check_current()
             return {'plans':[plan]}
-        monkeypatch.setattr(main,'create',slow_create)
+        monkeypatch.setattr(service,'generate',slow_create)
         plan_jobs._jobs[key]={'owner':owner,'status':'running','started':time.monotonic()}
         worker=Thread(target=plan_jobs._run,args=(key,None,owner));worker.start()
         try:

@@ -1,5 +1,21 @@
 # 작업 재개 메모
 
+## 2026-10-26 최신 전체 기능·코드 점검
+
+사용자의 상세 점검 요청에 따라 전체 회귀·실제 외부 연동·Linux/Windows 브라우저·두 서버 검사를 수행했다. 교체 모달의 늦은 응답, 카드 요약의 비공유 링크, 후기 삭제 시 신고 잔류, 개인정보 삭제 시 chat 한도 잔류를 재현 후 수정했고, Edge 고정 테스트를 Chromium 설정과 호환되게 수정했다. 최종 Windows SQLite 270 passed/1 skipped, PostgreSQL 267 passed/4 skipped, 실제 Linux Chromium+PostgreSQL 267 passed/4 skipped. 실제 추천 3개·사진 5/2/5·주소/지도·320/390/768/1440px 통과. 실제 탐색 500곳, 검색 565회·중복517·실패0. 네이버 공식 API5종 HTTP200. 메뉴는 3곳 모두 HTTP403, GMS키 없음. 기본600회/시간 한도와 초기565검색의 운영 여유 부족을 보고서에 명시했다. 증거와 범위: `datemate/docs/full-functional-code-audit-2026-10-26.md`. 사용자.env/DB/기존 미커밋 변경 보존, 배포·commit/push 없음.
+
+## 2026-10-26 구조 개선
+
+추천 서비스를 HTTP/작업 실행기에서 분리하고, 공통 실행 제한을 유지했다. SQLite/PostgreSQL 순차·트랜잭션 마이그레이션과 운영 인덱스를 추가했다. 추천 완료/실패/조건 완화 계측 및 최근 30일 보고서를 개선했다. 장소 모달·후기 JS를 분리하고 동기 버튼 예외를 안내로 처리했다. 포맷 도구와 CI 검사를 추가했다. 전체 테스트 SQLite 265 passed/1 skipped, PostgreSQL 262 passed/4 skipped; 두 Linux 서버 통합 및 실제 Edge 추천·지도·사진·모바일 통과. 메뉴는 unavailable. 전역 쓰기 잠금·작업 큐 분리·CSS 통합은 남아 있음. 자세한 내용: `datemate/docs/architecture-improvements-2026-10-26.md`. 사용자 환경/DB와 기존 미커밋 변경은 보존했다.
+
+## 2026-10-26 Cloud Run 운영 전환 완료
+
+사용자는 Cloud Run 배포를 선택하고 전체 운영 코드 수정·기능 검증을 요청했다. PostgreSQL(Cloud SQL) 저장, 공유 검색 진행/취소/하트비트, 만료 작업 재시도 시 이전 작업 차단, 탐색 수집 중복 방지, 요청·외부 호출 제한, HTTPS 보호, 장소·문서 초기 색인을 구현했다. Docker Linux 잠금 파일과 CI 구성, 운영 배포 문서도 추가했다.
+
+최종 SQLite 260 passed/1 skipped, PostgreSQL 257 passed/4 skipped. 두 Linux 컨테이너 재시작 후 일정·후기·대화 유지와 교차 인스턴스 삭제·공유 철회를 확인했다. 실제 Edge 주소·지도·추천·사진 및 390/768/1440px 검증 통과. 최신 공개 메뉴 검색 원문은 HTTP 403으로 조회 불가이며 실패 안내를 제공한다. GMS 실제 모델·의미 임베딩과 실제 Cloud 배포는 미검증. 사용자 `.env`와 기존 운영 DB는 변경하지 않았다. 상세 결과: `datemate/docs/cloud-operation-check-2026-10-26.md`.
+
+이전 발표용 배포 메모보다 `datemate/docs/cloud-run-deployment.md`의 **Cloud SQL + Secret Manager + --no-cpu-throttling** 운영 구성을 우선한다. 아직 Cloud 프로젝트 ID는 전달되지 않았으며 외부 리소스 생성·실제 배포·Git push는 수행하지 않았다.
+
 ## 2026-10-25 전체 기능 점검
 
 최종 242개 테스트 통과(47.43초), pip check 정상. Edge에서 고정·교체·되돌리기·질문·후기·피드백·데이터 삭제·주소 선택·뒤로/앞으로 이동 검증. 장소 상세를 빠르게 열면 늦은 이전 응답이 덮는 문제를 재현하고 세대 번호로 차단했다. 실제 네이버 지역/이미지/블로그/주소/자동차 경로 API HTTP 200. 두 로컬 주소 지도 인증 성공, 실행 중 서버와 현재 키 일치 확인. 최근 메뉴 18/10개 및 사진 각5개 조회. 실제 추천도 임시 DB에서 3코스 생성·시간표·비용·소유자 조회 확인. GMS 미설정이므로 실제 생성/의미 임베딩은 미검증. 자세한 증거와 재실행: `datemate/docs/functional-audit-2026-10-25.md`.

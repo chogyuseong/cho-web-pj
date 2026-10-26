@@ -62,6 +62,9 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 - [결과창 주변 레저 선택](datemate/docs/leisure-selection.md)
 - [장소 500곳 탐색 방식](datemate/docs/explore-500.md)
 - [Cloud Run 배포 안내](datemate/docs/cloud-run-deployment.md)
+- [운영 전환·PostgreSQL·브라우저 검증 결과](datemate/docs/cloud-operation-check-2026-10-26.md)
+- [추천 서비스·DB 마이그레이션·프런트엔드 구조 개선](datemate/docs/architecture-improvements-2026-10-26.md)
+- [최신 전체 기능·코드 점검 및 오류 수정 결과](datemate/docs/full-functional-code-audit-2026-10-26.md)
 
 `.env`, 가상환경, `runtime/`은 Git에 포함하지 않습니다. 로컬은 SQLite를 사용하며, Cloud Run 운영은 `DATABASE_URL`로 PostgreSQL을 연결합니다. 일정·후기·세션·공유·검색 상태가 외부 DB에 보존됩니다. 컨테이너의 Chroma 장소·문서 색인은 시작 시 재생성합니다.
 

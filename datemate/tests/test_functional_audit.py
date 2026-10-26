@@ -129,3 +129,86 @@ def test_place_dialog_ignores_late_old_response(audit_page):
         }finally{api=original;}
     }''',places)
     assert result==places[1]['name']
+
+
+def test_alternatives_dialog_ignores_late_old_response(audit_page):
+    page,base,errors=audit_page
+    result=page.evaluate('''async () => {
+        const original=api,previous=selected;let complete;
+        selected={id:'old-plan',places:[{id:'old-place'}]};locks.clear();
+        api=()=>new Promise(resolve=>complete=resolve);
+        try {
+            const pending=showAlternatives(0);
+            openDialog('새로 연 장소 상세');
+            complete({alternatives:[{places:[{id:'late-place',name:'늦게 도착한 교체 후보'}],total:[1,2],delta:{minutes:1,cost:[1,2]}}]});
+            await pending;
+            return document.querySelector('#dialog-content').textContent;
+        } finally {api=original;selected=previous;}
+    }''')
+    assert result=='새로 연 장소 상세'
+
+
+def test_share_card_export_and_summary_guest_link(audit_page,tmp_path):
+    import struct
+    page,base,errors=audit_page
+    generate(page)
+    page.evaluate('window.print=()=>{window.auditPrintCalled=true;}')
+    page.get_by_role('button',name='인쇄 / PDF',exact=True).click()
+    page.wait_for_function('window.auditPrintCalled===true')
+    page.evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async text=>{window.auditCopiedText=text;}}})")
+    page.get_by_role('button',name='코스 카드 저장',exact=True).click()
+    with page.expect_download() as download:
+        page.get_by_role('button',name='PNG 이미지 저장',exact=True).click()
+    path=tmp_path/'course.png';download.value.save_as(path)
+    raw=path.read_bytes()
+    assert raw[:8]==b'\x89PNG\r\n\x1a\n'
+    assert struct.unpack('>II',raw[16:24])==(1080,1350)
+    page.get_by_role('button',name='코스 요약 복사',exact=True).click()
+    page.wait_for_function('!!window.auditCopiedText')
+    copied=page.evaluate('window.auditCopiedText')
+    assert '/shared#' in copied
+    token=copied.split('/shared#')[1].split()[0]
+    guest=page.context.browser.new_context()
+    try:
+        response=guest.request.get(base+'/api/shared-plan',headers={'Authorization':'Bearer '+token})
+        assert response.ok
+        assert response.json()['places']
+        pid=page.evaluate('selected.id')
+        assert page.request.delete(base+'/api/plans/'+pid+'/shares').ok
+        assert guest.request.get(base+'/api/shared-plan',headers={'Authorization':'Bearer '+token}).status==404
+    finally:guest.close()
+
+
+def test_explore_paging_filter_empty_retry_and_mobile(audit_page,monkeypatch):
+    from app import explore,store
+    page,base,errors=audit_page
+    prototype=page.request.get(base+'/api/places?mode=demo').json()['places'][0]
+    rows=[dict(prototype,id='audit-explore-'+str(i),name='점검 장소 '+str(i),
+               address='서울특별시 '+('중구' if i%2 else '종로구')+' 점검로 '+str(i)) for i in range(500)]
+    snapshot=dict(status='ready',places=rows,message='검증용 500곳',ranking_method='통제된 테스트 자료')
+    monkeypatch.setattr(explore,'ensure',lambda **kwargs:snapshot)
+    store.cache('explore-place:'+rows[0]['id'],rows[0])
+    failed_once=False
+    def outage(route):
+        nonlocal failed_once
+        if not failed_once:
+            failed_once=True
+            return route.fulfill(status=503,json={'detail':'점검용 연결 실패'})
+        return route.continue_()
+    page.route('**/api/explore?*',outage)
+    page.get_by_role('button',name='서울 장소 둘러보기',exact=True).click()
+    page.get_by_role('button',name='다시 불러오기',exact=True).click()
+    page.wait_for_function('document.querySelectorAll("#catalog .place-card").length===24')
+    page.get_by_role('button',name='장소 더 보기 · 24 / 500',exact=True).click()
+    page.wait_for_function('document.querySelectorAll("#catalog .place-card").length===48')
+    page.locator('#catalog').get_by_role('button',name='장소 자세히 보기',exact=True).first.click()
+    page.wait_for_function('document.querySelector("#dialog-content h2").textContent==="점검 장소 0"')
+    page.locator('#close-dialog').click()
+    page.locator('#search').fill('중구');page.locator('#search-button').click()
+    page.wait_for_function('document.querySelector("#search-info").textContent.includes("검색 결과 250곳")')
+    assert all('중구' in text for text in page.locator('#catalog .place-card > .hint').all_text_contents())
+    page.locator('#search').fill('존재하지않는점검장소');page.locator('#search-button').click()
+    page.wait_for_function('document.querySelector("#search-info").textContent.includes("검색 결과 0곳")')
+    for width in (320,390,768,1440):
+        page.set_viewport_size({'width':width,'height':900})
+        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width

@@ -43,6 +43,16 @@ def test_input_result_share_and_mobile_flow(tmp_path):
             assert not page.locator('.conditions').is_visible()
             assert page.evaluate('selected.conditions.budget')==80000
             assert page.evaluate("node('p','근거 원문').textContent")=='근거 원문'
+            # Synchronous handler errors must use the same toast path as rejected promises.
+            assert page.evaluate('''async () => {
+                const original=toast;let message;
+                toast=value=>{message=value;};
+                try {
+                    button('failure',()=>{throw new Error('handled button error');}).click();
+                    await new Promise(resolve=>setTimeout(resolve,0));
+                    return message==='handled button error';
+                } finally {toast=original;}
+            }''')
             # Timeout is per fetch, not just a timer around the polling loop.
             assert page.evaluate('''async () => {
                 const original=window.fetch;

@@ -103,6 +103,25 @@ def test_dead_worker_becomes_retryable_failure():
     assert store.cached('plan-job:'+key)['status']=='failed'
 
 
+def test_retry_fences_expired_worker_before_acceptance(monkeypatch):
+    owner='expired-retry-owner';old_key='expired-retry-job'
+    store.cache('plan-job:'+old_key,dict(id=old_key,owner=owner,status='running',
+                heartbeat=time.time()-100,deadline=time.time()+100))
+    monkeypatch.setattr(plan_jobs._pool,'submit',lambda *args:None)
+    from app.models import Conditions
+    request=SimpleNamespace(state=SimpleNamespace(owner=owner))
+    new_key=plan_jobs.start(Conditions(visit_date='2026-10-31'),request)['id']
+    try:
+        assert new_key!=old_key
+        assert store.cached('plan-job:'+old_key)['status']=='failed'
+        plan_jobs._jobs[old_key]=dict(owner=owner,status='complete',result={'plans':[]})
+        plan_jobs._persist(old_key)
+        assert store.cached('plan-job:'+old_key)['status']=='failed'
+    finally:
+        plan_jobs._jobs.pop(new_key,None)
+        plan_jobs._jobs.pop(old_key,None)
+
+
 def test_request_budget_atomic_under_concurrency():
     scope='concurrent-budget-'+str(time.time_ns())
     def attempt(_):return store.reserve_budget([(scope,3)],123)

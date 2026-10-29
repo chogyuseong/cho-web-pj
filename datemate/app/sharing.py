@@ -67,13 +67,15 @@ def revoke_shares(plan_id: str, request: Request):
 
 
 @router.get('/api/shared-plan')
-def read_shared(authorization: str | None = Header(default=None)):
+def read_shared(request: Request,authorization: str | None = Header(default=None)):
     row = resolve(authorization)
-    return dict(public_plan(json.loads(row['payload'])), expires=row['expires'])
+    from .experience import vote_status
+    status=vote_status(json.loads(row['payload']),request.state.owner)
+    return dict(public_plan(json.loads(row['payload'])),expires=row['expires'],my_choices=status['mine'])
 
 
 class SharedVote(BaseModel):
-    choices: dict[str, Literal['yes','no','neutral']] = Field(max_length=5)
+    choices: dict[str, Literal['yes','no','neutral','must']] = Field(max_length=5)
 
 
 @router.post('/api/shared-plan/vote')

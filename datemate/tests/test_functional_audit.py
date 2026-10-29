@@ -45,6 +45,35 @@ def generate(page):
     page.wait_for_function('selected?.id&&!document.querySelector("#submit-plan").disabled',timeout=45000)
 
 
+def test_budget_reparse_and_evidence_component_on_mobile(audit_page):
+    page,base,errors=audit_page
+    page.evaluate("form.elements.request.value='1인당 3만원';form.elements.people.value='2';FormState.edited.clear()")
+    page.evaluate('applyRequest()')
+    assert page.locator('[name=budget]').input_value()=='60000'
+    page.evaluate("form.elements.people.value='4';FormState.edited.add('people')")
+    page.evaluate('applyRequest()')
+    assert page.locator('[name=budget]').input_value()=='120000'
+    page.evaluate("form.elements.budget.value='90000';FormState.edited.add('budget');form.elements.people.value='3'")
+    page.evaluate('applyRequest()')
+    assert page.locator('[name=budget]').input_value()=='90000'
+    page.evaluate("form.elements.request.value='비 오면 실내, 맑으면 야외 산책'")
+    page.evaluate('applyRequest()')
+    assert '자동으로 실내·야외를 확정하지 않았' in page.locator('#parse-notice').text_content()
+    page.evaluate("form.elements.request.value='';FormState.edited.clear()")
+    generate(page)
+    summary=page.locator('.execution-summary')
+    assert summary.count()==1
+    summary.locator('.route-assumptions summary').click()
+    assert '통계적 예측 범위가 아니' in summary.inner_text()
+    for width in (1440,768,390,320):
+        page.set_viewport_size({'width':width,'height':900})
+        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+        assert summary.locator('.execution-grid').evaluate('(el)=>[...el.children].every(c=>c.scrollWidth<=c.clientWidth+1)')
+    from app.config import RUNTIME
+    page.screenshot(path=str(RUNTIME/'evidence-mobile.png'),full_page=True)
+    summary.screenshot(path=str(RUNTIME/'evidence-summary-mobile.png'))
+
+
 def test_lock_replace_undo_chat_review_feedback_and_delete(audit_page):
     page,base,errors=audit_page
     generate(page)

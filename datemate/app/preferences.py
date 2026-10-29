@@ -9,7 +9,10 @@ def hard_blocks(plan):
 def filter_required(plans):return [p for p in plans if not hard_blocks(p)]
 
 def operating_source_current(place):
+    evidence=place.get('operations_evidence',{})
+    if 'hours' in evidence and 'closed_days' in evidence:return bool(evidence['hours']['current'] and evidence['closed_days']['current'])
     if not place.get('operations_source') or place.get('hours') is None or place.get('closed_days') is None:return False
+    if 'operations_verified_fields' in place and not {'hours','closed_days'}.issubset(place['operations_verified_fields']):return False
     try:age=(datetime.now(timezone.utc).date()-datetime.fromisoformat(place['operations_checked_at']).date()).days
     except (KeyError,ValueError,TypeError):return False
     return 0<=age<=90
@@ -22,6 +25,9 @@ def fit_score(plan,c):
     if c.trust_mode=='discovery':value+=sum(p['id'].startswith('discovered:') for p in plan['places'])
     if c.trust_mode=='balanced':value+=.25*sum(operating_source_current(p) for p in plan['places'])
     if c.meeting_type=='first':value-=sum(r['minutes'] for r in plan['legs'])*.03
+    if c.use_feedback:
+        from .feedback_preferences import bonus
+        value+=bonus(plan)
     return value
 
 def selection_notes(c):

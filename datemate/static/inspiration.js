@@ -3,6 +3,7 @@
   if(form.elements.mode.value!=='real'){form.elements.mode.value='real';form.elements.mode.dispatchEvent(new Event('change',{bubbles:true}));}
   locationState.origin={...idea.origin};form.elements.origin_name.value=idea.origin.name;
   form.elements.request.value=idea.request;parsedRequest='';setDateClassification('콘셉트별','');
+  if(idea.defaults){locks.clear();for(const [key,value] of Object.entries(idea.defaults)){const input=form.elements[key];if(input){if(input.type==='checkbox')input.checked=value;else input.value=value;FormState.edited.delete(key);}}}
   setTab(false);showPlannerPage(false);
   document.querySelector('#parse-notice').textContent=idea.area+' 지역과 활동을 입력했어요. 날짜·시간·예산을 확인하고 추천받아 주세요.';
   toast('장소 예시는 확정 코스가 아니에요. 입력 조건에 맞춰 새로 계산합니다.');

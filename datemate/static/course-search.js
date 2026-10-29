@@ -13,7 +13,7 @@ function courseSearchPanel(evidence,plan){
   if(plan?.route_verification)box.append(node('p',plan.route_verification,'hint'));
   box.append(node('p',count?`이번 코스 ${count}곳이 상위 글에서 확인됐어요. 나머지는 입력 조건에 맞춰 보완했어요.`:evidence.message||'검색 근거를 확보하지 못해 기존 조건 기반 코스를 표시해요.','hint'));
   if(evidence.selection_note)box.append(node('p',evidence.selection_note,'hint'));
-  for(const post of evidence.posts){const item=node('div',undefined,'course-source');item.append(sourceLinks(`${post.rank}. ${post.title}`,post.url,post.title),node('small',post.content_scope+' · '+(post.posted_at||'작성일 미제공')));if(post.selection_reason)item.append(node('p',post.selection_reason,'hint'));if(post.summary)item.append(node('p',post.summary));if(post.mentioned_places?.length)item.append(node('p','확인한 장소: '+post.mentioned_places.join(' · '),'hint'));box.append(item);}
+  for(const post of evidence.posts){const item=node('div',undefined,'course-source');item.append(sourceLinks(`${post.rank}. ${post.title}`,post.url,post.title),node('small',post.content_scope+' · '+(post.posted_at||'작성일 미제공')));if(post.selection_reason)item.append(node('p',post.selection_reason,'hint'));if(post.evidence_note)item.append(node('p',post.evidence_note,'hint'));if(post.summary)item.append(node('p',post.summary));if(post.mentioned_places?.length)item.append(node('p','확인한 장소: '+post.mentioned_places.join(' · '),'hint'));box.append(item);}
   box.append(node('p',evidence.rating_note,'hint'));return box;
 }
 (()=>{const label=node('label','네이버에서 찾을 데이트 코스');const input=node('input');input.name='course_query';input.maxLength=120;input.placeholder='예: 연남동 데이트 코스 (비우면 선택한 지역 기준)';label.append(input,node('small','지역만 선택해도 후기를 검색해요. 선정한 후기 최대 5개에서 확인한 장소를 우선 추천해요.','hint'));form.prepend(label);})();

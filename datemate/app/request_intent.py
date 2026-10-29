@@ -1,11 +1,15 @@
 """Shared, transparent interpretation of both search text and free-form requests."""
 import re
+from decimal import Decimal
 from functools import lru_cache
 
 INTENTS={
  'cafe':('카페·미식',['카페','커피','디저트','카페투어','카페 투어','베이커리','티하우스']),
  'meal':('카페·미식',['맛집','식사','밥집','밥먹','밥 먹','음식점','레스토랑']),
  'culture':('문화·예술',['전시','미술관','갤러리']),
+ 'cinema':('문화·예술',['영화관','영화','시네마']),
+ 'performance':('문화·예술',['공연','연극','뮤지컬','콘서트']),
+ 'jazz':('문화·예술',['재즈바','재즈 바','재즈클럽','재즈 클럽']),
  'museum':('문화·예술',['박물관','역사']),
  'book':('문화·예술',['서점','책방','도서관','북카페']),
  'workshop':('체험·제작',['공방','도자기','원데이','향수','반지 만들','만들기']),
@@ -26,7 +30,7 @@ INTENTS={
 @lru_cache(maxsize=512)
 def interpret(text):
     # Separate short clauses so '카페 말고 전시' does not negate the exhibition too.
-    active=[];excluded=[];residual=text
+    active=[];excluded=[];warnings=[]
     for key,(_,words) in INTENTS.items():
         yes=False;no=False
         for word in sorted(words,key=len,reverse=True):
@@ -42,19 +46,21 @@ def interpret(text):
     elif re.search(r'야외|실외',text):patch['setting']='outdoor'
     if re.search(r'실내\s*(?:말고|제외|싫)',text):patch['setting']='outdoor'
     if re.search(r'야외\s*(?:말고|제외|싫)',text):patch['setting']='indoor'
-    for pattern,key in [(r'([1-9]|1\d|20)\s*명','people'),(r'([2-5])\s*(?:곳|군데)','count')]:
+    if re.search(r'비\s*(?:가\s*)?(?:오면|온다면)|맑으면|날씨에\s*따라',text):
+        patch.pop('setting',None)
+        warnings.append('날씨에 따른 조건부 요청이 있어요. 자동으로 실내·야외를 확정하지 않았으니 방문일에 맞춰 선택해 주세요.')
+    for pattern,key in [(r'(?<!\d)([1-9]|1\d|20)\s*명','people'),(r'(?<!\d)([2-5])\s*(?:곳|군데)','count')]:
         m=re.search(pattern,text)
         if m:patch[key]=int(m[1])
     if 'people' not in patch:
         for word,value in [('둘이',2),('두 명',2),('셋이',3),('세 명',3),('넷이',4),('네 명',4)]:
             if word in text:patch['people']=value;break
-    m=re.search(r'(\d+)\s*만\s*(?:(\d+)\s*천\s*)?원',text)
-    if m:
-        amount=int(m[1])*10000+int(m[2] or 0)*1000
-        if 0<=amount<=10000000:patch['budget']=amount
-    else:
-        m=re.search(r'(?<!\d)(\d[\d,]*)\s*원',text)
-        if m and int(m[1].replace(',',''))<=10000000:patch['budget']=int(m[1].replace(',',''))
+    amounts=[]
+    for m in re.finditer(r'(?<![\d.])(\d[\d,]*(?:\.\d+)?)\s*(?:(만)\s*(?:(\d+)\s*천\s*)?|(천)\s*)?원',text):
+        value=Decimal(m[1].replace(',',''))*(10000 if m[2] else 1000 if m[4] else 1)+int(m[3] or 0)*1000
+        if value==int(value):amounts.append(int(value))
+    if len(amounts)==1 and 0<=amounts[0]<=10000000:patch['budget']=amounts[0]
+    elif amounts:warnings.append('금액이 여러 개이거나 지원 예산 범위를 벗어나 자동 적용하지 않았어요. 전체 예산을 직접 확인해 주세요.')
     if re.search(r'대중교통|지하철|버스',text):patch['transport']='transit'
     elif re.search(r'자차|자가용|자동차',text):patch['transport']='car'
     elif re.search(r'걸어서|도보',text):patch['transport']='walk'
@@ -67,7 +73,22 @@ def interpret(text):
     if exclusive:
         patch['theme_mode']='focus'
         if active[0]!='meal':patch['include_meal']=False
-    return dict(intents=active,excluded=excluded,exclusive=exclusive,patch=patch)
+    per_person=bool(re.search(r'(?<!\d)(?:1\s*인(?:당)?|한\s*(?:사람|명)당|인당|각자|각각)\s*(?:예산(?:은|이)?\s*)?(?:[은는]\s*)?\d|원\s*/\s*인',text))
+    unit_budget=patch.pop('budget',None) if per_person else None
+    if unit_budget is not None:
+        warnings.append(f'1인당 {unit_budget:,}원은 선택한 인원수로 곱해 전체 예산에 반영해요.')
+    return dict(intents=active,excluded=excluded,exclusive=exclusive,patch=patch,
+                unit_budget=unit_budget,warnings=warnings)
+
+
+def resolved_patch(parsed,people=2,explicit_people=False):
+    """Resolve per-person amounts with the actual form, never a cached total."""
+    patch=dict(parsed['patch'])
+    if explicit_people:patch.pop('people',None)
+    if parsed.get('unit_budget') is not None:
+        total=parsed['unit_budget']*patch.get('people',people)
+        if total<=10000000:patch['budget']=total
+    return patch
 
 
 def intent(c):return interpret(c.course_query+' '+c.request)
@@ -75,7 +96,7 @@ def intent(c):return interpret(c.course_query+' '+c.request)
 
 def normalize(c):
     parsed=intent(c)
-    patch=dict(parsed['patch'])
+    patch=resolved_patch(parsed,c.people,'people' in c.explicit_fields)
     # Explicit free text takes precedence over the generic quick-start concept.
     if parsed['intents']:
         patch.update(date_category='',date_subcategory='')

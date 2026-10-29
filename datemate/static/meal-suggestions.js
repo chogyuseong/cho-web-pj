@@ -14,7 +14,7 @@ function menuImage(imageUrl,name){
 function showMenuImages(food,data){
   const root=openDialog(food.name+' 메뉴판');root.append(node('p','매장이 공개한 메뉴판 이미지예요. 숫자 자동 추출 없이 원문 그대로 표시합니다.','hint'));
   const gallery=node('div',undefined,'menu-image-gallery');for(const url of data.menu_images||[])gallery.append(menuImage(url,food.name));root.append(gallery);
-  if(data.source_url)root.append(link('네이버 메뉴 원문 ↗',data.source_url));
+  if(data.source_url)root.append(link((data.source_label||'메뉴')+' 원문 ↗',data.source_url));
 }
 function hasPlaceMenu(place){
   return Boolean(place.meal||place.cuisine||/카페|미식|식당|음식점|베이커리/.test(place.category||'')||(place.tags||[]).some(tag=>['cafe','restaurant','bakery'].includes(tag)));
@@ -29,7 +29,7 @@ function restaurantMenuPanel(food){
       const data=await restaurantMenuRequests.get(food.id);box.replaceChildren(node('strong',data.status==='image_only'?'매장 메뉴판·가격':'대표 메뉴·가격','menu-heading'));
       if(data.items?.length){
         for(const item of data.items.slice(0,4)){const row=node('div',undefined,'menu-price-row');row.append(node('span',item.name),node('b',item.display_price));box.append(row);}
-        if(data.source_url)box.append(link('네이버 메뉴 원문 ↗',data.source_url));
+        if(data.source_url)box.append(link((data.source_label||'메뉴')+' 원문 ↗',data.source_url));
         box.append(node('small','조회 '+(data.checked_at?.slice(0,10)||'시점 미확인')+(data.menu_updated_at?' · 메뉴 자료 '+data.menu_updated_at:''),'menu-checked'),node('small',data.note||'현재 가격은 원문과 확인해 주세요.','menu-checked'));
       }
       if(data.menu_images?.length){

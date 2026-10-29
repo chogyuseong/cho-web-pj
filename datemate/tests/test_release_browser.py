@@ -76,7 +76,8 @@ def test_input_result_share_and_mobile_flow(tmp_path):
             shared.goto(base+share,wait_until='networkidle')
             assert shared.locator('#shared-form').is_visible()
             shared.get_by_role('button',name='내 의견 전달하기').click()
-            playwright.expect(shared.locator('#shared-status')).to_have_text('의견을 전달했어요.')
+            playwright.expect(shared.locator('#shared-status')).to_contain_text('의견을 전달했어요.')
+            playwright.expect(shared.locator('#shared-status')).to_contain_text('두 사람의 취향으로 다시 계산')
             with page.expect_response(lambda r:r.url.endswith('/shares') and r.request.method=='DELETE'):
                 page.get_by_role('button',name='공유 취소',exact=True).click()
             shared.reload(wait_until='networkidle')

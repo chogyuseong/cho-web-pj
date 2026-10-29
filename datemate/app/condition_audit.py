@@ -12,7 +12,7 @@ def audit_plan(plan,c=None):
     def test(key,label,ok,yes,no):add(key,label,'met' if ok else 'unmet',yes if ok else no)
     from .request_intent import intent,matches,INTENTS
     parsed=intent(c)
-    plan['request_interpretation']=dict(intents=[INTENTS[k][1][0] for k in parsed['intents']],excluded=[INTENTS[k][1][0] for k in parsed['excluded']],applied=parsed['patch'])
+    plan['request_interpretation']=dict(intents=[INTENTS[k][1][0] for k in parsed['intents']],excluded=[INTENTS[k][1][0] for k in parsed['excluded']],applied=parsed['patch'],warnings=parsed.get('warnings',[]))
     for key in parsed['intents']:
         matched=[p['name'] for p in venues if matches(p,key)]
         if parsed['exclusive']:

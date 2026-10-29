@@ -106,7 +106,7 @@ def place_report(pid:str,data:PlaceReport,request:Request):
     return dict(saved=True,message='제보를 접수했어요. 사실 확정 없이 확인 대기 상태로 표시하고 추천 우선순위를 낮춥니다.')
 
 class Votes(BaseModel):
-    choices:dict[str,Literal['yes','no','neutral']]=Field(max_length=5)
+    choices:dict[str,Literal['yes','no','neutral','must']]=Field(max_length=5)
 
 @router.get('/plans/{pid}/agreement')
 def agreement(pid:str,request:Request):
@@ -127,7 +127,9 @@ def replan_agreement(pid:str,request:Request,data:dict|None=None):
 
 @router.get('/my/feedback-summary')
 def feedback_summary(request:Request):
-    with store.connect() as db:rows=db.execute('SELECT kind,payload FROM experience_events WHERE owner=?',(request.state.owner,)).fetchall()
+    with store.connect() as db:rows=db.execute('SELECT kind,payload,owner,plan_id,created FROM experience_events WHERE owner=?',(request.state.owner,)).fetchall()
+    from .planning_outcomes import study_summary
+    study=study_summary([dict(r) for r in rows])
     visits=[json.loads(r['payload']) for r in rows if r['kind']=='visit']
     durations=[json.loads(r['payload'])['elapsed_ms'] for r in rows if r['kind']=='recommendation' and 'elapsed_ms' in json.loads(r['payload'])]
-    return dict(recommendations=sum(r['kind']=='recommendation' for r in rows),selections=sum(r['kind']=='selection' for r in rows),self_reported_visits=sum(r.get('visited')=='yes' for r in visits),reuse_yes=sum(r.get('reuse')=='yes' for r in visits),average_elapsed_ms=round(sum(durations)/len(durations)) if durations else None,api_cost_status='not_measured',verification='현재 브라우저 기준 · 자기 신고이며 실제 이용 인증이 아닙니다.')
+    return dict(recommendations=sum(r['kind']=='recommendation' for r in rows),selections=sum(r['kind']=='selection' for r in rows),self_reported_visits=sum(r.get('visited')=='yes' for r in visits),reuse_yes=sum(r.get('reuse')=='yes' for r in visits),average_elapsed_ms=round(sum(durations)/len(durations)) if durations else None,planning_study=study,api_cost_status='not_measured',verification='현재 브라우저 기준 · 자기 신고이며 실제 이용 인증이 아닙니다.')

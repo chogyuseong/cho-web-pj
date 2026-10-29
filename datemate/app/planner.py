@@ -59,7 +59,8 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         if route['minutes']>c.max_leg and not soft:return None,'구간 이동 시간 초과'
         walking+=route['walking'] or 0
         if c.max_walk is not None and route['walking'] is None:return None,'전체 도보 시간 확인 불가'
-        now+=route['minutes']; opening,closing=p['hours']; now=max(now,opening)
+        route['buffer_minutes']=c.transition_buffer_minutes
+        now+=route['minutes']+c.transition_buffer_minutes; opening,closing=p['hours']; now=max(now,opening)
         for start,finish in p.get('breaks') or []:
             if now<finish and now+p['stay']>start:now=finish
         if p['last_entry'] is not None and now>p['last_entry']:return None,'마지막 입장 시간 초과'
@@ -71,6 +72,8 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         costs.append(dict(category=p['category'],name=p['name'],unit=price,quantity=quantity,
             formula=f'단가 × {quantity}',amount=amount,status=p.get('price_status','unknown' if price is None else 'confirmed'),
             source=p.get('operations_source',p['source']),checked_at=p.get('operations_checked_at',p['checked_at'])))
+        price_evidence=p.get('operations_evidence',{}).get('price',{})
+        if price_evidence.get('current'):costs[-1].update(source=price_evidence['source'],checked_at=price_evidence['checked_at'],source_kind=price_evidence.get('source_kind','official'))
         if p.get('menu_pricing'):costs[-1].update(p['menu_pricing'])
         if price is None:unknown.append(p['name']+' 가격')
         if c.transport=='car':unknown.append(p['name']+' 주차비')
@@ -80,7 +83,8 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         if route['minutes'] is None:return None,'귀가 경로 계산 불가'
         if route['minutes']>c.max_leg and not soft:return None,'귀가 구간 이동 시간 초과'
         if c.max_walk is not None and route['walking'] is None:return None,'귀가 도보 시간 확인 불가'
-        now+=route['minutes'];walking+=route['walking'] or 0;legs.append(route)
+        route['buffer_minutes']=c.transition_buffer_minutes
+        now+=route['minutes']+c.transition_buffer_minutes;walking+=route['walking'] or 0;legs.append(route)
     for r in legs:
         amount=[r['cost'],r['cost']] if r['cost'] is not None else None
         costs.append(dict(category='교통',name=r['origin']+' → '+r['destination'],unit=amount,quantity=1,formula='구간 총액 (인원 반영)',
@@ -210,4 +214,10 @@ def replacements(plan,index,locked):
             alternatives.append(updated)
     if plan.get('best_effort'):alternatives.sort(key=lambda p:p['penalty'])
     from .condition_audit import audit_plan
+    from .preferences import operating_source_current
+    from .data_quality import place_coverage
+    alternatives.sort(key=lambda option:(option.get('penalty',0),not operating_source_current(option['places'][index]),distance(plan['places'][index],option['places'][index])))
+    for option in alternatives:
+        place=option['places'][index]
+        option['replacement_evidence']=dict(distance_m=round(distance(plan['places'][index],place)*1000),coverage=place_coverage(place),scope='기존 장소에서 직선거리 · 실제 이동 거리와 다름')
     return [audit_plan(p,c) for p in alternatives[:8]]

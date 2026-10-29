@@ -1,0 +1,18 @@
+/* This component owns its layout; legacy theme files must not override it. */
+.execution-summary { background:#f6f8fc; border:1px solid #e1e5ed; border-radius:14px; padding:20px; margin:18px 0; min-width:0; }
+.execution-summary h3 { font-size:18px; margin:0; }
+.execution-summary .execution-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:14px 0; }
+.execution-summary .execution-grid>div { background:white; padding:13px; border:1px solid #e1e5ed; border-radius:12px; min-width:0; }
+.execution-summary .execution-grid strong { color:#40567c; font-size:15px; }
+.execution-summary .execution-grid p,.execution-summary .hint { font-size:14px; line-height:1.75; color:#4c5b70; overflow-wrap:anywhere; }
+.execution-summary .verification-place { display:flex; flex-wrap:wrap; gap:8px; align-items:center; border-top:1px solid #e1e5ed; padding:12px 0; font-size:14px; }
+.execution-summary .verification-place>strong,.execution-summary .verification-place>p { flex-basis:100%; margin:0; }
+.execution-summary .verification-place>a { overflow-wrap:anywhere; min-width:0; font-size:14px; }
+.execution-summary .verification-place>button { margin-left:auto; font-size:14px; }
+.execution-summary summary { cursor:pointer; padding:10px 0; font-weight:600; }
+.execution-summary .route-assumptions p { overflow-wrap:anywhere; }
+@media(max-width:480px) {
+  .execution-summary { padding:15px; }
+  .execution-summary .execution-grid { grid-template-columns:1fr; }
+  .execution-summary .verification-place>button { margin-left:0; }
+}

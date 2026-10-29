@@ -15,28 +15,34 @@ def feedback_exclusions(owner):
     return list(dict.fromkeys(p['place_id'] for row in rows if (p:=json.loads(row[0])).get('reason') in ('visited','taste')))[:100]
 
 def verification_summary(plan):
+    from .data_quality import place_coverage,plan_coverage
     with store.connect() as db:pending={r[0] for r in db.execute('SELECT DISTINCT place_id FROM place_reports WHERE resolved=0')}
     rows=[]
     for p in plan['places']:
         source=operating_source_current(p)
         label='제보 확인 필요' if p['id'] in pending else '최근 운영 자료 있음' if source else '주소 연결 · 운영 미확인' if p.get('discovery_verification') else '운영 정보 추가 확인'
-        rows.append(dict(id=p['id'],name=p['name'],label=label,pending=p['id'] in pending,source=p.get('operations_source'),checked_at=p.get('operations_checked_at'),current_operating_source=source))
-    return dict(places=rows,notes=selection_notes(Conditions.model_validate(plan['conditions'])))
+        rows.append(dict(id=p['id'],name=p['name'],label=label,pending=p['id'] in pending,source=p.get('operations_source'),checked_at=p.get('operations_checked_at'),current_operating_source=source,coverage=place_coverage(p),field_sources=p.get('operations_evidence',{})))
+    return dict(places=rows,coverage=plan_coverage(plan),notes=selection_notes(Conditions.model_validate(plan['conditions'])))
 
 def make_draft(plan,original,owner,kind,summary):
+    if original.get('recommendation_group_id'):plan['recommendation_group_id']=original['recommendation_group_id']
     c=Conditions.model_validate(plan['conditions'])
-    if c.mode=='real' and c.transport=='car' and not all(r['status']=='api' for r in plan['legs']):
+    from .route_providers import configured
+    if c.mode=='real' and (c.transport=='car' or configured(c.transport)) and not all(r['status']=='api' for r in plan['legs']):
         from .planner import evaluate
         from .pricing import price_plans
         recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True)
         if recalculated:
             plan.update(recalculated);plan=price_plans([plan])[0]
-            plan['route_verification']='네이버 자동차 길찾기로 변경 동선을 재조회했어요.'
-        else:plan['route_verification']='자동차 실제 경로 확인 실패 · 추정 동선이며 실제 이동은 길찾기로 확인해 주세요.'
+            plan['route_verification']='연결된 경로 공급자로 변경 동선을 재조회했어요. 조회 시점 기준입니다.'
+        else:plan['route_verification']='실제 경로 확인 실패 · 추정 동선이며 실제 이동은 길찾기로 확인해 주세요.'
+    from .plan_changes import cost_delta
     token=uuid.uuid4().hex;blocking=hard_blocks(plan)
     plan['verification']=verification_summary(plan)
+    from .recommendation_summary import enrich
+    enrich(plan)
     draft=dict(token=token,plan=plan,can_apply=not blocking,blocking=blocking,summary=summary,kind=kind,
-               delta=dict(minutes=plan['minutes']-original['minutes'],cost=[plan['total'][i]-original['total'][i] for i in (0,1)]))
+               delta=dict(minutes=plan['minutes']-original['minutes'],cost=cost_delta(original['total'],plan['total'])))
     draft['lock_version']=original.get('lock_version',0)
     if kind=='agreement':draft['vote_snapshot']=vote_status(original,owner)['places']
     store.cache('plan-draft:'+token,dict(owner=owner,parent=original['id'],draft=draft),600)
@@ -109,7 +115,7 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     if options:
         if not 0<=menu_index<len(options):raise ValueError('선택한 메뉴가 바뀌었어요. 메뉴를 다시 확인해 주세요.')
         selected_menu=options[menu_index];food.update(price=[selected_menu['amount']]*2,price_status='estimated')
-        food['menu_pricing']=dict(price_kind='naver_menu',price_basis=selected_menu['name']+' 1개/인 가정 · 네이버 공개 메뉴 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
+        food['menu_pricing']=dict(price_kind='naver_menu',price_basis=selected_menu['name']+' 1개/인 가정 · '+menu.get('source_label','공개 메뉴')+' 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
     chosen.insert(target,food)
     mapping={i+(i>=target):pid for i,pid in mapping.items()}
     c=c.model_copy(update={'count':len(chosen),'locked':mapping,'include_meal':True})
@@ -120,7 +126,7 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     if error:raise ValueError(error)
     if selected_menu:
         row=plan['costs'][target]
-        row.update(price_kind='naver_menu',price_basis=selected_menu['name']+' 1개/인 가정 · 네이버 공개 메뉴 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
+        row.update(price_kind='naver_menu',price_basis=selected_menu['name']+' 1개/인 가정 · '+menu.get('source_label','공개 메뉴')+' 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
     if original.get('course_search'):plan['course_search']=original['course_search']
     plan=price_plans([plan])[0];plan=audit_plan(plan,c)
     plan['undo_locks']=undo_locks
@@ -134,11 +140,12 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
 def vote_status(plan,viewer):
     with store.connect() as db:rows=db.execute('SELECT owner,payload FROM partner_votes WHERE plan_id=?',(plan['id'],)).fetchall()
     mine=next((json.loads(r['payload']) for r in rows if r['owner']==viewer),{})
-    counts={p['id']:dict(yes=0,no=0,neutral=0) for p in plan['places']}
+    counts={p['id']:dict(yes=0,no=0,neutral=0,must=0) for p in plan['places']}
     for row in rows:
         for pid,value in json.loads(row['payload']).items():
-            if pid in counts:counts[pid][value]+=1
-    return dict(participants=len(rows),mine=mine,places=counts,verification='브라우저별 의견 · 실제 신원·방문 인증 아님')
+            if pid in counts and value in counts[pid]:counts[pid][value]+=1
+    conflicts=[p['name'] for p in plan['places'] if counts[p['id']]['must'] and counts[p['id']]['no']]
+    return dict(participants=len(rows),mine=mine,places=counts,conflicts=conflicts,verification='브라우저별 의견 · 실제 신원·방문 인증 아님')
 
 def save_votes(plan,viewer,plan_owner,choices,share_token=None):
     ids={p['id'] for p in plan['places']}
@@ -159,6 +166,7 @@ def agreement_draft(plan,owner,ui_locked=None):
     from .preferences import filter_required
     status=vote_status(plan,owner)
     if status['participants']<2:raise ValueError('두 브라우저에서 의견을 저장한 뒤 다시 계산할 수 있어요.')
+    if status['conflicts']:raise ValueError('꼭 가고 싶은 곳과 빼고 싶은 곳이 겹쳐요: '+', '.join(status['conflicts'])+'. 두 사람의 의견을 조정해 주세요.')
     c=Conditions.model_validate(plan['conditions']);locked=dict(c.locked)
     for i in ui_locked or []:
         if not 0<=i<len(plan['places']):raise ValueError('고정 장소 번호를 확인해 주세요.')
@@ -167,7 +175,8 @@ def agreement_draft(plan,owner,ui_locked=None):
     disliked={pid for pid,counts in status['places'].items() if counts['no']}
     if disliked.intersection(locked.values()):raise ValueError('고정한 장소에 반대 의견이 있어요. 고정을 해제하거나 두 사람의 의견을 조정해 주세요.')
     for i,p in enumerate(plan['places']):
-        if status['places'][p['id']]['yes']==2:locked[i]=p['id']
+        votes=status['places'][p['id']]
+        if votes['yes']+votes['must']==2 or votes['must'] and not votes['no']:locked[i]=p['id']
     c=c.model_copy(update={'locked':locked,'excluded_place_ids':list(set(c.excluded_place_ids)|disliked)})
     result=recommend(c,plan.get('course_search'))
     candidates=filter_required(price_plans(result['plans']))
@@ -175,4 +184,7 @@ def agreement_draft(plan,owner,ui_locked=None):
     chosen=candidates[0]
     chosen['undo_locks']=undo_locks
     if plan.get('course_search'):chosen['course_search']=plan['course_search']
-    return make_draft(chosen,plan,owner,'agreement','두 사람 모두 좋아하는 장소는 고정하고, 반대 의견이 있는 장소는 제외해 재계산했어요.')
+    preserved=[p['name'] for i,p in enumerate(plan['places']) if i in locked]
+    removed=[p['name'] for p in plan['places'] if p['id'] in disliked]
+    summary=('유지: '+', '.join(preserved)+' · ' if preserved else '')+('제외: '+', '.join(removed)+' · ' if removed else '')+'두 사람의 의견과 필수 조건으로 시간·동선·비용을 다시 계산했어요.'
+    return make_draft(chosen,plan,owner,'agreement',summary)

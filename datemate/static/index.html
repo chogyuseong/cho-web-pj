@@ -10,6 +10,9 @@
 <link rel="stylesheet" href="/static/calm.css">
 <link rel="stylesheet" href="/static/planner-layout.css">
 <link rel="stylesheet" href="/static/editorial.css">
+<link rel="stylesheet" href="/static/execution-summary.css">
+<link rel="stylesheet" href="/static/planning-outcomes.css">
+<link rel="stylesheet" href="/static/readability.css">
 <script src="/static/vendor/leaflet/leaflet.js" defer></script>
 <script src="/static/location-picker.js" defer></script>
 <script src="/static/maps.js" defer></script>
@@ -20,8 +23,11 @@
 <script src="/static/meal-suggestions.js" defer></script>
 <script src="/static/place-photos.js" defer></script>
 <script src="/static/price-controls.js" defer></script>
+<script src="/static/execution-summary.js" defer></script>
+<script src="/static/planning-outcomes.js" defer></script>
 <script src="/static/experience.js" defer></script>
 <script src="/static/plan-results.js" defer></script>
+<script src="/static/plan-actions.js" defer></script>
 <script src="/static/plan-progress.js" defer></script>
 <script src="/static/plan-evidence.js" defer></script>
 <script src="/static/leisure.js" defer></script>
@@ -42,10 +48,11 @@
 <script src="/static/simple-form.js" defer></script>
 </head>
 <body>
+<a class="skip-to-content" href="#main-content">본문으로 바로가기</a>
 <header><a class="brand" href="/"><span class="brand-icon">♡</span><span class="brand-name">데이트메이트<small>취향을 담은 서울 데이트 설계</small></span><span class="ai-label">AI Planner</span></a><nav><button id="nav-plan" class="nav active">코스 만들기</button><button id="nav-explore" class="nav">서울 장소 둘러보기</button><a href="#curation">테마별 추천</a></nav><a class="primary nav-cta" href="#planner-section">우리 코스 설계하기 →</a><span id="mode-badge" class="mode-badge">SEOUL PLANNER</span></header>
-<main>
+<main id="main-content" tabindex="-1">
 <section class="hero romance-hero">
-<div class="hero-copy"><p class="hero-pill">SEOUL, TOGETHER · 둘이서 발견하는 서울</p><h1>우리, 이번에는<br><em>어디서 만날까요?</em></h1><p class="hero-description">카페 한 잔부터 골목 끝 산책까지.<br>우리의 취향과 예산에 맞춰, 서울의 장소들을 이어드려요.</p><div class="hero-actions"><a class="primary" href="#planner-section">취향에 맞는 코스 만들기 ↗</a><a class="secondary" href="#inspiration">장소 아이디어 살펴보기</a></div><figure class="hero-photo"><img src="/static/images/seoul-evening.jpg" alt="해 질 무렵 서울의 골목 풍경" width="1400" height="933"><figcaption><span>오늘의 배경은, 서울.</span><small>서두르지 않고 발견하는 둘만의 하루</small></figcaption></figure><div class="route-note" aria-label="서비스 이용 순서"><span class="route-note-label">OUR DAY, OUR WAY</span><strong>작은 취향이<br>하루의 코스가 되도록.</strong><div class="route-drawing" aria-hidden="true"><svg viewBox="0 0 280 64"><path d="M18 40C60 40 52 10 100 20S165 65 204 30S250 20 263 15" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 6"/><circle cx="18" cy="40" r="7" fill="currentColor"/><circle cx="136" cy="34" r="7" fill="currentColor"/><circle cx="263" cy="15" r="7" fill="currentColor"/></svg><span>취향 선택</span><span>코스 비교</span><span>함께 출발</span></div></div></div>
+<div class="hero-copy"><p class="hero-pill">SEOUL, TOGETHER · 둘이서 발견하는 서울</p><h1>우리, 이번에는<br><em>어디서 만날까요?</em></h1><p class="hero-description">서울 반나절 데이트, 취향과 예산에 맞춰.<br>이동 동선과 방문 전 확인할 정보까지 함께 비교해 보세요.</p><div class="hero-actions"><a class="primary" href="#planner-section">취향에 맞는 코스 만들기 ↗</a><a class="secondary" href="#inspiration">장소 아이디어 살펴보기</a></div><figure class="hero-photo"><img src="/static/images/seoul-evening.jpg" alt="해 질 무렵 서울의 골목 풍경" width="1400" height="933"><figcaption><span>오늘의 배경은, 서울.</span><small>서두르지 않고 발견하는 둘만의 하루</small></figcaption></figure><div class="route-note" aria-label="서비스 이용 순서"><span class="route-note-label">OUR DAY, OUR WAY</span><strong>작은 취향이<br>하루의 코스가 되도록.</strong><div class="route-drawing" aria-hidden="true"><svg viewBox="0 0 280 64"><path d="M18 40C60 40 52 10 100 20S165 65 204 30S250 20 263 15" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5 6"/><circle cx="18" cy="40" r="7" fill="currentColor"/><circle cx="136" cy="34" r="7" fill="currentColor"/><circle cx="263" cy="15" r="7" fill="currentColor"/></svg><span>취향 선택</span><span>코스 비교</span><span>함께 출발</span></div></div></div>
 <div class="quick-builder"><p class="eyebrow">QUICK DATE BUILDER <span>✧</span></p><h2>나만의 맞춤 코스 설계</h2><p class="quick-label">1. 어디에서 데이트할까요? <small>데이트할 지역 선택</small></p><div class="quick-regions"><button type="button" data-region="성수" aria-pressed="true">🏙 성수</button><button type="button" data-region="연남" aria-pressed="false">🌿 연남</button><button type="button" data-region="종로" aria-pressed="false">🏛 종로</button><button type="button" data-region="강남" aria-pressed="false">✨ 강남</button></div><p class="quick-label">2. 오늘 원하는 데이트 무드는?</p><div class="quick-moods"><button type="button" data-quick-mood="편안한 데이트" aria-pressed="true">💖 로맨틱한<small>산책 · 풍경 · 여유</small></button><button type="button" data-quick-mood="활동적인 데이트" aria-pressed="false">🎨 활동적인<small>체험 · 새로운 즐거움</small></button><button type="button" data-quick-mood="지적인 데이트" aria-pressed="false">📚 문화 산책<small>전시 · 박물관 · 이야기</small></button><button type="button" data-quick-mood="사교적인" aria-pressed="false">☕ 함께 수다<small>카페 · 대화 · 맛집</small></button></div><div class="quick-budget"><label for="quick-budget">3. 전체 예상 예산 <output id="quick-budget-value">100,000원</output></label><input id="quick-budget" type="range" min="10000" max="300000" step="10000" value="100000"><div><span>가볍게 1만원</span><span>넉넉하게 30만원</span></div></div><button type="button" id="quick-start" class="primary full">✦ 맞춤 데이트 코스 만들기 →</button><p class="quick-footnote">기본 2인 · 상세 조건에서 날짜와 데이트할 지역을 변경할 수 있어요.</p><p class="quick-custom-hint">원하는 조건이 없나요?<br><a href="#planner-section">아래 상세 입력란에서 지역과 원하는 데이트 조건을 직접 입력해 주세요. ↓</a></p></div>
 </section>
 <div class="discovery-rail" aria-label="데이트 계획 안내"><p><b>계획은 가볍게.</b> 함께할 시간에 더 집중하세요.</p><a href="#planner-section">지역 · 날짜 · 예산으로 시작하기 <span>↗</span></a></div>

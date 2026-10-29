@@ -10,11 +10,15 @@ from .routes import distance
 
 def restaurants():
     path=ROOT/'data/restaurants.json'
-    return json.loads(path.read_text('utf-8')) if path.exists() else []
+    from .operating_evidence import apply_evidence,evidence_rows
+    evidence=evidence_rows()
+    return [apply_evidence(p,evidence) for p in json.loads(path.read_text('utf-8'))] if path.exists() else []
 
 def live_restaurant(place_id):
     from . import store
-    return store.cached('restaurant:'+place_id)
+    from .operating_evidence import apply_evidence
+    place=store.cached('restaurant:'+place_id)
+    return apply_evidence(place) if place else None
 
 def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500):
     """권한 활성화 후 바로 쓸 수 있는 주변 업체 검색. 영업·가격 API는 아니다."""

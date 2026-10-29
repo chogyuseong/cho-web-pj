@@ -24,6 +24,11 @@ os.environ['DATEMATE_PROVIDER_CALLS_PER_HOUR']='10000'
 # 로컬 단위 테스트가 사용자 실제 검색 키로 외부 API를 호출하지 않게 한다.
 os.environ['NAVER_SEARCH_CLIENT_ID']=''
 os.environ['NAVER_SEARCH_CLIENT_SECRET']=''
+os.environ['TMAP_APP_KEY']=''
+os.environ['TMAP_TRANSIT_APP_KEY']=''
+os.environ['DATEMATE_OPERATING_EVIDENCE_FILE']=''
+os.environ['DATEMATE_EXTERNAL_CALLS_PER_RECOMMENDATION']='60'
+os.environ['DATEMATE_HTTP_USD_PER_1000']='{}'
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import pytest
 from app import store

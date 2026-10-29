@@ -22,11 +22,15 @@ def places(mode='demo',visit_date=None):
             rows=[overrides.pop(p['id'],p) for p in rows]+list(overrides.values())
         facts_path=ROOT/'data/operating_facts.json'
         facts=json.loads(facts_path.read_text('utf-8')) if facts_path.exists() else {}
+        from .operating_evidence import apply_evidence,evidence_rows,field_current
+        evidence=evidence_rows()
         for p in rows:
             p.update(facts.get(p['id'],{}))
+            p['operations_verified_fields']=[key for key in ('hours','closed_days','reservation','price') if facts.get(p['id'],{}).get(key) is not None]
+            p.update(apply_evidence(p,evidence))
             if visit_date and str(visit_date.weekday()) in p.get('weekly_hours',{}):p['hours']=p['weekly_hours'][str(visit_date.weekday())]
-            if p.get('last_entry_offset') is not None:p['last_entry']=p['hours'][1]-p['last_entry_offset']
-            if p.get('price') is not None and p.get('operations_source'):p['price_status']='confirmed'
+            if p.get('last_entry_offset') is not None and p.get('hours'):p['last_entry']=p['hours'][1]-p['last_entry_offset']
+            if p.get('price') is not None:p['price_status']='confirmed' if field_current(p,'price') else 'estimated'
     # 검색·상세·추천이 같은 카탈로그를 사용하므로 다른 지역 자료가 섞여도 노출하지 않는다.
     return [p for p in rows if p.get('region') in ('서울', '서울시', '서울특별시')]
 

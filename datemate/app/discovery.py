@@ -5,6 +5,7 @@ import os
 import re
 from urllib.parse import quote
 from concurrent.futures import ThreadPoolExecutor
+from .request_usage import context_map
 from datetime import datetime,timezone
 import httpx
 from .telemetry import observed_http, invoke_model
@@ -95,6 +96,6 @@ def resolve(mention,posts,query):
 
 def discover(posts,query):
     mentions,status=extract(posts)
-    with ThreadPoolExecutor(max_workers=3) as pool:resolved=list(pool.map(lambda m:resolve(m,posts,query),mentions))
+    with ThreadPoolExecutor(max_workers=3) as pool:resolved=context_map(pool,lambda m:resolve(m,posts,query),mentions)
     rows={p['id']:p for p,_ in resolved if p}
     return list(rows.values()),dict(status=status,extracted=len(mentions),resolved=len(rows),local_permission_required=any(s=='permission_required' for _,s in resolved))

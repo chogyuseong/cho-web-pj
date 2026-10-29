@@ -23,7 +23,7 @@ def discover_requested_places(c):
     district=re.search(r'[가-힣]{1,8}구(?:\s|$)',area)
     if district:area=district[0].strip()
     fingerprint=hashlib.sha256(str([area,(c.area_center or c.origin).model_dump(),c.neighborhood_radius_km,keys]).encode()).hexdigest()
-    cachekey='intent-local-v3:'+fingerprint
+    cachekey='intent-local-v5:'+fingerprint
     cached=store.cached(cachekey)
     if cached:return cached
     count=0;statuses=[];resolved_ids=set()
@@ -38,11 +38,15 @@ def discover_requested_places(c):
             if not name or not address.startswith('서울'):continue
             if any(word in category for word in ('자동차','주차장','부동산','병원','의원')):continue
             checks={'cafe':['카페','디저트','베이커리'],'meal':['음식점','한식','양식','일식','중식'],
+                'cinema':['영화관','극장','시네마'],'performance':['공연','연극','뮤지컬','극장'],
+                'jazz':['재즈','라이브'],
                 'culture':['미술','박물관','전시','갤러리'],'museum':['박물관','문화재','유적'],
                 'book':['서점','도서관','북카페','책방'],'walk':['공원','정원','산책','숲'],
                 'game':['방탈출','보드','오락','게임','만화'],'workshop':['공방','공예','체험'],
                 'activity':['스포츠','레저','볼링','클라이밍'],'view':['전망','공원','관광'],'shopping':['쇼핑','소품','편집']}
-            if not any(word in category for word in checks.get(key,INTENTS[key][1])):continue
+            sport_keys={'climbing','bowling','table_tennis','badminton','skating','screen_golf'}
+            named_sport=key in sport_keys and any(word in category for word in ('스포츠시설','체육시설','체육관','골프연습장')) and any(word in name for word in INTENTS[key][1])
+            if not any(word in category for word in checks.get(key,INTENTS[key][1])) and not named_sport:continue
             if key=='meal' and ('카페' in category or '디저트' in category):continue
             try:
                 lon,lat=float(item['mapx']),float(item['mapy'])
@@ -65,6 +69,6 @@ def discover_requested_places(c):
             if not store.cached('discovered-place:'+pid):store.cache('discovered-place:'+pid,row,604800)
             count+=1
     result=dict(status='available' if count else 'not_found',resolved=count,query_area=area,coverage_supplement=supplement,
-                permission_required='permission_required' in statuses)
+                permission_required='permission_required' in statuses,search_unavailable=bool(statuses) and all(s=='unavailable' for s in statuses))
     store.cache(cachekey,result,900 if count else 30)
     return result

@@ -1,0 +1,15 @@
+.planning-decision { margin:20px 0 4px; padding:20px; border:1px solid #d8dfd9; border-radius:14px; background:#f7faf6; }
+.planning-decision h3 { font-size:21px; margin:0 0 8px; line-height:1.5; }
+.planning-decision>.actions { display:flex; flex-wrap:wrap; gap:10px; }
+.planning-decision .actions button { min-height:44px; padding:10px 16px; }
+.planning-decision>.partner-agreement { margin:16px 0 0; padding-bottom:0; }
+.planning-decision label { font-size:15px; }
+.planning-decision select,.planning-decision input { font-size:16px; min-height:46px; }
+.planning-decision .decision-survey { margin:12px 0; }
+.planning-study .check { align-items:flex-start; }
+.planning-study input[type=checkbox] { flex:0 0 18px; margin-top:5px; }
+.planning-decision p[role=status] { overflow-wrap:anywhere; }
+@media(max-width:480px) {
+  .planning-decision { padding:16px; }
+  .planning-decision>.actions { flex-direction:column; align-items:stretch; }
+}

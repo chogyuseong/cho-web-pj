@@ -11,6 +11,7 @@ from . import store
 from .image_search import plain, search_enabled
 from .catalog import places
 from .routes import distance
+from .request_usage import context_map,cache_hit
 
 
 class BlogText(HTMLParser):
@@ -89,6 +90,20 @@ def course_query(c):
 def compact(text):return re.sub(r'[^가-힣a-z0-9]','',text.casefold())
 
 
+def disclosure(text):
+    """Explicit disclosure only; absence is not proof of an independent visit."""
+    return bool(re.search(r'협찬|광고\s*포함|원고료|제공\s*받|제공받|체험단',text))
+
+
+def negative_mention(text,name):
+    # Conservative local check: a complaint elsewhere must not taint every venue.
+    for match in re.finditer(re.escape(name),text):
+        tail=text[match.end():match.end()+55]
+        clause=re.split(r'[.!?\n]',tail)[0]
+        if re.search(r'폐업|영업\s*종료|문을\s*닫|비추천|추천하지\s*않|다시\s*안\s*갈',clause):return True
+    return False
+
+
 def select_posts(items,query):
     """검색 순위·지역 일치·최근성을 참고하고 작성자가 중복되지 않는 글 5개 선정."""
     area=re.search(r'[가-힣]{1,8}(?:구|동)',query)
@@ -106,9 +121,11 @@ def select_posts(items,query):
         except (ValueError,TypeError):age=None
         recent=age is not None and 0<=age<=365
         local=bool(area and area[0] in title+' '+description)
-        score=1/rank+int(local)*2+int(recent)
+        sponsored=disclosure(title+' '+description)
+        score=1/rank+int(local)*2+int(recent)-int(sponsored)*2
         candidates.append(dict(search_rank=rank,title=title,description=description,url=url,posted_at=item.get('postdate',''),author=author,
-                               selection_reason=' · '.join(['검색 순위 '+str(rank)]+(['지역명 일치'] if local else [])+(['최근 1년 작성'] if recent else [])),_score=score))
+                               commercial_disclosure=sponsored,
+                               selection_reason=' · '.join(['검색 순위 '+str(rank)]+(['지역명 일치'] if local else [])+(['최근 1년 작성'] if recent else [])+(['광고·협찬 문구 있어 가중치 축소'] if sponsored else [])),_score=score))
     selected=[];authors=set()
     for post in sorted(candidates,key=lambda p:p['_score'],reverse=True):
         if post['author'] in authors:continue
@@ -127,8 +144,9 @@ def match_places(posts,rows):
         names=[compact(re.sub(r'\s*\([^)]*\)$','',n)) for n in names]
         hits=[]
         for post in posts:
-            text=compact(post['title']+' '+post['description']+' '+post.get('_body',''))
-            if any(len(n)>=3 and n in text for n in names):hits.append(post['rank'])
+            raw=post['title']+' '+post['description']+' '+post.get('_body','')
+            text=compact(raw)
+            if any(len(n)>=3 and n in text for n in names) and not any(negative_mention(raw,n) for n in [place['name'],*(place.get('search_aliases') or [])]):hits.append(post['rank'])
         if hits:matches[place['id']]={'ranks':hits,'score':sum(rank_ceiling-rank for rank in hits)}
     return matches
 
@@ -143,9 +161,9 @@ def search_courses(c):
     if '지도 위치의 지역명 확인 필요' in query:
         result.update(status='location_unresolved',message='선택 좌표의 지역명을 확인하지 못했어요. 지역명을 검색해 선택하거나 네이버 Maps Reverse Geocoding 설정을 확인해 주세요. 위치 주변 기존 장소로 보완합니다.')
         return result
-    key='course-blog-five-v2:'+query+':'+str(c.visit_date)
+    key='course-blog-five-v3:'+query+':'+str(c.visit_date)
     cached=store.cached(key)
-    if cached:return cached
+    if cached:cache_hit();return cached
     try:
         response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=20,start=1,sort='sim',format='json'),
             headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
@@ -161,8 +179,11 @@ def search_courses(c):
         result['posts']=select_posts(response.json().get('items',[]),query)
         result['selection_note']='실제 방문자 수나 평점 순위가 아닌, 검색 결과 기반 선정입니다.'
         with ThreadPoolExecutor(max_workers=5) as pool:
-            bodies=list(pool.map(public_body,[p['url'] for p in result['posts']]))
-        for post,body in zip(result['posts'],bodies):post.update(_body=body,content_scope='공개 본문 + 검색 요약' if body else '검색 요약만 확인',summary=post['description'])
+            bodies=context_map(pool,public_body,[p['url'] for p in result['posts']])
+        for post,body in zip(result['posts'],bodies):
+            post.update(_body=body,content_scope='공개 본문 + 검색 요약' if body else '검색 요약만 확인',summary=post['description'])
+            post['commercial_disclosure']=post['commercial_disclosure'] or disclosure(body)
+            post['evidence_note']='광고·협찬 표시 확인 · 추천 가중치 축소' if post['commercial_disclosure'] else '광고·협찬 표시 미확인 · 실제 방문 인증은 아님'
         from .discovery import discover
         new_places,discovery=discover(result['posts'],base_course_query(c))
         result['discovery']=discovery
@@ -179,7 +200,7 @@ def search_courses(c):
                 authors.add(post['author'])
                 try:age=(datetime.now(timezone.utc).date()-datetime.strptime(post['posted_at'],'%Y%m%d').date()).days
                 except (ValueError,TypeError):age=None
-                score+=(6-post['rank'])*(1 if age is not None and 0<=age<=365 else .5)
+                score+=(6-post['rank'])*(1 if age is not None and 0<=age<=365 else .5)*(.25 if post['commercial_disclosure'] else 1)*(.6 if not post.get('_body') else 1)
             match.update(score=score,independent_authors=len(authors))
         for post in result['posts']:post.pop('_body',None)
         result['status']='available' if result['posts'] else 'not_found'

@@ -75,29 +75,40 @@ async function showAlternatives(index) {
   });
   if (generation !== dialogGeneration || !$('#dialog').open || selected?.id !== planId) return;
   if (!result.alternatives.length) root.append(node('p', '현재 조건을 충족하는 대체 장소가 없습니다. 시간·예산·테마 조건을 직접 수정해 주세요.', 'warning'));
+  let replacing = false;
   for (const option of result.alternatives) {
     const card = node('article', undefined, 'plan-card');
+    if (option.replacement_evidence) {
+      const info = option.replacement_evidence;
+      card.append(node('p', `기존 장소에서 약 ${info.distance_m}m · 운영 정보 ${info.coverage.confirmed.length}/4항목 확인`, 'hint'), node('p', info.scope, 'hint'));
+    }
     card.append(node('h3', option.places[index].name), node('p', `전체 ${range(option.total)} · 시간 변화 ${option.delta.minutes}분 · 비용 변화 ${option.delta.cost.map(won).join(' ~ ')}`, 'hint'), button('이 장소로 교체', async () => {
       if (selected?.id !== planId || generation !== dialogGeneration) {
         toast('선택한 코스가 바뀌었어요. 현재 코스에서 다시 골라주세요.');
         return;
       }
-      if (!reason.querySelector('select').reportValidity()) return;
-      const updated = await api('/plans/' + planId + '/replace', {
-        index,
-        locked: [...locks],
-        replacement_id: option.places[index].id
-      });
-      replaceInList(planId, updated);
-      if (selected?.id === planId) selected = updated;
-      api('/plans/' + planId + '/feedback', {
-        kind: 'replace_reason',
-        place_id: oldPlaceId,
-        reason: reason.querySelector('select').value
-      }).catch(() => toast('일정은 변경됐지만 변경 이유 저장에 실패했어요.'));
-      if (generation === dialogGeneration) $('#dialog').close();
-      renderResults();
-      renderDetail();
+      if (replacing || !reason.querySelector('select').reportValidity()) return;
+      replacing = true;
+      const controls = [...root.querySelectorAll('button,select')];
+      controls.forEach(control => control.disabled = true);
+      try {
+        const updated = await api('/plans/' + planId + '/replace', {
+          index,
+          locked: [...locks],
+          replacement_id: option.places[index].id
+        });
+        const displayed = commitPlanChange(planId, updated);
+        api('/plans/' + planId + '/feedback', {
+          kind: 'replace_reason',
+          place_id: oldPlaceId,
+          reason: reason.querySelector('select').value
+        }).catch(() => toast('일정은 변경됐지만 변경 이유 저장에 실패했어요.'));
+        if (generation === dialogGeneration) $('#dialog').close();
+        if (!displayed) return;
+      } finally {
+        replacing = false;
+        controls.forEach(control => control.disabled = false);
+      }
     }));
     root.append(card);
   }

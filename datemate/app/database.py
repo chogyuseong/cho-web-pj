@@ -7,6 +7,8 @@ inside a database transaction. Local development can continue using SQLite.
 
 import os
 import re
+import time
+import logging
 from functools import lru_cache
 
 WRITE_LOCK = 731942601
@@ -69,8 +71,12 @@ class PostgresConnection:
 
     def lock(self):
         if not self.locked:
+            started = time.perf_counter()
             self.connection.execute("SELECT pg_advisory_xact_lock(%s)", (WRITE_LOCK,))
             self.locked = True
+            elapsed = round((time.perf_counter() - started) * 1000)
+            if elapsed >= 250:
+                logging.getLogger(__name__).warning("database_write_lock_wait_ms=%s", elapsed)
 
     def execute(self, sql, args=None):
         if self.closed:

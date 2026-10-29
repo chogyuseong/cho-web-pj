@@ -10,6 +10,7 @@ import httpx
 from .telemetry import observed_http
 from . import store
 from .image_search import plain,safe_https,search_enabled
+from .request_usage import context_map,cache_hit
 
 # 조회 가격이 아닌 예산 계획용 1인 범위. 사용자가 허용한 경우에만 사용한다.
 ASSUMPTIONS={'문화·예술':[0,10000],'카페·미식':[6000,15000],'체험·제작':[15000,40000],
@@ -50,7 +51,7 @@ def lookup_price(place,force=False):
     key='price-search-v2:'+place['id']
     if not force:
         cached=store.cached(key)
-        if cached and not (cached['status']=='key_missing' and search_enabled()):return cached
+        if cached and not (cached['status']=='key_missing' and search_enabled()):cache_hit();return cached
     result=dict(status='key_missing',quotes=[],checked_at=datetime.now(timezone.utc).isoformat())
     if search_enabled():
         try:
@@ -79,7 +80,7 @@ def apply_prices(plan,lookups):
         row=plan['costs'][index]
         if row.get('price_kind')=='naver_menu':continue
         if row['unit'] is not None and not row.get('price_kind'):
-            row['price_basis']='공식 등록 단가' if row['status']=='confirmed' else '기존 단가';continue
+            row['price_basis']=('업체 제공 단가 · 확인일 기준' if row.get('source_kind')=='merchant' else '등록 출처 단가 · 확인일 기준') if row['status']=='confirmed' else '기존 단가 · 현재가 별도 확인';continue
         result=lookups.get(place['id'],{});quotes=result.get('quotes',[])
         if quotes:
             # 서로 다른 메뉴를 섞어 단가 범위로 만들지 않는다.
@@ -113,5 +114,5 @@ def apply_prices(plan,lookups):
 def price_plans(plans,force=False):
     needed={p['id']:p for plan in plans if plan['conditions']['mode']=='real' for p in plan['places'] if p['price'] is None}
     with ThreadPoolExecutor(max_workers=3) as executor:
-        data=dict(zip(needed,executor.map(lambda p:lookup_price(p,force),needed.values())))
+        data=dict(zip(needed,context_map(executor,lambda p:lookup_price(p,force),needed.values())))
     return [apply_prices(p,data) for p in plans]

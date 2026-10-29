@@ -45,7 +45,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 | 서버 | Python, FastAPI, Uvicorn |
 | 저장 | 로컬 SQLite / 운영 PostgreSQL(Cloud SQL), 공유 캐시·세션 |
 | 검색·질문 | ChromaDB, LangChain, 선택적 GMS LLM/임베딩 연결 |
-| 외부 정보 | 네이버 검색 API, Maps API, 공개 장소 자료 |
+| 외부 정보 | 네이버 검색 API, Maps API, 공개 장소 자료, 선택적 TMAP 도보·대중교통 연결 |
 | 지도 | 네이버 지도, Leaflet/OpenStreetMap 대체 지도 |
 
 ## 데이터와 검증 범위
@@ -56,6 +56,8 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 ## 문서
 
+- [데이트 플랜 기능 오류 수정·PC/모바일 점검](datemate/docs/results-functional-audit-2026-10-29.md)
+
 - [상세 실행·환경변수·테스트](datemate/README.md)
 - [디자인 선정 근거](datemate/docs/reference-design-selection.md)
 - [모바일 점검 기록](datemate/docs/mobile-check-2026-10-23.md)
@@ -64,7 +66,12 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 - [Cloud Run 배포 안내](datemate/docs/cloud-run-deployment.md)
 - [운영 전환·PostgreSQL·브라우저 검증 결과](datemate/docs/cloud-operation-check-2026-10-26.md)
 - [추천 서비스·DB 마이그레이션·프런트엔드 구조 개선](datemate/docs/architecture-improvements-2026-10-26.md)
-- [최신 전체 기능·코드 점검 및 오류 수정 결과](datemate/docs/full-functional-code-audit-2026-10-26.md)
+- [2026-10-26 전체 기능·코드 점검 및 오류 수정 결과](datemate/docs/full-functional-code-audit-2026-10-26.md)
+- [코스 결정·공동 선택·선택적 효과 측정](datemate/docs/planning-outcomes-2026-10-29.md)
+- [운영 자료·공급처·동선·피드백·비용·인수인계 개선](datemate/docs/improvements-three-eight-2026-10-29.md)
+- [운영 점검·격리 복원 훈련·메뉴 자료 반영 방법](datemate/docs/operations-handoff.md)
+
+운영 자료는 항목별 출처·확인일·유효기간으로 관리합니다. 업체 제공 메뉴를 가져오는 도구와 요청별 외부 호출 제한을 제공합니다. TMAP 연결은 해당 상품 키 설정 후 사용하며, 키가 없는 현재 환경에서는 실제 도보·대중교통 경로가 연결됐다고 표시하지 않습니다. 사진·자료·API의 사용 및 양도 범위는 제공처별 확인이 필요합니다.
 
 `.env`, 가상환경, `runtime/`은 Git에 포함하지 않습니다. 로컬은 SQLite를 사용하며, Cloud Run 운영은 `DATABASE_URL`로 PostgreSQL을 연결합니다. 일정·후기·세션·공유·검색 상태가 외부 DB에 보존됩니다. 컨테이너의 Chroma 장소·문서 색인은 시작 시 재생성합니다.
 

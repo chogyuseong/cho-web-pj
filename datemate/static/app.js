@@ -180,6 +180,7 @@ function values() {
     locked: {}
   };
   data.include_meal = f.has('include_meal');
+  data.transition_buffer_minutes = Number(f.get('transition_buffer_minutes') || 0);
   data.neighborhood_radius_km = Number(f.get('neighborhood_radius_km') || 2.5);
   updateExperienceValues(data, f);
   if (data.return_home) data.home = selectedLocation('home');
@@ -226,9 +227,13 @@ async function init() {
 let parsedRequest = '';
 async function applyRequest() {
   const text = form.elements.request.value.trim();
-  if (!text || text === parsedRequest) return;
+  const people = Number(form.elements.people.value);
+  const signature = JSON.stringify([text, people, FormState.edited.has('people')]);
+  if (!text || signature === parsedRequest) return;
   const result = await api('/conditions/parse', {
-    text
+    text,
+    people,
+    explicit_people: FormState.edited.has('people')
   });
   for (const [key, value] of Object.entries(result.patch)) {
     if (FormState.edited.has(key)) continue;
@@ -241,7 +246,7 @@ async function applyRequest() {
     }
   }
   $('#parse-notice').textContent = result.warnings.join(' ') + ' 직접 수정한 조건은 유지해요.';
-  parsedRequest = text;
+  parsedRequest = JSON.stringify([text, Number(form.elements.people.value), FormState.edited.has('people')]);
 }
 $('#parse').onclick = () => applyRequest().then(() => toast('해석된 조건을 폼에서 확인하고 수정해 주세요.')).catch(e => toast(e.message));
 
@@ -276,6 +281,7 @@ form.addEventListener('submit', async e => {
     if (!form.reportValidity()) return;
     const data = values();
     data.explicit_fields = [...FormState.edited];
+    await PlanningStudy.prepare(data);
     mode = data.mode;
     beginPlanSearch();
     setTab(false);

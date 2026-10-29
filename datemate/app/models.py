@@ -12,6 +12,7 @@ class Point(BaseModel):
     lon: float = Field(ge=-180, le=180)
 
 class Conditions(BaseModel):
+    planning_session_id: str = Field(default='',pattern=r'^(?:[a-f0-9]{32})?$')
     explicit_fields: list[Literal['people','budget','count','transport','setting','reservation','priority','max_walk','include_meal','themes','theme_mode','date_category','date_subcategory']] = Field(default_factory=list,max_length=14)
     meeting_type: Literal['regular','first','anniversary'] = 'regular'
     priority: Literal['balanced','talk','food','photo','activity'] = 'balanced'
@@ -26,6 +27,7 @@ class Conditions(BaseModel):
     allow_price_estimates: bool = True
     allow_estimates: bool = False
     stay_minutes: int = Field(default=60, ge=15, le=240)
+    transition_buffer_minutes: int = Field(default=0,ge=0,le=30)
     mode: Literal['demo', 'real'] = 'demo'
     region: str = '서울'
     origin: Point = Point(name='데모 출발점', lat=37.575, lon=126.985)

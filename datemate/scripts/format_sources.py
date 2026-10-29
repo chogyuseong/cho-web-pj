@@ -12,17 +12,39 @@ import jsbeautifier
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON = [
     "app/main.py",
+    "app/leisure.py",
+    "app/plan_changes.py",
     "app/recommendation_service.py",
+    "app/planning_outcomes.py",
+    "app/operating_evidence.py",
+    "app/operating_import.py",
+    "app/route_providers.py",
+    "app/request_usage.py",
+    "app/feedback_preferences.py",
     "app/execution.py",
     "app/plan_jobs.py",
     "app/database.py",
     "app/store.py",
     "app/migrations",
     "scripts/operations_report.py",
+    "scripts/operations_check.py",
+    "scripts/rehearse_operations.py",
+    "scripts/import_operating_data.py",
     "scripts/format_sources.py",
     "tests/test_architecture.py",
 ]
-JAVASCRIPT = ["app.js", "place-dialog.js", "reviews.js"]
+JAVASCRIPT = [
+    "app.js",
+    "place-dialog.js",
+    "plan-actions.js",
+    "leisure.js",
+    "experience.js",
+    "price-controls.js",
+    "plan-detail.js",
+    "reviews.js",
+    "execution-summary.js",
+    "planning-outcomes.js",
+]
 
 
 def main():

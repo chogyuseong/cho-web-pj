@@ -2,10 +2,10 @@
   const wrap=node('section',undefined,'option-comparison');wrap.setAttribute('aria-label','옵션 한눈에 비교');
   wrap.append(node('h3','어떤 코스가 더 끌리나요?'));
   const scroll=node('div',undefined,'table-scroll'),table=node('table'),head=node('tr');
-  ['옵션','주요 활동','예상 비용','이동','다른 장소'].forEach(x=>head.append(node('th',x)));table.append(head);
+  ['코스','주요 활동','예상 전체 비용','총 이동 시간','장소 차이'].forEach(x=>head.append(node('th',x)));table.append(head);
   items.forEach((p,i)=>{const row=node('tr');const others=p.places.filter(x=>!items[0].places.some(y=>y.id===x.id)).length;
-    [String(i+1)+' · '+(p.decision_summary?.title||p.option_purpose||'추천'),[...new Set(p.places.map(x=>x.category))].join(' · '),range(p.total),`${p.decision_summary?.travel_minutes??p.legs.reduce((n,x)=>n+(x.minutes||0),0)}분`,i?`옵션1과 ${others}곳 다름`:'기준 코스'].forEach(x=>row.append(node('td',x)));table.append(row);
-  });scroll.append(table);wrap.append(scroll);return wrap;
+    [String(i+1)+' · '+(p.decision_summary?.title||p.option_purpose||'추천'),[...new Set(p.places.map(x=>x.category))].join(' · '),range(p.total),`${p.decision_summary?.travel_minutes??p.legs.reduce((n,x)=>n+(x.minutes||0),0)}분`,i?`코스 1과 ${others}곳 다름`:'비교 기준'].forEach(x=>row.append(node('td',x)));table.append(row);
+  });scroll.append(table);scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','코스 비교 표 · 가로로 넘겨 확인');wrap.append(node('p','비용과 이동 시간을 비교해 보세요. 표는 좌우로 넘길 수 있어요.','hint'),scroll);return wrap;
 }
 function placeEvidencePanel(plan,index){
   const place=plan.places[index],fact=plan.place_evidence?.find(x=>x.place_id===place.id);

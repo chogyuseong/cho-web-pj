@@ -11,14 +11,15 @@
       const article=document.createElement('article'),title=document.createElement('h2'),text=document.createElement('p'),label=document.createElement('label'),select=document.createElement('select');
       title.textContent=place.name;text.textContent=`${place.arrival} ~ ${place.departure} · ${place.address}`;
       label.textContent=place.name+'에 대한 의견';select.name=place.id;
-      for(const [value,title] of [['neutral','아직 모르겠어요'],['yes','좋아요'],['no','다른 곳이 좋아요']])select.add(new Option(title,value));
+      for(const [value,title] of [['neutral','상관없어요'],['yes','좋아요'],['must','꼭 가고 싶어요'],['no','빼주세요']])select.add(new Option(title,value));
+      select.value=data.my_choices?.[place.id]||'neutral';
       label.append(select);article.append(title,text,label);document.getElementById('shared-places').append(article);
     }
     form.hidden=false;
   }).catch(error=>status.textContent=error.message);
   form.onsubmit=async event=>{
     event.preventDefault();const button=form.querySelector('button');button.disabled=true;
-    try{await request('/api/shared-plan/vote',{choices:Object.fromEntries(new FormData(form))});status.textContent='의견을 전달했어요.';}
+    try{await request('/api/shared-plan/vote',{choices:Object.fromEntries(new FormData(form))});status.textContent='의견을 전달했어요. 코스를 만든 사람이 두 사람의 취향으로 다시 계산할 수 있어요.';}
     catch(error){status.textContent=error.message;}finally{button.disabled=false;}
   };
 })();

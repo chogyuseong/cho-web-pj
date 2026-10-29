@@ -1,0 +1,7 @@
+[
+  {"id":"naver_local","purpose":"업체 이름·주소·좌표 연결","evidence_scope":"업체 식별 · 영업시간·가격·평점 검증 아님","rights_status":"review_required","terms":"https://developers.naver.com/terms/","retention":"현재 구현의 캐시 기간과 약관 허용 범위를 운영자가 대조해야 함"},
+  {"id":"naver_blog","purpose":"후기 언급과 경험 참고","evidence_scope":"실제 방문·인기·현재 가격 인증 아님","rights_status":"review_required","terms":"https://developers.naver.com/terms/","retention":"요약·링크 중심. 상업적 재사용과 양도 범위 별도 확인"},
+  {"id":"official_facts","purpose":"필드별 운영 자료","evidence_scope":"원문·확인일·적용 범위·재확인 기한 기록","rights_status":"source_specific","terms":"","retention":"원문 전체 복제 대신 사실과 출처를 관리"},
+  {"id":"merchant_submission","purpose":"업체가 제공한 운영·메뉴 정보","evidence_scope":"운영자 검토와 제공 동의 증빙 위치 필요","rights_status":"evidence_required","terms":"","retention":"동의 문서별 보관·표시·변경·양도 범위를 기록"},
+  {"id":"photos","purpose":"공개 장소 사진","evidence_scope":"원본·촬영자·라이선스 또는 제공처 조건을 개별 확인","rights_status":"source_specific","terms":"","retention":"검색 결과나 원문 링크가 이용 허락을 대신하지 않음"}
+]

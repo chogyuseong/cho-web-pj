@@ -119,6 +119,12 @@ def fetch_page(client,query):
 def restaurant_menu(place,force=False):
     empty=dict(status='not_found',items=[],menu_images=[],checked_at=datetime.now(timezone.utc).isoformat(),source_kind='naver_public_menu')
     if place.get('demo'):return dict(empty,status='demo',message='가상 장소는 실제 메뉴를 조회하지 않아요.')
+    from .operating_evidence import apply_evidence
+    local=apply_evidence(place)
+    evidence=local.get('operations_evidence',{}).get('menus',{})
+    if evidence.get('current') and local.get('menus'):
+        rows=[dict(item,display_price=f"{item['amount']:,}원",price_scope='store') for item in local['menus']]
+        return dict(empty,status='available',items=rows,source_kind='operator_reviewed_menu',source_url=evidence['source'],source_label='운영자가 확인한 제공 메뉴',checked_at=evidence['checked_at'],note=evidence['scope']+' · 제공 자료 기준이며 현재 가격은 원문 확인',reason=None)
     # New parser must not reuse old false-negative entries.
     key='restaurant-menu-v4:'+place['id']
     if not force:
@@ -128,6 +134,10 @@ def restaurant_menu(place,force=False):
     queries=list(dict.fromkeys([place_query(place),place_query(place,'메뉴'),place['name']+' '+district+' 메뉴']))
     source='https://search.naver.com/search.naver?'+urlencode({'query':queries[0]})
     result=dict(empty,search_url=source,message='공개 자료에서 같은 식당의 숫자 메뉴 가격을 확인하지 못했어요.',reason='not_published')
+    cooldown=store.cached('menu-provider-cooldown')
+    if cooldown:
+        return dict(result,status='unavailable',reason='provider_cooldown',provider_status=cooldown['status'],
+                    message='메뉴 제공처의 접근 제한으로 자동 조회를 잠시 쉬고 있어요. 지도에서 메뉴를 확인해 주세요.')
     try:
         with _limit,httpx.Client(timeout=8,follow_redirects=False) as client:
             for query in queries:
@@ -144,6 +154,8 @@ def restaurant_menu(place,force=False):
     except (httpx.HTTPError,ValueError,TypeError) as error:
         if not result.get('menu_images') and not result['items']:
             provider_status=getattr(getattr(error,'response',None),'status_code',None)
-            result.update(status='unavailable',reason='provider_unavailable',provider_status=provider_status,message='공개 메뉴 조회가 일시적으로 제한됐어요. 다시 조회하거나 지도 메뉴를 확인해 주세요.')
+            reason='access_restricted' if provider_status in (401,403) else 'rate_limited' if provider_status==429 else 'provider_unavailable'
+            if provider_status in (401,403,429):store.cache('menu-provider-cooldown',{'status':provider_status},300)
+            result.update(status='unavailable',reason=reason,provider_status=provider_status,message='메뉴 제공처 접근 제한으로 가격을 확인하지 못했어요. 지도 메뉴를 확인해 주세요.' if provider_status in (401,403,429) else '공개 메뉴 조회에 연결하지 못했어요. 다시 조회하거나 지도 메뉴를 확인해 주세요.')
     store.cache(key,result,3600 if result['status'] in ('available','image_only') else 60)
     return result

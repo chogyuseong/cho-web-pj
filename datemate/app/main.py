@@ -78,6 +78,9 @@ app.include_router(explore_router)
 from .sharing import router as sharing_router
 
 app.include_router(sharing_router)
+from .planning_outcomes import router as outcomes_router
+
+app.include_router(outcomes_router)
 
 
 @app.get("/healthz", include_in_schema=False)
@@ -324,6 +327,8 @@ def place(id: str, mode: Literal["demo", "real"] = "demo"):
 
 class ParseInput(BaseModel):
     text: str = Field(max_length=4000)
+    people: int = Field(default=2, ge=1, le=20)
+    explicit_people: bool = False
 
 
 @app.get("/api/places/{id}/media")
@@ -366,16 +371,17 @@ def place_menu(
 
 @app.post("/api/conditions/parse")
 def parse(data: ParseInput):
-    from .request_intent import interpret
+    from .request_intent import interpret, resolved_patch
 
     parsed = interpret(data.text)
-    patch = dict(parsed["patch"], region=REGION)
+    patch = dict(resolved_patch(parsed, data.people, data.explicit_people), region=REGION)
     warnings = [
         "입력 글에서 확인한 활동·인원·예산·이동수단을 적용했어요. 폼에서 확인하고 수정할 수 있어요.",
         "추천 지역은 서울특별시로 고정됩니다. 서울 밖 장소는 추천하지 않습니다.",
     ]
     if parsed["excluded"]:
         warnings.append("제외 요청은 코스 추천 시 장소 유형과 대조해 적용해요.")
+    warnings.extend(parsed["warnings"])
     return dict(patch=patch, warnings=warnings, unparsed=data.text)
 
 
@@ -410,7 +416,12 @@ def refresh_prices(id: str, request: Request):
             409,
             "재조회 가격 또는 조건이 필수 조건을 넘어요. 필수 조건을 조정한 뒤 다시 추천해 주세요.",
         )
-    return store.save_plan(updated, request.state.owner, parent=id)
+    from .plan_changes import save_change
+
+    try:
+        return save_change(updated, plan, request.state.owner)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
 
 
 @app.get("/api/plans/{id}/restaurant-matches")
@@ -486,8 +497,12 @@ def replace(id: str, data: ReplaceInput, request: Request):
 
     if hard_blocks(updated):
         raise HTTPException(409, "필수 조건을 충족하지 않아 교체할 수 없어요.")
-    updated["delta"]["cost"] = [updated["total"][i] - plan["total"][i] for i in (0, 1)]
-    return store.save_plan(updated, request.state.owner, parent=id)
+    from .plan_changes import save_change
+
+    try:
+        return save_change(updated, plan, request.state.owner)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
 
 
 @app.post("/api/plans/{id}/undo")
@@ -624,7 +639,8 @@ def leisure_options(id: str, data: ReplaceInput, request: Request):
     from .leisure import options
 
     try:
-        rows = options(plan, data.index, data.locked, discover=True)
+        diagnostics = {}
+        rows = options(plan, data.index, data.locked, discover=True, diagnostics=diagnostics)
         return {
             "options": [
                 {
@@ -635,6 +651,7 @@ def leisure_options(id: str, data: ReplaceInput, request: Request):
                 for r in rows
             ],
             "message": "현재 코스 장소 반경 1.5km의 스포츠 후보예요. 선택하면 해당 순서의 장소를 교체합니다. 직선거리 기준이며 영업·예약은 별도 확인해 주세요.",
+            "diagnostics": diagnostics,
         }
     except ValueError as exc:
         raise HTTPException(422, str(exc))
@@ -666,4 +683,9 @@ def leisure_select(id: str, data: ReplaceInput, request: Request):
     from .recommendation_summary import enrich
 
     enrich(updated)
-    return store.save_plan(updated, request.state.owner, parent=id)
+    from .plan_changes import save_change
+
+    try:
+        return save_change(updated, plan, request.state.owner)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))

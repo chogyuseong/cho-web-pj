@@ -14,9 +14,12 @@ _slots=BoundedSemaphore(6)
 @contextmanager
 def operation(provider):
     start=time.perf_counter();failed=True;attempted=False
+    from .request_usage import current
+    usage=current();charged=False
     if not _slots.acquire(blocking=False):
         raise httpx.PoolTimeout('External request capacity reached')
     try:
+        if usage:usage.reserve(provider);charged=True
         if not store.reserve_budget([('provider:'+provider,int(os.getenv('DATEMATE_PROVIDER_CALLS_PER_HOUR','600')))],int(time.time()//3600)):
             raise httpx.PoolTimeout('Provider hourly request budget reached')
         attempted=True
@@ -24,6 +27,7 @@ def operation(provider):
         yield state
         failed=state['failed']
     finally:
+        if charged and not attempted:usage.undo(provider)
         _slots.release()
         elapsed=round((time.perf_counter()-start)*1000)
         try:
@@ -57,4 +61,12 @@ def observed_stream(client,method,url,**kwargs):
 def invoke_model(model, messages):
     # Count logical SDK calls (SDK retries may make additional HTTP requests).
     with operation('sdk:llm'):
-        return model.invoke(messages)
+        result=model.invoke(messages)
+    usage=getattr(result,'usage_metadata',None) or {}
+    if usage:
+        try:
+            from .experience import event
+            # No prompt, completion, address, token or user identity is stored.
+            event('','','model_usage',{k:int(usage.get(k,0)) for k in ('input_tokens','output_tokens','total_tokens')})
+        except Exception:logging.getLogger(__name__).warning('model_usage_metric_write_failed')
+    return result

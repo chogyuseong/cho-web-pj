@@ -19,6 +19,14 @@ def public_origin():
 
 
 def validate_runtime():
+    if os.getenv('DATEMATE_OPERATING_EVIDENCE_FILE','').strip():
+        try:
+            from .operating_evidence import evidence_rows
+            evidence_rows()
+        except (OSError,ValueError,TypeError,AttributeError,KeyError):raise RuntimeError('운영 자료 파일의 경로와 가져오기 형식을 확인하세요.') from None
+    try:limit=int(os.getenv('DATEMATE_EXTERNAL_CALLS_PER_RECOMMENDATION','60'))
+    except ValueError:raise RuntimeError('추천당 외부 호출 제한은 정수여야 합니다.')
+    if not 1<=limit<=500:raise RuntimeError('추천당 외부 호출 제한은 1~500이어야 합니다.')
     database = os.getenv('DATABASE_URL', '').strip()
     if database and urlsplit(database).scheme not in ('postgres', 'postgresql'):
         raise RuntimeError('DATABASE_URL은 PostgreSQL 연결 주소여야 합니다.')

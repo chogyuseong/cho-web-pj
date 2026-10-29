@@ -1,0 +1,20 @@
+[
+  {
+    "place_id": "REPLACE_WITH_VERIFIED_CATALOGUE_ID",
+    "source": "https://example.org/merchant-menu",
+    "checked_at": "2026-10-29",
+    "source_kind": "merchant",
+    "reviewer": "REPLACE_WITH_REVIEWER",
+    "permission_reference": "REPLACE_WITH_INTERNAL_PERMISSION_RECORD",
+    "scope": "형식 예시입니다. 실제 업체의 일반 매장 메뉴와 적용 범위로 바꾸세요.",
+    "valid_days": 30,
+    "fields": {
+      "hours": [660, 1260],
+      "closed_days": [0],
+      "reservation": false,
+      "price": [12000, 12000],
+      "price_unit": "person",
+      "menus": [{"name": "형식 예시 메뉴 — 실제 데이터로 사용 금지", "amount": 12000, "representative": true}]
+    }
+  }
+]

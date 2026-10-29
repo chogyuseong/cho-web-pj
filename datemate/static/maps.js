@@ -34,7 +34,7 @@ function renderPlanMapCard(){
   const card=node('section',undefined,'plan-map-card'),tabs=node('div',undefined,'map-option-tabs');
   tabs.setAttribute('aria-label','지도에서 볼 코스 선택');
   plans.forEach((plan,index)=>{
-    const tab=button('Option'+(index+1),()=>{
+    const tab=button('코스 '+(index+1),()=>{
       if(selected?.id===plan.id)return;
       const scrollY=window.scrollY;
       selected=plan;locks=new Set(Object.keys(plan.conditions.locked||{}).map(Number));
@@ -44,7 +44,7 @@ function renderPlanMapCard(){
     },selected.id===plan.id?'primary':'secondary');
     tab.dataset.mapOption=String(index+1);tab.setAttribute('aria-pressed',String(selected.id===plan.id));tabs.append(tab);
   });
-  card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),drawPlanMap(selected));
+  card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
   const places=node('div',undefined,'map-place-list');
   selected.places.forEach((place,index)=>places.append(link((index+1)+'. '+place.name,'https://map.naver.com/p/search/'+encodeURIComponent(place.name+' '+place.region))));
   card.append(places);rail.append(card);
@@ -74,7 +74,7 @@ function drawPlanMap(plan){
       canvas.replaceChildren();
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])];
       const coord=p=>new naver.maps.LatLng(p.lat,p.lon);
-      const map=new naver.maps.Map(canvas,{center:coord(points[0]),zoom:14,zoomControl:true,scrollWheel:false});activeMap=map;
+      const map=new naver.maps.Map(canvas,{center:coord(points[0]),zoom:14,zoomControl:true,scrollWheel:true});activeMap=map;
       const bounds=new naver.maps.LatLngBounds();
       points.forEach((point,i)=>{
         const label=i===0?'출발':i>plan.places.length?'귀가':String(i);
@@ -149,7 +149,7 @@ function drawPlanMap(plan){
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
       if(!points.length)return;
       try{
-        const map=L.map(mapCanvas,{scrollWheelZoom:false}).setView([points[0].lat,points[0].lon],14);activeMap=map;
+        const map=L.map(mapCanvas,{scrollWheelZoom:true}).setView([points[0].lat,points[0].lon],14);activeMap=map;
         const layer=L.tileLayer(statusData?.map_tile_url||'https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:statusData?.map_tile_attribution||'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
         layer.on('tileerror',()=>mapCaption.textContent='지도 배경을 불러오지 못했어요. 장소 링크와 아래 개략도를 이용해 주세요.');
         const coordinates=points.map(point=>[point.lat,point.lon]);

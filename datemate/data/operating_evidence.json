@@ -1,0 +1,16 @@
+{
+  "Q12592360": {
+    "hours": {"value":[600,1080],"source":"https://m.much.go.kr/MUCH/contents/M01020100000.do","checked_at":"2026-10-29","valid_days":30,"scope":"일반 관람 기본 시간. 명절 당일·임시휴관 별도 확인"},
+    "weekly_hours": {"value":{"2":[600,1260],"5":[600,1260]},"source":"https://m.much.go.kr/MUCH/contents/M01020100000.do","checked_at":"2026-10-29","valid_days":30,"scope":"수·토 야간 관람"},
+    "closed_days": {"value":[],"source":"https://m.much.go.kr/MUCH/contents/M01020100000.do","checked_at":"2026-10-29","valid_days":30,"scope":"매주 정기 휴무 없음. 1월 1일·설날·추석 당일은 별도 휴관"},
+    "price": {"value":[0,0],"source":"https://m.much.go.kr/MUCH/contents/M01020100000.do","checked_at":"2026-10-29","valid_days":30,"scope":"일반 관람 무료"},
+    "last_entry_offset": {"value":30,"source":"https://m.much.go.kr/MUCH/contents/M01020100000.do","checked_at":"2026-10-29","valid_days":30,"scope":"관람 종료 30분 전 입장 마감"}
+  },
+  "Q97205213": {
+    "hours": {"value":[600,1080],"source":"https://craftmuseum.seoul.go.kr/preview/visit","checked_at":"2026-10-29","valid_days":30,"scope":"일반 전시 기본 관람 시간. 동별 야간 연장은 일정에 사용하지 않음"},
+    "closed_days": {"value":[0],"source":"https://craftmuseum.seoul.go.kr/preview/visit","checked_at":"2026-10-29","valid_days":30,"scope":"월요일 휴관. 공휴일 월요일 개관 예외는 별도 확인"},
+    "price": {"value":[0,0],"source":"https://craftmuseum.seoul.go.kr/preview/visit","checked_at":"2026-10-29","valid_days":30,"scope":"일반 전시 무료. 대관 전시 제외"},
+    "reservation": {"value":false,"source":"https://craftmuseum.seoul.go.kr/preview/visit","checked_at":"2026-10-29","valid_days":30,"scope":"개인 자유관람. 어린이박물관·교육 프로그램 제외"},
+    "last_entry_offset": {"value":30,"source":"https://craftmuseum.seoul.go.kr/preview/visit","checked_at":"2026-10-29","valid_days":30,"scope":"운영 종료 30분 전 입장 마감"}
+  }
+}

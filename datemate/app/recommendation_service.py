@@ -6,19 +6,30 @@ conditions, diversify, explain, then check cancellation before persistence.
 
 import logging
 import time
+import uuid
 from . import store
 from .execution import recommendation_slot
 from .models import Conditions
 from .planner import recommend
 from .plan_jobs import report
 from .request_intent import normalize
+from .feedback_preferences import personalizing, explanation
+from .request_usage import measure
 
 
 def generate(data: Conditions, owner: str):
-    with recommendation_slot(owner):
+    with (
+        recommendation_slot(owner),
+        personalizing(owner, data.use_feedback, data.mode) as profile,
+        measure() as usage,
+    ):
         started = time.perf_counter()
         try:
             data = normalize(data)
+            if data.planning_session_id:
+                from .planning_outcomes import session_for
+
+                session_for(data.planning_session_id, owner)
             if data.use_feedback:
                 from .experience import feedback_exclusions
 
@@ -29,10 +40,17 @@ def generate(data: Conditions, owner: str):
                         )[:100]
                     }
                 )
-            data, result = _research(data)
+            from .routes import candidate_routes
+
+            with candidate_routes():
+                data, result = _research(data)
+            if profile:
+                result["personalization"] = explanation(profile)
+                for plan in result["plans"]:
+                    plan["personalization"] = result["personalization"]
             result = _finish(data, result, owner)
         except Exception:
-            _record(owner, started, status="failed")
+            _record(owner, started, status="failed", external_usage=usage.snapshot())
             raise
         _record(
             owner,
@@ -40,6 +58,15 @@ def generate(data: Conditions, owner: str):
             status="complete",
             plans=len(result["plans"]),
             best_effort_plans=sum(bool(p.get("best_effort")) for p in result["plans"]),
+            evidence_fields=sum(
+                p.get("verification", {}).get("coverage", {}).get("confirmed_fields", 0)
+                for p in result["plans"]
+            ),
+            total_evidence_fields=sum(
+                p.get("verification", {}).get("coverage", {}).get("total_fields", 0)
+                for p in result["plans"]
+            ),
+            external_usage=usage.snapshot(),
         )
         return result
 
@@ -159,7 +186,9 @@ def _research(data):
 def _finish(data, result, owner):
     from .pricing import price_plans
 
-    if data.mode == "real" and data.transport == "car":
+    from .route_providers import configured
+
+    if data.mode == "real" and (data.transport == "car" or configured(data.transport)):
         from .planner import evaluate
         from .condition_audit import audit_plan
 
@@ -170,10 +199,14 @@ def _finish(data, result, owner):
             if verified:
                 plan.update(verified)
                 result["plans"][i] = audit_plan(plan, data)
-                plan["route_verification"] = "네이버 자동차 길찾기 조회 반영 (조회 시점 기준)"
+                plan["route_verification"] = {
+                    "car": "네이버 자동차 길찾기 조회 반영 (조회 시점 기준)",
+                    "walk": "TMAP 도보 경로 조회 반영 · 방문일 현장 상황 별도 확인",
+                    "transit": "TMAP 대중교통 경로 조회 반영 · 방문일 시간표 별도 확인",
+                }[data.transport]
             else:
                 plan["route_verification"] = (
-                    "자동차 실제 경로 확인 실패: " + str(error) + " · 추정 동선을 유지했어요."
+                    "실제 경로 확인 실패: " + str(error) + " · 추정 동선을 유지했어요."
                 )
     report(
         "가격 확인",
@@ -200,8 +233,16 @@ def _finish(data, result, owner):
     if result["plans"] and all(p.get("best_effort") for p in result["plans"]):
         result["status"] = "best_effort"
     from .experience import verification_summary
+    from .request_usage import current
+
+    if current() and current().snapshot()["budget_exhausted"]:
+        result["resource_notice"] = (
+            "일부 자료 조회가 요청 한도에 도달해 확인 자료와 추정을 함께 표시했어요. 누락된 영업·가격·이동 정보는 방문 전 확인해 주세요."
+        )
 
     for p in result["plans"]:
+        if result.get("resource_notice"):
+            p["resource_notice"] = result["resource_notice"]
         p["verification"] = verification_summary(p)
     from .recommendation_summary import enrich
 
@@ -210,5 +251,8 @@ def _finish(data, result, owner):
     from .plan_jobs import check_current
 
     check_current()
+    group_id = uuid.uuid4().hex
+    for plan in result["plans"]:
+        plan["recommendation_group_id"] = group_id
     result["plans"] = [store.save_plan(p, owner) for p in result["plans"]]
     return result

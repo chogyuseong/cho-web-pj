@@ -160,6 +160,6 @@ async function showPlace(id, placeMode) {
   videos.forEach(v => root.append(link(v.title || '영상 원문', v.source)));
   const links = node('div', undefined, 'actions'),
     q = encodeURIComponent(p.name + ' ' + p.region);
-  links.append(link('구글 사진 더보기', 'https://www.google.com/search?tbm=isch&q=' + q), link('구글 영상 더보기', 'https://www.google.com/search?tbm=vid&q=' + q), link('네이버 지도', 'https://map.naver.com/p/search/' + q));
+  links.append(link('구글 사진 더보기', 'https://www.google.com/search?tbm=isch&q=' + q), link('구글 영상 더보기', 'https://www.google.com/search?tbm=vid&q=' + q), placeMapLink('네이버 지도', p));
   root.append(links, node('h3', '근거를 보며 질문하기'), chatWidget('place', id, placeMode));
 }

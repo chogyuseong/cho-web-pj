@@ -1,11 +1,14 @@
 .plan-map{margin:18px 0;min-width:0;max-width:100%;overflow:hidden}
-.map-reconnect{min-height:220px;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:28px;text-align:center;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
-.map-reconnect strong{font-size:16px}.map-reconnect .hint{max-width:400px;font-size:12px;margin:12px 0 18px}
-.map-schematic{padding:12px 0;margin:0;border:0}.map-schematic summary{font-size:11px;color:var(--muted)}
-.naver-plan-map{height:360px;width:100%;max-width:100%;min-width:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;contain:layout paint;background:#eaf0e7;position:relative}
-.route-marker{display:flex;justify-content:center;align-items:center;width:38px;height:38px;background:#294d3d;border:3px solid white;border-radius:50%;color:#fff;font:bold 13px system-ui;box-shadow:0 2px 6px #0004;white-space:nowrap}
-.route-marker.route-start{background:#c65b32}
-.plan-map .map-caption{position:static;padding:8px 0;margin:0;font-size:12px;color:#536253;background:transparent;overflow-wrap:anywhere}
+.map-reconnect{min-height:220px;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:28px;text-align:center;border:1px solid var(--line);border-radius:18px;background:#fff9fb}
+.map-reconnect strong{font-size:17px;color:var(--ink)}.map-reconnect .hint{max-width:400px;font-size:14px;margin:12px 0 18px}
+.map-schematic{padding:12px 0;margin:0;border:0}.map-schematic summary{font-size:14px;color:var(--muted)}
+.naver-plan-map{height:360px;width:100%;max-width:100%;min-width:0;border:1px solid #ead5d9;border-radius:18px;overflow:hidden;contain:layout paint;background:#fdf4f6;position:relative;box-shadow:inset 0 0 0 1px #ffffff80}
+.route-marker{display:flex;justify-content:center;align-items:center;width:38px;height:38px;background-color:#9e2a4b;background-image:linear-gradient(135deg,#b53358,#87203e);border:3px solid #ffffff;border-radius:50%;color:#ffffff;font:bold 13px system-ui;box-shadow:0 4px 12px rgba(158,42,75,0.32);white-space:nowrap}
+.route-marker.route-start{background-color:#b84a27;background-image:linear-gradient(135deg,#cc5833,#9c3b1c)}
+.plan-map .map-caption{position:static;padding:10px 0 4px;margin:0;font-size:14px;color:#5c4951;background:transparent;overflow-wrap:anywhere}
 @media(max-width:720px){.naver-plan-map{height:290px}}
 
-.route-marker.restaurant-marker{background:#cf692b;font-size:11px}.restaurant-map-info{padding:12px;max-width:260px;font-size:12px}.restaurant-map-info p{margin:6px 0}.regional-restaurants>.meal-card{margin:12px 0}
+.route-marker.restaurant-marker{background-color:#a8385b;background-image:linear-gradient(135deg,#c2446b,#8d2748);font-size:11px}
+.restaurant-map-info{padding:14px;max-width:260px;font-size:14px;color:#261c21}
+.restaurant-map-info p{margin:6px 0}
+.regional-restaurants>.meal-card{margin:12px 0}

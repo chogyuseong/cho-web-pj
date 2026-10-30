@@ -1,4 +1,5 @@
-﻿import json
+import pytest
+import json
 from app.public_place_photos import extract_place_photos
 from app.image_search import search_place_images
 
@@ -31,6 +32,10 @@ def test_https_thumbnail_is_usable_with_http_original(monkeypatch):
 def test_api_empty_result_uses_identified_place_photo(monkeypatch):
     from app.media import media_info
     monkeypatch.setattr('app.media.search_enabled',lambda:True)
-    monkeypatch.setattr('app.media.search_place_images',lambda *args:{'status':'not_found','photos':[]})
     monkeypatch.setattr('app.public_place_photos.public_place_photos',lambda *args:{'status':'available','photo_source':'naver_public_place','photos':[{'image_url':'https://ldb-phinf.pstatic.net/place.jpg'}]})
-    assert media_info({'id':'test-miss','name':'검증카페'})['photo_source']=='naver_public_place'
+    assert media_info({'id':'test-miss','name':'검증카페'})['photo_source']=='priority_place_photos'
+
+
+@pytest.fixture(autouse=True)
+def approved_visual_service(monkeypatch):
+    monkeypatch.setattr('app.photo_relevance.classify',lambda *args:{'status':'approved','category':'interior','confidence':0.99})

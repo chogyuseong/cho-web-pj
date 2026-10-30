@@ -46,7 +46,7 @@ async function loadSafePhoto(img,photos,onSelected,onFailed){
 function fetchPlacePhotos(place,photoMode,force=false){
   const key=photoMode+':'+place.id;
   if(force)placePhotoRequests.delete(key);
-  if(!placePhotoRequests.has(key))placePhotoRequests.set(key,api('/places/'+encodeURIComponent(place.id)+'/media?mode='+photoMode+(force?'&refresh=true':'')).then(async data=>{try{return await discoverPlacePhotos(place,data);}catch{return {...data,message:data.message||'사진 공급자에 연결하지 못했습니다. 다시 시도해 주세요.'};}}).catch(error=>{placePhotoRequests.delete(key);throw error;}));
+  if(!placePhotoRequests.has(key))placePhotoRequests.set(key,api('/places/'+encodeURIComponent(place.id)+'/media?mode='+photoMode+(force?'&refresh=true':''),null,'GET',{timeout:60000}).then(async data=>{rememberVerifiedMapTarget(place,data);try{return await discoverPlacePhotos(place,data);}catch{return {...data,message:data.message||'사진 공급자에 연결하지 못했습니다. 다시 시도해 주세요.'};}}).catch(error=>{placePhotoRequests.delete(key);throw error;}));
   return placePhotoRequests.get(key);
 }
 function planPhotoPreview(plan){
@@ -76,7 +76,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
     img.referrerPolicy='no-referrer';
     const imageLink=link('',photo.source);imageLink.setAttribute('aria-label',photo.title+' 사진 원문 열기');imageLink.append(img);
     const credits=node('figcaption');
-    if(['search_result','place_public'].includes(photo.kind))credits.append(node('span','네이버 사진 자료 · '),link(photo.kind==='place_public'?'장소 사진 출처':'원본 이미지',photo.source),node('span',' · '),link('검색 결과',photo.search_url));
+    if(['search_result','place_public'].includes(photo.kind))credits.append(node('span','네이버 사진 자료 · '),link(photo.source_label||(photo.kind==='place_public'?'장소 사진 출처':'원본 이미지'),photo.source),node('span',' · '),link('검색 결과',photo.search_url));
     else credits.append(node('span','사진: '+photo.author+' · '),link(photo.license,photo.license_url),node('span',' · '),link('사진 원문',photo.source));
     const viewport=node('div',undefined,'photo-viewport');viewport.append(imageLink);figure.append(viewport,credits);
     let current=0,counter=null,busy=false,suppressClickUntil=0;
@@ -90,15 +90,15 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       const index=data.photos.indexOf(next);if(index>=0)current=index;
       if(counter)counter.textContent=`${current+1} / ${data.photos.length}`;
       imageLink.href=loadedUrl||next.source;imageLink.setAttribute('aria-label',next.title+' 표시 가능한 사진 크게 보기');
-      copy.replaceChildren(node('span',next.image_role?next.image_role+' · 제목 기준':'장소 사진','photo-eyebrow'),node('h5',next.title),node('p',next.caption||place.description||''));
+      copy.replaceChildren(node('span',next.source_label||(next.image_role?next.image_role+' · 제목 기준':'장소 사진'),'photo-eyebrow'),node('h5',next.title),node('p',next.caption||place.description||''));
       if(place.description&&place.description!==next.caption)copy.append(node('p',place.description,'hint'));
       copy.append(node('p',`촬영 ${next.taken_at||'시점 미확인'} · 자료 확인 ${next.checked_at||'시점 미확인'}`,'hint'),node('p',next.changes||'원본 변경 없음','hint'));
       if(['search_result','place_public'].includes(next.kind))copy.append(node('p','검색 참고 이미지 · 원본 이용 조건 확인 필요','hint'));
       if(data.photos.length>1&&!full)copy.append(button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode)));
-      credits.replaceChildren();if(['search_result','place_public'].includes(next.kind))credits.append(node('span','네이버 사진 자료 · '),link(next.kind==='place_public'?'장소 사진 출처':'원본 이미지',next.source),node('span',' · '),link('검색 결과',next.search_url));else credits.append(node('span','사진: '+next.author+' · '),link(next.license,next.license_url),node('span',' · '),link('사진 원문',next.source));loading.remove();
+      credits.replaceChildren();if(['search_result','place_public'].includes(next.kind))credits.append(node('span','네이버 사진 자료 · '),link(next.source_label||(next.kind==='place_public'?'장소 사진 출처':'원본 이미지'),next.source),node('span',' · '),link('검색 결과',next.search_url));else credits.append(node('span','사진: '+next.author+' · '),link(next.license,next.license_url),node('span',' · '),link('사진 원문',next.source));loading.remove();
     };
     const initialLoad=loadSafePhoto(img,data.photos,updatePhoto,async()=>{
-      try{if(data.photo_source!=='naver_public_place'){const fallback=await api('/places/'+encodeURIComponent(place.id)+'/media?mode='+photoMode+'&fallback=place');if(fallback.photos?.length){placePhotoRequests.set(photoMode+':'+place.id,Promise.resolve(fallback));await load();return;}}}catch{}
+      try{if(data.photo_source!=='matched_review_photos'){const fallback=await api('/places/'+encodeURIComponent(place.id)+'/media?mode='+photoMode+'&fallback=reviews',null,'GET',{timeout:60000});if(fallback.photos?.length){placePhotoRequests.set(photoMode+':'+place.id,Promise.resolve(fallback));await load();return;}}}catch{}
       try{const qid=/^Q[1-9][0-9]*$/.test(place.id)?place.id:null;if(qid){const fallback=await discoverPlacePhotos(place,{...data,photos:[],wikidata_id:qid});if(fallback.photos.length){await loadSafePhoto(img,fallback.photos,updatePhoto,unavailable);return;}}}catch{}
       unavailable();
     });
@@ -127,7 +127,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       imageLink.addEventListener('click',e=>{if(Date.now()<suppressClickUntil){e.preventDefault();e.stopPropagation();}});
     }
     if(data.photos.length>1&&!full){const more=button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode));copy.append(more);}
-    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const item of data.photos.slice(1,5)){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(['search_result','place_public'].includes(item.kind))credit.append(link('NAVER / original',item.source));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));f.append(image,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')));}panel.append(extra);}
+    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const item of data.photos.slice(1,5)){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(['search_result','place_public'].includes(item.kind))credit.append(link(item.source_label||'NAVER / original',item.source));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));f.append(image,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')));}panel.append(extra);}
   }catch(error){panel.replaceChildren(node('p','사진 정보를 불러오지 못했습니다. 다시 시도해 주세요.','photo-status'),retry());}}
   // 목록 전체를 한 번에 조회하지 않고 화면 근처의 장소만 불러온다.
   if(eager)load();else if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){observer.disconnect();load();}},{rootMargin:'150px'});observer.observe(panel);}else load();

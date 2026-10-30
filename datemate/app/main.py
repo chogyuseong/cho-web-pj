@@ -335,13 +335,15 @@ class ParseInput(BaseModel):
 def place_media(
     id: str,
     mode: Literal["demo", "real"] = "real",
-    fallback: Literal["", "place"] = "",
+    fallback: Literal["", "place", "reviews"] = "",
     refresh: bool = False,
 ):
     p = get_place(id, mode)
     if p is None:
         raise HTTPException(404, "장소를 찾을 수 없습니다.")
-    return media_info(p, prefer_public=fallback == "place", force=refresh)
+    return media_info(
+        p, prefer_public=fallback == "place", force=refresh, review_only=fallback == "reviews"
+    )
 
 
 @app.get("/api/places/{id}/blogs")

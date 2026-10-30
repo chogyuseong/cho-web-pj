@@ -16,3 +16,16 @@ document.getElementById('conditions').addEventListener('change',event=>{
     document.querySelectorAll('[data-mood]').forEach(button=>button.setAttribute('aria-pressed',String(selected===button.dataset.mood)));
   }
 });
+
+
+// The navigation wraps on mobile; use its measured height for anchor/map offsets.
+(() => {
+  const header = document.querySelector('body > header');
+  if (!header) return;
+  const measure = () => document.documentElement.style.setProperty(
+    '--site-header-height', Math.ceil(header.getBoundingClientRect().height) + 'px'
+  );
+  measure();
+  if ('ResizeObserver' in window) new ResizeObserver(measure).observe(header);
+  else window.addEventListener('resize', measure);
+})();

@@ -1,22 +1,22 @@
-/* Shared reading and interaction rules. Keep feature layouts in their components. */
+/* Shared reading, accessibility, and couple atelier interaction rules. */
 :root {
-  --ink:#262b30;
-  --muted:#58616b;
-  --brand-blue:#a53d2b;
-  --brand-soft:#f9ece6;
-  --line:#dedbd5;
+  --ink:#261c21;
+  --muted:#5c4951;
+  --brand-blue:#9e2a4b;
+  --brand-soft:#fae4ea;
+  --line:#ead5d9;
   --reading-body:16px;
   --reading-note:14px;
 }
 html { scroll-padding-top:24px; }
 #main-content:focus { outline:none; }
-body { font-size:17px; line-height:1.75; letter-spacing:0; }
+body { font-size:17px; line-height:1.75; letter-spacing:0; color:var(--ink); background-color:#fdfaf7; }
 main :is(p,li,dd,dt) { line-height:1.8; overflow-wrap:anywhere; }
 main p { font-size:var(--reading-body); }
 main :is(small,.small,.hint,.muted,.price-basis,.review-meta,.number,.option-label) {
   font-size:var(--reading-note); line-height:1.75;
 }
-main :is(label,legend) { font-size:16px; line-height:1.65; }
+main :is(label,legend) { font-size:16px; line-height:1.65; color:var(--ink); }
 main :is(summary,button),header nav :is(a,button) { font-size:15px; line-height:1.6; }
 main button.primary,main button.secondary,main .actions button { font-size:15px; }
 main :is(summary,button),header nav :is(a,button),dialog :is(summary,button) {
@@ -24,77 +24,155 @@ main :is(summary,button),header nav :is(a,button),dialog :is(summary,button) {
 }
 main summary { display:list-item; padding-block:10px; margin-bottom:0; }
 main :is(th,td) { font-size:14px; line-height:1.75; padding:13px 12px; }
-main .hint,main .muted { color:#58616b; }
-main .warning { font-size:15px; line-height:1.8; color:#714615; background:#fff5e5; border-color:#dec6a2; }
-main :is(.tag,.step-category) { font-size:13px; line-height:1.65; padding:5px 9px; }
+main .hint,main .muted { color:#5c4951; }
+main .warning { font-size:15px; line-height:1.8; color:#6b3410; background-color:#fff5eb; border-color:#e5c3a3; border-radius:14px; }
+main :is(.tag,.step-category) { font-size:13.5px; line-height:1.65; padding:5px 11px; color:#7d1e3a; background-color:#fae4ea; }
 main :is(.condition-summary,.condition-differences p,.course-evidence p,.place-evidence p,.map-caption) { font-size:15px; }
-main .service-details summary { font-size:15px; color:#4b514f; }
-main .service-details summary>span { color:#4b514f; }
-main .eyebrow,main :is(.inspiration,.workspace-intro,.curation) .eyebrow { font-size:14px!important; letter-spacing:.09em; }
-main .hero .hero-description { font-size:18px!important; line-height:1.9; color:#50585f; max-width:38em; }
-main .hero-pill { font-size:14px; line-height:1.7; letter-spacing:.06em; }
+main .service-details summary { font-size:15px; color:#523e46; }
+main .service-details summary>span { color:#7d1e3a; }
+main .eyebrow,main :is(.inspiration,.workspace-intro,.curation) .eyebrow { font-size:14px!important; letter-spacing:.09em; color:#871f3d!important; }
+main .hero .hero-description { font-size:18px!important; line-height:1.9; color:#544048; max-width:38em; }
+main .hero-pill { font-size:14px; line-height:1.7; letter-spacing:.06em; color:#7d1e3a; background-color:#fae4ea; }
 main .hero-actions a { font-size:16px; min-height:50px; }
-main .inspiration>p,main .workspace-intro>p { font-size:16px; color:#58616b; }
-main .inspiration-card :is(small,.hint) { font-size:14px!important; color:#4f5a64; }
+main .inspiration>p,main .workspace-intro>p { font-size:16px; color:#5c4951; }
+main .inspiration-card :is(small,.hint) { font-size:14px!important; color:#544048; }
 main .inspiration-card button { font-size:15px; min-height:46px; }
-.conditions .simple-form-intro { color:#48535c; font-size:16px; margin-bottom:8px; }
-.conditions .simple-form-group { padding-bottom:28px; margin-top:24px; }
-.conditions .simple-form-group legend { font-size:20px; line-height:1.5; font-weight:750; margin-bottom:16px; }
-.conditions .simple-form-group label { font-size:16px; font-weight:600; gap:8px; }
+
+.conditions .simple-form-intro { color:#4f3b43; font-size:16px; margin-bottom:8px; }
+.conditions .simple-form-group { padding-bottom:26px; margin-top:22px; }
+.conditions .simple-form-group legend { font-size:20px; line-height:1.5; font-weight:800; margin-bottom:14px; color:#261c21; }
+.conditions .simple-form-group label { font-size:16px; font-weight:650; gap:8px; color:#261c21; }
 .conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) {
-  min-height:48px; font-size:17px; line-height:1.6; border-color:#aeb7bd; background:#fff;
+  min-height:48px; font-size:17px; line-height:1.6; border-color:#cfaeb7; background-color:#ffffff; color:#261c21;
 }
 .conditions textarea { min-height:116px; padding:14px; }
-.conditions :is(input,textarea)::placeholder { color:#67717a; opacity:1; }
+.conditions :is(input,textarea)::placeholder { color:#6e5861; opacity:1; }
 .conditions .simple-activity-ideas { gap:10px; margin-bottom:16px; }
-.conditions .simple-activity-ideas button { min-height:44px; font-size:15px; background:#f1f3f4; color:#34414c; border:1px solid #d3d9dd; }
-.conditions .simple-extra-options { border:1px solid #d4dbe0; border-radius:14px; padding:12px 18px; }
-.conditions .simple-extra-options>summary { font-size:16px; color:#334a5c; }
+.conditions .simple-activity-ideas button {
+  min-height:44px;
+  font-size:15px;
+  background-color:#fdf0f3!important;
+  color:#7d1e3a!important;
+  border:1px solid #e2bbc5!important;
+}
+.conditions .simple-extra-options { border:1px solid #ead5d9; border-radius:16px; padding:12px 18px; }
+.conditions .simple-extra-options>summary { font-size:16px; color:#68172f; }
 .conditions #submit-plan { min-height:58px; font-size:18px; }
-.field-requirement { display:inline-block; margin-left:10px; vertical-align:middle; font-size:13px; line-height:1.6; color:#764332; background:#faeee7; border:1px solid #e2c7b9; padding:2px 8px; border-radius:5px; font-weight:600; }
+.field-requirement {
+  display:inline-block;
+  margin-left:10px;
+  vertical-align:middle;
+  font-size:13px;
+  line-height:1.6;
+  color:#7d1e3a;
+  background-color:#fae4ea;
+  border:1px solid #e2b8c3;
+  padding:2px 9px;
+  border-radius:999px;
+  font-weight:750;
+}
 #parse-notice:empty { display:none; }
-#parse-notice:not(:empty) { padding:12px 14px; border-left:3px solid #596d7b; background:#f1f5f7; color:#354855; font-size:15px; }
+#parse-notice:not(:empty) {
+  padding:12px 16px;
+  border-left:4px solid #9e2a4b;
+  background-color:#fff5f7;
+  color:#4f2433;
+  font-size:15px;
+  border-radius:0 12px 12px 0;
+}
+
 header nav a,header nav button.nav { display:inline-flex; align-items:center; font-size:15px; white-space:normal; }
-header .brand-name small { font-size:13px; color:#58616b; }
-.plan-option-tabs button { display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:8px; padding:16px; text-align:left; }
-.plan-option-tabs .option-label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:14px; letter-spacing:0; font-weight:650; }
-.plan-option-tabs strong { font-size:18px; line-height:1.55; }
-.plan-option-tabs small { font-size:14px; line-height:1.7; color:#525c65; }
-.plan-option-tabs button[aria-pressed=true] { box-shadow:inset 0 0 0 2px #742b20; }
-.plan-option-tabs button[aria-pressed=true] :is(strong,small,.option-label) { color:#fff!important; }
-.selection-indicator { font-size:12px; font-weight:750; padding:1px 7px; border:1px solid #ffffffb3; border-radius:4px; }
-.plan-card .number { font-size:14px; letter-spacing:0; }
-.plan-card .path-text { font-size:16px; color:#4e5964; }
+header .brand-name small { font-size:13px; color:#5c4951; }
+
+.plan-option-tabs button {
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:flex-start;
+  gap:8px;
+  padding:16px;
+  text-align:left;
+}
+.plan-option-tabs .option-label {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  letter-spacing:0;
+  font-weight:700;
+  color:#7d1e3a;
+}
+.plan-option-tabs strong { font-size:18px; line-height:1.55; color:#261c21; }
+.plan-option-tabs small { font-size:14px; line-height:1.7; color:#544048; }
+.plan-option-tabs button[aria-pressed=true] { box-shadow:inset 0 0 0 2px #68172f; }
+.plan-option-tabs button[aria-pressed=true] :is(strong,small,.option-label) { color:#ffffff!important; }
+.selection-indicator {
+  font-size:12px;
+  font-weight:750;
+  padding:2px 8px;
+  border:1px solid #ffffffcc;
+  border-radius:999px;
+  background-color:#7d1e3a;
+  color:#ffffff;
+}
+
+.plan-card .number { font-size:14px; letter-spacing:0; color:#7d1e3a; }
+.plan-card .path-text { font-size:16px; color:#4a353d; }
 .plan-card .inspect-plan { font-size:15px; min-height:46px; }
 .plan-card .option-heading .inspect-plan { font-size:15px; min-height:46px; white-space:normal; }
-.plan-card .stats { gap:20px; padding:20px; background:#f5f5f1; border:1px solid #e0e2dc; }
-.plan-card .stats b { font-size:25px; line-height:1.4; font-variant-numeric:tabular-nums; color:#7f3929; }
-.plan-card .stats small { display:block; font-size:14px; margin-top:5px; color:#58616b; }
+.plan-card .stats { gap:20px; padding:20px; background-color:#fff8fa; border:1px solid #ead5d9; }
+.plan-card .stats b { font-size:25px; line-height:1.4; font-variant-numeric:tabular-nums; color:#7d1e3a; }
+.plan-card .stats small { display:block; font-size:14px; margin-top:5px; color:#5c4951; }
+
 .option-comparison h3 { font-size:20px; }
-.option-comparison th { font-size:14px; color:#434e58; }
+.option-comparison th { font-size:14px; color:#68172f; background-color:#fdf0f3; }
+
 .detail-header h2 { font-size:26px; line-height:1.5; }
-.detail .actions button { font-size:15px; min-height:44px; padding:10px 14px; border:1px solid #c9d2cc; }
+.detail .actions button { font-size:15px; min-height:44px; padding:10px 16px; border:1px solid #dfb8c2; }
 .detail .timeline-card h4 { font-size:25px; line-height:1.5; margin:12px 0 8px; }
 .detail .timeline-card :is(.small,.hint) { font-size:15px; line-height:1.8; }
-.detail .route-line { font-size:15px; line-height:1.8; color:#46565f; padding:12px 16px; }
-.detail .stop-cost { font-size:15px; line-height:1.65; color:#6d3526; }
+.detail .route-line { font-size:15px; line-height:1.8; color:#5c2839; padding:12px 16px; }
+.detail .stop-cost { font-size:15px; line-height:1.65; color:#7d1e3a; }
 .detail .map-link-list { gap:12px; font-size:15px; }
-.detail .table-scroll { border:1px solid #dddfe0; border-radius:10px; margin:16px 0; }
-.detail .table-scroll:focus-visible { outline:3px solid #a53d2b; outline-offset:3px; }
+.detail .map-link-list a {
+  display:inline-flex;
+  align-items:center;
+  padding:6px 14px;
+  border-radius:999px;
+  background-color:#fff5f7;
+  border:1px solid #ead5d9;
+  color:#7d1e3a;
+  font-weight:650;
+  text-decoration:none;
+}
+.detail .map-link-list a:hover { background-color:#fae4ea; }
+.detail .table-scroll { border:1px solid #ead5d9; border-radius:14px; margin:16px 0; background-color:#ffffff; }
+.detail .table-scroll:focus-visible { outline:3px solid #9e2a4b; outline-offset:3px; }
 .detail table { white-space:normal; min-width:700px; }
-.detail th { background:#f1f3f2; color:#37434d; font-weight:750; }
-.detail td { vertical-align:top; min-width:85px; overflow-wrap:anywhere; }
-.detail td:first-child { min-width:160px; font-weight:600; }
+.detail th { background-color:#fdf0f3; color:#68172f; font-weight:750; }
+.detail td { vertical-align:top; min-width:85px; overflow-wrap:anywhere; color:#261c21; }
+.detail td:first-child { min-width:160px; font-weight:650; }
 .detail .chat-box { font-size:16px; line-height:1.85; }
 .detail .chat-form button { font-size:16px; }
-.detail .total-row { gap:16px; font-size:16px; }
-.detail .total-row>span:last-child { flex-shrink:0; font-variant-numeric:tabular-nums; }
-.plan-map-card .map-option-tabs button { font-size:15px; min-height:44px; }
+.detail .total-row {
+  gap:16px;
+  font-size:16px;
+  padding:14px 18px;
+  margin:8px 0;
+  background-color:#fff8fa;
+  border:1px solid #efdbe0;
+  border-radius:14px;
+}
+.detail .total-row>span:last-child { flex-shrink:0; font-variant-numeric:tabular-nums; color:#7d1e3a; font-weight:800; }
+
+.plan-map-card .map-option-tabs button { font-size:15px; min-height:44px; border-radius:999px; }
 .plan-map-card :is(p,summary,.hint,.map-place-list) { font-size:14px; line-height:1.8; }
-.plan-map-card .map-course-title { font-size:16px; }
+.plan-map-card .map-course-title { font-size:16px; color:#261c21; }
+
 .place-card h3 { font-size:20px; line-height:1.5; }
-main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.small,small,.menu-checked,.photo-credit) { font-size:14px; line-height:1.8; }
-main :is(.meal-card,.place-blogs,.place-photo-panel) a { font-size:14px; line-height:1.8; overflow-wrap:anywhere; }
+main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.small,small,.menu-checked,.photo-credit) { font-size:14px; line-height:1.8; color:#544048; }
+main :is(.meal-card,.place-blogs,.place-photo-panel) a { font-size:14px; line-height:1.8; overflow-wrap:anywhere; color:#7d1e3a; font-weight:650; }
 main .meal-card h5 { font-size:20px; line-height:1.5; }
 main .meal-card .menu-heading { font-size:16px; }
 main .meal-card .menu-price-row { font-size:15px; gap:12px; }
@@ -103,13 +181,54 @@ main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; li
 .place-photo-panel .photo-counter { font-size:14px; }
 .execution-summary>details { margin:10px 0; padding:8px 0; }
 .execution-summary>details>summary { font-size:15px; }
+
+/* Shared Partner Voting Page (shared.html) */
+#shared-places { display:grid; gap:16px; margin:20px 0 24px; }
+#shared-places article {
+  background-color:#ffffff;
+  border:1px solid #ead5d9;
+  border-radius:20px;
+  padding:22px;
+  box-shadow:0 8px 24px rgba(104,30,52,0.05);
+}
+#shared-places article h2 {
+  font-family:'Noto Serif KR','AppleMyungjo',Georgia,serif;
+  font-size:22px;
+  margin:0 0 6px;
+  color:#261c21;
+}
+#shared-places article p { color:#5c4951; margin:0 0 14px; }
+#shared-form button.primary {
+  background-color:#9e2a4b;
+  background-image:linear-gradient(135deg,#b8335a,#871f3d);
+  color:#ffffff;
+  border-radius:999px;
+  min-height:50px;
+  padding:12px 28px;
+  font-size:16px;
+  font-weight:750;
+}
+
 dialog :is(p,li,dd,dt,.hint,.small) { font-size:15px; line-height:1.8; }
 dialog :is(label,summary,button,input,select,textarea) { font-size:16px; }
-dialog input::placeholder { color:#67717a; opacity:1; }
+dialog input::placeholder { color:#6e5861; opacity:1; }
 dialog :is(button,summary) { min-height:44px; }
 footer,footer small { font-size:14px; line-height:1.75; }
-.skip-to-content { position:absolute; top:8px; left:16px; z-index:1000; padding:12px 18px; background:#fff; border:2px solid #a53d2b; border-radius:8px; transform:translateY(-180%); color:#7f3022; font-weight:700; }
+.skip-to-content {
+  position:absolute;
+  top:8px;
+  left:16px;
+  z-index:1000;
+  padding:12px 18px;
+  background-color:#ffffff;
+  border:2px solid #9e2a4b;
+  border-radius:999px;
+  transform:translateY(-180%);
+  color:#7d1e3a;
+  font-weight:750;
+}
 .skip-to-content:focus { transform:translateY(0); }
+
 @media(max-width:800px) {
   .plan-option-tabs button { display:flex; }
   .plan-option-tabs strong { font-size:17px; }
@@ -120,8 +239,8 @@ footer,footer small { font-size:14px; line-height:1.75; }
 }
 @media(max-width:480px) {
   header { gap:10px; }
-  header nav { width:100%; justify-content:space-between; margin-left:0; gap:10px; }
-  header nav a,header nav button.nav { font-size:14px; min-height:44px; }
+  header nav { width:100%; justify-content:space-between; margin-left:0; gap:8px; }
+  header nav a,header nav button.nav { font-size:14px; min-height:44px; padding:6px 10px; }
   header nav a { display:inline-flex; }
   main .hero .hero-description { font-size:17px!important; }
   .conditions.panel,.detail.panel,.plan-card { padding:20px 16px; }
@@ -138,3 +257,31 @@ footer,footer small { font-size:14px; line-height:1.75; }
   .selection-indicator { border:1px solid currentColor; }
 }
 @media print { .skip-to-content { display:none; } }
+
+main .data-banner .eyebrow { color:#ffffff!important; }
+main .hero .hero-pill { font-size:14px!important; }
+h2[tabindex="-1"]:focus { outline:none!important; }
+
+/* Keep anchored sections and the map below the wrapping sticky navigation. */
+html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
+#planner-section.workspace,#explore-section { scroll-margin-top:0; }
+.inspiration-grid { grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))!important; }
+@media(min-width:801px) {
+  .plan-map-card {
+    top:calc(var(--site-header-height,88px) + 16px);
+    max-height:calc(100dvh - var(--site-header-height,88px) - 32px);
+  }
+}
+
+/* Each nearby leisure venue shows two compact photos without hiding its actions. */
+.leisure-photo-panel { min-width:0; margin:14px 0; }
+.leisure-photo-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.leisure-photo-grid figure { margin:0; min-width:0; }
+.leisure-photo-grid figure>a { display:block; border-radius:12px; overflow:hidden; }
+.leisure-photo-grid img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:cover; background:#fae4ea; }
+.leisure-photo-grid figcaption { font-size:14px; padding-top:6px; overflow-wrap:anywhere; }
+.leisure-photo-empty { display:grid; place-items:center; aspect-ratio:3/2; margin:0; padding:12px; box-sizing:border-box; border:1px dashed #dfb8c2; border-radius:12px; background:#fff6f8; text-align:center; color:#5c4951; }
+.leisure-photo-panel>button { margin:10px 10px 0 0; }
+@media(max-width:480px) { .leisure-photo-grid { gap:8px; } .leisure-photo-grid img,.leisure-photo-empty { aspect-ratio:1/1; } }
+
+.leisure-photo-grid>figure:only-child { grid-column:1 / -1; width:100%; max-width:480px; }

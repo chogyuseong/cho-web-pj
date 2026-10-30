@@ -20,7 +20,7 @@ function renderDetail() {
   if (p.conditions.mode === 'real' && p.conditions.allow_estimates) box.append(estimatedPlanNotice());
   box.append(executionSummary(p), conditionDifferences(p));
   const links = node('div', undefined, 'map-link-list');
-  p.places.forEach((place, i) => links.append(link(`${i+1}. 네이버에서 찾기`, 'https://map.naver.com/p/search/' + encodeURIComponent(place.name + ' ' + place.region))));
+  p.places.forEach((place, i) => links.append(placeMapLink(`${i+1}. 네이버에서 찾기`, place)));
   box.append(links);
   p.places.forEach((place, i) => {
     box.append(node('div', `${p.legs[i].origin} → ${place.name} · ${p.legs[i].minutes}분 · ${p.legs[i].status==='api'?'실제 API':'추정'} / ${p.legs[i].source}`, 'route-line'));

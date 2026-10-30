@@ -19,3 +19,8 @@ def test_name_kept_and_original_data_unchanged():
 
 def test_sports_club_building_floor_removed():
     assert place_query({'name':'박흥권 탁구 클럽','address':'서울특별시 강남구 선릉로 664 건설빌딩 지하1층'})=='박흥권 탁구 클럽 서울특별시 강남구 선릉로 664'
+
+
+def test_jongno_numbered_dong_is_not_cut_as_a_road_number():
+    assert street_address('서울 종로구 종로3가 119 4층')=='서울 종로구 종로3가 119'
+    assert place_query({'name':'클라이밍파크 종로3가점','address':'서울 종로구 종로3가 119 4층'})=='클라이밍파크 종로3가점 서울 종로구 종로3가 119'

@@ -46,7 +46,7 @@ function renderPlanMapCard(){
   });
   card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
   const places=node('div',undefined,'map-place-list');
-  selected.places.forEach((place,index)=>places.append(link((index+1)+'. '+place.name,'https://map.naver.com/p/search/'+encodeURIComponent(place.name+' '+place.region))));
+  selected.places.forEach((place,index)=>places.append(placeMapLink((index+1)+'. '+place.name,place)));
   card.append(places);rail.append(card);
 }
 
@@ -117,7 +117,7 @@ function drawPlanMap(plan){
             const label=labels.join(' / ');
             const marker=new naver.maps.Marker({map,position:coord(food),title:label+' · '+food.name,
               icon:{content:'<span class="route-marker restaurant-marker">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
-            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),link('네이버 지도·메뉴 ↗','https://map.naver.com/p/search/'+encodeURIComponent(placeSearchQuery(food))));
+            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),placeMapLink('네이버 지도·메뉴 ↗',food));
             const info=new naver.maps.InfoWindow({content});naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
             bounds.extend(coord(food));count++;
           }

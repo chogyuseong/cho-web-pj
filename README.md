@@ -56,6 +56,8 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 ## 문서
 
+- [사용자 제공 디자인 적용·PC/모바일 확인](datemate/docs/design-import-2026-10-30.md)
+
 - [데이트 플랜 기능 오류 수정·PC/모바일 점검](datemate/docs/results-functional-audit-2026-10-29.md)
 
 - [상세 실행·환경변수·테스트](datemate/README.md)

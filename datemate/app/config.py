@@ -40,10 +40,10 @@ def validate_runtime():
                 or (production() and parsed.scheme != 'https')):
             raise RuntimeError('DATEMATE_PUBLIC_ORIGIN에는 경로 없는 HTTPS 사이트 주소를 입력하세요.')
 
-def llm():
+def llm(timeout=30,max_retries=1,max_tokens=None):
     from langchain_openai import ChatOpenAI
     key = os.getenv('GMS_KEY')
     if not key:
         raise ValueError('GMS 키가 없어 실제 LLM을 사용할 수 없습니다.')
     return ChatOpenAI(api_key=key, base_url=os.getenv('GMS_BASE_URL', 'https://gms.ssafy.io/gmsapi/api.openai.com/v1/'),
-                      model=os.getenv('GMS_MODEL', 'gpt-5.4-nano'), temperature=0, timeout=30, max_retries=1)
+                      model=os.getenv('GMS_MODEL', 'gpt-5.4-nano'), temperature=0, timeout=timeout, max_retries=max_retries,max_tokens=max_tokens)

@@ -54,14 +54,80 @@ function button(text, action, cls = 'secondary') {
   return b;
 }
 
+function cleanPlaceText(value) {
+  return String(value || '').normalize('NFKC').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function streetAddressText(value) {
+  const text = cleanPlaceText(value).replace(/((?:대로|로))\s+(\d+(?:번)?길)/g, '$1$2');
+  const road = text.match(/[가-힣A-Za-z0-9·.]+(?:대로|로|길)\s*\d+(?:-\d+)?(?=\s|$|[,(])/);
+  if (road) return text.slice(0, road.index + road[0].length).trim();
+  const lot = text.match(/(?:동|가|리)\s+(?:산\s*)?\d+(?:-\d+)?(?=\s|$|[,(])/);
+  if (lot) return text.slice(0, lot.index + lot[0].length).trim();
+  const district = text.match(/(?:서울특별시|서울시|서울)\s+[가-힣]+구/);
+  return district ? district[0] : '';
+}
+
+function addressStart(text) {
+  const city = text.match(/(?:^|\s)(?:서울특별시|서울시|서울)\s+/);
+  if (city) return city.index + (text[city.index] === ' ' ? 1 : 0);
+  const district = text.match(/(?:^|\s)[가-힣]+구\s+/);
+  return district ? district.index + (text[district.index] === ' ' ? 1 : 0) : -1;
+}
+
 function searchQueryAddressOnly(value) {
-  const text = String(value || '').normalize('NFKC').replace(/\s+/g, ' ').trim().replace(/((?:대로|로))\s+(\d+(?:번)?길)/g, '$1$2');
-  const road = text.match(/[가-힣A-Za-z0-9·.]+(?:대로|로|길)\s*\d+(?:-\d+)?/);
-  return road ? text.slice(0, road.index + road[0].length).trim() : text;
+  const text = cleanPlaceText(value),
+    start = addressStart(text);
+  if (start < 0) return text;
+  const address = streetAddressText(text.slice(start));
+  return address && /\d/.test(address) ? [text.slice(0, start).trim(), address].filter(Boolean).join(' ') : text;
 }
 
 function placeSearchQuery(place) {
-  return searchQueryAddressOnly(place.name + ' ' + (place.address || ''));
+  return [cleanPlaceText(place.name), streetAddressText(place.address)].filter(Boolean).join(' ');
+}
+
+function placeMapQuery(place) {
+  const name = cleanPlaceText(place.name),
+    address = cleanPlaceText(place.address);
+  const district = address.match(/(?:^|\s)([가-힣]+구)(?=\s|$)/);
+  return ['서울', district?.[1], name].filter(Boolean).join(' ');
+}
+
+const verifiedMapTargets = new Map();
+
+function placeMapUrl(place) {
+  const id = place.naver_place_id_verified === true ? String(place.naver_place_id || '') : '';
+  if (/^\d+$/.test(id)) return 'https://map.naver.com/p/entry/place/' + id;
+  return verifiedMapTargets.get(place.id) || 'https://map.naver.com/p/search/' + encodeURIComponent(placeMapQuery(place));
+}
+
+function placeMapLink(label, place) {
+  const anchor = link(label, placeMapUrl(place));
+  anchor.dataset.mapPlaceId = place.id;
+  anchor.title = placeMapQuery(place) + ' · 새 탭에서 지도 열기';
+  return anchor;
+}
+
+function rememberVerifiedMapTarget(place, data) {
+  if (data.place_id && data.place_id !== place.id) return;
+  const id = String(data.naver_place_id || '');
+  if (data.naver_place_id_verified !== true || !/^\d+$/.test(id)) return;
+  const url = 'https://map.naver.com/p/entry/place/' + id;
+  verifiedMapTargets.set(place.id, url);
+  for (const anchor of document.querySelectorAll('a[data-map-place-id]')) {
+    if (anchor.dataset.mapPlaceId === place.id) anchor.href = url;
+  }
+}
+
+function normalizeMapQuery(value) {
+  const text = cleanPlaceText(value),
+    start = addressStart(text);
+  if (start > 0) return placeMapQuery({
+    name: text.slice(0, start).trim(),
+    address: text.slice(start)
+  });
+  return text;
 }
 
 function normalizeLink(raw) {
@@ -71,7 +137,7 @@ function normalizeLink(raw) {
   try {
     const u = new URL(value, location.origin);
     if (u.username || u.password) return null;
-    if (u.protocol === 'nmap:') return 'https://map.naver.com/p/search/' + encodeURIComponent(u.searchParams.get('dname') || '서울');
+    if (u.protocol === 'nmap:') return 'https://map.naver.com/p/search/' + encodeURIComponent(normalizeMapQuery(u.searchParams.get('dname') || '서울'));
     if (!['http:', 'https:'].includes(u.protocol)) return null;
     if (u.origin === location.origin && /^\/api\/plans\/[a-zA-Z0-9_-]+$/.test(u.pathname)) return '/?plan=' + encodeURIComponent(u.pathname.split('/').at(-1));
     if (['blog.naver.com', 'm.blog.naver.com'].includes(u.hostname) && /PostView\.naver$/i.test(u.pathname)) {
@@ -81,7 +147,7 @@ function normalizeLink(raw) {
     }
     if (u.hostname === 'map.naver.com' && u.pathname.startsWith('/p/search/')) {
       const query = decodeURIComponent(u.pathname.slice('/p/search/'.length));
-      u.pathname = '/p/search/' + encodeURIComponent(searchQueryAddressOnly(query));
+      u.pathname = '/p/search/' + encodeURIComponent(normalizeMapQuery(query));
     }
     if (['search.naver.com', 'm.search.naver.com'].includes(u.hostname) && u.searchParams.has('query')) u.searchParams.set('query', searchQueryAddressOnly(u.searchParams.get('query')));
     return u.href;

@@ -34,7 +34,7 @@ function restaurantMenuPanel(food){
       }
       if(data.menu_images?.length){
         box.append(node('p',data.message,'hint'));const preview=node('div',undefined,'menu-image-preview');for(const url of data.menu_images.slice(0,2))preview.append(menuImage(url,food.name));box.append(preview,button('메뉴판 크게 보기 · '+data.menu_images.length+'장',()=>showMenuImages(food,data),'secondary'),node('small',data.note,'menu-checked'));
-      }else if(!data.items?.length)box.append(node('p',data.message||'공개 메뉴 자료가 없습니다.','hint'),link('지도에서 메뉴 확인 ↗',data.source_url||'https://map.naver.com/p/search/'+encodeURIComponent(placeSearchQuery(food))));
+      }else if(!data.items?.length)box.append(node('p',data.message||'공개 메뉴 자료가 없습니다.','hint'),link('지도에서 메뉴 확인 ↗',data.source_url||placeMapUrl(food)));
       box.append(button('메뉴 새로 조회',()=>load(true),'secondary menu-refresh'));
     }catch(error){box.replaceChildren(node('p','메뉴 조회를 완료하지 못했어요. '+error.message,'hint'),button('메뉴 다시 확인',()=>load(true)));}
   }
@@ -52,7 +52,7 @@ function restaurantCard(food,{badge='',near='',plan=null,index=0}={}){
   if(food.extra_distance_km!=null)info.append(node('p','직선 기준 추가 이동 약 '+food.extra_distance_km+'km','hint'));
   if(food.recognition&&food.source)info.append(link(food.recognition+' ↗',food.source));
   const photo=node('div',undefined,'meal-photo');photo.append(placePhotoPanel(food,'real'));
-  const actions=node('div',undefined,'actions meal-actions');actions.append(button('사진·장소 정보',()=>showPlace(food.id,'real'),'secondary'),link('네이버 지도·메뉴 ↗','https://map.naver.com/p/search/'+encodeURIComponent(placeSearchQuery(food))));
+  const actions=node('div',undefined,'actions meal-actions');actions.append(button('사진·장소 정보',()=>showPlace(food.id,'real'),'secondary'),placeMapLink('네이버 지도·메뉴 ↗',food));
   if(plan&&plan.can_edit!==false)actions.append(button('이 식당을 일정에 넣기',()=>showMealChange(food,plan,index),'primary'));card.append(info,photo,actions,placeBlogPanel(food,'real'));return card;
 }
 function mealRescuePanel(plan){

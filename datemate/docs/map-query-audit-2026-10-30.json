@@ -1,0 +1,132 @@
+[
+  {
+    "name": "클라이밍파크 종로점",
+    "address": "서울특별시 종로구 종로 199 한일빌딩 지하2층",
+    "variants": {
+      "full_address": {
+        "query": "클라이밍파크 종로점 서울특별시 종로구 종로 199",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "name_only": {
+        "query": "클라이밍파크 종로점",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "city_name": {
+        "query": "서울 클라이밍파크 종로점",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "district_name": {
+        "query": "서울 종로구 클라이밍파크 종로점",
+        "matched_rank": 1,
+        "status": "available"
+      }
+    }
+  },
+  {
+    "name": "박흥권탁구클럽",
+    "address": "서울특별시 강남구 선릉로 664 건설빌딩 지하1층",
+    "variants": {
+      "full_address": {
+        "query": "박흥권탁구클럽 서울특별시 강남구 선릉로 664",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "name_only": {
+        "query": "박흥권탁구클럽",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "city_name": {
+        "query": "서울 박흥권탁구클럽",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "district_name": {
+        "query": "서울 강남구 박흥권탁구클럽",
+        "matched_rank": 1,
+        "status": "available"
+      }
+    }
+  },
+  {
+    "name": "코델",
+    "address": "서울특별시 강서구 양천로 401 4층 비401호",
+    "variants": {
+      "full_address": {
+        "query": "코델 서울특별시 강서구 양천로 401",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "name_only": {
+        "query": "코델",
+        "matched_rank": 4,
+        "status": "available"
+      },
+      "city_name": {
+        "query": "서울 코델",
+        "matched_rank": 2,
+        "status": "available"
+      },
+      "district_name": {
+        "query": "서울 강서구 코델",
+        "matched_rank": 1,
+        "status": "available"
+      }
+    }
+  },
+  {
+    "name": "SAAN 2",
+    "address": "서울특별시 중구 충무로4길 3 1층",
+    "variants": {
+      "full_address": {
+        "query": "SAAN 2 서울특별시 중구 충무로4길 3",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "name_only": {
+        "query": "SAAN 2",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "city_name": {
+        "query": "서울 SAAN 2",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "district_name": {
+        "query": "서울 중구 SAAN 2",
+        "matched_rank": 1,
+        "status": "available"
+      }
+    }
+  },
+  {
+    "name": "대한민국역사박물관",
+    "address": "서울특별시 종로구 세종대로 198 대한민국역사박물관",
+    "variants": {
+      "full_address": {
+        "query": "대한민국역사박물관 서울특별시 종로구 세종대로 198",
+        "matched_rank": 2,
+        "status": "available"
+      },
+      "name_only": {
+        "query": "대한민국역사박물관",
+        "matched_rank": 2,
+        "status": "available"
+      },
+      "city_name": {
+        "query": "서울 대한민국역사박물관",
+        "matched_rank": 1,
+        "status": "available"
+      },
+      "district_name": {
+        "query": "서울 종로구 대한민국역사박물관",
+        "matched_rank": 1,
+        "status": "available"
+      }
+    }
+  }
+]

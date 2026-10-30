@@ -49,8 +49,8 @@ function leisureSuggestionPanel(plan, index) {
           }
         }, 'primary');
         select.disabled = plan.can_edit === false || locks.has(index);
-        actions.append(select, link('지도에서 확인 ↗', 'https://map.naver.com/p/search/' + encodeURIComponent(placeSearchQuery(place))));
-        card.append(actions);
+        actions.append(select, placeMapLink('지도에서 확인 ↗', place));
+        card.append(leisurePhotoPanel(place, plan.conditions.mode), actions);
         content.append(card);
       }
       if (!data.options.length) {
@@ -79,4 +79,140 @@ function leisureCoursePanel(plan) {
   section.append(node('h3', '이 동선에서 즐길 레저 골라보기'), node('p', '주변 레저를 찾을 코스 위치를 펼쳐주세요. 선택하면 그 순서의 방문지만 교체해요.', 'hint'));
   plan.places.forEach((place, index) => section.append(leisureSuggestionPanel(plan, index)));
   return section;
+}
+
+
+function leisurePhotoPanel(place, photoMode) {
+  const panel = node('section', undefined, 'leisure-photo-panel');
+  panel.setAttribute('aria-label', place.name + ' 사진 최대 2장');
+  if (place.demo || photoMode === 'demo') {
+    panel.append(node('p', '가상 장소 · 실제 사진을 붙이지 않습니다.', 'hint'));
+    return panel;
+  }
+  const status = node('p', '장소 사진 2장을 찾고 있어요…', 'hint');
+  status.setAttribute('role', 'status');
+  panel.append(status);
+  let busy = false,
+    lastPhotos = [];
+  async function load(force = false) {
+    if (busy || !panel.isConnected) return;
+    busy = true;
+    panel.setAttribute('aria-busy', 'true');
+    panel.replaceChildren(status);
+    status.textContent = '장소 사진 2장을 찾고 있어요…';
+    const grid = node('div', undefined, 'leisure-photo-grid');
+    panel.append(grid);
+    const slots = Array.from({
+      length: 2
+    }, (_, index) => {
+      const figure = node('figure'),
+        image = node('img');
+      image.width = 480;
+      image.height = 320;
+      image.decoding = 'async';
+      const placeholder = node('p', (index + 1) + '번째 사진 확인 중…', 'leisure-photo-empty');
+      figure.append(placeholder);
+      grid.append(figure);
+      return {
+        figure,
+        image,
+        index,
+        loaded: false
+      };
+    });
+    const seen = new Set(),
+      displayed = new Set();
+    let deadline = 0;
+    async function fill(photos) {
+      lastPhotos.push(...photos);
+      const queue = photos.filter(photo => {
+        const key = photoCandidates(photo)[0];
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, 8);
+      await Promise.all(slots.filter(slot => !slot.loaded).map(async slot => {
+        while (queue.length && panel.isConnected && Date.now() < deadline) {
+          const photo = queue.shift();
+          await loadSafePhoto(slot.image, [photo], (selectedPhoto, url) => {
+            if (!panel.isConnected || displayed.has(url)) return;
+            displayed.add(url);
+            slot.loaded = true;
+            slot.image.alt = place.name + ' 사진 ' + (slot.index + 1);
+            const original = link('', url);
+            original.setAttribute('aria-label', place.name + ' 사진 ' + (slot.index + 1) + ' 크게 보기');
+            original.append(slot.image);
+            const credit = node('figcaption');
+            if (['search_result', 'place_public'].includes(photo.kind)) {
+              credit.append(link((photo.source_label || '사진 출처') + ' ↗', photo.source));
+            } else {
+              credit.append(node('span', (photo.author || '') + ' · '), link(photo.license || '이용 조건', photo.license_url), node('span', ' · '), link((photo.source_label || '사진 출처') + ' ↗', photo.source));
+            }
+            slot.figure.replaceChildren(original, credit);
+          }, () => {
+            slot.loaded = false;
+            slot.figure.replaceChildren(node('p', '이 사진을 표시할 수 없어요.', 'leisure-photo-empty'));
+            if (!busy && panel.isConnected) {
+              status.textContent = '일부 사진을 표시하지 못했어요. 다시 찾기를 눌러 주세요.';
+              if (!panel.querySelector('.leisure-photo-retry')) panel.append(button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'));
+            }
+          });
+          if (slot.loaded) break;
+        }
+      }));
+    }
+    try {
+      if (force) {
+        for (const photo of lastPhotos)
+          for (const url of photoCandidates(photo)) photoLoads.delete(url);
+      }
+      lastPhotos = [];
+      let data;
+      try {
+        data = await fetchPlacePhotos(place, photoMode, force);
+      } catch {
+        data = {
+          photos: [],
+          message: '업체 사진 조회에 실패해 리뷰 사진을 확인했어요.'
+        };
+      }
+      if (!panel.isConnected) return;
+      deadline = Date.now() + 20000;
+      await fill(data.photos || []);
+      if (slots.some(slot => !slot.loaded) && panel.isConnected) {
+        status.textContent = '업체 사진이 부족해 리뷰 사진을 찾고 있어요…';
+        try {
+          const fallback = await api('/places/' + encodeURIComponent(place.id) + '/media?mode=' + photoMode + '&fallback=reviews', null, 'GET', {
+            timeout: 60000
+          });
+          if (panel.isConnected) await fill(fallback.photos || []);
+        } catch {}
+      }
+      if (!panel.isConnected) return;
+      const count = slots.filter(slot => slot.loaded).length;
+      status.textContent = count ? '장소 사진 ' + count + '장 · 누르면 크게 볼 수 있어요.' : (data.message || '현재 표시할 수 있는 장소 사진을 찾지 못했어요.');
+      for (const slot of slots.filter(slot => !slot.loaded)) {
+        slot.figure.remove();
+      }
+      if (!count) grid.remove();
+      if (count < 2) panel.append(button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'), link('네이버에서 사진 보기 ↗', data.search_url || 'https://search.naver.com/search.naver?where=image&query=' + encodeURIComponent(placeSearchQuery(place))));
+    } catch {
+      panel.replaceChildren(node('p', '사진을 불러오지 못했어요.', 'hint'), button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'));
+    } finally {
+      busy = false;
+      panel.setAttribute('aria-busy', 'false');
+    }
+  }
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) {
+        observer.disconnect();
+        load();
+      }
+    }, {
+      rootMargin: '150px'
+    });
+    observer.observe(panel);
+  } else requestAnimationFrame(() => load());
+  return panel;
 }

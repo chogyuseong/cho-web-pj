@@ -13,6 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PYTHON = [
     "app/main.py",
     "app/leisure.py",
+    "app/media.py",
+    "app/public_place_photos.py",
+    "app/blog_photos.py",
+    "app/photo_relevance.py",
     "app/plan_changes.py",
     "app/recommendation_service.py",
     "app/planning_outcomes.py",

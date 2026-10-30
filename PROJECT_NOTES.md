@@ -89,3 +89,43 @@ static/readability.css를 공통 읽기/버튼 기준으로 추가했다. 본문
 
 ## 2026-10-29 데이트 플랜 기능 오류 점검
 실제 종로 샘플에서 레저 address=None 정규식 예외 재현 후 수정. 사용자 선택 지역을 주소 없는 경우의 검색 지역으로 쓰고 방문지1.5km 유지, 스포츠6종목 최대3병렬·계측문맥 유지, 포괄 체육시설 분류+상호 종목 일치 보완과 캐시v5. 실제 네이버 격리 검색1건: 1.17초/주변10/교체가능10. 새 plan_changes.save_change에서 확인요약/추천요약/검색묶음/undo_locks 갱신·부모존재/고정버전 트랜잭션검사; 비용 구간차이 정정. plan-actions.js로 늦은 레저/가격/undo/초안/제보 응답이 다른 선택코스를 덮지 않게 처리; 미등록ID 응답의 목록초기화 제거; 빠른고정 요청직렬화, 교체중복클릭 차단, 식사/합의 모달 응답세대 검사. 고정/권한/연결/조건제외/후보없음 안내와 재시도 구분. PC1440/모바일390 실제 브라우저 레저선택/고정유지/undo/실패재시도/옵션전환지연/빠른고정, 식당메뉴미리보기확정undo 검사. 전체331 passed/1 skipped(PostgreSQL),174.14초; 포맷/pip check/diff check 통과. 8000서버23508 PID 재시작, health/static200 및 실제서버 첫화면 JS오류없음. .env/사용자DB 수정·배포/push 없음. 외부사진/영업/서울전지역/TMAP 실접속 전부검증으로 과장하지 말 것. 상세 docs/results-functional-audit-2026-10-29.md.
+
+
+## 2026-10-30 사용자 ZIP 디자인 적용
+실제 작업 폴더 Desktop/cho-web-pj, 제시된 streamlit_lab은 없음. Downloads/datemate-static-design.zip과 비교해 다른5CSS(editorial/execution-summary/plan-map/planning-outcomes/readability) 및 seoul-evening.jpg만 반영, 동일 기능코드 덮어쓰지 않음. 로즈/버건디/크림 메인·코스·지도·비용·공동선택/모바일 테마. 고정헤더 가림 발견하여 romance.js ResizeObserver 헤더측정과 readability.css 스크롤/지도top/maxheight 보완. 새 tests/test_imported_design_ui.py. 초기 브라우저9pass, 후속14pass(69.68초), 중복단순합산금지. 대비/글자크기/44px버튼/320·390·768·1440/옵션·레저·식당·undo·질문·후기·공유·협의·지도휠 점검. 문서 docs/design-import-2026-10-30.md와 PNG 저장. 실제외부호출/iOS실기기검증아님. 기존requirements-dev 기반.venv새로생성/설치, pip/포맷/diff check통과. 서버19712 PID 8000 실행, health/home/CSS/JS/image200. .env수정/배포/push없음.
+
+
+## 2026-10-30 환경 파일 누락 복구
+블로그/레저 장애 재확인: 실행 Desktop/cho-web-pj/datemate/.env가 없고 실제 블로그응답 key_missing. 디자인 변경 작업에서 키삭제/환경수정은 없었으며 Git 제외된 설정이 현재 복제본에 없던 상태. Desktop/조규성/cho-web-pj/datemate/.env에서 같은 프로젝트 API 연결 설정 발견. 현재 .env를 빈양식 기반 새로 만들고 GMS/네이버 검색·지도 등 연결 설정만 복원(기존 DB/운영환경설정 복사 안 함). 키 값 출력없음. 서버16848 PID 8000 재시작. 실제 경복궁 블로그 available/3개, 격리임시DB 종로2박물관 레저 search_status complete/주변10/교체가능10/1.11초 확인. .env Git ignore 확인, 공유양식·코드변경 없음. 배포/push없음. 브라우저 이전 실패캐시 제거 위해 새로고침 안내.
+
+
+## 2026-10-30 주변 레저 후보 사진 2장
+static/leisure.js leisurePhotoPanel 추가. 후보별2칸 사진/큰사진 새탭/출처, viewport근처 지연조회, 기존fetchPlacePhotos/loadSafePhoto 캐시·원본우선·대체URL 재사용. URL중복제외·실패후다음후보·공개업체사진 보충, 부족/실패안내·강제재검색, 가상장소실사진금지. readability.css PC2열/모바일2열정사각형. tests/test_leisure_photos_ui.py 실제Edge 통제이미지로 두장/중복/깨진사진대체/재검색/원본링크/모바일 검증. 관련브라우저11passed(59.13초), 늦은 표시실패 안내추가후 사진3검사재확인. 실제 API샘플 클라이밍파크종로점 사진후보3/available, 임시DB사용; 모든외부사진표시나실영업검증 아님. 서버16848 계속사용(정적파일즉시반영). .env설정유지, 배포/push없음.
+
+
+## 2026-10-30 업체 사진 우선/무관 이미지 제외
+기존media_info 이미지검색 제목일치 우선 경로 제거. public_place_photos 업체상호/주소좌표일치+명시owner메타데이터 분류, owner없으면식별된업체탭조회(동일ID/owner재검사), 401/403/429 cooldown/Retry-After. v4캐시. owner있으면1장이라도그사진만, 없으면검수등록부/업체연결공개사진/새blog_photos의사진caption·바로앞문구에업체명+지점+장소관련문맥대조. 블로그전체이미지/로고/타지점/레저식사사진/중복제외. 일반검색사진임의채움중단. source_label 업체/방문자/블로그/등록주체미확인 UI출처에반영. 전체341pass1skip194.73초, 후속owner탭/출처21pass27초(중복합산금지). 실제종로클라이밍공개레코드사진1장확인, 업체사진탭429여서owner미확인정직표시. 사진픽셀내용/업체자료전부확보 검증으로과장금지. docs/photo-source-priority-2026-10-30.md. .env미수정, 서버10048/8000 재시작, 배포/push없음.
+
+
+## 2026-10-30 추가 사진 실제 표시 보완
+사용자 지적: 원문에는많은데추가사진없음. 대표1장검색break/owner1장및public1장media조기return/프론트publicsource보충skip이원인. public query3종부족시계속/visitorImages·photos·photoList/동일업체ID분리사진읽기/owner추가자료와기존레코드병합, media owner우선+부족시공개·검수·caption블로그보충, 이전owner1장만유지정책은사용자최신요청으로변경. canonical사진경로로resize query/썸네일·원본중복제외. 캐시v5. 레저추가조회public차단제거, 자동조회실패를사진없음으로단정하지않음. tests/test_additional_place_photos.py4개 + 브라우저public1장→추가2장검사. 데이터/관련23pass17.48초; 최종브라우저13pass67.34초(중복합산금지), 포맷/diffcheck. 실제클라이밍파크종로점후보1→5장3.33초, 별도검증 실제CDN로드모바일Edge서로다른2장표시/JS오류0. 사용자DB테스트일정쓰기없음. 서버25020/8000 재시작. .env변경없음. docs/photo-source-priority-2026-10-30.md 후속항목참조.
+
+
+## 2026-10-30 사진 실패 시 리뷰로 바로 전환
+추가사용자요청반영: main Literal fallback에reviews 추가, media_info review_only는업체공급자우회하고blog_photos직접. leisure최초조회실패/표시가능사진부족 및 일반placePhotoPanel깨진사진대체가fallback=reviews 호출(기존place 재조회반복제거). 업체지점일치단독후기는각사진caption이없어도본문사진허용, 투어/코스종합글은caption필수유지; 타지점/식사문맥/스티커·프로필제외, 사진내용픽셀보증아님. resize중복제외·reviewcachev3. 관련29passed35.95초, 후속API/사진16passed28.24초(중복합산금지). 실제종로클라이밍후기5장,업체사진없음주입→리뷰자동요청1회→실제CDN2장표시/JS오류0확인. 서버21392/8000 재시작. .env변경없음,배포/push없음. docs/photo-source-priority-2026-10-30.md 후속기록.
+
+
+## 2026-10-30 지도 검색어/직접 장소 연결 수정
+기존이름+주소전체 regex로업체명종로3가가종로3으로잘리는경로/서울구prefix단독보존오류fix. app.js cleanPlaceText/streetAddressText/placeMapQuery/placeMapUrl/placeMapLink 통일. 지도기본 서울+구+정확업체지점명, name주소분리/층호건물제외, 숫자지번가오인금지(JS/Python). leisure식당지도rail팝업일정장소상세모두공통링크. publicphotosmeta naver_place_id+verified/사진캐시v6; fetchPlacePhotos에서상호주소좌표검증ID만반영,기존anchor도direct /p/entry/place/id업그레이드. ID추측/미확인값금지. 실제지역검색5업체4조합25호출비교: 서울구이름5/5top1, 전체주소4/5·이름단독3/5·서울이름4/5. API와지도웹순위동일과장금지. 실제지도웹200/입력검색어일치확인, 결과전체검증은아님. report docs/map-query-audit-2026-10-30.json/docs/map-links-2026-10-30.md. 주소/지도12pass, 후속mediaID→실제버튼클릭→통제된새탭목적지8pass17.41초. 전체356pass1skip212.36초(후속새테스트별도8검사,중복합산금지). 포맷/diffcheck. 서버20812/8000최신재시작. .env미변경/배포push없음.
+
+
+## 2026-10-30 사진 정확성 우선 정책 적용
+사용자 진행 승인. 단독후기 title-only 본문이미지허용철회, 각이미지업체/지점+짧은인접문구필수/다른지점캡션우선거절/광고영수증지도레저음식제외. app/photo_relevance.py GMS 이미지내용분류(공간/외관/활동,식당음식만/불확실거절),모델결과는업체일치증명아님. 후보3·동시2·5초·retry0·7일캐시·401/403/429잠시중지,키원문미저장. 후기/주체불명 미검사숨김,AI없으면등록주체확인owner/기존수동검수만유지. config.llm timeout/max_retries/max_tokens선택인자추가. .env.example PHOTO_VISUAL_CHECK추가/.env키미수정. 사진1장이면빈2번째카드제거. blogcachev4/publicv7/subjectv2. 전체371pass1skip221.71초,후속38데이터/내용+8브라우저42.73초(중복합산금지). 실제GMS 이미지판별 및구조화텍스트진단 모두401인증오류로실판별미검증;유효GMS_KEY갱신필요를async질문함(미응답). 실작동이라고과장금지,새키연결후재검증. 서버21376/8000반영. docs/photo-accuracy-2026-10-30.md. .env변경/배포push없음.
+
+
+## 2026-10-30 사용자 GMS 키 갱신 확인
+사용자가직접.env GMS_KEY수정후요청. 별도프로세스/임시DB로새설정읽어구조화텍스트인증/응답성공,실제종로클라이밍공개사진classify 응답성공(document0.88→rejected,4.88초). 이전401은해소됨. 전체사진정확도실증으로과장금지. 키값출력/변경없음,코드변경없으므로전체테스트반복안함. 서버20700/8000재시작/health확인. docs/photo-accuracy-2026-10-30.md후속참조.
+
+
+## 2026-10-30 사진 전체 미표시 복구
+실제소스3곳진단: 업체명반복조건 정상시설사진누락/실사클라이밍공용입구를AIunrelated오판(이미지직접확인)/검사슬롯가득차면즉시unverified/앞3장탈락후뒤정상후보미검사. 단독후기업체지점확인+인접시설설명필수로후보수집(제목만맞는무설명사진금지유지), 사진용브랜드+지점키워드(오설록티하우스북촌→오설록+북촌), 전역2worker큐로대기·5후보2개씩검사2개확보시stop. 실제외관입구허용/실내는종목일치필요,긍정category+relevant+confidence>=.8(확률아님)/무관음성분류거절유지. timeout8초/사진API60초,deadline메타수신후. subjectcachev4/blogv6 오판캐시무효. 실제GMS 입구approvedexterior.9/시설approvedactivity.86/광고거절유지. 실제임시API서버+GMS+CDN 모바일Edge 클라이밍종로2장/오설록북촌1장/JS오류0,사용자DB테스트쓰기없음. 전체376pass1skip235.24초,후속43단위연결·이전관련38브라우저포함(중복합산금지). 서버21452/8000재시작,키/env미변경. docs/photo-display-recovery-2026-10-30.md최신참조. 모든장소2장확보·정확도100%주장금지.

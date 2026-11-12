@@ -1,0 +1,53 @@
+/* 사용자 피드백 반영: 태그라인, 축제 기준 코스, 이동 수단, 확인 상태 배지, 모바일 현재 구역 표시. */
+
+/* Header tagline */
+header .brand-name .brand-tagline { color:#7d1e3a; font-weight:650; letter-spacing:-.2px; white-space:nowrap; }
+@media(max-width:360px) { header .brand-name .brand-tagline { font-size:11px; } }
+
+/* Course card stats: four short facts wrap instead of squeezing. */
+.plan-card .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
+@media(max-width:420px) { .plan-card .stats { grid-template-columns:1fr; } }
+.map-travel-mode { margin:4px 0 8px; font-size:14px; }
+
+/* Festival-based course */
+.festival-origin-note { display:grid; gap:6px; margin:12px 0; padding:14px 16px; border:1px solid #e9c46a; border-left:5px solid #c58a00; border-radius:14px; background:#fff8e6; color:#4a3500; }
+.festival-origin-note[hidden] { display:none; }
+.festival-origin-note .festival-origin-title { font-size:17px; color:#5c3d00; overflow-wrap:anywhere; }
+.festival-origin-note button { justify-self:start; min-height:44px; white-space:normal; }
+.festival-course-tag { display:inline-block; margin:4px 0 10px; padding:4px 12px; border-radius:999px; background:#fff3cd; border:1px solid #e9c46a; color:#5c3d00; font-size:14px; font-weight:700; overflow-wrap:anywhere; }
+.festival-context { color:#5c3d00!important; }
+
+/* Festival markers on the course map (Naver HTML marker). */
+.route-marker.festival-marker { width:auto; min-width:0; padding:0 8px; height:26px; line-height:24px; border-radius:999px; background:#f2b632; background-image:none; box-shadow:0 3px 8px rgba(92,61,0,.3); color:#3d2800; border:2px dashed #8a5a00; font-size:12px; font-weight:800; white-space:nowrap; }
+.route-marker.festival-marker-chosen { background:#c58a00; background-image:none; color:#fff; border:3px solid #5c3d00; font-size:13px; }
+.festival-map-info { max-width:240px; padding:10px 12px; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+.festival-map-info p { margin:4px 0; }
+.map-festival-note { margin:6px 0 0; font-size:14px; color:#5c3d00; }
+
+/* Place evidence: one row per fact with a status badge instead of one dense line. */
+.evidence-list { list-style:none; margin:10px 0; padding:0; display:grid; gap:8px; }
+.evidence-item { display:grid; grid-template-columns:auto auto minmax(0,1fr); align-items:baseline; gap:4px 10px; padding:10px 12px; border-radius:12px; border:1px solid #ead5d9; background:#fff; font-size:15px; line-height:1.6; }
+.evidence-item strong { color:#261c21; white-space:nowrap; }
+.evidence-text { color:#4a353d; min-width:0; overflow-wrap:anywhere; }
+.evidence-badge { display:inline-block; padding:1px 9px; border-radius:999px; font-size:13px; font-weight:800; white-space:nowrap; }
+.evidence-ok .evidence-badge { background:#e3f2ea; color:#1d5a3a; border:1px solid #9fcfb3; }
+.evidence-check { border-color:#efc9a8; background:#fffaf4; }
+.evidence-check .evidence-badge { background:#fde7d2; color:#7a3a00; border:1px solid #e8b384; }
+.evidence-info .evidence-badge { background:#eef0fb; color:#2f3a7a; border:1px solid #c3c8ec; }
+.place-evidence>summary { font-weight:750; }
+.evidence-summary-count { display:inline-block; margin-left:8px; padding:0 9px; border-radius:999px; background:#fde7d2; color:#7a3a00; font-size:13px; font-weight:800; }
+@media(max-width:480px) { .evidence-item { grid-template-columns:auto minmax(0,1fr); } .evidence-text { grid-column:1 / -1; } }
+
+/* Named source links print their address so a paper copy still shows where the fact came from. */
+@media print { a.source-url-link::after { content:" (" attr(href) ")"; font-size:11px; overflow-wrap:anywhere; } .section-indicator { display:none!important; } }
+
+/* Mobile: the current section heading follows below the sticky header. */
+.section-indicator { position:fixed; left:0; right:0; top:var(--site-header-height,76px); z-index:29; display:flex; align-items:baseline; gap:8px; min-width:0; padding:8px 16px; background:#fdfaf7f2; border-bottom:1px solid #ead5d9; box-shadow:0 4px 12px rgba(104,30,52,.06); font-size:14px; line-height:1.5; color:#261c21; opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .18s,transform .18s,visibility 0s linear .18s; pointer-events:none; }
+.section-indicator.is-visible { opacity:1; visibility:visible; transform:none; transition:opacity .18s,transform .18s; }
+.section-indicator-parent { flex:0 1 auto; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#5c4951; }
+.section-indicator-parent::after { content:" ›"; }
+.section-indicator-parent[hidden] { display:none; }
+.section-indicator-current { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#7d1e3a; }
+@media(min-width:801px) { .section-indicator { display:none!important; } }
+@media(max-width:800px) { html { scroll-padding-top:calc(var(--site-header-height,88px) + 52px); } }
+@media(prefers-reduced-motion:reduce) { .section-indicator,.section-indicator.is-visible { transition:none; transform:none; } }

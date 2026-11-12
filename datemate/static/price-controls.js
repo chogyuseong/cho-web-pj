@@ -62,7 +62,7 @@ function appendPriceEvidence(cell, cost) {
   if (sources.length) {
     const blogs = node('div', undefined, 'price-blog-evidence');
     blogs.append(node('strong', '참고한 블로그'));
-    for (const source of sources) blogs.append(sourceLinks(source, source, cost.name + ' 메뉴 가격'));
+    sources.forEach((source, index) => blogs.append(namedSourceLinks(source, cost.name + ' 메뉴 가격', sources.length > 1 ? `${index + 1}. ` : '')));
     cell.append(blogs);
   }
 }

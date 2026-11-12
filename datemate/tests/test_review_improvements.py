@@ -28,7 +28,10 @@ def test_job_owner_and_result(client):
 def test_evidence_does_not_invent_verification():
     p={'places':[{'id':'a','name':'A','category':'카페·미식'}],'costs':[{'status':'unknown'}],'legs':[{'minutes':4}]}
     enrich(p)
-    assert p['place_evidence'][0]['operating_status']=='최신 운영 확인 필요'
+    # 쉬운 말로 바꿔도 확인하지 못한 것은 여전히 확인하지 못했다고 말한다.
+    assert p['place_evidence'][0]['operating_status']=='최근 영업 정보를 확인하지 못했어요 · 방문 전 확인해 주세요'
+    assert p['place_evidence'][0]['operating_current'] is False
+    assert '확인하지 못했어요' in p['place_evidence'][0]['identity']
     assert p['place_evidence'][0]['price_kind']=='unknown'
     assert not p['place_evidence'][0]['blog_match']
 

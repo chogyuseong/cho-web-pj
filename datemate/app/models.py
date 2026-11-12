@@ -17,9 +17,17 @@ class Point(BaseModel):
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
 
+class FestivalAnchor(BaseModel):
+    """결과 화면에서 고른 축제. 코스는 이 축제 위치에서 출발한다."""
+    # 관광공사 contentid(숫자) 또는 목록이 만든 '제목:시작일' 형태의 ID.
+    id: str = Field(min_length=1, max_length=240)
+    title: str = Field(min_length=1, max_length=200)
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+
 class Conditions(BaseModel):
     planning_session_id: str = Field(default='',pattern=r'^(?:[a-f0-9]{32})?$')
-    explicit_fields: list[Literal['people','budget','count','transport','setting','reservation','priority','max_walk','include_meal','themes','theme_mode','date_category','date_subcategory']] = Field(default_factory=list,max_length=14)
+    explicit_fields: list[Literal['people','budget','count','transport','setting','reservation','priority','max_walk','include_meal','themes','theme_mode','date_category','date_subcategory','meeting_type']] = Field(default_factory=list,max_length=15)
     meeting_type: Literal['regular','first','anniversary'] = 'regular'
     priority: Literal['balanced','talk','food','photo','activity'] = 'balanced'
     trust_mode: Literal['balanced','operating_sources','discovery'] = 'balanced'
@@ -29,6 +37,7 @@ class Conditions(BaseModel):
     include_meal: bool = False
     neighborhood_radius_km: float = Field(default=2.5,ge=0.5,le=10)
     area_center: Point | None = None
+    festival: FestivalAnchor | None = None
     course_query: str = Field(default='', max_length=120)
     allow_price_estimates: bool = True
     allow_estimates: bool = False
@@ -79,6 +88,8 @@ class Conditions(BaseModel):
             raise ValueError('선택한 대분류에 맞는 데이트 소분류를 선택해 주세요.')
         if self.end <= self.start:
             raise ValueError('종료 시간은 같은 날 시작 시간 이후여야 합니다.')
+        if self.festival and (self.mode != 'real' or abs(self.origin.lat - self.festival.lat) > 1e-6 or abs(self.origin.lon - self.festival.lon) > 1e-6):
+            raise ValueError('축제 기준 코스는 실제 장소 모드에서 축제 위치를 출발지로 사용해야 합니다.')
         if self.return_home and self.home is None:
             raise ValueError('귀가 위치와 좌표가 필요합니다.')
         if any(x not in THEMES for x in self.themes):

@@ -23,7 +23,7 @@ function renderDetail() {
   p.places.forEach((place, i) => links.append(placeMapLink(`${i+1}. 네이버에서 찾기`, place)));
   box.append(links);
   p.places.forEach((place, i) => {
-    box.append(node('div', `${p.legs[i].origin} → ${place.name} · ${p.legs[i].minutes}분 · ${p.legs[i].status==='api'?'실제 API':'추정'} / ${p.legs[i].source}`, 'route-line'));
+    box.append(node('div', `${p.legs[i].origin} → ${place.name} · ${legModeLabel(p, p.legs[i])} / ${p.legs[i].source}`, 'route-line'));
     const stop = node('article', undefined, 'stop');
     const stamp = node('div', undefined, 'timeline-stamp');
     stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'));
@@ -48,7 +48,7 @@ function renderDetail() {
   box.append(regionalRestaurantPanel(p));
   if (p.conditions.return_home) {
     const r = p.legs.at(-1);
-    box.append(node('p', `귀가: ${r.origin} → ${r.destination} · ${r.minutes}분`, 'hint'));
+    box.append(node('p', `귀가: ${r.origin} → ${r.destination} · ${legModeLabel(p, r)}`, 'hint'));
   }
   box.append(node('h3', '비용은 투명하게'));
   const scroll = node('div', undefined, 'table-scroll'),

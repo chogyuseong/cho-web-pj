@@ -361,8 +361,11 @@ def test_festival_fee_display_and_course_around_festival(audit_page):
     assert request['origin']['lat']==35.1532 and request['origin']['lon']==129.1187
     assert request['origin']['name']=='부산 수영구 · 점검 불꽃축제 행사장 주변'
     assert max(date.today().isoformat(),'2026-01-01')<=request['visit_date']<='2027-12-31'
+    # 고른 축제가 추천 요청에 실려 서버가 그 위치를 탐색 중심으로 쓴다.
+    assert request['festival']=={'id':'101','title':'점검 불꽃축제','lat':35.1532,'lon':129.1187}
     note=page.locator('#festival-origin-note')
-    assert note.is_visible() and note.inner_text()=='‘점검 불꽃축제’ 주변 코스예요. 축제 장소에서 출발하는 동선으로 추천했어요.'
+    assert note.is_visible() and '‘점검 불꽃축제’ 기준 코스' in note.inner_text() and '축제 장소에서 출발해' in note.inner_text()
+    assert note.get_by_role('button',name='축제 선택 해제 · 원래 조건으로 다시 추천',exact=True).count()==1
     page.wait_for_function('document.querySelector("#festival-results .festival-card .tag")?.textContent==="선택한 축제"')
     assert '점검 불꽃축제' in cards.nth(0).inner_text() and cards.locator('.tag').count()==1
     assert '코스에 포함' not in page.locator('.results-area').inner_text()
@@ -375,7 +378,7 @@ def test_festival_fee_display_and_course_around_festival(audit_page):
         if len(submitted)>=3:break
         page.wait_for_timeout(50)
     page.wait_for_function('!document.querySelector("#submit-plan").disabled&&document.querySelectorAll("#festival-results .festival-card").length===3')
-    assert submitted[-1]['origin']['name']=='부산 해운대'
+    assert submitted[-1]['origin']['name']=='부산 해운대' and submitted[-1]['festival'] is None
     assert note.is_hidden() and cards.locator('.tag').count()==0
 
 

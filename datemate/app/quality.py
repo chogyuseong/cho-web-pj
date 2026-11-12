@@ -5,7 +5,8 @@ AREAS={'연남동':(37.562,126.925),'성수동':(37.5446,127.0559),'종로':(37.
 
 def configure(c,query):
     from .models import Point
-    if c.region == '서울':
+    # 축제를 고른 코스는 검색어에 동네 이름이 있어도 축제 위치를 중심으로 찾는다.
+    if c.region == '서울' and not c.festival:
         for name,(lat,lon) in AREAS.items():
             if name.rstrip('동') in query:
                 return c.model_copy(update={'area_center':Point(name=name+' 중심',lat=lat,lon=lon)})

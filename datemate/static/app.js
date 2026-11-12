@@ -204,6 +204,30 @@ function sourceLinks(text, url, query) {
   return wrap;
 }
 
+// 주소 문자열 대신 목적이 드러나는 이름으로 링크를 보여준다. 인쇄할 때는 CSS가 주소를 덧붙인다.
+function sourceLinkLabel(url) {
+  let host = '';
+  try {
+    host = new URL(normalizeLink(url) || '').hostname.replace(/^(?:www|m)\./, '');
+  } catch {}
+  if (host === 'map.naver.com') return '네이버 지도에서 보기 ↗';
+  if (host === 'blog.naver.com' || host.endsWith('.tistory.com') || host === 'brunch.co.kr') return '블로그 글 보기 ↗';
+  if (host === 'search.naver.com') return '네이버 검색 결과 보기 ↗';
+  if (host.endsWith('visitkorea.or.kr')) return '한국관광공사 자료 보기 ↗';
+  if (host.endsWith('wikipedia.org')) return '위키백과 보기 ↗';
+  return '출처 보기 ↗';
+}
+
+function namedSourceLinks(url, query, prefix = '') {
+  const wrap = sourceLinks(prefix + sourceLinkLabel(url), url, query);
+  const anchor = wrap.querySelector('a');
+  if (anchor) {
+    anchor.classList.add('source-url-link');
+    anchor.title = anchor.href;
+  }
+  return wrap;
+}
+
 function linkedText(tag, text, cls) {
   const root = node(tag, undefined, cls),
     value = String(text || '');
@@ -218,7 +242,7 @@ function linkedText(tag, text, cls) {
       ]) {
       while (url.endsWith(close) && url.split(close).length > url.split(open).length) url = url.slice(0, -1);
     }
-    root.append(document.createTextNode(value.slice(offset, match.index)), sourceLinks(url, url, url));
+    root.append(document.createTextNode(value.slice(offset, match.index)), namedSourceLinks(url, url));
     offset = match.index + url.length;
   }
   root.append(document.createTextNode(value.slice(offset)));
@@ -277,6 +301,8 @@ function values() {
   data.neighborhood_radius_km = Number(f.get('neighborhood_radius_km') || 2.5);
   updateExperienceValues(data, f);
   if (data.return_home) data.home = selectedLocation('home');
+  // 결과 화면에서 고른 축제가 지금 출발지라면 축제 기준 코스로 요청한다.
+  data.festival = FestivalPanel.anchorFor(data);
   if (selected && selected.conditions.mode === data.mode)
     for (const i of locks) data.locked[i] = selected.places[i].id;
   return data;
@@ -329,6 +355,17 @@ async function applyRequest() {
     explicit_people: FormState.edited.has('people')
   });
   for (const [key, value] of Object.entries(result.patch)) {
+    if (key === 'avoid') {
+      // 글에서 찾은 제외 단어는 직접 적은 '피할 활동'에 더한다.
+      const current = form.elements.avoid.value.split(',').map(x => x.trim()).filter(Boolean);
+      form.elements.avoid.value = [...new Set([...current, ...value])].slice(0, 30).join(', ');
+      continue;
+    }
+    if (key === 'date_category') continue;
+    if (key === 'date_subcategory') {
+      if (!FormState.edited.has('date_subcategory') && !FormState.edited.has('date_category') && !FormState.edited.has('themes')) setDateClassification(result.patch.date_category, value);
+      continue;
+    }
     if (FormState.edited.has(key)) continue;
     if (key === 'themes') {
       if (!FormState.edited.has('date_subcategory')) setDateClassification('콘셉트별', '');

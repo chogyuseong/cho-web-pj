@@ -25,6 +25,9 @@ def fit_score(plan,c):
     if c.trust_mode=='discovery':value+=sum(p['id'].startswith('discovered:') for p in plan['places'])
     if c.trust_mode=='balanced':value+=.25*sum(operating_source_current(p) for p in plan['places'])
     if c.meeting_type=='first':value-=sum(r['minutes'] for r in plan['legs'])*.03
+    from .request_intent import intent
+    # '저렴하게·가성비' 요청: 같은 조건이면 비용 상한이 낮은 조합을 앞에 둔다(2만 원당 1점).
+    if intent(c).get('budget_style')=='low':value-=(plan.get('total') or [0,0])[1]/20000
     if c.use_feedback:
         from .feedback_preferences import bonus
         value+=bonus(plan)

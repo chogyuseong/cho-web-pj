@@ -8,6 +8,7 @@ function executionSummary(plan) {
   if (interpreted?.intents.length) box.append(node('p', '입력 요청 반영: ' + interpreted.intents.join(' · ') + (interpreted.excluded.length ? ' / 제외: ' + interpreted.excluded.join(' · ') : ''), 'hint'));
   for (const warning of interpreted?.warnings || []) box.append(node('p', warning, 'hint'));
   if (plan.resource_notice) box.append(node('p', plan.resource_notice, 'warning'));
+  for (const note of plan.festival_context?.notes || []) box.append(node('p', note, 'hint festival-context'));
   if (plan.personalization) {
     for (const message of plan.personalization.messages) box.append(node('p', message, 'hint'));
     box.append(node('p', plan.personalization.scope, 'hint'));
@@ -16,7 +17,7 @@ function executionSummary(plan) {
   const meal = plan.condition_checks?.find(c => c.condition === 'meal');
   const values = [
     ['영업·예약', `${known}/${plan.places.length}곳 최근 운영 자료 · 예약은 장소별 확인`],
-    ['이동', `${plan.legs.every(r=>r.status==='api')?'경로 조회':'추정 포함'} · 가장 긴 구간 ${Math.max(...plan.legs.map(r=>r.minutes||0))}분`],
+    ['이동', `${travelMode(plan).label} · 총 ${travelMinutes(plan)}분 · 가장 긴 구간 ${Math.max(...plan.legs.map(r=>r.minutes||0))}분`],
     ['예산', `${range(plan.total)} · ${plan.unknown.length?'추가 확인 비용 있음':'계산한 항목 기준'}`],
     ['식사', meal?.message || (plan.conditions.include_meal ? '현재 시간대는 식사 포함 우선 대상이 아니에요.' : '식사 자유 선택')]
   ];
@@ -57,7 +58,7 @@ function executionSummary(plan) {
   if (estimates.length) {
     const details = node('details', undefined, 'route-assumptions');
     details.append(node('summary', '이동시간에 여유를 두려면'));
-    for (const r of estimates) details.append(node('p', `${r.origin} → ${r.destination}: 기본 ${r.minutes}분 / 여유 ${r.planning_minutes_range[1]}분`));
+    for (const r of estimates) details.append(node('p', `${r.origin} → ${r.destination}: ${travelMode(plan).name} 기본 ${r.minutes}분(추정) / 여유 ${r.planning_minutes_range[1]}분`));
     details.append(node('p', estimates[0].planning_note, 'hint'));
     box.append(details);
   }

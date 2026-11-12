@@ -121,7 +121,8 @@ def audit_plan(plan,c=None):
             if match and int(match[1])*multiplier!=actual:add(key,label,'unmet',f'자유 요청의 {label} 값과 폼 조건이 달라요. 자유 요청: {match[0]} / 적용값: {actual}')
             residual=re.sub(pattern,' ',residual)
         words=['서울에서','서울','박물관','전시','미술','카페','커피','식사','산책','풍경','공방','도자기','휴식','힐링','게임','놀이','운동','레저','데이트','코스','보고','가고','싶어요','싶어','추천','해주세요','해줘','정도','둘이서','명이서','함께','에서','하고','그리고']
-        words += [word for _,synonyms in INTENTS.values() for word in synonyms]+['투어','위주','둘이','셋이','넷이']
+        from .request_intent import REQUEST_WORDS
+        words += [word for _,synonyms in INTENTS.values() for word in synonyms]+[word for synonyms in REQUEST_WORDS.values() for word in synonyms]+['투어','위주','둘이','셋이','넷이']
         for word in sorted(words,key=len,reverse=True):residual=residual.replace(word,' ')
         residual=re.sub(r'[\s,.!?~·]+','',residual)
         add('request','자유 요청','unknown' if residual else 'info',('세부 요청은 추가 확인이 필요해요: '+c.request[:200]) if residual else '자유 요청의 테마·인원·방문 수·예산을 구조화 조건과 대조했어요.')

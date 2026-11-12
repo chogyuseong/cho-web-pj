@@ -44,29 +44,47 @@ function renderPlanMapCard(){
     },selected.id===plan.id?'primary':'secondary');
     tab.dataset.mapOption=String(index+1);tab.setAttribute('aria-pressed',String(selected.id===plan.id));tabs.append(tab);
   });
-  card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
+  card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
   const places=node('div',undefined,'map-place-list');
   selected.places.forEach((place,index)=>places.append(placeMapLink((index+1)+'. '+place.name,place)));
   card.append(places);rail.append(card);
 }
 
+/* 방문일 축제는 코스 지점과 구분되는 표시로 겹쳐 보여준다. 좌표가 있는 축제만, 코스에는 넣지 않는다. */
+function festivalMapItems(){return typeof FestivalPanel==='undefined'?[]:FestivalPanel.mapItems;}
+function festivalMapInfo(festival){
+  const box=node('div',undefined,'festival-map-info');
+  box.append(node('strong',festival.title),node('p',`${festival.start} ~ ${festival.end}`),node('p','코스에 포함되지 않은 축제예요. 일정·요금은 주최 측 안내를 확인해 주세요.','hint'));
+  if(festival.source_url)box.append(link('한국관광공사에서 확인 ↗',festival.source_url));
+  return box;
+}
+function festivalMapNote(note,items){
+  const chosen=items.some(f=>FestivalPanel.isChosen(f));
+  note.hidden=!items.length;
+  note.textContent=items.length?`노란 ‘축제’ 표시: 방문일 축제 ${items.length}곳 (코스에는 포함되지 않아요)${chosen?' · 진한 표시가 고른 축제예요':''}`:'';
+}
+
 function drawPlanMap(plan){
-  let activeMap=null,resizeObserver=null,disposed=false;
+  let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[];
   const wrap=node('section',undefined,'plan-map');
-  wrap.disposeMap=()=>{disposed=true;resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;};
+  const clearFestivals=()=>{festivalMarkers.forEach(marker=>marker.setMap?marker.setMap(null):marker.remove?.());festivalMarkers=[];};
+  wrap.updateFestivals=()=>{};
+  wrap.disposeMap=()=>{disposed=true;clearFestivals();resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
   canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
   const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
   caption.setAttribute('role','status');
-  wrap.append(canvas,caption);
+  const festivalNote=node('p','','hint map-festival-note');festivalNote.hidden=true;
+  wrap.append(canvas,caption,festivalNote);
   wrap.showMapFallback=()=>fallback('네이버 지도 인증에 실패했습니다. Dynamic Map 권한과 등록 웹 주소를 확인해 주세요.');
   requestAnimationFrame(()=>render());
   async function render(force=false){
     if(!wrap.isConnected)return;
+    clearFestivals();wrap.updateFestivals=()=>{};
     resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
-    wrap.replaceChildren(canvas,caption);
+    wrap.replaceChildren(canvas,caption,festivalNote);
     try{
       await loadNaverMaps(statusData.map_js_key,force);
       if(window.naverMapAuthFailed)throw Error('지도 인증 실패');
@@ -93,6 +111,21 @@ function drawPlanMap(plan){
           strokeOpacity:.9,strokeStyle:isRoad?'solid':'shortdash'});
       }
       map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
+      wrap.updateFestivals=()=>{
+        if(disposed||!canvas.isConnected)return;
+        clearFestivals();const items=festivalMapItems();
+        for(const festival of items){
+          const chosen=FestivalPanel.isChosen(festival),position=new naver.maps.LatLng(festival.lat,festival.lon);
+          // 축제 이름은 HTML에 넣지 않고 title과 정보창의 텍스트 노드로만 전달한다.
+          const marker=new naver.maps.Marker({map,position,title:'축제 · '+festival.title,zIndex:chosen?300:150,
+            icon:{content:'<span class="route-marker festival-marker'+(chosen?' festival-marker-chosen':'')+'">축제</span>',anchor:new naver.maps.Point(24,14)}});
+          const info=new naver.maps.InfoWindow({content:festivalMapInfo(festival)});naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
+          festivalMarkers.push(marker);
+          if(chosen&&!bounds.hasLatLng?.(position)){bounds.extend(position);map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});}
+        }
+        festivalMapNote(festivalNote,items);
+      };
+      wrap.updateFestivals();
       caption.textContent=actual===points.length-1
         ?'네이버 지도 · 자동차 실제 도로 경로 (조회 시점 기준)'
         :'네이버 지도 · 점선은 방문 순서의 직선 연결이며 실제 이동 경로가 아닙니다.';
@@ -134,6 +167,7 @@ function drawPlanMap(plan){
   }
   function fallback(message){
     if(disposed||!wrap.isConnected)return;
+    clearFestivals();wrap.updateFestivals=()=>{};festivalNote.hidden=true;
     resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;
     const notice=node('div',undefined,'map-reconnect');
     notice.setAttribute('role','status');
@@ -145,7 +179,7 @@ function drawPlanMap(plan){
     if(window.L){
       const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
-      wrap.prepend(mapCanvas,mapCaption);
+      wrap.prepend(mapCanvas,mapCaption,festivalNote);
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
       if(!points.length)return;
       try{
@@ -158,6 +192,19 @@ function drawPlanMap(plan){
           L.circleMarker([point.lat,point.lon],{radius:9,color:i===0?'#c65b32':'#294d3d',fillOpacity:.85}).addTo(map).bindTooltip(title,{permanent:true,direction:'top'});
         });
         L.polyline(coordinates,{color:'#a16b45',weight:3,dashArray:'6 8'}).addTo(map);
+        wrap.updateFestivals=()=>{
+          if(disposed||!mapCanvas.isConnected)return;
+          clearFestivals();const items=festivalMapItems();
+          for(const festival of items){
+            const chosen=FestivalPanel.isChosen(festival);
+            const marker=L.circleMarker([festival.lat,festival.lon],{radius:chosen?11:8,color:'#8a5a00',weight:chosen?4:2,dashArray:chosen?null:'3 3',fillColor:'#f2b632',fillOpacity:chosen?1:.85,className:'festival-circle'+(chosen?' festival-circle-chosen':'')}).addTo(map);
+            marker.bindTooltip(node('span','축제 · '+festival.title),{permanent:chosen,direction:'bottom'});
+            marker.bindPopup(festivalMapInfo(festival));
+            festivalMarkers.push(marker);
+          }
+          festivalMapNote(festivalNote,items);
+        };
+        wrap.updateFestivals();
         const fit=()=>{if(!disposed&&mapCanvas.isConnected){map.invalidateSize();map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35],maxZoom:16});}};
         requestAnimationFrame(fit);
         if(window.ResizeObserver){resizeObserver=new ResizeObserver(fit);resizeObserver.observe(mapCanvas);}

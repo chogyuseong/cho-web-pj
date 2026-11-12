@@ -10,23 +10,88 @@ const FestivalPanel = {
   detailQueue: [],
   // 「이 축제 주변 코스 추천받기」로 고른 축제. 출발지가 그 축제가 아니게 되면 지운다.
   chosen: null,
+  // 축제를 고르기 직전의 조건. 선택을 해제하면 이 조건으로 다시 추천한다.
+  previous: null,
+  // 코스 지도에 표시할, 좌표가 있는 방문일 축제.
+  mapItems: [],
   load(conditions) {
     const generation = ++this.generation;
     this.detailQueue = [];
     this.updateChosen(conditions);
+    this.mapItems = [];
+    this.refreshMaps();
     this.request(conditions, generation).catch(() => {
       if (generation === this.generation) this.status('축제 자료에 연결하지 못했어요. 코스 추천에는 영향이 없어요.');
     });
   },
-  updateChosen(conditions) {
+  matches(conditions) {
     const chosen = this.chosen,
       origin = conditions.origin;
-    const same = chosen && conditions.mode === 'real' && origin && origin.name === chosen.originName &&
-      Math.abs(origin.lat - chosen.festival.lat) < 1e-6 && Math.abs(origin.lon - chosen.festival.lon) < 1e-6;
-    if (!same) this.chosen = null;
+    return Boolean(chosen && conditions.mode === 'real' && origin && origin.name === chosen.originName &&
+      Math.abs(origin.lat - chosen.festival.lat) < 1e-6 && Math.abs(origin.lon - chosen.festival.lon) < 1e-6);
+  },
+  // 추천 요청에 실어 보낼 축제 기준. 서버는 이 축제 위치를 탐색 중심으로 쓴다.
+  anchorFor(conditions) {
+    if (!this.matches(conditions)) return null;
+    const festival = this.chosen.festival;
+    return {
+      id: String(festival.id).slice(0, 240),
+      title: String(festival.title).slice(0, 200),
+      lat: festival.lat,
+      lon: festival.lon
+    };
+  },
+  isChosen(festival) {
+    return Boolean(this.chosen && this.chosen.festival.id === festival.id);
+  },
+  refreshMaps() {
+    document.querySelectorAll('.plan-map').forEach(map => map.updateFestivals?.());
+  },
+  updateChosen(conditions) {
+    if (!this.matches(conditions)) {
+      this.chosen = null;
+      this.previous = null;
+    }
     const note = document.getElementById('festival-origin-note');
     note.hidden = !this.chosen;
-    note.textContent = this.chosen ? `‘${this.chosen.festival.title}’ 주변 코스예요. 축제 장소에서 출발하는 동선으로 추천했어요.` : '';
+    note.replaceChildren();
+    if (!this.chosen) return;
+    note.append(node('strong', `‘${this.chosen.festival.title}’ 기준 코스`, 'festival-origin-title'),
+      node('span', '축제 장소에서 출발해 주변 장소로 다시 추천했어요.'),
+      button('축제 선택 해제 · 원래 조건으로 다시 추천', () => this.clearChoice()));
+  },
+  clearChoice() {
+    const submit = document.getElementById('submit-plan');
+    if (submit.disabled) {
+      toast('코스를 찾는 중이에요. 끝난 뒤 다시 눌러 주세요.');
+      return;
+    }
+    const previous = this.previous;
+    this.chosen = null;
+    this.previous = null;
+    if (previous) {
+      if (form.elements.mode.value !== previous.mode) {
+        form.elements.mode.value = previous.mode;
+        form.elements.mode.dispatchEvent(new Event('change', {
+          bubbles: true
+        }));
+      }
+      form.elements.region.value = previous.region;
+      locationState.origin = previous.origin ? {
+        ...previous.origin
+      } : null;
+      form.elements.origin_name.value = previous.originName;
+      form.elements.visit_date.value = previous.visitDate;
+    }
+    if (!locationState.origin) {
+      // 원래 출발지가 없던 경우(축제부터 고른 경우)는 조건 화면에서 다시 고르게 한다.
+      this.updateChosen({});
+      setTab(false);
+      showPlannerPage(false);
+      toast('축제 선택을 해제했어요. 데이트할 지역을 골라 다시 추천받아 주세요.');
+      return;
+    }
+    form.requestSubmit();
   },
   photo(festival) {
     const url = String(festival.image_url || '');
@@ -72,6 +137,16 @@ const FestivalPanel = {
       ...words.filter(word => /^[가-힣0-9]{1,8}(읍|면|동)$/.test(word)).slice(0, 1)
     ].join(' ');
     const originName = `${[festival.region, area].filter(Boolean).join(' ')} · ${String(festival.title).slice(0, 120)} 행사장 주변`;
+    // 다른 축제로 바꿔 골라도 되돌릴 조건은 처음 축제를 고르기 전의 것이다.
+    if (!this.previous) this.previous = {
+      mode: form.elements.mode.value,
+      region: form.elements.region.value,
+      origin: locationState.origin ? {
+        ...locationState.origin
+      } : null,
+      originName: form.elements.origin_name.value,
+      visitDate: form.elements.visit_date.value
+    };
     if (form.elements.mode.value !== 'real') {
       form.elements.mode.value = 'real';
       form.elements.mode.dispatchEvent(new Event('change', {
@@ -157,7 +232,9 @@ const FestivalPanel = {
       node('p', `${festival.start} ~ ${festival.end} · ${festival.region}`, 'hint'),
       node('p', festival.address, 'hint'), fee, hours,
       link('한국관광공사에서 확인 ↗', festival.source_url));
-    if (this.hasPoint(festival)) card.append(button('이 축제 주변 코스 추천받기', () => this.planAround(festival)));
+    if (chosen) card.append(button('이 축제 선택 해제', () => this.clearChoice()));
+    else if (this.hasPoint(festival)) card.append(button('이 축제 주변 코스 추천받기', () => this.planAround(festival)));
+    else card.append(node('p', '위치 좌표가 없어 지도 표시와 주변 코스 추천을 할 수 없어요.', 'hint'));
     this.queueDetail(festival, fee, hours, generation);
     return card;
   },
@@ -212,6 +289,8 @@ const FestivalPanel = {
       const id = this.chosen.festival.id;
       festivals = [festivals.find(item => item.id === id) || this.chosen.festival, ...festivals.filter(item => item.id !== id)];
     }
+    this.mapItems = festivals.filter(festival => this.hasPoint(festival));
+    this.refreshMaps();
     if (!festivals.length) {
       this.status('');
       results.append(node('p', '방문일에 확인된 축제가 없어요.', 'hint'));

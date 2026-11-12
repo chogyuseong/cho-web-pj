@@ -19,7 +19,7 @@ async function makeShareCanvas(plan){
     c.fillStyle='#60766e';c.font='23px sans-serif';c.fillText(`${plan.timeline[i]?.arrival||''} · ${p.category}`,170,y+86);
   });
   c.fillStyle='#264e41';c.font='bold 32px sans-serif';c.fillText(`예상 비용 ${range(plan.total)}`,96,1136);
-  c.font='23px sans-serif';c.fillStyle='#526960';c.fillText(`이동 약 ${plan.decision_summary?.travel_minutes??plan.legs.reduce((n,r)=>n+(r.minutes||0),0)}분 · 추정 포함`,96,1181);
+  c.font='23px sans-serif';c.fillStyle='#526960';const mode=travelMode(plan);c.fillText(`${mode.name} 이동 약 ${travelMinutes(plan)}분 · ${mode.basis}`,96,1181);
   c.font='21px sans-serif';wrapCanvasText(c,'영업·예약·현재 가격은 방문 전 확인해 주세요. 미확인 비용은 합계에서 제외될 수 있어요.',96,1230,880,29,2);
   return canvas;
 }

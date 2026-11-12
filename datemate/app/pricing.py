@@ -80,13 +80,13 @@ def apply_prices(plan,lookups):
         row=plan['costs'][index]
         if row.get('price_kind')=='naver_menu':continue
         if row['unit'] is not None and not row.get('price_kind'):
-            row['price_basis']=('업체 제공 단가 · 확인일 기준' if row.get('source_kind')=='merchant' else '등록 출처 단가 · 확인일 기준') if row['status']=='confirmed' else '기존 단가 · 현재가 별도 확인';continue
+            row['price_basis']=('업체 제공 단가 · 확인일 기준' if row.get('source_kind')=='merchant' else '등록 출처 단가 · 확인일 기준') if row['status']=='confirmed' else '저장된 단가 · 지금 가격은 따로 확인해 주세요';continue
         result=lookups.get(place['id'],{});quotes=result.get('quotes',[])
         if quotes:
             # 서로 다른 메뉴를 섞어 단가 범위로 만들지 않는다.
             item=quotes[0]['item'];quotes=[q for q in quotes if q['item']==item]
             unit=[min(q['amount'] for q in quotes),max(q['amount'] for q in quotes)]
-            basis='웹 참고 단가 · '+item+' 기준/인 (공식 현재가 미검증)';source=quotes[0]['source'];kind='web_reference'
+            basis='블로그 글에 나온 가격 · '+item+' 1인 기준 · 지금 가격인지는 확인하지 못했어요';source=quotes[0]['source'];kind='web_reference'
         elif allow:
             unit=ASSUMPTIONS.get(place['category'],[0,20000]);basis='계획용 1인 범위 · 검색에서 가격을 확보하지 못해 사용한 가정 (실제 단가 아님)';source='서비스 예산 계획용 가정';kind='planning_assumption'
         else:

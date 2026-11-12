@@ -13,12 +13,14 @@ function renderResults(result={}){
     card.dataset.option=String(i+1);
     heading.append(node('div',`Option${i+1} / ${p.conditions.mode==='demo'?'가상 장소 데모':'실제 자료'}`,'number'),button('일정 살펴보기 ↗',()=>choose(p,true),'primary inspect-plan'));
     card.append(heading,node('h3',p.decision_summary?.title||courseTitle(p)));
+    if(p.conditions.festival)card.append(node('p',`‘${p.conditions.festival.title}’ 축제 장소에서 출발하는 코스`,'festival-course-tag'));
     if(p.decision_summary){const summary=p.decision_summary;const fit=node('div',undefined,'fit-reasons');for(const reason of summary.fit_reasons||[summary.reason])fit.append(node('p',reason));card.append(fit);if(summary.unknown_prices||summary.assumed_prices)card.append(node('p',`가격 미확인 ${summary.unknown_prices}항목 · 계획용 가정 ${summary.assumed_prices}항목`,'hint'));} 
     if(p.option_purpose)card.append(node('strong',p.option_purpose,'tag'),node('p',p.option_description,'hint'));
     if(p.diversity_note)card.append(node('p',p.diversity_note,'hint'));
     card.append(node('span',p.best_effort?'조건 차이가 있는 대안':'조건 비교 완료','tag'),node('p',p.places.map(x=>x.name).join(' → '),'path-text'));
     const stats=node('div',undefined,'stats');
-    for(const [value,label] of [[range(p.total),p.unknown?.length?'확인한 항목의 예상 비용':p.costs.some(x=>x.status!=='confirmed')?'예상 전체 비용 · 추정 포함':'등록 단가 기준 비용'],[`${p.minutes}분`,'이동 + 체류'],[`${p.places.length}곳`,'방문 장소']]){const box=node('div');box.append(node('b',value),node('small',label));stats.append(box);}
+    const mode=travelMode(p);
+    for(const [value,label] of [[range(p.total),p.unknown?.length?'확인한 항목의 예상 비용':p.costs.some(x=>x.status!=='confirmed')?'예상 전체 비용 · 추정 포함':'등록 단가 기준 비용'],[`${travelMinutes(p)}분`,`이동 시간 · ${mode.label}`],[`${p.minutes}분`,'이동 + 체류 전체'],[`${p.places.length}곳`,'방문 장소']]){const box=node('div');box.append(node('b',value),node('small',label));stats.append(box);}
     card.append(planPhotoPreview(p),stats);
     if(p.id===selected?.id)card.append(decisionPanel(p));
     if(p.id!==selected?.id)card.append(conditionDifferences(p));

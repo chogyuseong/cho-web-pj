@@ -89,7 +89,7 @@ FastAPI 앱은 Cloudflare Containers(Workers Paid 플랜)에서 실행하고 Wor
 
 한도 이름과 기본값은 [datemate/.env.example](datemate/.env.example)의 `DATEMATE_IP_*` 항목에 있습니다. 운영에는 기본값이 적용돼 있고, 바꾸려면 `cloudflare/worker.js`가 컨테이너에 넘기는 환경변수에 추가한 뒤 재배포합니다. 같은 IP를 함께 쓰는 사용자는 한도를 나눠 씁니다.
 
-**2차 수정은 코드에 반영했지만 아직 운영에 배포하지 않았습니다(커밋 `f794796`).** 배포 방법과 주의점은 [배포-이어가기.txt](배포-이어가기.txt) 맨 위에 있습니다.
+**2차 수정(커밋 `f794796`)은 2026-11-12에 운영에 배포했습니다.** 배포 후 확인 결과와 롤백 주의점은 [배포-이어가기.txt](배포-이어가기.txt) 맨 위에 있습니다.
 
 - 세션 토큰을 DB에 SHA-256 해시로만 저장하고 운영 쿠키 이름을 `__Host-dm_session`으로 변경. 기존 세션은 마이그레이션으로 유지되며, 이 변환은 되돌릴 수 없습니다.
 - 90일 동안 이용이 없는 세션과 그 데이터를 자동 삭제(`DATEMATE_RETENTION_DAYS`). 공개 후기는 남기고 작성자 연결만 끊습니다.
@@ -97,7 +97,7 @@ FastAPI 앱은 Cloudflare Containers(Workers Paid 플랜)에서 실행하고 Wor
 - Cloudflare Worker가 컨테이너를 깨우기 전에 IP별 요청 제한을 먼저 적용(화면·API 60초 600회, 정적 파일 1200회)
 - 운영 이미지에서 `pytest`·`pypdf` 제외, CI에 Python 의존성 취약점 검사(`pip-audit`) 추가
 
-남은 과제는 2차 수정의 운영 배포와 DB 앱 전용 계정 교체입니다.
+남은 과제는 DB 앱 전용 계정 교체입니다.
 
 운영 요청에는 출처 검사, 브라우저 스크립트 실행 정책(CSP), 세션 응답 캐시 방지가 적용됩니다. PostgreSQL 연결은 `sslmode=require`, `verify-ca`, `verify-full` 중 하나가 필수입니다. 수정 가능한 의존성 경고는 반영했고, npm 감사는 취약점 0건입니다. **ChromaDB 1.5.9에는 수정 버전이 없는 보안 공지가 남아 있습니다.** 현재 앱은 Chroma를 컨테이너 내부 `PersistentClient`로만 사용하며 Chroma HTTP 포트를 공개하지 않습니다. 해당 포트나 원격 모델 실행 기능을 추가할 때는 보안을 다시 검토해야 합니다.
 

@@ -5,25 +5,26 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
-★ 가장 먼저 할 일: 보안 2차 수정이 아직 운영에 배포되지 않았습니다
+★ 보안 2차 수정을 2026-11-12에 운영에 배포했습니다
 ----------------------------------------------------------------------
-보안 2차 수정(커밋 f794796)은 main 에 올라가 있지만 운영 사이트에는 반영되지 않았습니다.
-운영 사이트는 그 이전 버전(보안 1차까지)으로 정상 동작 중입니다.
+보안 2차 수정(커밋 f794796)이 운영 사이트에 반영되었습니다.
+배포 버전: bbec2506-60df-4ca0-a2da-ad63cdd4785d (npx wrangler deploy, 커밋 61715d2 기준)
 
-배포 방법 (저장소 최상위, Docker Desktop 실행 후):
-    npx wrangler deploy
+배포 후 공개 주소에서 확인한 것
+- 세션 쿠키 이름 __Host-dm_session (HttpOnly, Secure, SameSite=lax), 새 CSP(default-src 'self') 적용
+- 브라우저에서 CSP 위반 0건, 콘솔 오류 없음. 위치 선택에 네이버 지도가 뜨고 지도에서 찍은 위치의 시·도가 채워짐
+- 코스 추천(코스 3개, 사진 표시), 축제와 이용요금, 장소 둘러보기 동작
+- /readyz, /healthz 는 외부에서 404
+- 배포 전 검증: 전체 테스트 465개 통과(Linux 컨테이너, SQLite), wrangler deploy --dry-run 통과
 
-배포 전에 알아둘 것
-- 이 배포는 DB의 세션 토큰과 소유자 값을 해시로 바꿉니다. 한 번 바꾸면 되돌릴 수 없고,
-  배포 후 이전 버전으로 롤백하면 모든 사용자의 세션이 끊깁니다.
-- 배포 직전 상태의 복원 지점을 Neon 브랜치로 만들어 두었습니다:
+아직 확인하지 못한 것
+- 기존에 저장한 코스가 그대로 열리는지(배포 전에 쓰던 브라우저에서만 확인할 수 있습니다).
+
+알아둘 것
+- 이 배포는 DB의 세션 토큰과 소유자 값을 해시로 바꿨습니다. 되돌릴 수 없고,
+  이전 버전으로 롤백하면 모든 사용자의 세션이 끊깁니다.
+- 배포 직전 상태의 복원 지점이 Neon 브랜치로 남아 있습니다:
   backup-before-session-hash-2026-11-12 (Neon 콘솔 → Branches). 문제없이 며칠 운영된 뒤 지워도 됩니다.
-- 이용이 적은 시간에 배포하세요. 새 버전이 실제 응답에 반영되기까지 5분쯤 걸립니다.
-- 배포 후 공개 주소에서 확인: 코스 추천, 축제 요금, 장소 둘러보기 사진, 위치 선택 지도(네이버 지도가
-  뜨는지 — 새 CSP 가 막지 않는지), 기존에 저장한 코스가 그대로 열리는지.
-  브라우저 개발자 도구 콘솔에 "Content Security Policy" 오류가 없어야 합니다.
-- 운영과 같은 구성의 로컬 검증은 통과했습니다: 전체 테스트 465개(SQLite), PostgreSQL 통합 컨테이너 검사 7개,
-  wrangler deploy --dry-run.
 
 
 1. 준비물
@@ -46,6 +47,13 @@ Copy-Item .env.example .env
   requirements.txt 는 운영 실행에 필요한 것만 담고 있어, 테스트를 돌리려면 dev 쪽이 필요합니다.
 - 이후 모든 명령은 datemate 폴더에서, 가상환경의 파이썬(.\.venv\Scripts\python.exe)으로 실행합니다.
   시스템 파이썬에는 의존성이 없어 테스트가 실패합니다.
+- Windows 스마트 앱 컨트롤이 켜진 컴퓨터에서는 가상환경의 일부 패키지(uuid_utils 등)가
+  "애플리케이션 제어 정책에서 이 파일을 차단했습니다" 오류로 실행되지 않습니다. 그럴 때는 Docker 로 실행합니다
+  (저장소 최상위에서): docker compose up --build -d → http://127.0.0.1:8000, 종료는 docker compose down.
+  코드를 고치면 같은 명령으로 다시 빌드하고, .env 만 바꿨으면 docker compose up -d --force-recreate.
+  테스트는 CI 처럼 python:3.12 컨테이너에서 requirements-dev.txt 와 playwright chromium 을 설치하고
+  DATEMATE_BROWSER_CHANNEL=chromium 으로 pytest 를 실행합니다.
+- 최상위 package.json 의 allowScripts 는 wrangler 가 쓰는 esbuild·workerd 의 설치 스크립트를 허용합니다.
 
 
 3. 키 넣기 (datemate\.env)
@@ -124,7 +132,7 @@ Copy-Item .env.example .env
 - Cloudflare 운영 배포 완료: https://datemate.guseong-family.workers.dev
 - 전체 보안 점검 후 1차 수정 반영(입력 크기 상한, IP 범위 기준 요청 제한, 세션 발급 방식,
   상태 확인 경로 차단 등). 자세한 내용은 README.md 의 "보안" 참고
-- 보안 2차 수정 구현(코드는 main 에 있음, 운영 배포는 아직 — 맨 위 ★ 참고):
+- 보안 2차 수정 구현 및 운영 배포 완료(맨 위 ★ 참고):
   · 세션 토큰을 DB에 해시로만 저장, 운영 쿠키 이름 __Host-dm_session (기존 쿠키는 끊김 없이 승계)
   · 90일 동안 이용이 없는 세션과 그 데이터 자동 삭제(DATEMATE_RETENTION_DAYS). 공개 후기는 남기고 작성자 연결만 끊음
   · CSP 강화(default-src 'self' 와 종류별 허용 출처). 실제 브라우저로 위반 0건 확인
@@ -136,7 +144,6 @@ Copy-Item .env.example .env
 
 7. 남은 일
 ----------------------------------------------------------------------
-- 보안 2차 수정의 운영 배포 (맨 위 ★ 참고).
 - Neon DB를 앱 전용 계정으로 교체: 하지 않았습니다. 지금은 neon init 이 준 기본 계정(소유자 권한)을 씁니다.
   작업하던 컴퓨터의 네트워크에서 PostgreSQL 포트(5432)가 막혀 있어 새 계정으로 앱이 도는지 미리 시험할 수 없었고,
   시험 없이 운영 DB의 테이블 소유권을 바꾸면 사이트가 멈출 수 있어 보류했습니다.

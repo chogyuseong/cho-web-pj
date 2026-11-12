@@ -253,7 +253,13 @@ def delete_my_data(request: Request, response: Response):
         db.execute(
             "DELETE FROM cache WHERE key IN (SELECT key FROM cache_owners WHERE owner=?)", (owner,)
         )
-        for prefix in ("geocode-rate:", "menu-refresh:", "price-refresh:", "local-rate:"):
+        for prefix in (
+            "geocode-rate:",
+            "region-rate:",
+            "menu-refresh:",
+            "price-refresh:",
+            "local-rate:",
+        ):
             db.execute("DELETE FROM cache WHERE key=?", (prefix + owner,))
         db.execute("DELETE FROM sessions WHERE token=?", (owner,))
     response.delete_cookie("dm_session")
@@ -302,6 +308,48 @@ def location_search(data: AddressInput, request: Request):
         raise HTTPException(429, "주소 검색은 잠시 후 다시 시도하세요.")
     store.cache(key, True, 1)
     return search_address(data.query.strip())
+
+
+class CoordinateInput(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+
+
+@app.post("/api/locations/region")
+def location_region(data: CoordinateInput, request: Request):
+    """지도에서 고른 좌표의 시·도를 확인한다. 확인하지 못하면 사용자가 직접 고른다."""
+    from .geocoding import district_at
+    from .regions import korean_coordinates, region_from_address
+
+    if not korean_coordinates(data.lat, data.lon):
+        return dict(
+            status="outside",
+            region=None,
+            label="",
+            message="국내 좌표가 아니에요. 지도를 다시 선택하거나 시·도를 직접 골라 주세요.",
+        )
+    if not (os.getenv("NAVER_MAPS_KEY_ID") and os.getenv("NAVER_MAPS_KEY")):
+        return dict(
+            status="key_missing",
+            region=None,
+            label="",
+            message="시·도 자동 확인에는 네이버 Maps 키가 필요해요. 시·도를 직접 골라 주세요.",
+        )
+    # 지도 클릭마다 한 번만 확인하도록 사용자별 연속 요청을 제한한다.
+    key = "region-rate:" + request.state.owner
+    if store.cached(key):
+        raise HTTPException(429, "위치 확인은 잠시 후 다시 시도하세요.")
+    store.cache(key, True, 1)
+    label = district_at(data.lat, data.lon)
+    region = region_from_address(label)
+    if not region:
+        return dict(
+            status="unavailable",
+            region=None,
+            label="",
+            message="선택한 위치의 시·도를 확인하지 못했어요. 시·도를 직접 골라 주세요.",
+        )
+    return dict(status="ok", region=region, label=label, message="")
 
 
 @app.get("/api/places")

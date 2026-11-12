@@ -77,3 +77,24 @@ def test_busan_local_search_can_build_a_real_plan(monkeypatch):
     result = recommend(c)
     assert result['plans']
     assert all(p['region'] == '부산' for plan in result['plans'] for p in plan['places'])
+
+    # 같은 시·도에 장소가 충분해도 출발지에서 닿지 않으면 그 동네를 새로 검색한다.
+    queries = []
+    monkeypatch.setattr(intent_discovery, 'local_lookup', lambda name, area: (queries.append(area), ([], 'available'))[1])
+    far = c.model_copy(update={'origin': c.origin.model_copy(update={
+        'name': '부산 동구 초량동 · 점검 축제 행사장 주변', 'lat': 35.1144, 'lon': 129.0464})})
+    assert intent_discovery.discover_requested_places(far)['status'] == 'not_found'
+    assert queries and set(queries) == {'부산 동구'}
+    assert intent_discovery.discover_requested_places(c)['status'] == 'not_needed'
+
+
+@pytest.mark.parametrize('name,expected', [
+    ('부산광역시 해운대구 해운대해변로 264', '해운대구'),
+    ('경북 경주시 · 점검 축제 행사장 주변', '경주시'),
+    ('제주특별자치도 제주시 애월읍 애월로 1', '제주시 애월읍'),
+    ('경북 경주 황리단길', '경주 황리단길'),
+    ('부산 · 지도에서 선택', ''),
+])
+def test_search_area_uses_district_before_the_description(name, expected):
+    from app.intent_discovery import search_area
+    assert search_area(name, '부산') == expected

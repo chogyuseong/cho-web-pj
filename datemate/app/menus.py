@@ -43,7 +43,11 @@ def identified(base,place,listing=False):
         point=dict(lat=float(coord['y']),lon=float(coord['x']))
         if distance(place,point)>.4:return False
     except (KeyError,ValueError,TypeError):return False
-    if not listing and not str(base.get('roadAddress') or base.get('address','')).startswith('서울'):return False
+    if not listing:
+        # 상세 자료의 주소 시·도가 장소의 시·도와 같아야 한다(시·도를 모르면 기존처럼 서울).
+        from .regions import normalize_region,region_from_address
+        expected=normalize_region(place.get('region')) or region_from_address(place.get('address')) or '서울'
+        if region_from_address(base.get('roadAddress') or base.get('address',''))!=expected:return False
     return str(base.get('id','')).isdigit()
 
 def price_row(name,value,representative=False):

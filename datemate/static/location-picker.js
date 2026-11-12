@@ -39,27 +39,62 @@ async function openLocationPicker(kind){
   const canvas=node('div',undefined,'location-map');canvas.id='location-map';canvas.setAttribute('aria-label',title+' 선택 지도');
   const picked=node('p','위치를 선택하면 아래 버튼으로 확정할 수 있어요.','location-picked');picked.setAttribute('aria-live','polite');
   const confirm=button(kind==='origin'?'이 지역에서 데이트하기':'이 위치를 귀가지로 사용',()=>{
-    if(!candidate)return;
-    locationState[kind]={...candidate};form.elements[kind+'_name'].value=candidate.name;
+    if(!candidate||confirm.disabled)return;
+    locationState[kind]={name:candidate.name,lat:candidate.lat,lon:candidate.lon};form.elements[kind+'_name'].value=candidate.name;
     if(kind==='origin'){
-      const region=regionFromAddress(candidate.name);
+      // change 이벤트를 보내지 않는다. 보내면 방금 고른 출발지가 초기화된다.
+      const region=candidate.region||regionFromAddress(candidate.name);
       if(region)form.elements.region.value=region;
     }
     $('#dialog').close();toast((kind==='origin'?'데이트할 지역을':'귀가지를')+' 선택했습니다.');
   },'primary full');confirm.disabled=true;
+  // 지도 선택 좌표의 시·도를 확인하지 못하면 직접 고르게 한다(서울로 조용히 남기지 않음).
+  const regionBox=node('label','시·도 직접 선택','location-region'),regionSelect=node('select');
+  regionSelect.name='location_region';regionSelect.append(new Option('시·도를 선택하세요',''));
+  for(const region of new Set(Object.values(REGION_ALIASES)))regionSelect.append(new Option(region,region));
+  regionBox.append(regionSelect);regionBox.hidden=true;
+  regionSelect.onchange=()=>{
+    if(!candidate||!regionSelect.value)return;
+    candidate={...candidate,name:regionSelect.value+' · 지도에서 선택',region:regionSelect.value};
+    picked.textContent='선택한 위치: '+candidate.name;confirm.disabled=false;
+  };
   content.append(searchForm,message,results,canvas);
-  footer.append(picked,confirm);
-  let candidate=null,marker=null,map=null,naverMap=null,naverMarker=null;
+  footer.append(picked,regionBox,confirm);
+  let candidate=null,marker=null,map=null,naverMap=null,naverMarker=null,regionCheck=0;
   const previous=locationState[kind]||locationState.origin||{lat:37.5665,lon:126.978};
   function choose(point,recenter=true){
-    candidate={name:point.name,lat:Number(point.lat),lon:Number(point.lon)};
+    regionCheck++;regionBox.hidden=true;regionSelect.value='';
+    candidate={name:point.name,lat:Number(point.lat),lon:Number(point.lon),region:regionFromAddress(point.name)};
     picked.textContent='선택한 위치: '+candidate.name;confirm.disabled=false;
     if(map){if(marker)marker.setLatLng([candidate.lat,candidate.lon]);else marker=L.circleMarker([candidate.lat,candidate.lon],{radius:10,color:'#294d3d',fillColor:'#e4774b',fillOpacity:1,weight:3}).addTo(map);if(recenter)map.setView([candidate.lat,candidate.lon],17,{animate:false});}
     if(naverMap){const coord=new naver.maps.LatLng(candidate.lat,candidate.lon);if(naverMarker)naverMarker.setPosition(coord);else naverMarker=new naver.maps.Marker({map:naverMap,position:coord});if(recenter)naverMap.setCenter(coord);}
   }
+  function pickOnMap(lat,lon){
+    choose({name:'지도에서 선택한 '+title,lat,lon},false);
+    // 귀가지는 시·도를 바꾸지 않는다.
+    if(kind==='origin')resolveRegion(candidate);
+  }
+  async function resolveRegion(point){
+    const token=++regionCheck,current=()=>token===regionCheck&&canvas.isConnected&&$('#dialog').open;
+    confirm.disabled=true;picked.textContent='선택한 위치의 시·도를 확인하고 있어요…';
+    let data=null;
+    for(let attempt=0;attempt<3&&!data;attempt++){
+      try{data=await api('/locations/region',{lat:point.lat,lon:point.lon});}
+      catch(error){if(error.status!==429)break;await new Promise(resolve=>setTimeout(resolve,1100));}
+      if(!current())return;
+    }
+    if(!current())return;
+    if(data?.status==='ok'&&data.region){
+      candidate={...point,name:(data.label||data.region)+' · 지도에서 선택',region:data.region};
+      picked.textContent='선택한 위치: '+candidate.name;confirm.disabled=false;return;
+    }
+    candidate={...point,region:null};
+    picked.textContent=data?.message||'선택한 위치의 시·도를 확인하지 못했어요. 시·도를 직접 골라 주세요.';
+    regionSelect.value='';regionBox.hidden=false;
+  }
   content.append(button('지도 중심을 선택',()=>{
     const center=naverMap?naverMap.getCenter():map?.getCenter();
-    if(center)choose({name:'지도에서 선택한 '+title,lat:naverMap?center.lat():center.lat,lon:naverMap?center.lng():center.lng},false);
+    if(center)pickOnMap(naverMap?center.lat():center.lat,naverMap?center.lng():center.lng);
   },'secondary full'),node('p','지도 클릭·터치로 선택할 수 있습니다. 키보드로 지도를 이동한 뒤 ‘지도 중심을 선택’을 사용할 수도 있어요.','hint'));
   root.append(content,footer);
   searchForm.onsubmit=async event=>{
@@ -76,14 +111,14 @@ async function openLocationPicker(kind){
     await loadNaverMaps(statusData.map_js_key);
     if(!canvas.isConnected||!$('#dialog').open)return;
     naverMap=new naver.maps.Map(canvas,{center:new naver.maps.LatLng(previous.lat,previous.lon),zoom:15});
-    naver.maps.Event.addListener(naverMap,'click',event=>choose({name:'지도에서 선택한 '+title,lat:event.coord.lat(),lon:event.coord.lng()},false));
+    naver.maps.Event.addListener(naverMap,'click',event=>pickOnMap(event.coord.lat(),event.coord.lng()));
   }catch{message.textContent='네이버 지도에 연결하지 못해 OpenStreetMap 지도를 사용합니다.';}}
   if(!naverMap){
     map=L.map(canvas,{scrollWheelZoom:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false}).setView([previous.lat,previous.lon],15);locationMap=map;
     const credit=document.createElement('a');credit.href='https://www.openstreetmap.org/copyright';credit.target='_blank';credit.rel='noopener';credit.textContent=statusData?.map_tile_attribution||'© OpenStreetMap contributors';
     const tiles=L.tileLayer(statusData?.map_tile_url||'https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:credit.outerHTML}).addTo(map);
     tiles.on('tileerror',()=>{message.textContent='지도 이미지를 불러오지 못했습니다. 네트워크를 확인하거나 주소 검색을 이용하세요.';});
-    map.on('click',event=>choose({name:'지도에서 선택한 '+title,lat:event.latlng.lat,lon:event.latlng.lng},false));
+    map.on('click',event=>pickOnMap(event.latlng.lat,event.latlng.lng));
     requestAnimationFrame(()=>{if(locationMap===map&&canvas.isConnected&&$('#dialog').open)map.invalidateSize();});
   }
   if(locationState[kind])choose(locationState[kind],false);

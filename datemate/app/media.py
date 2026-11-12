@@ -62,6 +62,13 @@ def photos_for(place):
     return result
 
 
+def unchecked(photos):
+    """Photos shown with place matching only, without a content check."""
+    return any(
+        (photo.get("visual_verification") or {}).get("status") == "unverified" for photo in photos
+    )
+
+
 def media_info(place, prefer_public=False, force=False, review_only=False):
     from .public_place_photos import public_place_photos
     from .blog_photos import blog_photos
@@ -77,7 +84,11 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
             wikidata_id=None,
             photo_source="matched_review_photos",
             description=place.get("description"),
-            message="사진별 장소 설명과 사진 내용을 대조한 후기 사진이에요."
+            message=(
+                "사진별 장소 설명으로 해당 장소를 확인한 후기 사진이에요. 사진 내용 검사는 하지 않았어요."
+                if unchecked(data["photos"])
+                else "사진별 장소 설명과 사진 내용을 대조한 후기 사진이에요."
+            )
             if data["photos"]
             else "해당 장소와 사진 내용의 연결을 확인한 후기 사진이 없어요. 원문에서 확인해 주세요.",
             search_url="https://search.naver.com/search.naver?"
@@ -130,7 +141,12 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
         result = response(
             public,
             photos[:5],
-            "업체 사진을 먼저 표시하고, 부족한 사진은 같은 업체로 확인된 공개·후기 자료에서 보충해요.",
+            "업체 사진을 먼저 표시하고, 부족한 사진은 같은 업체로 확인된 공개·후기 자료에서 보충해요."
+            + (
+                " '내용 미검사' 사진은 장소 일치만 확인했고 사진 내용은 검사하지 않았어요."
+                if unchecked(photos[:5])
+                else ""
+            ),
         )
         result["photo_source"] = "reviewed_registry" if only_registry else "priority_place_photos"
         result["wikidata_id"] = (

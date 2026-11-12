@@ -9,4 +9,5 @@
 .location-footer{flex-shrink:0;background:white;border-top:1px solid var(--line);padding-top:10px;margin-top:8px}
 .location-footer .location-picked{margin:0 0 8px;padding:8px 10px;font-size:12px}
 .location-footer .primary{min-height:44px}
+.location-footer .location-region{display:grid;gap:4px;margin:0 0 8px;font-size:12px}
 @media(max-width:520px){#dialog.location-dialog{padding:18px}.location-body .location-map{height:235px}.location-body .location-search{margin-top:4px}}

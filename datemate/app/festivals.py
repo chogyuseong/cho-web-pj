@@ -7,14 +7,15 @@ from datetime import date, timedelta
 from urllib.parse import quote, urlsplit
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from . import store
-from .regions import normalize_region, region_from_address
+from .regions import korean_coordinates, normalize_region, region_from_address
 from .telemetry import observed_http
 
 router = APIRouter()
 ENDPOINT = 'https://apis.data.go.kr/B551011/KorService2/searchFestival2'
+DETAIL_ENDPOINT = 'https://apis.data.go.kr/B551011/KorService2/detailIntro2'
 REGION_CODES = {
     '서울': '11', '부산': '26', '대구': '27', '인천': '28', '광주': '29',
     '대전': '30', '울산': '31', '세종': '36', '경기': '41', '강원': '51',
@@ -29,6 +30,24 @@ def plain(value):
     return re.sub(r'<[^>]*>', ' ', html.unescape(str(value or ''))).strip()[:200]
 
 
+def detail_text(value):
+    """Provider free text (fee, hours) as one tidy line: HTML removed, <br> kept as a space, max 300 chars."""
+    text = re.sub(r'<[^>]*>', ' ', html.unescape(str(value or '')))
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text[:300] or None
+
+
+def coordinates(item):
+    """(lat, lon) from mapy/mapx, or (None, None) when missing or outside Korea."""
+    try:
+        lat, lon = float(item.get('mapy')), float(item.get('mapx'))
+    except (TypeError, ValueError):
+        return None, None
+    if not (lat == lat and lon == lon) or not korean_coordinates(lat, lon):
+        return None, None
+    return lat, lon
+
+
 def parse_day(value):
     try:
         return date.fromisoformat(f'{value[:4]}-{value[4:6]}-{value[6:8]}') if len(value) == 8 and value.isdigit() else None
@@ -41,7 +60,8 @@ def festival_image(item):
     license_type = str(item.get('cpyrhtDivCd') or '').strip()
     if license_type not in IMAGE_LICENSES:
         return None, None
-    for field in ('firstimage2', 'firstimage'):
+    # 썸네일(firstimage2)은 가로 300px 이하라 카드에서 깨져 보인다. 원본을 먼저 쓴다.
+    for field in ('firstimage', 'firstimage2'):
         url = str(item.get(field) or '').strip()
         try:
             parsed = urlsplit(url)
@@ -68,12 +88,13 @@ def normalize_item(item, start, end, region):
         return None
     content_id = str(item.get('contentid', ''))
     image_url, image_license = festival_image(item)
+    lat, lon = coordinates(item)
     return dict(
         id=content_id if content_id.isdigit() else title + ':' + first.isoformat(),
         title=title, start=first.isoformat(), end=last.isoformat(),
         region=place_region, address=address,
         source_url='https://korean.visitkorea.or.kr/search/search_list.do?keyword=' + quote(title),
-        image_url=image_url, image_license=image_license,
+        image_url=image_url, image_license=image_license, lat=lat, lon=lon,
     )
 
 
@@ -87,7 +108,7 @@ def fetch_festivals(start, end, region):
     key = os.getenv('TOUR_API_KEY', '').strip()
     if not key:
         return dict(status='key_missing', festivals=[], message='한국관광공사 관광정보 API 키를 설정하면 실제 축제를 조회할 수 있어요.')
-    cache_key = f'festivals:v3:{start}:{end}:{region or "all"}'
+    cache_key = f'festivals:v5:{start}:{end}:{region or "all"}'
     cached = store.cached(cache_key)
     if cached:
         return cached
@@ -135,6 +156,51 @@ def fetch_festivals(start, end, region):
         return result
     except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
         return dict(status='unavailable', festivals=[], message='축제 자료에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.')
+
+
+def fetch_festival_detail(content_id):
+    """Fee and hours as the organizer wrote them. Shown as text only, never parsed into course costs."""
+    key = os.getenv('TOUR_API_KEY', '').strip()
+    if not key:
+        return dict(status='key_missing', fee=None, hours=None, place=None, checked_at=None,
+                    message='한국관광공사 관광정보 API 키를 설정하면 이용요금을 확인할 수 있어요.')
+    cache_key = f'festival-detail:v1:{content_id}'
+    cached = store.cached(cache_key)
+    if cached:
+        return cached
+    try:
+        with httpx.Client(timeout=10) as client:
+            params = dict(serviceKey=key, MobileOS='ETC', MobileApp='DateMate', _type='json',
+                          contentId=content_id, contentTypeId='15')
+            response = observed_http(client.get, DETAIL_ENDPOINT, params=params)
+            response.raise_for_status()
+            if len(response.content) > 1_000_000:
+                raise ValueError('oversized_response')
+            body = response.json().get('response', {})
+            header = body.get('header', {})
+            if str(header.get('resultCode', '0000')) not in ('0000', '00'):
+                raise ValueError('provider_error')
+            group = ((body.get('body') or {}).get('items') or {}).get('item') or []
+            item = (group if isinstance(group, list) else [group])[:1]
+            item = item[0] if item and isinstance(item[0], dict) else {}
+        result = dict(
+            status='available',
+            fee=detail_text(item.get('usetimefestival')),
+            hours=detail_text(item.get('playtime')),
+            place=detail_text(item.get('eventplace')),
+            checked_at=date.today().isoformat(),
+            message='주최 측이 한국관광공사에 제공한 안내예요. 방문 전 다시 확인해 주세요.',
+        )
+        store.cache(cache_key, result, 86400)
+        return result
+    except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
+        return dict(status='unavailable', fee=None, hours=None, place=None, checked_at=None,
+                    message='요금 정보를 불러오지 못했어요.')
+
+
+@router.get('/api/festivals/{content_id}/detail')
+def festival_detail(content_id: str = Path(pattern=r'^\d{1,12}$')):
+    return fetch_festival_detail(content_id)
 
 
 @router.get('/api/festivals')

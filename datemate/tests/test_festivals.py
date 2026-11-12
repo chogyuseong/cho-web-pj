@@ -93,9 +93,9 @@ def test_festival_image_requires_https_provider_host_and_open_license():
     original = 'https://tong.visitkorea.or.kr/cms/resource/1/original.jpg'
     for license_type in ('Type1', 'Type3'):
         row = image_row(firstimage=original, firstimage2=thumb, cpyrhtDivCd=license_type)
-        assert row['image_url'] == thumb and row['image_license'] == license_type
-    row = image_row(firstimage=original, firstimage2='', cpyrhtDivCd='Type3')
-    assert row['image_url'] == original
+        assert row['image_url'] == original and row['image_license'] == license_type
+    row = image_row(firstimage='', firstimage2=thumb, cpyrhtDivCd='Type3')
+    assert row['image_url'] == thumb
     rejected = [
         dict(firstimage='http://tong.visitkorea.or.kr/a.jpg', cpyrhtDivCd='Type3'),
         dict(firstimage='https://example.com/a.jpg', cpyrhtDivCd='Type3'),
@@ -113,3 +113,89 @@ def test_festival_image_requires_https_provider_host_and_open_license():
         row = image_row(**fields)
         assert row['image_url'] is None and row['image_license'] is None, fields
     assert image_row(firstimage2=thumb, cpyrhtDivCd='Type3')['title'] == '사진 축제'
+
+
+def test_festival_rows_carry_korean_coordinates_only():
+    row = image_row(mapx='126.9784', mapy='37.5666')
+    assert row['lat'] == 37.5666 and row['lon'] == 126.9784
+    for fields in (dict(mapx='-73.98', mapy='40.75'), dict(mapx='', mapy=''), dict(mapx='abc', mapy='37.5'), {}):
+        row = image_row(**fields)
+        assert row['lat'] is None and row['lon'] is None, fields
+
+
+class DetailResponse:
+    def __init__(self, payload, content=b'{}'):
+        self.payload, self.content = payload, content
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self.payload
+
+
+def detail_payload(**item):
+    return {'response': {'header': {'resultCode': '0000'}, 'body': {'items': {'item': [item]}}}}
+
+
+def test_festival_detail_cleans_fee_and_hours_and_caches_for_a_day(monkeypatch):
+    monkeypatch.setenv('TOUR_API_KEY', 'test-only-secret')
+    calls = []
+
+    def fake_get(fn, url, params):
+        calls.append((url, params))
+        return DetailResponse(detail_payload(
+            usetimefestival='- 일반 65,000원<br>- 장애인 50% 할인&nbsp;\n\n※ 무료 : 24개월 미만',
+            playtime='10:00~18:00<br />(입장 마감 17:00)', eventplace='<b>올림픽공원</b>'))
+
+    monkeypatch.setattr(festivals, 'observed_http', fake_get)
+    with TestClient(app) as client:
+        first = client.get('/api/festivals/770001/detail').json()
+        second = client.get('/api/festivals/770001/detail').json()
+    assert first == second and len(calls) == 1
+    assert calls[0][0].endswith('/detailIntro2')
+    assert calls[0][1]['contentId'] == '770001' and calls[0][1]['contentTypeId'] == '15'
+    assert first['status'] == 'available'
+    assert first['fee'] == '- 일반 65,000원 - 장애인 50% 할인 ※ 무료 : 24개월 미만'
+    assert first['hours'] == '10:00~18:00 (입장 마감 17:00)' and first['place'] == '올림픽공원'
+    assert 'test-only-secret' not in str(first)
+
+
+def test_festival_detail_missing_values_are_none_and_long_text_is_cut(monkeypatch):
+    monkeypatch.setenv('TOUR_API_KEY', 'test-only-secret')
+    monkeypatch.setattr(festivals, 'observed_http',
+                        lambda fn, url, params: DetailResponse(detail_payload(usetimefestival='가' * 500, playtime='  <br> ')))
+    with TestClient(app) as client:
+        result = client.get('/api/festivals/770002/detail').json()
+    assert len(result['fee']) == 300 and result['hours'] is None and result['place'] is None
+
+
+def test_festival_detail_rejects_non_numeric_ids(monkeypatch):
+    monkeypatch.setenv('TOUR_API_KEY', 'test-only-secret')
+    monkeypatch.setattr(festivals, 'observed_http', lambda *a, **k: (_ for _ in ()).throw(AssertionError('no call')))
+    with TestClient(app) as client:
+        for bad in ('abc', '12a', '1' * 13, '%2E%2E'):
+            assert client.get(f'/api/festivals/{bad}/detail').status_code in (404, 422), bad
+
+
+def test_festival_detail_key_missing_and_provider_errors(monkeypatch):
+    monkeypatch.delenv('TOUR_API_KEY', raising=False)
+    with TestClient(app) as client:
+        assert client.get('/api/festivals/770003/detail').json()['status'] == 'key_missing'
+    monkeypatch.setenv('TOUR_API_KEY', 'test-only-secret')
+    calls = []
+
+    def failing(fn, url, params):
+        calls.append(1)
+        return DetailResponse({'response': {'header': {'resultCode': '30', 'resultMsg': 'SERVICE KEY ERROR'}}})
+
+    monkeypatch.setattr(festivals, 'observed_http', failing)
+    with TestClient(app) as client:
+        result = client.get('/api/festivals/770003/detail').json()
+        assert result['status'] == 'unavailable' and result['fee'] is None
+        client.get('/api/festivals/770003/detail')
+    assert len(calls) == 2  # 오류는 캐시하지 않는다.
+    monkeypatch.setattr(festivals, 'observed_http',
+                        lambda fn, url, params: DetailResponse(detail_payload(), content=b'x' * 1_000_001))
+    with TestClient(app) as client:
+        assert client.get('/api/festivals/770004/detail').json()['status'] == 'unavailable'

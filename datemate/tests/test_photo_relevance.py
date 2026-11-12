@@ -47,11 +47,24 @@ def test_food_only_allowed_for_dining_venue(visual_service):
     assert filter_photos(PLACE|{'id':'restaurant','category':'카페·미식'},[PHOTO])
 
 
-def test_missing_or_failed_visual_service_never_approves_review(monkeypatch,visual_service):
-    monkeypatch.delenv('GMS_KEY')
+@pytest.mark.parametrize('setting',[{'GMS_KEY':''},{'PHOTO_VISUAL_CHECK':'false'}])
+def test_without_visual_checker_place_matched_photos_shown_as_unchecked(monkeypatch,visual_service,setting):
+    answer,calls=visual_service
+    for name,value in setting.items():monkeypatch.setenv(name,value)
+    rows=filter_photos(PLACE,[PHOTO])
+    assert len(rows)==1 and rows[0]['visual_verification']=={'status':'unverified','reason':'visual_check_unavailable'}
+    assert not calls
+    # Existing count limits still apply: at most five candidates, stop after two results.
+    many=[PHOTO|{'id':str(i),'image_url':f'https://blogfiles.pstatic.net/{i}.jpg'} for i in range(6)]
+    assert [row['id'] for row in filter_photos(PLACE,many)]==['0','1']
+
+
+def test_failed_visual_service_never_approves_review(monkeypatch,visual_service):
+    monkeypatch.setattr('app.photo_relevance.invoke_model',lambda *args:(_ for _ in ()).throw(RuntimeError('provider down')))
     assert not filter_photos(PLACE,[PHOTO])
-    owned=PHOTO|{'owner_verified':True}
-    assert filter_photos(PLACE,[owned])[0]['visual_verification']['status']=='unverified'
+    owned=PHOTO|{'owner_verified':True,'image_url':'https://ldb-phinf.pstatic.net/owner.jpg'}
+    rows=filter_photos(PLACE,[owned])
+    assert rows[0]['visual_verification']['status']=='unverified' and 'reason' not in rows[0]['visual_verification']
 
 
 def test_model_failure_does_not_leak_secret(visual_service,monkeypatch):
@@ -81,3 +94,36 @@ def test_early_rejections_do_not_hide_later_valid_photos(monkeypatch):
     photos=[{'id':str(i)} for i in range(5)]
     monkeypatch.setattr('app.photo_relevance.classify',lambda place,photo:{'status':'approved' if int(photo['id'])>=3 else 'rejected'})
     assert [photo['id'] for photo in filter_photos(PLACE,photos)]==['3','4']
+
+
+def test_area_words_and_queries_never_assume_seoul():
+    from app.public_place_photos import area_words
+    from app.search_address_text import street_address
+    assert area_words({'address':'제주특별자치도 제주시 애월읍'})=='제주 제주시'
+    assert area_words({'address':'강원특별자치도 강릉시 창해로'})=='강원 강릉시'
+    assert area_words({'region':'부산','address':'부산광역시 해운대구 우동'})=='부산 해운대구'
+    assert area_words({'address':'서울특별시 중구 세종대로'})=='서울 중구'
+    assert '서울' not in area_words({'address':'경상남도 통영시'})
+    assert street_address('강원특별자치도 강릉시')=='강원특별자치도 강릉시'
+    assert street_address('미확인 주소')==''
+
+
+def test_public_photo_queries_use_place_region(monkeypatch):
+    import app.public_place_photos as module
+    queries=[]
+    monkeypatch.setattr(module.store,'cached',lambda key:None)
+    monkeypatch.setattr(module.store,'cache',lambda *args:None)
+    monkeypatch.setattr(module,'fetch_page',lambda client,query:queries.append(query) or '')
+    place={'name':'바다카페','address':'제주특별자치도 제주시 애월읍','region':'제주','lat':33.46,'lon':126.31}
+    module.public_place_photos(place,force=True)
+    assert queries and all('서울' not in query for query in queries)
+    assert '바다카페 제주 제주시' in queries
+
+
+def test_detail_identity_requires_place_region_not_seoul():
+    from app.menus import identified
+    base={'name':'바다카페','id':'7','coordinate':{'x':'126.31','y':'33.46'},'roadAddress':'제주특별자치도 제주시 애월읍 1'}
+    place={'name':'바다카페','lat':33.46,'lon':126.31,'region':'제주'}
+    assert identified(base,place)
+    assert not identified(base,place|{'region':'부산'})
+    assert not identified(base|{'roadAddress':'서울 중구 1'},place)

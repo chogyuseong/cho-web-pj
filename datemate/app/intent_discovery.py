@@ -12,20 +12,44 @@ from .quality import in_area
 from .regions import region_from_address, korean_coordinates, same_region
 
 
+def reach_km(c):
+    """한 구간 이동 제한 안에서 닿는 대략적인 직선 반경. routes.leg 의 추정 속도·보정과 같은 값."""
+    if c.area_center:return c.neighborhood_radius_km
+    speed={'walk':4,'bicycle':12,'car':25,'transit':18}[c.transport]
+    return max(1.0,speed*c.max_leg/60/1.35)
+
+
+def nearby(place,c):
+    from .routes import distance
+    return in_area(place,c) and distance((c.area_center or c.origin).model_dump(),place)<=reach_km(c)
+
+
+def search_area(name,region):
+    """출발지 이름에서 검색어에 쓸 시·군·구(읍·면) 표기를 고른다. ' · ' 뒤는 설명이라 쓰지 않는다."""
+    from .regions import normalize_region
+    head=name.split(' · ')[0]
+    district=re.search(r'[가-힣]{1,8}구(?:\s|$)',head)
+    if district:return district[0].strip()
+    words=[w for w in head.split() if not normalize_region(w)]
+    admin=[w for w in words if re.fullmatch(r'[가-힣]{1,8}(?:시|군)',w)][:1]
+    admin+=[w for w in words if re.fullmatch(r'[가-힣0-9]{1,8}(?:읍|면|동)',w)][:1]
+    return ' '.join(admin or words)
+
+
 def discover_requested_places(c):
     keys=intent(c)['intents']
     if c.mode!='real' or not search_enabled():return dict(status='not_available',resolved=0)
     supplement=False
     if not keys:
         from .catalog import places
-        if sum(same_region(p,c.region) and in_area(p,c) for p in places('real',c.visit_date))>=c.count:return dict(status='not_needed',resolved=0)
+        # 같은 시·도라도 출발지에서 닿지 않는 장소는 후보로 치지 않는다.
+        if sum(same_region(p,c.region) and nearby(p,c) for p in places('real',c.visit_date))>=c.count:return dict(status='not_needed',resolved=0)
         keys=['cafe','walk','culture'];supplement=True
-    area=(c.area_center or c.origin).name.replace(' 중심','').replace(' 지역 중심','')
+    area=(c.area_center or c.origin).name.replace(' 지역 중심','').replace(' 중심','')
     if area.startswith('지도에서 선택'):
         from .geocoding import district_at
         area=district_at(c.origin.lat,c.origin.lon) or c.region
-    district=re.search(r'[가-힣]{1,8}구(?:\s|$)',area)
-    if district:area=district[0].strip()
+    area=search_area(area,c.region)
     fingerprint=hashlib.sha256(str([area,(c.area_center or c.origin).model_dump(),c.neighborhood_radius_km,keys]).encode()).hexdigest()
     cachekey='intent-local-v5:'+fingerprint
     cached=store.cached(cachekey)
@@ -35,7 +59,7 @@ def discover_requested_places(c):
                 'walk':['공원','산책','정원'],'workshop':['공방','도자기 공방','체험 공방']}
     queries=[(key,term) for key in keys[:4] for term in variations.get(key,[INTENTS[key][1][0]])]
     for key,term in queries:
-        items,status=local_lookup(term,c.region+' '+area);statuses.append(status)
+        items,status=local_lookup(term,(c.region+' '+area).strip());statuses.append(status)
         for item in items:
             category=plain(item.get('category',''));name=plain(item.get('title',''))
             address=plain(item.get('roadAddress') or item.get('address',''))

@@ -206,6 +206,25 @@ def owner_page_photos(client, pid, place):
     return []
 
 
+def area_words(place):
+    """Province plus city/county/district from the place itself, never a fixed city."""
+    from .regions import normalize_region, region_from_address
+
+    address = (place.get("address") or "").split()
+    region = normalize_region(place.get("region")) or region_from_address(place.get("address"))
+    local = next(
+        (
+            word
+            for index, word in enumerate(address)
+            if not (index == 0 and normalize_region(word))
+            and len(word) > 1
+            and word.endswith(("구", "시", "군"))
+        ),
+        None,
+    )
+    return " ".join(word for word in (region, local) if word)
+
+
 def public_place_photos(place, force=False):
     if (
         not place.get("name")
@@ -227,9 +246,7 @@ def public_place_photos(place, force=False):
         return result
     if store.cached("public-place-photo-cooldown"):
         return dict(result, status="unavailable")
-    district = next(
-        (word for word in (place.get("address") or "").split() if word.endswith("구")), "서울"
-    )
+    district = area_words(place)
     query = place_query(place)
     try:
         with _limit, httpx.Client(timeout=8, follow_redirects=False) as client:
@@ -237,7 +254,7 @@ def public_place_photos(place, force=False):
             pid = None
             # A representative photo alone is not a complete gallery.
             for search_query in dict.fromkeys(
-                [query, place["name"] + " " + district, place_query(place, "사진")]
+                [query, " ".join([place["name"], district]).strip(), place_query(place, "사진")]
             ):
                 try:
                     found, found_pid = extract_photo_records(

@@ -6,8 +6,17 @@
 .festival-photo-frame img {display:block;width:100%;height:100%;object-fit:contain}
 .festival-photo-credit {font-size:11px;color:var(--muted);text-align:right}
 #festival-results {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));gap:1rem;margin-top:1rem}
+/* 검색 중 상자: 취소 버튼이 눌려 글자가 쪼개지지 않게 하고, 적용 조건은 아랫줄로 내린다. */
+#progress.is-searching {flex-wrap:wrap}
+#progress.is-searching .search-progress-copy {flex:1 1 220px}
+#progress.is-searching > button {flex:none;white-space:nowrap}
+#progress.is-searching > .applied-conditions {flex:1 0 100%;margin:0}
 .festival-panel {margin-top:24px;min-width:0;scroll-margin-top:100px}
 .festival-jump {padding:6px 14px;font-size:13px;white-space:nowrap}
 .festival-panel .section-heading h3 {margin:0;font-size:18px;letter-spacing:-.5px}
 .festival-demo-note {background:var(--soft);border-radius:8px;padding:8px 12px;color:var(--green)}
 #festival-more {margin-top:1rem}
+.festival-card > .tag {justify-self:start}
+.festival-chosen {border-color:var(--green);box-shadow:0 0 0 1px var(--green)}
+.festival-card > button {justify-self:start;max-width:100%;white-space:normal}
+#festival-origin-note {margin:0 0 12px}

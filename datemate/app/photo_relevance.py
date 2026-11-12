@@ -63,9 +63,7 @@ def classify(place, photo):
     cached = store.cached(key)
     if cached:
         return cached
-    if os.getenv("PHOTO_VISUAL_CHECK", "true").lower() not in ("true", "1") or not os.getenv(
-        "GMS_KEY"
-    ):
+    if not visual_check_configured():
         return dict(status="unverified")
     provider_key = (
         "photo-visual-provider:"
@@ -147,9 +145,19 @@ def classify(place, photo):
     return result
 
 
+def visual_check_configured():
+    """True only when a content checker can run at all (not whether a call succeeds)."""
+    return os.getenv("PHOTO_VISUAL_CHECK", "true").lower() in ("true", "1") and bool(
+        os.getenv("GMS_KEY")
+    )
+
+
 def filter_photos(place, photos):
     result = []
     candidates = photos[:5]
+    # Without any checker, candidates that already passed place matching are shown
+    # and marked unchecked. A configured checker that fails stays strict.
+    configured = visual_check_configured()
     # Keep checking later candidates when early ones are ads/documents.
     # Two at a time also lets other venues share the same bounded queue.
     for start in range(0, len(candidates), 2):
@@ -160,6 +168,13 @@ def filter_photos(place, photos):
                 result.append(dict(photo, visual_verification=verdict))
             elif photo.get("owner_verified") is True and verdict["status"] == "unverified":
                 result.append(dict(photo, visual_verification=verdict))
+            elif not configured and verdict["status"] == "unverified":
+                result.append(
+                    dict(
+                        photo,
+                        visual_verification=dict(verdict, reason="visual_check_unavailable"),
+                    )
+                )
         if len(result) >= 2:
             break
     return result

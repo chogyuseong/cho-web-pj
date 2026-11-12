@@ -144,9 +144,9 @@ function leisurePhotoPanel(place, photoMode) {
             original.append(slot.image);
             const credit = node('figcaption');
             if (['search_result', 'place_public'].includes(photo.kind)) {
-              credit.append(link((photo.source_label || '사진 출처') + ' ↗', photo.source));
+              credit.append(link(photoLabel(photo, '사진 출처') + ' ↗', photo.source));
             } else {
-              credit.append(node('span', (photo.author || '') + ' · '), link(photo.license || '이용 조건', photo.license_url), node('span', ' · '), link((photo.source_label || '사진 출처') + ' ↗', photo.source));
+              credit.append(node('span', (photo.author || '') + ' · '), link(photo.license || '이용 조건', photo.license_url), node('span', ' · '), link(photoLabel(photo, '사진 출처') + ' ↗', photo.source));
             }
             slot.figure.replaceChildren(original, credit);
           }, () => {

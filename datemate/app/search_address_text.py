@@ -9,8 +9,10 @@ def street_address(value):
     if match:return text[:match.end()].strip()
     match=re.search(r'(?:동|가|리)\s+(?:산\s*)?\d+(?:-\d+)?(?=\s|$|[,(])',text)
     if match:return text[:match.end()].strip()
-    district=re.search(r'(?:서울특별시|서울시|서울)\s+[가-힣]+구',text)
-    return district[0] if district else ''
+    from .regions import normalize_region
+    for district in re.finditer(r'([가-힣]+)\s+[가-힣]+(?:구|시|군)(?=\s|$)',text):
+        if normalize_region(district[1]):return district[0]
+    return ''
 
 def place_query(place,suffix=''):
     return ' '.join(p for p in [str(place.get('name') or '').strip(),street_address(place.get('address')),suffix] if p)

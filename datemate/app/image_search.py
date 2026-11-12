@@ -65,8 +65,8 @@ def _search_place_images(place):
         place=dict(place,image_aliases=['SAAN 을지로 카페','산 을지로점','SAAN2'],image_keywords=['SAAN','을지로'],image_queries=['SAAN 을지로 카페 서울','SAAN2 카페'])
     aliases=image_aliases(place)
     from .regions import normalize_region, region_from_address
-    region=normalize_region(place.get('region')) or region_from_address(place.get('address')) or '서울'
-    query=f'{aliases[0] if aliases else place["name"]} {region}'
+    region=normalize_region(place.get('region')) or region_from_address(place.get('address')) or ''
+    query=f'{aliases[0] if aliases else place["name"]} {region}'.strip()
     try:
         with _image_slots, httpx.Client(timeout=7) as client:
             items=[]

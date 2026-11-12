@@ -20,7 +20,7 @@ def test_naver_search_mapping_and_filter(monkeypatch):
             {'title':'경복궁 중복','thumbnail':'https://example.org/thumb.jpg','link':'https://example.org/original.jpg'},
             {'title':'경복궁 위험 링크','thumbnail':'javascript:alert(1)','link':'https://example.org/x.jpg'}]})
     monkeypatch.setattr(httpx.Client,'get',get)
-    result=search_place_images({'name':'경복궁','demo':False})
+    result=search_place_images({'name':'경복궁','region':'서울','demo':False})
     assert len(result['photos'])==1
     photo=result['photos'][0]
     assert photo['kind']=='search_result' and photo['license'] is None and '<b>' not in photo['title']

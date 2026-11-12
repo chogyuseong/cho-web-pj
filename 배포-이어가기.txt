@@ -5,6 +5,27 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
+★ 가장 먼저 할 일: 보안 2차 수정이 아직 운영에 배포되지 않았습니다
+----------------------------------------------------------------------
+보안 2차 수정(커밋 f794796)은 main 에 올라가 있지만 운영 사이트에는 반영되지 않았습니다.
+운영 사이트는 그 이전 버전(보안 1차까지)으로 정상 동작 중입니다.
+
+배포 방법 (저장소 최상위, Docker Desktop 실행 후):
+    npx wrangler deploy
+
+배포 전에 알아둘 것
+- 이 배포는 DB의 세션 토큰과 소유자 값을 해시로 바꿉니다. 한 번 바꾸면 되돌릴 수 없고,
+  배포 후 이전 버전으로 롤백하면 모든 사용자의 세션이 끊깁니다.
+- 배포 직전 상태의 복원 지점을 Neon 브랜치로 만들어 두었습니다:
+  backup-before-session-hash-2026-11-12 (Neon 콘솔 → Branches). 문제없이 며칠 운영된 뒤 지워도 됩니다.
+- 이용이 적은 시간에 배포하세요. 새 버전이 실제 응답에 반영되기까지 5분쯤 걸립니다.
+- 배포 후 공개 주소에서 확인: 코스 추천, 축제 요금, 장소 둘러보기 사진, 위치 선택 지도(네이버 지도가
+  뜨는지 — 새 CSP 가 막지 않는지), 기존에 저장한 코스가 그대로 열리는지.
+  브라우저 개발자 도구 콘솔에 "Content Security Policy" 오류가 없어야 합니다.
+- 운영과 같은 구성의 로컬 검증은 통과했습니다: 전체 테스트 465개(SQLite), PostgreSQL 통합 컨테이너 검사 7개,
+  wrangler deploy --dry-run.
+
+
 1. 준비물
 ----------------------------------------------------------------------
 - Git
@@ -21,8 +42,8 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
 
-- requirements-dev.txt 는 실행용(requirements.txt)에 테스트 도구(playwright 등)를 더한 것입니다.
-  실행만 할 거라면 requirements.txt 만 설치해도 됩니다.
+- requirements-dev.txt 는 실행용(requirements.txt)에 테스트 도구(pytest, pypdf, playwright 등)를 더한 것입니다.
+  requirements.txt 는 운영 실행에 필요한 것만 담고 있어, 테스트를 돌리려면 dev 쪽이 필요합니다.
 - 이후 모든 명령은 datemate 폴더에서, 가상환경의 파이썬(.\.venv\Scripts\python.exe)으로 실행합니다.
   시스템 파이썬에는 의존성이 없어 테스트가 실패합니다.
 
@@ -103,16 +124,28 @@ Copy-Item .env.example .env
 - Cloudflare 운영 배포 완료: https://datemate.guseong-family.workers.dev
 - 전체 보안 점검 후 1차 수정 반영(입력 크기 상한, IP 범위 기준 요청 제한, 세션 발급 방식,
   상태 확인 경로 차단 등). 자세한 내용은 README.md 의 "보안" 참고
+- 보안 2차 수정 구현(코드는 main 에 있음, 운영 배포는 아직 — 맨 위 ★ 참고):
+  · 세션 토큰을 DB에 해시로만 저장, 운영 쿠키 이름 __Host-dm_session (기존 쿠키는 끊김 없이 승계)
+  · 90일 동안 이용이 없는 세션과 그 데이터 자동 삭제(DATEMATE_RETENTION_DAYS). 공개 후기는 남기고 작성자 연결만 끊음
+  · CSP 강화(default-src 'self' 와 종류별 허용 출처). 실제 브라우저로 위반 0건 확인
+  · Cloudflare Worker 단계의 IP별 요청 제한(화면·API 60초 600회, 정적 파일 1200회)
+  · 운영 이미지에서 pytest·pypdf 제외, CI 에 Python 의존성 취약점 검사(pip-audit) 추가
+- 네이버 클라우드 콘솔에서 Reverse Geocoding 을 켬. 지도에서 위치를 찍으면 시·도가 자동으로 채워집니다.
+- Neon CLI(neon init)가 저장소에 만들었던 package.json 변경과 neon.ts 는 되돌렸습니다.
 
 
 7. 남은 일
 ----------------------------------------------------------------------
-- 보안 2차 과제: 저장 데이터 보존 기한과 자동 삭제(지금은 영구 보존), 세션 토큰 해시 저장,
-  CSP 범위 축소, Neon DB를 앱 전용 계정으로 교체(지금은 neon init 이 준 기본 계정)
-- 네이버 클라우드 콘솔에서 Reverse Geocoding 이 꺼져 있으면(응답 403) 지도에서 위치를 찍을 때
-  시·도를 직접 골라야 합니다. 켜면 코드 변경 없이 자동으로 채워집니다.
-- Neon CLI(neon init)가 저장소에 만든 package.json·package-lock.json 변경과 neon.ts 는
-  커밋하지 않았습니다. 이 Python 앱에서는 쓰이지 않습니다.
+- 보안 2차 수정의 운영 배포 (맨 위 ★ 참고).
+- Neon DB를 앱 전용 계정으로 교체: 하지 않았습니다. 지금은 neon init 이 준 기본 계정(소유자 권한)을 씁니다.
+  작업하던 컴퓨터의 네트워크에서 PostgreSQL 포트(5432)가 막혀 있어 새 계정으로 앱이 도는지 미리 시험할 수 없었고,
+  시험 없이 운영 DB의 테이블 소유권을 바꾸면 사이트가 멈출 수 있어 보류했습니다.
+  할 때는 5432 포트가 열린 네트워크에서: ① Neon 브랜치를 만들어 그 위에서 연습 ② SQL 로 로그인 전용 역할 생성
+  (NOSUPERUSER NOCREATEDB NOCREATEROLE) ③ public 스키마의 테이블·시퀀스 소유권을 새 역할로 이전
+  (앱이 시작할 때 마이그레이션으로 테이블을 바꾸므로 소유권이 필요) ④ 새 연결 주소로 앱 기동·전체 흐름 확인
+  ⑤ 운영에 같은 절차 적용 후 npx wrangler secret put DATABASE_URL.
+- 로컬에서 네이버 지도가 인증 실패로 나오면: 네이버 클라우드 콘솔의 Web 서비스 URL 에 로컬 주소
+  (http://127.0.0.1:8000, http://localhost:8000)가 남아 있는지 확인하세요. 배포 주소를 등록할 때 지워졌을 수 있습니다.
 - 축제 사진은 공공누리 제1·제3유형만 출처를 표기해 원본 그대로 보여 줍니다.
   공개 서비스 전에 공공누리 약관과 한국관광공사 이용 조건을 직접 확인하세요.
 - 공유 링크로 코스를 열거나 새로고침으로 이전 결과를 이어받을 때는 축제 구역이 나오지 않습니다

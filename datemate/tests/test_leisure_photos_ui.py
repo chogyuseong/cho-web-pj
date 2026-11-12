@@ -32,8 +32,8 @@ def test_two_distinct_working_leisure_photos_and_large_links(audit_page,width):
     requests=[];panel=setup_photos(page,base,[True],requests)
     assert not requests
     panel.locator('summary').click()
+    panel.locator('.leisure-photo-panel').scroll_into_view_if_needed()
     photos=panel.locator('.leisure-photo-grid')
-    photos.scroll_into_view_if_needed()
     page.wait_for_function("[...document.querySelectorAll('.leisure-photo-grid img')].filter(i=>!i.hidden&&i.complete&&i.naturalWidth>0).length===2")
     images=photos.locator('img')
     assert images.count()==2

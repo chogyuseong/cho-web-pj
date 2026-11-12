@@ -69,9 +69,6 @@ app.include_router(experience_router)
 from .plan_jobs import router as jobs_router
 
 app.include_router(jobs_router)
-from .inspiration import router as inspiration_router
-
-app.include_router(inspiration_router)
 from .explore import router as explore_router
 
 app.include_router(explore_router)

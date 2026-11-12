@@ -9,7 +9,7 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle');page.locator('.inspiration-card').first.wait_for()
+    page.goto('http://127.0.0.1:8000',wait_until='networkidle');page.locator('.curation-card').first.wait_for()
     page.screenshot(path=str(output/'desktop.png'))
     for width in [320,390,768,1440]:
         page.set_viewport_size({'width':width,'height':900})

@@ -17,7 +17,7 @@ with sync_playwright() as p:
         assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
         page.screenshot(path=str(out/f'seoul-home-{width}.png'),full_page=True)
         page.locator('#nav-explore').click()
-        page.get_by_role('heading',name='서울 데이트 장소 둘러보기').wait_for()
+        page.get_by_role('heading',name='데이트 장소 둘러보기').wait_for()
         page.locator('#catalog .place-card, #catalog article').first.wait_for()
         assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
         page.screenshot(path=str(out/f'seoul-explore-{width}.png'),full_page=True)

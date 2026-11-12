@@ -31,7 +31,7 @@ window.addEventListener('hashchange', () => {
   } else if (location.hash === '#date-plan') {
     setTab(false);
     showPlannerPage(true, false);
-  } else if (['#curation', '#inspiration'].includes(location.hash)) {
+  } else if (location.hash === '#curation') {
     navigateHomeSection(location.hash, false);
   } else if (location.hash === '#planner-section' || !location.hash) {
     setTab(false);
@@ -310,7 +310,7 @@ async function init() {
     if (location.hash === '#explore-section') {
       setTab(true);
       await search();
-    } else if (['#curation', '#inspiration'].includes(location.hash)) {
+    } else if (location.hash === '#curation') {
       navigateHomeSection(location.hash, false);
     } else await resumePlanSearch();
   } catch (e) {
@@ -475,7 +475,7 @@ $('#edit-conditions').onclick = () => {
 
 // Reveal the destination screen before scrolling, including repeated anchor clicks.
 function navigateHomeSection(hash, updateHistory = true) {
-  if (!['#planner-section', '#curation', '#inspiration'].includes(hash)) return;
+  if (!['#planner-section', '#curation'].includes(hash)) return;
   setTab(false);
   if (updateHistory && location.hash !== hash) history.pushState(null, '', hash);
   requestAnimationFrame(() => {
@@ -496,7 +496,7 @@ document.addEventListener('click', event => {
   const anchor = event.target.closest('a[href]');
   if (!anchor || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   const hash = anchor.getAttribute('href');
-  if (['#planner-section', '#curation', '#inspiration'].includes(hash)) {
+  if (['#planner-section', '#curation'].includes(hash)) {
     event.preventDefault();
     navigateHomeSection(hash);
   }

@@ -54,11 +54,3 @@ def test_cost_row_uses_the_price_field_source_not_old_general_source():
     assert not error
     assert plan['costs'][0]['source']=='https://m.much.go.kr/MUCH/contents/M01020100000.do'
     assert plan['costs'][0]['checked_at']=='2026-10-29'
-
-
-def test_reviewed_idea_does_not_claim_all_conditions_verified():
-    from app.inspiration import inspirations
-    rows=inspirations()['items']
-    reviewed=next(r for r in rows if r.get('defaults'))
-    assert reviewed['defaults']['count']==2 and len(reviewed['places'])==2
-    assert '확정 코스' in reviewed['note']

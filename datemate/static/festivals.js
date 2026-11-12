@@ -43,6 +43,21 @@ const FestivalPanel = {
     more.hidden = true;
     more.onclick = null;
     section.hidden = false;
+    // 코스 제목 옆 버튼으로 같은 지역의 축제 구역과 바로 이어 준다.
+    const jump = document.getElementById('festival-jump');
+    jump.textContent = `${region} 축제 보기 ↓`;
+    jump.hidden = false;
+    jump.onclick = () => {
+      section.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+      const title = document.getElementById('festival-title');
+      title.tabIndex = -1;
+      title.focus({
+        preventScroll: true
+      });
+    };
     if (!day) {
       this.status('방문 날짜를 정하면 그날 열리는 축제를 함께 보여드려요.');
       return;
@@ -70,6 +85,7 @@ const FestivalPanel = {
     let text = `${festivals.length}건 · ${data.message || ''}`;
     if (data.truncated) text += ' 조회 결과가 많아 일부만 표시합니다.';
     this.status(text);
+    jump.textContent = `${region} 축제 ${festivals.length}건 보기 ↓`;
     const render = items => results.append(...items.map(festival => {
       const card = node('article', undefined, 'festival-card');
       const photo = this.photo(festival);

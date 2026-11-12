@@ -6,7 +6,8 @@
 .festival-photo-frame img {display:block;width:100%;height:100%;object-fit:contain}
 .festival-photo-credit {font-size:11px;color:var(--muted);text-align:right}
 #festival-results {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));gap:1rem;margin-top:1rem}
-.festival-panel {margin-top:24px;min-width:0}
+.festival-panel {margin-top:24px;min-width:0;scroll-margin-top:100px}
+.festival-jump {padding:6px 14px;font-size:13px;white-space:nowrap}
 .festival-panel .section-heading h3 {margin:0;font-size:18px;letter-spacing:-.5px}
 .festival-demo-note {background:var(--soft);border-radius:8px;padding:8px 12px;color:var(--green)}
 #festival-more {margin-top:1rem}

@@ -1,0 +1,136 @@
+데이트메이트 — 다른 컴퓨터에서 이어서 작업하기
+작성일: 2026-11-12
+
+이 문서는 저장소를 새 컴퓨터에 클론한 뒤 바로 실행·개발·배포 준비를 이어갈 수 있도록
+필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
+
+
+1. 준비물
+----------------------------------------------------------------------
+- Git
+- Python 3.12 (Windows 기준 `py -3.12` 로 실행되는지 확인)
+- Microsoft Edge (브라우저 테스트가 설치된 Edge를 사용합니다)
+- Node.js (Cloudflare 배포 도구 wrangler를 쓸 때만 필요)
+
+
+2. 클론과 설치 (Windows PowerShell)
+----------------------------------------------------------------------
+git clone https://github.com/chogyuseong/cho-web-pj.git
+cd cho-web-pj\datemate
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+Copy-Item .env.example .env
+
+- requirements-dev.txt 는 실행용(requirements.txt)에 테스트 도구(playwright 등)를 더한 것입니다.
+  실행만 할 거라면 requirements.txt 만 설치해도 됩니다.
+- 이후 모든 명령은 datemate 폴더에서, 가상환경의 파이썬(.\.venv\Scripts\python.exe)으로 실행합니다.
+  시스템 파이썬에는 의존성이 없어 테스트가 실패합니다.
+
+
+3. 키 넣기 (datemate\.env)
+----------------------------------------------------------------------
+.env 는 Git에 올라가지 않습니다. 새 컴퓨터에서는 키를 직접 다시 넣어야 합니다.
+기존 컴퓨터의 datemate\.env 를 안전한 방법으로 옮기거나, 아래 발급처에서 값을 다시 확인하세요.
+값은 따옴표 없이 `이름=값` 형태로 넣습니다. 키 값을 이 문서나 Git에 적지 마세요.
+
+  TOUR_API_KEY
+    용도: 축제 조회 (한국관광공사)
+    발급: 공공데이터포털(data.go.kr) → "한국관광공사_국문 관광정보 서비스_GW" 활용신청
+    주의: 일반 인증키(Decoding)를 넣습니다. % 기호가 들어간 Encoding 키는 인증에 실패합니다. 무료.
+
+  NAVER_SEARCH_CLIENT_ID / NAVER_SEARCH_CLIENT_SECRET
+    용도: 장소(지역)·이미지·블로그 검색. 실제 장소 코스 추천과 장소 둘러보기에 필요
+    발급: NAVER API HUB의 NAVER 검색. Application에서 지역·블로그·이미지 권한 활성화
+
+  NAVER_MAPS_KEY_ID / NAVER_MAPS_KEY
+    용도: 주소 검색, 역지오코딩, 자동차 길찾기 (서버에서 사용)
+    발급: 네이버 클라우드 플랫폼 Maps. 가입 시 결제 수단 등록 필요, 사용량 과금(무료 제공량은 콘솔에서 확인)
+
+  NAVER_MAPS_JS_KEY_ID
+    용도: 브라우저에 네이버 지도 표시 (Dynamic Map)
+    주의: 콘솔의 Web 서비스 URL에 접속 주소를 등록해야 합니다.
+          로컬은 http://127.0.0.1:8000 과 http://localhost:8000, 배포 후에는 실제 https 주소.
+
+키가 없을 때의 동작
+- 네이버 검색 키 없음: 실제 장소 검색 불가. "서울 가상 장소 데모" 모드로만 시연 가능
+- 네이버 지도 JS 키 없음: 위치 선택 지도가 OpenStreetMap으로 대체됨
+- TOUR_API_KEY 없음: 축제 구역에 "키 미설정" 안내만 표시, 코스 추천은 정상
+- LLM 키(GMS_KEY)는 .env 에서 제거한 상태입니다. 조건 해석·질문 답변은 규칙 기반으로 동작하고,
+  블로그 글에서 장소를 뽑는 검색과 후기 사진 내용 검사는 동작하지 않습니다.
+  코드에는 연결부가 남아 있어 GMS_KEY / GMS_BASE_URL / GMS_MODEL 을 넣으면 다시 켜집니다.
+
+
+4. 실행
+----------------------------------------------------------------------
+.\.venv\Scripts\python.exe scripts/index_data.py --mode demo
+.\.venv\Scripts\python.exe scripts/index_data.py --mode real
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+- 화면: http://127.0.0.1:8000
+- 키·연결 상태: http://127.0.0.1:8000/api/status
+- 색인 두 줄은 처음 한 번만 실행하면 됩니다. runtime 폴더(DB·캐시·색인)는 Git에 없어 새로 만들어집니다.
+- .env 를 바꾸면 서버를 재시작해야 반영됩니다.
+
+넣은 키가 실제로 동작하는지 한 번에 확인 (키 값은 출력하지 않음, 제공자별 1회 호출):
+.\.venv\Scripts\python.exe scripts/check_external_integrations.py
+
+
+5. 테스트
+----------------------------------------------------------------------
+.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+
+- 약 5분 걸립니다. 브라우저 테스트가 포함되어 Edge가 필요합니다.
+- 테스트는 임시 저장소를 쓰고 외부 키를 비워서 실제 API를 호출하지 않습니다.
+- 프런트 JS 포맷 점검: .\.venv\Scripts\python.exe scripts/format_sources.py --check
+  (걸리면 --check 없이 실행해 정리)
+
+
+6. 지금까지 된 것 (2026-11-12 기준)
+----------------------------------------------------------------------
+- 서울 전용에서 전국 17개 시·도로 확대. 실제 장소 코스는 선택한 시·도 안의 장소만 사용
+  (가상 장소 데모 모드는 서울만)
+- 코스 추천 결과 화면에 그 지역·그 날짜의 축제를 함께 표시 (한국관광공사 자료, 사진 포함).
+  결과 제목 옆 "○○ 축제 보기" 버튼으로 축제 구역으로 이동
+- "장소 둘러보기": 시·도·활동·검색어로 그때그때 검색 (예전의 서울 500곳 미리 수집 방식은 제거)
+- 홈 화면: "취향을 발견하는 작은 시작" 구역과 숨겨져 있던 "빠른 시작" 영역 제거,
+  테마 카드를 전국 6개 동네(서울 성수, 부산 해운대, 제주 애월, 경주 황리단길, 전주 한옥마을, 강릉 안목해변)로 변경
+- TMAP 도보·대중교통 연동 제거. 도보·대중교통은 추정 시간으로만 표시, 자동차는 네이버 길찾기 사용
+- 로컬 http 주소에서 네이버 지도 인증이 보안 정책(CSP)에 막히던 문제 수정
+
+
+7. 남은 일
+----------------------------------------------------------------------
+- Cloudflare 실제 배포는 아직 하지 않았습니다 (아래 8번).
+- 축제 사진은 공공누리 제1·제3유형만 출처를 표기해 원본 그대로 보여 줍니다.
+  공개 서비스 전에 공공누리 약관과 한국관광공사 이용 조건을 직접 확인하세요.
+- 공유 링크로 코스를 열거나 새로고침으로 이전 결과를 이어받을 때는 축제 구역이 나오지 않습니다
+  (새로 추천을 요청할 때만 조회).
+- datemate/docs 의 날짜가 붙은 문서와 PROJECT_NOTES.md 는 과거 시점의 기록입니다.
+  서울 전용·TMAP·500곳 수집 등 지금과 다른 내용이 남아 있습니다.
+- 수동 점검 스크립트(datemate/scripts/check_*.py) 중 일부는 예전 화면 구조를 전제로 해
+  그대로는 실패할 수 있습니다. 자동 테스트(pytest)가 기준입니다.
+
+
+8. Cloudflare 배포를 이어서 할 때
+----------------------------------------------------------------------
+배포용 코드(저장소 루트의 wrangler.jsonc, Dockerfile, cloudflare/worker.js)는 준비되어 있습니다.
+상세 절차: datemate/docs/cloudflare-deployment.md
+
+1) Cloudflare Workers Paid 플랜과 외부 접속 가능한 PostgreSQL을 준비합니다
+   (연결 주소에 sslmode=require 이상 필수).
+2) Cloudflare Workers Builds에 이 저장소를 연결합니다. 이미지도 Cloudflare에서 빌드하므로 로컬 Docker는 필요 없습니다.
+3) Worker Secret 등록: PUBLIC_ORIGIN(실제 https 주소), DATABASE_URL,
+   그리고 실제 기능에 필요한 NAVER_SEARCH_CLIENT_ID / NAVER_SEARCH_CLIENT_SECRET /
+   NAVER_MAPS_KEY_ID / NAVER_MAPS_KEY / NAVER_MAPS_JS_KEY_ID / TOUR_API_KEY.
+   키를 .env 파일이나 빌드 변수, Git에 넣지 마세요.
+4) 네이버 클라우드 콘솔의 Dynamic Map Web 서비스 URL에 배포 주소를 추가합니다.
+5) 배포 후 /readyz, /api/status, 코스 추천·축제·장소 둘러보기·공유를 공개 주소에서 확인합니다.
+
+로컬에서 wrangler를 직접 쓸 경우: 저장소 루트에서 `npm install` 후 `npm run cloudflare:deploy`.
+
+
+9. Git 작업 방식
+----------------------------------------------------------------------
+- 기본 브랜치: main. 최근 작업은 nationwide-festivals 브랜치에서 하고 main에 병합했습니다.
+- .env, .venv, datemate/runtime 은 Git에 포함되지 않습니다.
+- push 하면 GitHub Actions(.github/workflows/check.yml)가 검사를 실행합니다.

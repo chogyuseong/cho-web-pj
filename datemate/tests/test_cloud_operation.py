@@ -166,17 +166,6 @@ def test_postgres_parameter_translation_preserves_literals():
     assert parameters("SELECT '?' WHERE payload LIKE 'x%' AND key=?") == "SELECT '?' WHERE payload LIKE 'x%%' AND key=%s"
 
 
-def test_explore_does_not_duplicate_another_instances_collection(monkeypatch):
-    from app import explore
-    key='explore-lease-check'
-    monkeypatch.setattr(explore,'KEY',key)
-    monkeypatch.setattr(explore,'_future',None)
-    store.cache(key,dict(status='collecting',places=[],collector='other-instance',collection_heartbeat=time.time()))
-    assert explore.ensure()['collector']=='other-instance'
-    explore.save(dict(status='ready',places=[]))
-    assert store.cached(key)['status']=='collecting'
-
-
 def test_operations_report_is_json_serializable():
     from scripts.operations_report import report
     assert 'providers' in json.loads(json.dumps(report()))

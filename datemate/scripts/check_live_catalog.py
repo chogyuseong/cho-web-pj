@@ -1,4 +1,4 @@
-"""Verify live explore collection/pagination using disposable storage.
+"""Verify live on-request explore search for one region using disposable storage.
 
 Uses configured NAVER search credentials. Prints aggregates, never credentials
 or personal data. A missing/partial external result is reported as a failed check.
@@ -23,32 +23,23 @@ def main():
 
         started = time.monotonic()
         with TestClient(app) as client:
-            deadline = started + 240
-            while time.monotonic() < deadline:
-                response = client.get('/api/explore?limit=1')
-                response.raise_for_status()
-                state = response.json()
-                if state['status'] != 'collecting':
-                    break
-                time.sleep(1)
-            else:
-                raise AssertionError('Live catalog collection timed out')
-            rows = []
-            for offset in range(0, state['collected'], 60):
-                response = client.get('/api/explore', params={'offset': offset, 'limit': 60})
-                response.raise_for_status()
-                rows.extend(response.json()['places'])
+            # One condition only: at most a few Naver queries per run.
+            params = {'region': '부산', 'activity': '카페', 'limit': 60}
+            response = client.get('/api/explore', params=params)
+            response.raise_for_status()
+            state = response.json()
+            rows = state['places']
             checks = {
-                'collected_500': len(rows) == 500,
+                'found_places': bool(rows),
+                'query_budget': 0 < state.get('queries_used', 0) <= 16,
                 'unique_ids': len({row['id'] for row in rows}) == len(rows),
-                'seoul_sources_coordinates': bool(rows) and all(
-                    row['address'].startswith('서울') and row.get('source') and row.get('lat') and row.get('lon')
+                'busan_sources_coordinates': bool(rows) and all(
+                    row['address'].startswith('부산') and row['region'] == '부산' and row.get('source') and row.get('lat') and row.get('lon')
                     for row in rows),
                 'detail_available': bool(rows) and client.get('/api/places/' + rows[0]['id'], params={'mode': 'real'}).status_code == 200,
-                'empty_search': client.get('/api/explore', params={'q': '존재하지않는점검장소'}).json()['total'] == 0,
+                'cached_repeat': client.get('/api/explore', params=params).json()['checked_at'] == state['checked_at'],
             }
-            result = dict(status=state['status'], collected=len(rows),
-                          queries_done=state.get('queries_done'), duplicates_removed=state.get('duplicates_removed'),
+            result = dict(status=state['status'], found=len(rows), queries_used=state.get('queries_used'),
                           failed_queries=state.get('failed_queries'), checks=checks,
                           seconds=round(time.monotonic()-started, 2), personal_storage_used=False)
             output = ROOT / 'runtime' / 'full-audit'

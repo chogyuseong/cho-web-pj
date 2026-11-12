@@ -1,13 +1,9 @@
 from test_functional_audit import audit_page,generate
 
 
-def test_reviewed_idea_buffer_feedback_and_nearby_replacements(audit_page):
+def test_buffer_feedback_and_nearby_replacements(audit_page):
     page,base,errors=audit_page
-    reviewed=page.locator('.inspiration-card').filter(has_text='운영 자료를 확인한 박물관')
-    reviewed.get_by_role('button').click()
-    assert page.locator('[name=count]').input_value()=='2'
-    assert not page.locator('[name=include_meal]').is_checked()
-    page.evaluate("form.elements.request.value='';FormState.edited.clear()")
+    page.evaluate("form.elements.count.value='2';form.elements.include_meal.checked=false;form.elements.request.value='';FormState.edited.clear()")
     page.locator('.simple-extra-options>summary').click()
     page.locator('[name=transition_buffer_minutes]').select_option('10')
     page.locator('[name=use_feedback]').check()

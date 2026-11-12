@@ -200,7 +200,7 @@ body:not(.show-date-plan) .hero-photo{
 }
 .hero-photo:hover img{transform:scale(1.02)}
 .hero-photo:after{
-  content:'SEOUL ROMANCE · TWO OF US';
+  content:'KOREA ROMANCE · TWO OF US';
   position:absolute;
   top:20px;
   right:20px;
@@ -306,78 +306,6 @@ body:not(.show-date-plan) .hero-photo{
 }
 .discovery-rail a span{margin-left:8px}
 
-/* Curated Date Postcards (#inspiration) */
-.inspiration{border-top:0;padding-top:0;margin:0 0 44px}
-.inspiration>p.eyebrow{font-size:14px!important;color:#871f3d!important;letter-spacing:.1em;margin-bottom:8px;font-weight:800}
-.inspiration>h2{
-  font-family:'Noto Serif KR','AppleMyungjo',Georgia,serif;
-  font-size:32px;
-  letter-spacing:-1px;
-  margin:0 0 8px;
-  color:var(--ink);
-}
-.inspiration>p{color:var(--muted);font-size:16px;margin:0 0 24px}
-.inspiration-grid{gap:20px;counter-reset:idea}
-.inspiration-card{
-  counter-increment:idea;
-  padding:28px;
-  border:1px solid var(--line);
-  border-top:4px solid #b8335a;
-  border-radius:24px;
-  background-color:#ffffff!important;
-  position:relative;
-  box-shadow:0 12px 30px rgba(104,30,52,0.05);
-  transition:transform .22s ease,box-shadow .22s ease;
-}
-.inspiration-card:nth-child(2){border-top-color:#c45c40;background-color:#fffdfb!important}
-.inspiration-card:nth-child(3){border-top-color:#7c4d8b;background-color:#fdfbff!important}
-.inspiration-card:before{
-  content:'DATE NOTE 0' counter(idea);
-  display:block;
-  font-size:12px;
-  color:#7d1e3a;
-  letter-spacing:.12em;
-  font-weight:800;
-  border-bottom:1px dashed #ead5d9;
-  padding-bottom:14px;
-  margin-bottom:16px;
-}
-.inspiration-card:hover{
-  transform:translateY(-4px);
-  box-shadow:0 18px 38px rgba(158,42,75,0.10);
-}
-.inspiration-card h3{
-  font-family:'Noto Serif KR','AppleMyungjo',Georgia,serif;
-  font-size:22px;
-  letter-spacing:-0.6px;
-  line-height:1.48;
-  margin:12px 0 18px;
-  color:var(--ink);
-}
-.inspiration-card li{
-  border-top:1px solid #f2e4e7;
-  padding-top:12px;
-  margin:12px 0;
-}
-.inspiration-card li strong{font-size:16px;color:var(--ink)}
-.inspiration-card li small{font-size:14px;color:var(--muted)}
-.inspiration-card .hint{font-size:14px!important;line-height:1.75;color:var(--muted)}
-.inspiration-card button{
-  width:100%;
-  background-color:#fdf0f3!important;
-  color:#7d1e3a!important;
-  border:1px solid #e2bbc5!important;
-  border-radius:999px;
-  margin-top:12px;
-  font-size:15px;
-  font-weight:750;
-  min-height:46px;
-}
-.inspiration-card button:hover{
-  background-color:#fae4ea!important;
-  border-color:#c98a9b!important;
-}
-
 .tag,.step-category{
   background-color:var(--brand-soft);
   color:#7d1e3a;
@@ -387,7 +315,6 @@ body:not(.show-date-plan) .hero-photo{
   font-weight:700;
   letter-spacing:0;
 }
-.inspiration-card>.tag{background-color:#fae4ea;color:#7d1e3a;font-size:13px}
 .service-details{
   font-size:14px;
   color:var(--muted);
@@ -893,7 +820,7 @@ input:focus,textarea:focus,select:focus{
 .catalog .place-card .hint{font-size:14px;overflow-wrap:anywhere}
 .catalog .place-photo-panel{width:100%}
 #search-info{line-height:1.8}
-body.show-explore .hero,body.show-explore .inspiration,body.show-explore .workspace-intro,body.show-explore .service-details,body.show-explore .curation{display:none}
+body.show-explore .hero,body.show-explore .workspace-intro,body.show-explore .service-details,body.show-explore .curation{display:none}
 #explore-section{scroll-margin-top:24px;padding-top:28px}
 
 /* Footer, Toast & Dialogs */
@@ -1005,9 +932,6 @@ body.show-date-plan .discovery-rail,body.show-explore .discovery-rail{display:no
   .route-drawing svg{height:40px}
   .discovery-rail{display:block;margin-bottom:32px;padding:18px 20px;font-size:15px}
   .discovery-rail a{display:inline-block;margin-top:10px}
-  .inspiration>h2{font-size:26px}
-  .inspiration-card{padding:22px}
-  .inspiration-card h3{font-size:21px}
   .workspace-intro{display:block}
   .workspace-intro h2{font-size:26px}
   .conditions.panel{padding:24px 18px;border-radius:22px}
@@ -1083,22 +1007,20 @@ body.show-date-plan .discovery-rail,body.show-explore .discovery-rail{display:no
   .stats{display:grid;grid-template-columns:1fr;gap:12px}
   .stats>div{display:flex;justify-content:space-between;align-items:center;gap:8px}
   .stats small{max-width:54%;text-align:right}
-  .inspiration-grid{gap:14px}
   .simple-plan-form .field-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media(prefers-reduced-motion:reduce){
-  button,.inspiration-card,.hero-photo img,.curation-card{transition:none}
-  .inspiration-card:hover,.curation-card:hover,.primary:hover{transform:none}
+  button,.hero-photo img,.curation-card{transition:none}
+  .curation-card:hover,.primary:hover{transform:none}
 }
 @media print{
-  .inspiration,.hero-actions,.photo-choices{display:none!important}
+  .hero-actions,.photo-choices{display:none!important}
   body{background:white}
   .detail.panel{border:0;box-shadow:none}
   .plan-card{box-shadow:none}
 }
 
-/* Polish: auto-fit inspiration grid, rose progress banner, clean heading focus, and SVG route accents */
-.inspiration-grid{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))!important}
+/* Polish: rose progress banner, clean heading focus, and SVG route accents */
 h2[tabindex="-1"]:focus,h3[tabindex="-1"]:focus{outline:none!important}
 #progress:not(:empty){
   background-color:#fdf0f3!important;

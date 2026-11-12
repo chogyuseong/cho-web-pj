@@ -47,9 +47,9 @@ with sync_playwright() as pw:
     assert page.locator('#results .plan-card.selected').is_visible()
     assert not errors,errors
     page.locator('#nav-plan').click()
-    page.locator('.curation-card[data-preset="연남"]').click()
-    assert page.locator('[name=request]').input_value()
-    assert page.evaluate('locationState.origin.name').startswith('연남')
+    page.locator('.curation-card[data-preset="부산 해운대"]').click()
+    assert page.locator('[name=region]').input_value()=='부산'
+    assert page.evaluate('locationState.origin.name').startswith('부산')
     assert page.locator('[name=budget]').is_visible()
     assert not errors,errors
     print(json.dumps({'essential_sections':4,'optional_settings':True,'defaults_valid':True,'recommend_and_edit_and_resubmit':True,'mobile_overflow':False,'errors':errors}))

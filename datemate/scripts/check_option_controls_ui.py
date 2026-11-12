@@ -12,7 +12,8 @@ with sync_playwright() as pw:
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
-    page.locator('#quick-start').click()
+    page.locator('[data-preset="서울 성수"]').click()
+    page.locator('#submit-plan').click()
     page.wait_for_function('selected?.pricing_checked_at&&!document.querySelector("#submit-plan").disabled',timeout=90000)
     options=page.locator('.plan-option-tabs button').count()
     assert options>=2

@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
  b=p.chromium.launch(channel='msedge',headless=True);page=b.new_page(viewport={'width':1440,'height':1000})
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
- page.goto('http://127.0.0.1:8000',wait_until='networkidle');page.get_by_role('button',name='서울 자료 둘러보기',exact=True).click()
+ page.goto('http://127.0.0.1:8000',wait_until='networkidle');page.get_by_role('button',name='장소 둘러보기',exact=True).click()
  for name in ['브리즈밀','도란도란 홍대입구점','우지커피 불광중앙점']:
   page.locator('#search').fill(name);page.locator('#search-button').click()
   page.wait_for_function('(name)=>document.querySelector("#catalog .place-card h3")?.textContent===name',arg=name)

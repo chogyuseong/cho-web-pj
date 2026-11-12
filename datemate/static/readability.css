@@ -30,13 +30,11 @@ main :is(.tag,.step-category) { font-size:13.5px; line-height:1.65; padding:5px 
 main :is(.condition-summary,.condition-differences p,.course-evidence p,.place-evidence p,.map-caption) { font-size:15px; }
 main .service-details summary { font-size:15px; color:#523e46; }
 main .service-details summary>span { color:#7d1e3a; }
-main .eyebrow,main :is(.inspiration,.workspace-intro,.curation) .eyebrow { font-size:14px!important; letter-spacing:.09em; color:#871f3d!important; }
+main .eyebrow,main :is(.workspace-intro,.curation) .eyebrow { font-size:14px!important; letter-spacing:.09em; color:#871f3d!important; }
 main .hero .hero-description { font-size:18px!important; line-height:1.9; color:#544048; max-width:38em; }
 main .hero-pill { font-size:14px; line-height:1.7; letter-spacing:.06em; color:#7d1e3a; background-color:#fae4ea; }
 main .hero-actions a { font-size:16px; min-height:50px; }
-main .inspiration>p,main .workspace-intro>p { font-size:16px; color:#5c4951; }
-main .inspiration-card :is(small,.hint) { font-size:14px!important; color:#544048; }
-main .inspiration-card button { font-size:15px; min-height:46px; }
+main .workspace-intro>p { font-size:16px; color:#5c4951; }
 
 .conditions .simple-form-intro { color:#4f3b43; font-size:16px; margin-bottom:8px; }
 .conditions .simple-form-group { padding-bottom:26px; margin-top:22px; }
@@ -265,7 +263,6 @@ h2[tabindex="-1"]:focus { outline:none!important; }
 /* Keep anchored sections and the map below the wrapping sticky navigation. */
 html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 #planner-section.workspace,#explore-section { scroll-margin-top:0; }
-.inspiration-grid { grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr))!important; }
 @media(min-width:801px) {
   .plan-map-card {
     top:calc(var(--site-header-height,88px) + 16px);

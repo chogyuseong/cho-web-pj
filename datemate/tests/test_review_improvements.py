@@ -89,14 +89,6 @@ def test_nullable_optional_research_does_not_break_recommendation():
     enrich(p)
     assert p['decision_summary'] and len(p['place_evidence'])==1
 
-def test_inspiration_uses_real_sourced_places(client):
-    data=client.get('/api/inspirations').json()
-    assert isinstance(data['items'],list)
-    for idea in data['items']:
-        assert idea['places'] and len(idea['places'])<=3
-        assert idea['origin']['name'] and idea['request']
-        assert all(p['source'].startswith('https://') and not p['id'].startswith('demo') for p in idea['places'])
-
 def test_fit_reason_counts_actual_candidates():
     p={'conditions':{'request':'카페 투어','setting':'indoor'},'places':[
       {'id':'a','name':'커피 카페','category':'카페·미식','tags':['cafe'],'setting':'indoor'},

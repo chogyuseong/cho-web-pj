@@ -1,13 +1,10 @@
-from .search_address_text import place_query
-"""Collect up to 500 distinct Seoul venues from ranked local-search queries."""
+"""Search date venues in one province on request from Naver local search."""
 import hashlib
 import json
 import os
 import re
 import time
-import uuid
 from concurrent.futures import ThreadPoolExecutor
-from threading import Lock
 from urllib.parse import quote
 from datetime import datetime,timezone
 import httpx
@@ -15,22 +12,34 @@ from .telemetry import observed_http
 from fastapi import APIRouter,HTTPException,Query
 from . import store
 from .image_search import plain,search_enabled
+from .regions import REGIONS,korean_coordinates,normalize_region,region_from_address
+from .request_usage import context_map
 from .routes import distance
+from .search_address_text import place_query
 
 router=APIRouter()
-KEY='explore-seoul-500-v1'
-LIMIT=500
-DISTRICTS=['종로구','중구','용산구','성동구','광진구','동대문구','중랑구','성북구','강북구','도봉구','노원구','은평구','서대문구','마포구','양천구','강서구','구로구','금천구','영등포구','동작구','관악구','서초구','강남구','송파구','강동구']
-TERMS=['데이트 카페','데이트 맛집','데이트 전시','데이트 공방','데이트 산책','데이트 실내','데이트 이색체험','데이트 소품샵','데이트 미술관','데이트 박물관','데이트 서점','데이트 방탈출','데이트 볼링','데이트 정원']
-_lock=Lock();_executor=ThreadPoolExecutor(max_workers=1,thread_name_prefix='explore-index');_future=None
-_collector=uuid.uuid4().hex
+ACTIVITIES=['카페','맛집','전시','공방','산책','실내','이색체험','소품샵','미술관','박물관','서점','방탈출','볼링','정원']
+MAX_QUERIES=16
+RESULT_TTL=6*3600
+RANKING='선택한 지역의 네이버 지역 검색 결과를 중복 제거해 보여드려요. 전체 순위나 별점 순위는 아닙니다.'
 
-def queries():
-    base=['서울 데이트 장소',*[f'서울 {term}' for term in TERMS],*[f'서울 {district} {term}' for district in DISTRICTS for term in TERMS]]
-    focused=['감성 카페','분위기 좋은 레스토랑','독립서점','전시관','도자기 공방','방탈출','디저트 카페','정원 공원']
-    return base+list(dict.fromkeys(f'서울 {district} {term}' for district in DISTRICTS for term in focused))
+def queries(region,activity='',q=''):
+    q=' '.join(str(q or '').split())
+    if activity:
+        # 검색어가 있으면 모든 질의에 검색어를 넣어 결과가 검색어와 무관해지지 않게 한다.
+        rows=([f'{region} {q} {activity}',f'{region} {q} 데이트 {activity}',f'{region} {q} {activity} 추천'] if q else
+              [f'{region} 데이트 {activity}',f'{region} {activity} 추천',f'{region} {activity}',f'{region} 분위기 좋은 {activity}'])
+    elif q:
+        rows=[f'{region} {q}',f'{region} {q} 데이트',f'{region} {q} 추천',f'{region} {q} 가볼만한곳',f'{region} {q} 카페',f'{region} {q} 맛집']
+    else:
+        rows=[f'{region} 데이트 장소',*[f'{region} 데이트 {term}' for term in ACTIVITIES]]
+    return list(dict.fromkeys(rows))[:MAX_QUERIES]
 
 def normalize(value):return re.sub(r'[\W_]+','',str(value or '')).casefold()
+
+def address_key(address):
+    first,_,rest=str(address or '').strip().partition(' ')
+    return normalize((normalize_region(first) or first)+rest)
 
 def classify(category):
     if any(w in category for w in ('자동차','주차장','부동산','병원','의원','결혼','소개팅','결혼정보','여행사','호텔','숙박','유흥주점')):return None
@@ -38,30 +47,29 @@ def classify(category):
         if any(w in category for w in words):return label
     return None
 
-def venue(item,query,rank):
+def venue(item,query,rank,region='서울'):
     if not isinstance(item,dict):return None
     name=plain(item.get('title',''));address=plain(item.get('roadAddress') or item.get('address') or '')
     category=plain(item.get('category',''));kind=classify(category)
-    if not name or not re.match(r'^서울(?:특별시)?\s',address) or not kind:return None
+    if not name or region_from_address(address)!=region or not kind:return None
     try:
         lon,lat=float(item['mapx']),float(item['mapy'])
         if abs(lon)>180:lon/=10000000
         if abs(lat)>90:lat/=10000000
-        if not (37.4<lat<37.75 and 126.7<lon<127.3):return None
+        if not korean_coordinates(lat,lon):return None
     except (KeyError,ValueError,TypeError):return None
     pid='discovered:'+hashlib.sha256((name+address).encode()).hexdigest()[:20]
-    return dict(id=pid,name=name,address=address,lat=lat,lon=lon,region='서울',demo=False,category=kind,themes=[kind],tags=[category],
+    return dict(id=pid,name=name,address=address,lat=lat,lon=lon,region=region,demo=False,category=kind,themes=[kind],tags=[category],
         meal=any(w in category for w in ('음식점','한식','양식','일식','중식','분식','레스토랑')) and not any(w in category for w in ('카페','디저트')),
-        description=category,source='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address})),source_type='네이버 지역 검색 · 서울 장소 모음',
-        checked_at=datetime.now(timezone.utc).isoformat(),discovery_verification='업체명·서울 주소·좌표 확인 · 현재 영업 여부 별도 확인',
+        description=category,source='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address})),source_type='네이버 지역 검색 · 장소 둘러보기',
+        checked_at=datetime.now(timezone.utc).isoformat(),discovery_verification='업체명·시·도 주소·좌표 확인 · 현재 영업 여부 별도 확인',
         price=None,price_unit='person',hours=None,closed_days=None,breaks=None,last_entry=None,reservation=None,stay=None,stay_basis=None,rating=None,setting=None,
         photos=[],videos=[],license='검색 결과',search_score=1/(60+rank),found_in=[dict(query=query,rank=rank)])
 
 def add_unique(bank,row):
     for existing in bank.values():
         if normalize(existing['name'])!=normalize(row['name']):continue
-        same_address=normalize(existing['address'].replace('서울특별시','서울'))==normalize(row['address'].replace('서울특별시','서울'))
-        if same_address or distance(existing,row)<.025:
+        if address_key(existing['address'])==address_key(row['address']) or distance(existing,row)<.025:
             existing['search_score']+=row['search_score']
             existing['found_in'].extend(row['found_in'])
             return False
@@ -80,74 +88,48 @@ def lookup(client,query):
         return query,items[:5],'available'
     except (httpx.HTTPError,KeyError,ValueError,TypeError):return query,[],'unavailable'
 
-def save(snapshot):
-    snapshot=dict(snapshot,collector=_collector,collection_heartbeat=time.time())
-    now=time.time()
+def persist(places):
+    """Keep found venues readable by /api/places/{id}?mode=real for the detail dialog."""
+    if not places:return
+    expires=time.time()+7*86400
     with store.connect() as db:
-        db.execute('BEGIN IMMEDIATE')
-        current=db.execute('SELECT payload FROM cache WHERE key=? AND expires>?',(KEY,now)).fetchone()
-        if current and json.loads(current['payload']).get('collector') not in (None,_collector):return
-        db.execute('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',
-                   (KEY,json.dumps(snapshot,ensure_ascii=False),now+86400))
-        db.executemany('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',[("explore-place:"+p['id'],json.dumps(p,ensure_ascii=False),now+7*86400) for p in snapshot['places']])
+        db.executemany('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',
+                       [('explore-place:'+p['id'],json.dumps(p,ensure_ascii=False),expires) for p in places])
 
-def collect():
-    bank={};duplicate=0;rejected=0;attempts=0;errors=0;permission=False;all_queries=queries()
-    previous=store.cached(KEY) or {}
-    try:
-        with httpx.Client(timeout=8) as client,ThreadPoolExecutor(max_workers=3) as pool:
-            for start in range(0,len(all_queries),12):
-                for query,items,status in pool.map(lambda q:lookup(client,q),all_queries[start:start+12]):
-                    attempts+=1
-                    if status!='available':errors+=1
-                    if status=='permission_required':permission=True
-                    for rank,item in enumerate(items,1):
-                        row=venue(item,query,rank)
-                        if not row:rejected+=1;continue
-                        if not add_unique(bank,row):duplicate+=1
-                rows=sorted(bank.values(),key=lambda p:-p['search_score'])[:LIMIT]
-                snapshot=dict(status='collecting',places=rows,target=LIMIT,queries_done=attempts,queries_max=len(all_queries),duplicates_removed=duplicate,rejected=rejected,failed_queries=errors,
-                    checked_at=datetime.now(timezone.utc).isoformat(),ranking_method='지역·활동별 정확도순 결과 합산 · 네이버 전체 순위/별점 순위 아님')
-                save(snapshot)
-                if permission:break
-        snapshot['unique_found']=len(bank)
-        snapshot['status']='ready' if len(bank)>=LIMIT else 'partial' if bank else 'permission_required' if permission else 'unavailable'
-        snapshot['message']='중복 제거한 서울 장소 최대 500곳이에요.' if len(bank)>=LIMIT else f'현재 조건으로 확인한 서울 장소 {len(bank)}곳을 표시해요. 확인되지 않은 장소로 수를 채우지 않아요.'
-        if permission:snapshot['message']='네이버 지역 검색 권한을 확인해 주세요.'
-        if not bank and previous.get('places'):snapshot.update(places=previous['places'],status='partial',message='조회에 실패해 이전 수집 결과를 유지했어요.')
-        save(snapshot)
-    except Exception as error:
-        import logging
-        logging.getLogger(__name__).exception('explore_collection_failed')
-        save(dict(previous,status='collecting' if isinstance(error,RuntimeError) and 'shutdown' in str(error) else 'partial' if previous.get('places') else 'unavailable',places=previous.get('places',[]),message='장소 수집이 중단됐어요. 재연결 시 다시 수집합니다.'))
-
-def ensure(refresh=False):
-    global _future
-    with _lock:
-        with store.connect() as db:
-            db.execute('BEGIN IMMEDIATE')
-            row=db.execute('SELECT payload FROM cache WHERE key=? AND expires>?',(KEY,time.time())).fetchone()
-            cached=json.loads(row['payload']) if row else None
-            if _future and not _future.done():return cached or dict(status='collecting',places=[])
-            if cached and cached.get('status')=='collecting' and cached.get('collection_heartbeat',0)>time.time()-120:return cached
-            if not refresh and cached and cached.get('status')!='collecting':return cached
-            if not search_enabled():return dict(status='key_missing',places=[],message='네이버 검색 키가 필요해요.')
-            initial=dict(cached or {},status='collecting',places=(cached or {}).get('places',[]),target=LIMIT,queries_done=0,queries_max=len(queries()),message='서울 지역·활동별 검색 결과를 모으고 있어요.',collector=_collector,collection_heartbeat=time.time())
-            db.execute('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',
-                       (KEY,json.dumps(initial,ensure_ascii=False),time.time()+86400))
-        _future=_executor.submit(collect)
-        return initial
+def results(region,activity='',q=''):
+    q=' '.join(q.split())
+    key='explore-result-v2:'+hashlib.sha256(json.dumps([region,activity,q.casefold()],ensure_ascii=False).encode()).hexdigest()
+    cached=store.cached(key)
+    if cached is not None:return cached
+    if not search_enabled():return dict(status='key_missing',places=[],message='네이버 검색 키가 필요해요.',queries_used=0)
+    bank={};errors=0;permission=False;planned=queries(region,activity,q)
+    with httpx.Client(timeout=8) as client,ThreadPoolExecutor(max_workers=4) as pool:
+        found=context_map(pool,lambda query:lookup(client,query),planned)
+    for query,items,status in found:
+        if status!='available':errors+=1
+        if status=='permission_required':permission=True
+        for rank,item in enumerate(items,1):
+            row=venue(item,query,rank,region)
+            if row:add_unique(bank,row)
+    rows=sorted(bank.values(),key=lambda p:-p['search_score'])
+    if permission and not rows:status,message='permission_required','네이버 지역 검색 권한을 확인해 주세요.'
+    elif errors==len(planned):status,message='unavailable','장소 검색에 실패했어요. 잠시 후 다시 시도해 주세요.'
+    elif rows:status,message='ready',None if not errors else '일부 검색이 실패해 찾은 장소만 보여드려요.'
+    else:status,message='empty','조건에 맞는 장소를 찾지 못했어요. 다른 활동이나 검색어로 찾아보세요.'
+    result=dict(status=status,places=rows,message=message,queries_used=len(planned),failed_queries=errors,
+                checked_at=datetime.now(timezone.utc).isoformat())
+    persist(rows)
+    if status in ('ready','empty'):store.cache(key,result,RESULT_TTL if not errors else 600)
+    return result
 
 @router.get('/api/explore')
-def explore(q:str=Query(default='',max_length=200),offset:int=Query(default=0,ge=0),limit:int=Query(default=24,ge=1,le=60)):
-    snapshot=ensure();rows=snapshot.get('places',[])
-    if q.strip() and normalize(q) not in ('서울데이트장소','서울데이트','서울'):
-        terms=q.casefold().split();rows=[p for p in rows if all(term in (' '.join([p['name'],p['address'],p['category'],*p['tags']])).casefold() for term in terms)]
-    return {k:v for k,v in snapshot.items() if k not in ('places','collector','collection_heartbeat')}|dict(places=rows[offset:offset+limit],total=len(rows),collected=len(snapshot.get('places',[])),offset=offset,has_more=offset+limit<len(rows),search='네이버 지역 검색 · 중복 제거')
-
-@router.post('/api/explore/refresh')
-def refresh():
-    key='explore-refresh-rate'
-    if store.cached(key):raise HTTPException(429,'전체 목록 갱신은 잠시 후 다시 시도해 주세요.')
-    store.cache(key,True,600);state=ensure(refresh=True)
-    return dict(status=state['status'])
+def explore(region:str=Query(default='서울',max_length=20),activity:str=Query(default='',max_length=20),q:str=Query(default='',max_length=200),
+            offset:int=Query(default=0,ge=0),limit:int=Query(default=24,ge=1,le=60)):
+    canonical=normalize_region(region)
+    if canonical not in REGIONS:raise HTTPException(422,'지원하지 않는 시·도예요.')
+    activity=activity.strip()
+    if activity=='전체':activity=''
+    if activity and activity not in ACTIVITIES:raise HTTPException(422,'지원하지 않는 활동이에요.')
+    data=results(canonical,activity,q);rows=data.get('places',[])
+    return {k:v for k,v in data.items() if k!='places'}|dict(places=rows[offset:offset+limit],total=len(rows),offset=offset,has_more=offset+limit<len(rows),
+        region=canonical,activity=activity or '전체',ranking_method=RANKING,search='네이버 지역 검색 · 중복 제거')

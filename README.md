@@ -1,12 +1,16 @@
-﻿# 서울 데이트메이트
+﻿# 데이트메이트
 
-**지역·시간·예산·취향을 바탕으로 서울 데이트 코스를 추천하고 비교하는 웹 서비스**입니다. 장소 사진과 블로그 검색 결과, 예상 비용, 이동 정보를 한 화면에서 확인할 수 있습니다.
+**지역·시간·예산·취향을 바탕으로 전국 데이트 코스를 추천하고, 그날 그 지역의 축제까지 함께 보여주는 웹 서비스**입니다. 장소 사진과 블로그 검색 결과, 예상 비용, 이동 정보를 한 화면에서 확인할 수 있습니다.
+
+> 다른 컴퓨터에서 클론해 바로 이어서 작업하려면 [배포-이어가기.txt](배포-이어가기.txt)를 먼저 보세요.
 
 ## 주요 기능
 
-- **맞춤 코스 추천**: 서울 지역을 주소 검색 또는 지도에서 선택하고 일시·예산·원하는 활동을 입력합니다.
+- **맞춤 코스 추천**: 전국 17개 시·도 중 원하는 지역을 주소 검색 또는 지도에서 선택하고 일시·예산·원하는 활동을 입력합니다. 실제 장소 코스는 선택한 시·도 안의 장소만 사용합니다. 가상 장소 데모는 서울만 지원합니다.
+- **축제 연계**: 코스를 추천받으면 같은 지역·같은 방문일에 열리는 축제·행사를 결과 화면에 함께 보여줍니다(한국관광공사 자료, 사진 포함). 결과 제목 옆 버튼으로 축제 구역으로 바로 이동합니다.
 - **대안 비교**: 최대 3개 옵션을 비교하고 장소 고정·교체·되돌리기를 지원합니다. 후보가 부족하면 조건을 단계적으로 넓혀 찾고 변경 사항을 표시합니다.
-- **장소 탐색**: 지역·활동별 네이버 검색 결과를 중복 제거해 최대 500곳을 보여줍니다. 네이버 전체 인기순 500위 목록은 아닙니다.
+- **장소 둘러보기**: 시·도와 활동을 고르거나 검색어를 넣으면 네이버 지역 검색 결과를 중복 제거해 보여줍니다. 요청할 때 조회하며 전체 인기순·평점순 목록은 아닙니다.
+- **테마별 시작**: 서울 성수, 부산 해운대, 제주 애월, 경주 황리단길, 전주 한옥마을, 강릉 안목해변 카드를 누르면 지역과 분위기가 코스 조건에 채워집니다.
 - **사진·후기·가격 근거**: 장소 사진을 좌우로 넘기고 블로그 검색 결과와 메뉴·가격 출처를 확인합니다. 확보하지 못한 자료는 미확인으로 표시합니다.
 - **주변 식당·레저**: 코스 주변 식당과 거리 정보를 제공합니다. 결과창에서 각 장소 주변 스포츠 후보를 골라 해당 방문지를 교체할 수 있습니다.
 - **일정 활용**: 일정 질문, 코스 카드 PNG 저장, 링크 공유, 인쇄/PDF, 서비스 자체 후기를 지원합니다.
@@ -22,7 +26,16 @@ py -3.12 -m venv .venv
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-`datemate/.env`에 사용할 API 키를 입력합니다. 기존 `.env`는 덮어쓰지 않습니다. 키 없이도 가상 데이터로 시연할 수 있지만, 실제 네이버 장소 검색에는 검색 API 설정이 필요합니다.
+`datemate/.env`에 사용할 API 키를 입력합니다. 기존 `.env`는 덮어쓰지 않습니다. 키 없이도 서울 가상 데이터로 시연할 수 있지만, 실제 장소 검색에는 네이버 검색 API 설정이 필요합니다.
+
+| 키 | 용도 | 발급처 |
+| --- | --- | --- |
+| `NAVER_SEARCH_CLIENT_ID`, `NAVER_SEARCH_CLIENT_SECRET` | 장소·이미지·블로그 검색 | NAVER API HUB의 NAVER 검색 |
+| `NAVER_MAPS_KEY_ID`, `NAVER_MAPS_KEY` | 주소 검색, 자동차 길찾기 | 네이버 클라우드 플랫폼 Maps |
+| `NAVER_MAPS_JS_KEY_ID` | 브라우저 네이버 지도 | 같은 콘솔의 Dynamic Map (접속 주소 등록 필요) |
+| `TOUR_API_KEY` | 축제 조회 | 공공데이터포털 "한국관광공사_국문 관광정보 서비스_GW" 일반 인증키(Decoding) |
+
+테스트까지 돌리려면 `requirements.txt` 대신 `requirements-dev.txt`를 설치하세요.
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/index_data.py --mode demo
@@ -44,8 +57,8 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 | 웹 화면 | HTML, CSS, JavaScript, 반응형 UI |
 | 서버 | Python, FastAPI, Uvicorn |
 | 저장 | 로컬 SQLite / 운영 PostgreSQL, 공유 캐시·세션 |
-| 검색·질문 | ChromaDB, LangChain, 선택적 GMS LLM/임베딩 연결 |
-| 외부 정보 | 네이버 검색 API, Maps API, 공개 장소 자료, 네이버 자동차 길찾기 (도보·대중교통은 추정 시간) |
+| 검색·질문 | ChromaDB, LangChain. LLM 키(`GMS_KEY`)는 선택이며 없으면 규칙 기반으로 동작 |
+| 외부 정보 | 네이버 검색 API, Maps API, 한국관광공사 관광정보 API(축제), 공개 장소 자료, 네이버 자동차 길찾기 (도보·대중교통은 추정 시간) |
 | 지도 | 네이버 지도, Leaflet/OpenStreetMap 대체 지도 |
 | 운영 배포 | Cloudflare Worker + Containers, 외부 PostgreSQL |
 
@@ -59,21 +72,25 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 1. Cloudflare Workers Paid 플랜과 외부 접속 가능한 PostgreSQL을 준비하고, 앱 전용 DB 계정·백업을 설정합니다.
 2. Cloudflare Workers Builds에 이 저장소를 연결하고 저장소 루트의 `wrangler.jsonc`, `Dockerfile`로 빌드합니다.
-3. Worker Secret에 실제 HTTPS 주소 `PUBLIC_ORIGIN`과 TLS를 필수로 하는 `DATABASE_URL`을 등록합니다. 실제 장소 검색을 쓰려면 네이버 API 키도 등록합니다.
-4. 배포 후 `/readyz`, `/api/status`, 추천·공유 동작을 공개 주소에서 확인합니다.
+3. Worker Secret에 실제 HTTPS 주소 `PUBLIC_ORIGIN`과 TLS를 필수로 하는 `DATABASE_URL`을 등록합니다. 실제 장소 검색을 쓰려면 네이버 API 키를, 축제 조회를 쓰려면 `TOUR_API_KEY`도 등록합니다.
+4. 네이버 클라우드 콘솔의 Dynamic Map Web 서비스 URL에 배포 주소를 추가합니다.
+5. 배포 후 `/readyz`, `/api/status`, 추천·축제·장소 둘러보기·공유 동작을 공개 주소에서 확인합니다.
 
 운영 요청에는 출처 검사, 브라우저 스크립트 실행 정책(CSP), 세션 응답 캐시 방지가 적용됩니다. PostgreSQL 연결은 `sslmode=require`, `verify-ca`, `verify-full` 중 하나가 필수입니다. 수정 가능한 의존성 경고는 반영했고, npm 감사는 취약점 0건입니다. **ChromaDB 1.5.9에는 수정 버전이 없는 보안 공지가 남아 있습니다.** 현재 앱은 Chroma를 컨테이너 내부 `PersistentClient`로만 사용하며 Chroma HTTP 포트를 공개하지 않습니다. 해당 포트나 원격 모델 실행 기능을 추가할 때는 보안을 다시 검토해야 합니다.
 
-최근 커밋 `0473e48`의 [GitHub Actions 검사](https://github.com/chogyuseong/cho-web-pj/actions/runs/43148595094)는 보안 검사, SQLite·PostgreSQL 테스트, 컨테이너 통합 검사를 모두 통과했습니다. 배포 설정과 Secret 등록 절차는 [Cloudflare 배포 안내](datemate/docs/cloudflare-deployment.md)에 있습니다.
+배포 준비 시점 커밋 `0473e48`의 [GitHub Actions 검사](https://github.com/chogyuseong/cho-web-pj/actions/runs/43148595094)는 보안 검사, SQLite·PostgreSQL 테스트, 컨테이너 통합 검사를 모두 통과했습니다. 배포 설정과 Secret 등록 절차는 [Cloudflare 배포 안내](datemate/docs/cloudflare-deployment.md)에 있습니다.
 
 ## 데이터와 검증 범위
 
-실제 장소와 가상 시연 데이터를 구분합니다. 네이버 평점·방문자 수는 공식 검색 API에서 확보하지 않으며, 인기나 별점을 임의로 생성하지 않습니다. 이동 시간·비용에는 추정이 포함될 수 있고 영업시간·휴무·예약·실시간 가격을 보장하지 않습니다. 검색 사진과 블로그 원문의 권리는 각 제공자에게 있으며 출처 링크를 제공합니다.
+실제 장소와 가상 시연 데이터를 구분합니다. 축제·행사 정보와 사진은 한국관광공사 자료이며, 사진은 공공누리 제1·제3유형만 출처를 표기해 원본 그대로 보여줍니다. 개최·취소·시간·요금은 방문 전 주최 측 안내를 확인해야 합니다. 네이버 평점·방문자 수는 공식 검색 API에서 확보하지 않으며, 인기나 별점을 임의로 생성하지 않습니다. 이동 시간·비용에는 추정이 포함될 수 있고 영업시간·휴무·예약·실시간 가격을 보장하지 않습니다. 검색 사진과 블로그 원문의 권리는 각 제공자에게 있으며 출처 링크를 제공합니다.
 
 모바일 브라우저 모의 환경에서 추천·조건 수정·옵션 전환·사진·장소 탐색·저장을 점검했습니다. 실기기와 iOS Safari 전체 검증을 완료했다는 의미는 아닙니다. 외부 API의 결과와 응답 가능 여부는 권한·네트워크·제공자 정책에 영향을 받습니다.
 
 ## 문서
 
+날짜가 붙은 문서는 해당 시점의 기록입니다. 서울 전용, TMAP 연동, 장소 500곳 수집 등 지금은 바뀐 내용이 남아 있습니다.
+
+- [다른 컴퓨터에서 이어서 작업하기·배포 이어가기](배포-이어가기.txt)
 - [사용자 제공 디자인 적용·PC/모바일 확인](datemate/docs/design-import-2026-10-30.md)
 
 - [데이트 플랜 기능 오류 수정·PC/모바일 점검](datemate/docs/results-functional-audit-2026-10-29.md)
@@ -82,7 +99,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 - [디자인 선정 근거](datemate/docs/reference-design-selection.md)
 - [모바일 점검 기록](datemate/docs/mobile-check-2026-10-23.md)
 - [결과창 주변 레저 선택](datemate/docs/leisure-selection.md)
-- [장소 500곳 탐색 방식](datemate/docs/explore-500.md)
+- [(과거 방식) 장소 500곳 탐색](datemate/docs/explore-500.md)
 - [Cloudflare 전체 앱 배포 안내](datemate/docs/cloudflare-deployment.md)
 - [추천 서비스·DB 마이그레이션·프런트엔드 구조 개선](datemate/docs/architecture-improvements-2026-10-26.md)
 - [2026-10-26 전체 기능·코드 점검 및 오류 수정 결과](datemate/docs/full-functional-code-audit-2026-10-26.md)

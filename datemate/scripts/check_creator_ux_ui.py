@@ -7,10 +7,8 @@ with sync_playwright() as pw:
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
-    page.locator('.inspiration-card').first.wait_for()
-    assert page.locator('.inspiration-card li').count()>0
-    page.locator('.inspiration-card button').first.click()
-    assert page.locator('[name=request]').input_value()
+    page.locator('.curation-card[data-preset="서울 성수"]').click()
+    page.locator('[name=request]').fill('전시 관람과 산책')
     assert page.evaluate('locationState.origin.name')
     page.locator('#submit-plan').click()
     page.wait_for_function('selected?.id&&!document.querySelector("#submit-plan").disabled',timeout=240000)
@@ -45,5 +43,5 @@ with sync_playwright() as pw:
     page.locator('.photo-empty-card').wait_for()
     assert page.get_by_text('사진 없는 장소',exact=True).count()>0
     assert not errors,errors
-    print(json.dumps({'inspiration':True,'input_applied':True,'fit_reasons':True,'descriptive_options':True,'png_size':[1080,1350],'blog_excerpts':excerpts,'mobile_no_overflow':True,'js_errors':errors}))
+    print(json.dumps({'theme_card':True,'input_applied':True,'fit_reasons':True,'descriptive_options':True,'png_size':[1080,1350],'blog_excerpts':excerpts,'mobile_no_overflow':True,'js_errors':errors}))
     browser.close()

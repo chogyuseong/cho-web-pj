@@ -136,7 +136,7 @@ def test_address_keyboard_navigation_and_invalid_input(audit_page):
     page.locator('#submit-plan').click()
     assert page.locator('[name=budget]').evaluate('element=>!element.validity.valid')
     assert page.locator('.conditions').is_visible()
-    page.get_by_role('button',name='서울 자료 둘러보기',exact=True).click()
+    page.get_by_role('button',name='장소 둘러보기',exact=True).click()
     assert page.locator('#explore-section').is_visible()
     page.get_by_role('button',name='코스 만들기',exact=True).click()
     assert page.locator('.conditions').is_visible()
@@ -210,15 +210,21 @@ def test_share_card_export_and_summary_guest_link(audit_page,tmp_path):
     finally:guest.close()
 
 
-def test_explore_paging_filter_empty_retry_and_mobile(audit_page,monkeypatch):
-    from app import explore,store
+def test_explore_region_paging_empty_retry_and_mobile(audit_page,monkeypatch):
+    from urllib.parse import parse_qs
+    from app import explore
     page,base,errors=audit_page
-    prototype=page.request.get(base+'/api/places?mode=demo').json()['places'][0]
-    rows=[dict(prototype,id='audit-explore-'+str(i),name='점검 장소 '+str(i),
-               address='서울특별시 '+('중구' if i%2 else '종로구')+' 점검로 '+str(i)) for i in range(500)]
-    snapshot=dict(status='ready',places=rows,message='검증용 500곳',ranking_method='통제된 테스트 자료')
-    monkeypatch.setattr(explore,'ensure',lambda **kwargs:snapshot)
-    store.cache('explore-place:'+rows[0]['id'],rows[0])
+    full={'서울':'서울특별시','경남':'경상남도'}
+    def lookup(client,query):
+        region=query.split()[0]
+        if '존재하지않는' in query:return query,[],'available'
+        rows=[dict(title=f'{query} 점검 {rank}',roadAddress=f'{full[region]} 중구 점검로 {rank}',mapx='1280000000',mapy='360000000',category='카페,디저트') for rank in range(5)]
+        rows.append(dict(title=f'{query} 다른 지역',roadAddress='부산광역시 중구 점검로 1',mapx='1290000000',mapy='351000000',category='카페,디저트'))
+        return query,rows,'available'
+    monkeypatch.setattr(explore,'search_enabled',lambda:True)
+    monkeypatch.setattr(explore,'lookup',lookup)
+    requested=[]
+    page.on('request',lambda request:requested.append(parse_qs(urlsplit(request.url).query)) if '/api/explore?' in request.url else None)
     failed_once=False
     def outage(route):
         nonlocal failed_once
@@ -227,19 +233,28 @@ def test_explore_paging_filter_empty_retry_and_mobile(audit_page,monkeypatch):
             return route.fulfill(status=503,json={'detail':'점검용 연결 실패'})
         return route.continue_()
     page.route('**/api/explore?*',outage)
-    page.get_by_role('button',name='서울 자료 둘러보기',exact=True).click()
+    page.get_by_role('button',name='장소 둘러보기',exact=True).click()
+    assert page.locator('#explore-section h2').inner_text()=='데이트 장소 둘러보기'
     page.get_by_role('button',name='다시 불러오기',exact=True).click()
     page.wait_for_function('document.querySelectorAll("#catalog .place-card").length===24')
-    page.get_by_role('button',name='장소 더 보기 · 24 / 500',exact=True).click()
+    assert requested[-1]['region']==['서울'] and page.locator('#explore-region').input_value()=='서울'
+    page.get_by_role('button',name='장소 더 보기 · 24 / 75',exact=True).click()
     page.wait_for_function('document.querySelectorAll("#catalog .place-card").length===48')
+    assert requested[-1]['offset']==['24']
+    first=page.locator('#catalog .place-card h3').first.inner_text()
     page.locator('#catalog').get_by_role('button',name='장소 자세히 보기',exact=True).first.click()
-    page.wait_for_function('document.querySelector("#dialog-content h2").textContent==="점검 장소 0"')
+    page.wait_for_function('(name)=>document.querySelector("#dialog-content h2")?.textContent===name',arg=first)
     page.locator('#close-dialog').click()
-    page.locator('#search').fill('중구');page.locator('#search-button').click()
-    page.wait_for_function('document.querySelector("#search-info").textContent.includes("검색 결과 250곳")')
-    assert all('중구' in text for text in page.locator('#catalog .place-card > .hint').all_text_contents())
+    page.locator('#explore-region').select_option('경남')
+    page.wait_for_function('document.querySelector("#search-info").textContent.startsWith("경남")')
+    assert requested[-1]['region']==['경남']
+    assert all(text.startswith('경상남도') for text in page.locator('#catalog .place-card > .hint').all_text_contents())
+    page.locator('#explore-activity').select_option('서점')
+    page.wait_for_function('document.querySelector("#search-info").textContent.startsWith("경남 · 서점")')
+    assert requested[-1]['activity']==['서점'] and requested[-1]['region']==['경남']
     page.locator('#search').fill('존재하지않는점검장소');page.locator('#search-button').click()
     page.wait_for_function('document.querySelector("#search-info").textContent.includes("검색 결과 0곳")')
+    assert page.locator('#catalog').inner_text().strip()
     for width in (320,390,768,1440):
         page.set_viewport_size({'width':width,'height':900})
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width

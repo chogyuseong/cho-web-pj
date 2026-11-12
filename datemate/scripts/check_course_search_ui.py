@@ -12,8 +12,8 @@ with sync_playwright() as pw:
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
     page.locator('[name=course_query]').fill('연남동 데이트 코스')
-    page.locator('[data-region="연남"]').click()
-    page.locator('#quick-start').click()
+    page.locator('[data-preset="서울 성수"]').click()
+    page.locator('#submit-plan').click()
     page.wait_for_function('selected?.course_search&&!document.querySelector("#submit-plan").disabled',timeout=90000)
     evidence=page.evaluate('selected.course_search')
     assert evidence['query']=='연남동 데이트 코스'

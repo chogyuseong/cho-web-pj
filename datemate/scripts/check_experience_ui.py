@@ -12,7 +12,7 @@ with sync_playwright() as pw:
     page.goto(base,wait_until='networkidle');page.wait_for_function('Boolean(statusData)')
     page.locator('[name=meeting_type]').select_option('first')
     page.locator('[name=priority]').select_option('food')
-    page.locator('[data-region="연남"]').click();page.locator('#quick-start').click()
+    page.locator('[data-preset="서울 성수"]').click();page.locator('#submit-plan').click()
     page.wait_for_function('selected?.pricing_checked_at&&!document.querySelector("#submit-plan").disabled',timeout=90000)
     original=page.evaluate('selected.id')
     assert page.evaluate('selected.conditions.meeting_type')=='first'

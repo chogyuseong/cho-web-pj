@@ -64,17 +64,30 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 ## Cloudflare 배포 현황
 
-**2026-11-12 기준: 배포용 코드와 검증은 완료했고, 실제 운영 배포는 아직 하지 않았습니다.** FastAPI 앱은 Cloudflare Containers에서 실행하고 Worker가 공개 요청을 전달합니다. 상시 실행할 개인 Docker 서버는 필요하지 않습니다. Cloudflare Workers Builds를 쓰면 이미지도 Cloudflare에서 빌드하므로 로컬 Docker 실행 없이 배포할 수 있습니다.
+**2026-11-12에 운영 배포했습니다: <https://datemate.guseong-family.workers.dev>**
 
-운영 데이터는 `DATABASE_URL`로 연결한 **외부 관리형 PostgreSQL**에 저장합니다. Cloudflare D1을 PostgreSQL 대신 설정만 바꿔 연결할 수는 없습니다. 컨테이너의 Chroma 장소·문서 색인은 시작 시 다시 만들며, PostgreSQL 백업은 DB 제공자에서 별도로 설정해야 합니다.
+FastAPI 앱은 Cloudflare Containers(Workers Paid 플랜)에서 실행하고 Worker가 공개 요청을 전달합니다. 상시 실행할 개인 Docker 서버는 필요하지 않고, Docker는 배포할 이미지를 만들 때만 씁니다. 10분쯤 접속이 없으면 컨테이너가 꺼지며, 다음 첫 접속은 20~40초 걸립니다.
 
-실제 배포 전에 남은 작업은 다음과 같습니다.
+운영 데이터는 `DATABASE_URL`로 연결한 **Neon PostgreSQL**(무료 플랜)에 저장합니다. Cloudflare D1을 PostgreSQL 대신 설정만 바꿔 연결할 수는 없습니다. 컨테이너의 Chroma 장소·문서 색인은 시작 시 다시 만들며, PostgreSQL 백업은 DB 제공자에서 별도로 설정해야 합니다.
 
-1. Cloudflare Workers Paid 플랜과 외부 접속 가능한 PostgreSQL을 준비하고, 앱 전용 DB 계정·백업을 설정합니다.
-2. Cloudflare Workers Builds에 이 저장소를 연결하고 저장소 루트의 `wrangler.jsonc`, `Dockerfile`로 빌드합니다.
-3. Worker Secret에 실제 HTTPS 주소 `PUBLIC_ORIGIN`과 TLS를 필수로 하는 `DATABASE_URL`을 등록합니다. 실제 장소 검색을 쓰려면 네이버 API 키를, 축제 조회를 쓰려면 `TOUR_API_KEY`도 등록합니다.
-4. 네이버 클라우드 콘솔의 Dynamic Map Web 서비스 URL에 배포 주소를 추가합니다.
-5. 배포 후 `/readyz`, `/api/status`, 추천·축제·장소 둘러보기·공유 동작을 공개 주소에서 확인합니다.
+배포하면서 확인한 내용입니다.
+
+- **컨테이너 위치**: 처음에는 한국에서 먼 지역에 떠서 DB를 쓰는 요청이 2~3초 걸리고 축제 조회가 시간 초과로 실패했습니다. Worker가 Durable Object를 아시아(`locationHint: "apac"`)에 만들도록 바꾼 뒤 서버 처리 시간이 0.06초 수준으로 줄었습니다.
+- **Secret**: `PUBLIC_ORIGIN`, `DATABASE_URL`, 네이버 검색·지도 키, `TOUR_API_KEY`를 Worker Secret으로 등록했습니다. 키는 Git·빌드 변수·이 문서에 두지 않습니다.
+- **네이버 지도**: 네이버 클라우드 콘솔의 Dynamic Map Web 서비스 URL에 배포 주소를 등록해 지도 인증이 통과합니다.
+- **동작 확인**: 공개 주소에서 코스 추천, 축제(요금 포함), 축제 주변 코스, 장소 둘러보기를 브라우저로 확인했습니다.
+- **재배포**: 저장소 최상위에서 Docker를 켠 뒤 `npx wrangler deploy`. 새 버전이 실제 응답에 반영되기까지 5분쯤 걸릴 수 있습니다.
+
+### 보안
+
+배포 후 전체 보안 점검을 했습니다. 권한 우회, XSS, SQL 주입, SSRF, Git 이력의 비밀값은 발견되지 않았고, 자원 고갈과 제한 우회 문제를 고쳤습니다.
+
+- 모든 입력에 길이 상한, 요청 본문 64KiB, 저장되는 코스 1건 300KB 상한
+- 요청 제한을 세션과 접속 IP 범위(IPv6는 /64) 양쪽에 적용, IP 범위별 외부 호출 몫 제한
+- 세션은 `/api/` 요청에서만 발급하고 쿠키는 `HttpOnly; Secure; SameSite=Lax`
+- 공개 요청의 `/healthz`, `/readyz` 차단, 전역 잠금 대기 시간 제한
+
+한도 이름과 기본값은 [datemate/.env.example](datemate/.env.example)의 `DATEMATE_IP_*` 항목에 있습니다. 운영에는 기본값이 적용돼 있고, 바꾸려면 `cloudflare/worker.js`가 컨테이너에 넘기는 환경변수에 추가한 뒤 재배포합니다. 같은 IP를 함께 쓰는 사용자는 한도를 나눠 씁니다. 아직 남은 과제는 저장 데이터 보존 기한과 자동 삭제, 세션 토큰 해시 저장, CSP 범위 축소, DB 앱 전용 계정입니다.
 
 운영 요청에는 출처 검사, 브라우저 스크립트 실행 정책(CSP), 세션 응답 캐시 방지가 적용됩니다. PostgreSQL 연결은 `sslmode=require`, `verify-ca`, `verify-full` 중 하나가 필수입니다. 수정 가능한 의존성 경고는 반영했고, npm 감사는 취약점 0건입니다. **ChromaDB 1.5.9에는 수정 버전이 없는 보안 공지가 남아 있습니다.** 현재 앱은 Chroma를 컨테이너 내부 `PersistentClient`로만 사용하며 Chroma HTTP 포트를 공개하지 않습니다. 해당 포트나 원격 모델 실행 기능을 추가할 때는 보안을 다시 검토해야 합니다.
 

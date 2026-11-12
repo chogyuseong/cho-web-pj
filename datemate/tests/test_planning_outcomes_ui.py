@@ -40,7 +40,7 @@ def test_shared_must_conflict_resolves_and_survives_guest_reload(audit_page):
     page.get_by_role('button',name='내 의견 저장',exact=True).click()
     page.wait_for_function("document.querySelector('.partner-agreement select')?.value==='must'")
     token=page.request.post(base+'/api/plans/'+pid+'/shares',data={}).json()['url']
-    context=page.context.browser.new_context(viewport={'width':390,'height':844})
+    context=page.context.browser.new_context(viewport={'width':390,'height':844},bypass_csp=True)
     guest=context.new_page()
     try:
         guest.goto(base+token,wait_until='networkidle')

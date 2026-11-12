@@ -21,6 +21,13 @@ Cloudflare의 Git 빌드를 사용하면 로컬 Docker 실행 없이 Cloudflare 
 
 Cloudflare에서 관리형 PostgreSQL 서버를 제공하는 구성은 이 앱에 아직 적용하지 않았습니다. `DATABASE_URL` 없이 운영 배포하면 Worker가 503을 반환합니다. 컨테이너의 로컬 `/data/runtime`은 색인 캐시 용도이며, 컨테이너가 교체되거나 유휴 종료되면 다시 만들어집니다. 후기·세션·공유 링크 등 영속 데이터는 PostgreSQL에 남습니다. PostgreSQL의 백업은 해당 제공자에서 별도로 설정하세요.
 
+## 배포 전 보안 설정
+
+- PostgreSQL에는 앱 전용 계정을 만들고, 필요한 데이터베이스에만 권한을 부여합니다. `DATABASE_URL`은 Worker Secret에만 저장하고 `sslmode=require`, `verify-ca`, `verify-full` 중 하나를 지정합니다. 가능하면 서버 인증서와 호스트 이름까지 확인하는 `verify-full`을 사용하세요. TLS 설정이 없으면 Worker가 요청을 받지 않습니다.
+- 네이버·GMS 키도 Worker Secret으로 저장하고, 제공자 콘솔에서 필요한 API와 공개 도메인만 허용합니다. `.env` 파일과 DB 암호를 Git 또는 빌드 변수에 넣지 않습니다.
+- 공유 링크는 URL 프래그먼트에 토큰을 넣어 생성하며, 원본 일정의 개인 조건은 공유 응답에 포함하지 않습니다. 운영에서는 HTTPS 공개 주소 하나를 `PUBLIC_ORIGIN`으로 지정합니다.
+- ChromaDB는 컨테이너 내부의 `PersistentClient`로만 사용합니다. 별도의 Chroma HTTP 서버나 포트를 공개하지 않습니다. 현재 ChromaDB 서버 API 관련 보안 공지가 있으므로, 해당 포트를 추가로 노출하거나 원격 모델 실행 기능을 활성화하지 마세요.
+
 ## 로컬에서 직접 배포하는 경우
 
 `npm ci` 후 Docker Desktop을 실행하고 `npm run cloudflare:deploy`를 실행합니다. 이때 Docker는 **배포 이미지 빌드에만** 필요하며, 운영 서버로 계속 실행할 필요는 없습니다. 로컬 Docker 없이 배포하려면 위의 Workers Builds를 사용하세요.

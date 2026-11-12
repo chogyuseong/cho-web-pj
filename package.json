@@ -2,6 +2,7 @@
   "name": "datemate-cloudflare",
   "private": true,
   "scripts": {
+    "test:security": "node --test cloudflare/validation.test.mjs",
     "cloudflare:dev": "wrangler dev",
     "cloudflare:deploy": "wrangler deploy"
   },

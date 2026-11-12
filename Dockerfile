@@ -10,7 +10,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY datemate/requirements.txt ./requirements.txt
 COPY datemate/requirements-cloud.lock.txt ./requirements-cloud.lock.txt
-RUN pip install --no-cache-dir -r requirements.txt -c requirements-cloud.lock.txt \
+RUN python -m pip install --no-cache-dir --upgrade pip==26.3 \
+    && pip install --no-cache-dir -r requirements.txt -c requirements-cloud.lock.txt \
     && useradd --create-home --uid 10001 datemate \
     && mkdir -p /data/runtime /data/backups \
     && chown -R datemate:datemate /data

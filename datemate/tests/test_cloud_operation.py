@@ -41,9 +41,26 @@ def test_error_headers_hosts_and_cross_site_requests(monkeypatch):
         assert response.headers['cache-control'] == 'no-store'
         assert response.headers['x-request-id']
         assert "frame-ancestors 'none'" in response.headers['content-security-policy']
+        assert "script-src 'self'" in response.headers['content-security-policy']
         assert client.post('/api/conditions/parse', json={'text':'카페'},
                            headers={'Sec-Fetch-Site':'cross-site'}).status_code == 403
         assert client.get('/static/http-client.mjs').headers['cache-control'].endswith('must-revalidate')
+
+
+def test_production_requires_same_origin_for_changes_and_does_not_cache_session_page(monkeypatch):
+    monkeypatch.setenv('DATEMATE_ENV', 'production')
+    monkeypatch.setenv('DATEMATE_EPHEMERAL_DEMO', '1')
+    monkeypatch.setenv('DATEMATE_PUBLIC_ORIGIN', 'https://testserver')
+    with TestClient(app, base_url='https://testserver') as client:
+        home = client.get('/')
+        assert home.status_code == 200
+        assert home.headers['cache-control'] == 'no-store'
+        payload = {'text': '카페'}
+        assert client.post('/api/conditions/parse', json=payload).status_code == 403
+        assert client.post('/api/conditions/parse', json=payload,
+                           headers={'Origin': 'https://testserver'}).status_code == 200
+        assert client.post('/api/conditions/parse', json=payload,
+                           headers={'Sec-Fetch-Site': 'same-origin'}).status_code == 200
 
 
 def test_https_session_cookie():

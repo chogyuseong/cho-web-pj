@@ -23,7 +23,8 @@ def audit_page():
         assert server.started
         with playwright.sync_playwright() as pw:
             browser=pw.chromium.launch(channel=os.getenv('DATEMATE_BROWSER_CHANNEL','msedge'),headless=True)
-            page=browser.new_page(viewport={'width':1440,'height':1000});errors=[]
+            # Playwright wait_for_function evaluates text with eval, which CSP blocks.
+            page=browser.new_page(viewport={'width':1440,'height':1000},bypass_csp=True);errors=[]
             page.on('pageerror',lambda error:errors.append(str(error)))
             def route(request):
                 if not request.request.url.startswith(base):return request.abort()

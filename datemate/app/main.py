@@ -121,9 +121,12 @@ async def safety(request: Request, call_next):
         if request.method in ("POST", "PUT", "PATCH", "DELETE"):
             origin = request.headers.get("origin")
             expected = public_origin() or str(request.base_url).rstrip("/")
-            if (origin and origin.rstrip("/") != expected) or request.headers.get(
-                "sec-fetch-site"
-            ) == "cross-site":
+            fetch_site = request.headers.get("sec-fetch-site")
+            if (
+                (origin and origin.rstrip("/") != expected)
+                or fetch_site == "cross-site"
+                or (production() and not origin and fetch_site != "same-origin")
+            ):
                 return finish(
                     JSONResponse(
                         {"detail": "다른 사이트에서 보낸 변경 요청은 허용하지 않습니다."},

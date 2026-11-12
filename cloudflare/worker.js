@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { validPublicOrigin, validDatabaseUrl } from "./validation.mjs";
 
 const PORT = 8080;
 const IDLE_MS = 10 * 60 * 1000;
@@ -39,8 +40,8 @@ export class DatemateContainer extends DurableObject {
   async startAndWait() {
     const container = this.ctx.container;
     if (!container.running) {
-      if (!this.env.DATABASE_URL || !this.env.PUBLIC_ORIGIN) {
-        throw new Error("Set DATABASE_URL and PUBLIC_ORIGIN with wrangler secret put before deployment");
+      if (!validDatabaseUrl(this.env.DATABASE_URL) || !validPublicOrigin(this.env.PUBLIC_ORIGIN)) {
+        throw new Error("Configure a valid HTTPS PUBLIC_ORIGIN and TLS PostgreSQL DATABASE_URL");
       }
       const env = {
         PORT: String(PORT),
@@ -78,13 +79,10 @@ export class DatemateContainer extends DurableObject {
 
 export default {
   fetch(request, env) {
-    if (!env.PUBLIC_ORIGIN || !env.DATABASE_URL) {
-      return new Response("Cloudflare deployment is missing PUBLIC_ORIGIN or DATABASE_URL", { status: 503 });
+    if (!validPublicOrigin(env.PUBLIC_ORIGIN) || !validDatabaseUrl(env.DATABASE_URL)) {
+      return new Response("Cloudflare deployment requires HTTPS PUBLIC_ORIGIN and TLS PostgreSQL DATABASE_URL", { status: 503 });
     }
-    let expected;
-    try { expected = new URL(env.PUBLIC_ORIGIN).origin; }
-    catch { return new Response("Invalid PUBLIC_ORIGIN", { status: 503 }); }
-    if (!expected.startsWith("https://") || new URL(request.url).origin !== expected) {
+    if (new URL(request.url).origin !== env.PUBLIC_ORIGIN) {
       return new Response("Unknown host", { status: 421 });
     }
     return env.DATEMATE_CONTAINER.getByName("production").fetch(request);

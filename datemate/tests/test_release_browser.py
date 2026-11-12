@@ -21,7 +21,8 @@ def test_input_result_share_and_mobile_flow(tmp_path):
         assert server.started
         with playwright.sync_playwright() as pw:
             browser=pw.chromium.launch(channel=os.getenv('DATEMATE_BROWSER_CHANNEL','msedge'),headless=True)
-            context=browser.new_context(viewport={'width':1440,'height':1000},permissions=['clipboard-read','clipboard-write'])
+            # Playwright wait_for_function evaluates text with eval, which CSP blocks.
+            context=browser.new_context(viewport={'width':1440,'height':1000},permissions=['clipboard-read','clipboard-write'],bypass_csp=True)
             def offline(route):
                 path=urlsplit(route.request.url).path
                 if not route.request.url.startswith(base):return route.abort()

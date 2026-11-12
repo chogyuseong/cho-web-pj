@@ -1,6 +1,6 @@
 """Bounded recommendation workers with shared progress and cancellation.
 
-Cloud Run must allocate CPU outside requests. Heartbeats allow a different
+The container must receive CPU outside requests. Heartbeats allow a different
 instance to poll/cancel and detect an interrupted worker without sticky sessions.
 Interrupted jobs are reported as failed, never silently rerun or billed twice.
 """

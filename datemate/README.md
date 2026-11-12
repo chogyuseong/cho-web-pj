@@ -132,8 +132,8 @@ docs/      설계·출처·기능별 검증 기록
 - [결과창 레저 선택 및 검증](docs/leisure-selection.md)
 - [모바일 점검](docs/mobile-check-2026-10-23.md)
 - [디자인 참고·독립 구현 기록](docs/reference-design-selection.md)
-- [Cloud Run 배포 순서](docs/cloud-run-deployment.md)
+- [Cloudflare 배포 순서](docs/cloudflare-deployment.md)
 
 기존 `docs/`의 날짜별 기록은 해당 시점의 검증 결과입니다. 초기 기록의 건수·제한은 현재 기능과 다를 수 있습니다. 현재 기능 설명은 이 README와 최신 기능별 기록을 함께 참고하세요.
 
-운영용 저장소는 `DATABASE_URL`로 PostgreSQL을 연결하며, 로컬 개발은 SQLite를 유지합니다. 공유 검색 상태와 취소·세션·일정·후기는 외부 DB를 사용하고, Chroma 색인은 컨테이너 시작 시 재생성합니다. [Cloud Run 운영 배포 안내](docs/cloud-run-deployment.md)를 따르세요. 공개 클라우드 배포와 계정 생성은 별도 작업입니다.
+운영용 저장소는 `DATABASE_URL`로 PostgreSQL을 연결하며, 로컬 개발은 SQLite를 유지합니다. 공유 검색 상태와 취소·세션·일정·후기는 외부 DB를 사용하고, Chroma 색인은 컨테이너 시작 시 재생성합니다. [Cloudflare 배포 안내](docs/cloudflare-deployment.md)를 따르세요. 공개 클라우드 배포와 계정 생성은 별도 작업입니다.

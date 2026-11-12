@@ -12,7 +12,7 @@ from .database import postgres_enabled
 
 def snapshot(destination, source=None):
     if source is None and postgres_enabled():
-        raise ValueError('PostgreSQL은 Cloud SQL 백업 또는 pg_dump로 백업하세요.')
+        raise ValueError('PostgreSQL은 제공자의 백업 또는 pg_dump로 백업하세요.')
     source=Path(source or RUNTIME/'datemate.sqlite').resolve()
     destination=Path(destination).resolve()
     if not source.exists():raise ValueError('원본 데이터베이스가 없습니다.')

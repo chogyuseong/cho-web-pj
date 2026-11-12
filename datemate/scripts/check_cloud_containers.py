@@ -1,4 +1,4 @@
-"""Test two disposable Cloud Run-like containers sharing PostgreSQL.
+"""Test two disposable production-like containers sharing PostgreSQL.
 
 Start from repository root: docker compose -f compose.test.yaml up -d --build
 Run this script, then docker compose -f compose.test.yaml down.

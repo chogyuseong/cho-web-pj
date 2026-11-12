@@ -8,13 +8,9 @@
 
 추천 서비스를 HTTP/작업 실행기에서 분리하고, 공통 실행 제한을 유지했다. SQLite/PostgreSQL 순차·트랜잭션 마이그레이션과 운영 인덱스를 추가했다. 추천 완료/실패/조건 완화 계측 및 최근 30일 보고서를 개선했다. 장소 모달·후기 JS를 분리하고 동기 버튼 예외를 안내로 처리했다. 포맷 도구와 CI 검사를 추가했다. 전체 테스트 SQLite 265 passed/1 skipped, PostgreSQL 262 passed/4 skipped; 두 Linux 서버 통합 및 실제 Edge 추천·지도·사진·모바일 통과. 메뉴는 unavailable. 전역 쓰기 잠금·작업 큐 분리·CSS 통합은 남아 있음. 자세한 내용: `datemate/docs/architecture-improvements-2026-10-26.md`. 사용자 환경/DB와 기존 미커밋 변경은 보존했다.
 
-## 2026-10-26 Cloud Run 운영 전환 완료
+## 2026-10-26 운영 저장 구조 검증
 
-사용자는 Cloud Run 배포를 선택하고 전체 운영 코드 수정·기능 검증을 요청했다. PostgreSQL(Cloud SQL) 저장, 공유 검색 진행/취소/하트비트, 만료 작업 재시도 시 이전 작업 차단, 탐색 수집 중복 방지, 요청·외부 호출 제한, HTTPS 보호, 장소·문서 초기 색인을 구현했다. Docker Linux 잠금 파일과 CI 구성, 운영 배포 문서도 추가했다.
-
-최종 SQLite 260 passed/1 skipped, PostgreSQL 257 passed/4 skipped. 두 Linux 컨테이너 재시작 후 일정·후기·대화 유지와 교차 인스턴스 삭제·공유 철회를 확인했다. 실제 Edge 주소·지도·추천·사진 및 390/768/1440px 검증 통과. 최신 공개 메뉴 검색 원문은 HTTP 403으로 조회 불가이며 실패 안내를 제공한다. GMS 실제 모델·의미 임베딩과 실제 Cloud 배포는 미검증. 사용자 `.env`와 기존 운영 DB는 변경하지 않았다. 상세 결과: `datemate/docs/cloud-operation-check-2026-10-26.md`.
-
-이전 발표용 배포 메모보다 `datemate/docs/cloud-run-deployment.md`의 **Cloud SQL + Secret Manager + --no-cpu-throttling** 운영 구성을 우선한다. 아직 Cloud 프로젝트 ID는 전달되지 않았으며 외부 리소스 생성·실제 배포·Git push는 수행하지 않았다.
+PostgreSQL 저장, 공유 검색 진행/취소/하트비트, 요청·외부 호출 제한, HTTPS 보호, 장소·문서 초기 색인을 구현했다. 두 Linux 컨테이너 재시작 후 일정·후기·대화 유지와 교차 인스턴스 삭제·공유 철회를 확인했다. 실제 공개 배포는 수행하지 않았다.
 
 ## 2026-10-25 전체 기능 점검
 
@@ -30,16 +26,11 @@
 
 검색/자유 입력 보완: 두 입력칸을 공통 규칙으로 해석하여 활동·제외 표현·예산·인원·방문 수·실내외·이동수단에 반영한다. 카페 투어는 식당과 구별해 카페 위주로 구성하고 자동 식사 포함보다 우선한다. 지역 API 분류·주소·좌표가 일치하는 요청 활동 후보도 보충한다. 두 입력칸 모두 실제 카페 3곳으로 추천되는 브라우저 검증 완료. 전체 자동 테스트 153개 통과 후 지역 줄임말(성수·연남·망원) 보완 관련 34개 테스트도 통과했다. 현장 소음·대기·영업은 확인되지 않은 정보를 사실로 표시하지 않는다.
 
-## 배포 — 사용자가 나중에 재개 요청할 때만 진행
+## 배포
 
-- 배포 작업은 보류했다. **다음에는 2번: Google Cloud 프로젝트 생성·결제 계정 연결부터 재개**한다.
+- 현재 배포 대상은 Cloudflare Containers다. 설정과 절차는 `datemate/docs/cloudflare-deployment.md`를 따른다.
 - GitHub 저장소: https://github.com/chogyuseong/cho-web-pj.git
-- 준비된 파일: 루트 Dockerfile, .dockerignore, .gcloudignore, app/cloud_start.py, 배포 안내 문서.
-- 1번인 배포 준비 파일의 추가 커밋·push가 완료됐는지는 재개 시 git 상태로 확인한다. 완료됐다고 추정하지 않는다.
-- 프로젝트 ID는 아직 전달받지 않았다. 실제 Cloud Run 배포·결제 리소스 생성은 하지 않았다.
-- 발표용 Cloud Run: 최소 인스턴스 1, 최대 1 검토. 대기 비용 가능, SQLite/Chroma 임시 저장.
-- Docker Desktop 엔진이 꺼져 있어 Docker 빌드는 미검증. 빈 runtime 초기화·healthz 및 테스트 105개는 통과했다.
-- 자세한 절차: datemate/docs/cloud-run-deployment.md
+- 로컬 Docker 엔진이 꺼져 있어 컨테이너 이미지 빌드와 실제 배포는 아직 검증하지 않았다.
 
 ## 메뉴 가격 표시 — 구현 완료
 

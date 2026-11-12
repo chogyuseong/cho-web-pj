@@ -22,7 +22,6 @@ def rehearse():
             PYTHONIOENCODING="utf-8",
         )
         for key in (
-            "K_SERVICE",
             "GMS_KEY",
             "NAVER_MAPS_KEY_ID",
             "NAVER_MAPS_KEY",

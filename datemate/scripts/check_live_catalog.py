@@ -18,7 +18,6 @@ def main():
     with tempfile.TemporaryDirectory(prefix='datemate-live-catalog-') as runtime:
         os.environ.update(DATEMATE_RUNTIME=runtime, DATABASE_URL='', DATEMATE_ENV='development',
                           DATEMATE_PUBLIC_ORIGIN='', DATEMATE_ALLOWED_HOSTS='', DATEMATE_BACKUP_DIR='')
-        os.environ.pop('K_SERVICE', None)
         from fastapi.testclient import TestClient
         from app.main import app
 

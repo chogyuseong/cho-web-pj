@@ -14,7 +14,7 @@ def allowed_host(request):
     if origin:
         hosts.append(urlsplit(origin).hostname)
     if not hosts:
-        hosts = ['*.run.app'] if os.getenv('K_SERVICE') else ['*']
+        hosts = ['*'] if not production() else []
     # Health probes go directly to the container using its internal address.
     if request.url.path in ('/healthz', '/readyz'):
         return True

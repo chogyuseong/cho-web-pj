@@ -1,4 +1,4 @@
-"""Cloud Run entrypoint: PostgreSQL for user data, rebuildable local indexes."""
+"""Container entrypoint: PostgreSQL for user data, rebuildable local indexes."""
 import os
 import json
 import uvicorn
@@ -25,8 +25,7 @@ def main():
     port=int(os.getenv('PORT','8080'))
     if not 1<=port<=65535:raise ValueError('PORT must be between 1 and 65535')
     prepare_runtime()
-    # Only Cloud Run's managed ingress may be trusted unconditionally.
-    trusted=os.getenv('FORWARDED_ALLOW_IPS','*' if os.getenv('K_SERVICE') else '127.0.0.1')
+    trusted=os.getenv('FORWARDED_ALLOW_IPS','127.0.0.1')
     uvicorn.run('app.main:app',host='0.0.0.0',port=port,workers=1,
                 proxy_headers=True,forwarded_allow_ips=trusted,access_log=False,
                 timeout_graceful_shutdown=8)

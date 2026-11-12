@@ -1,7 +1,7 @@
 """PostgreSQL storage with bounded pooling and SQLite-compatible result rows.
 
 Writes are serialized with a transaction advisory lock, preserving the existing
-SQLite transaction semantics across Cloud Run instances. No network calls belong
+SQLite transaction semantics across container instances. No network calls belong
 inside a database transaction. Local development can continue using SQLite.
 """
 

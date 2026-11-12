@@ -26,7 +26,6 @@ def main():
         env.update(DATEMATE_RUNTIME=runtime,DATABASE_URL='',DATEMATE_ENV='development',
                    DATEMATE_PUBLIC_ORIGIN='',DATEMATE_ALLOWED_HOSTS='',DATEMATE_BACKUP_DIR='',
                    DATEMATE_BOOTSTRAP_INDEX='1',EMBEDDING_MODE='demo',PORT='8000',PYTHONIOENCODING='utf-8')
-        env.pop('K_SERVICE',None)
         with (output/'server.log').open('w',encoding='utf-8') as log:
             server=subprocess.Popen([sys.executable,'-m','app.cloud_start'],cwd=ROOT,env=env,stdout=log,stderr=log)
             try:

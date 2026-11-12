@@ -11,7 +11,7 @@ RUNTIME.mkdir(parents=True, exist_ok=True)
 REGION = '서울'  # 이번 프로젝트의 서비스 범위는 서울특별시로 고정한다.
 
 def production():
-    return os.getenv('DATEMATE_ENV') == 'production' or bool(os.getenv('K_SERVICE'))
+    return os.getenv('DATEMATE_ENV') == 'production'
 
 
 def public_origin():

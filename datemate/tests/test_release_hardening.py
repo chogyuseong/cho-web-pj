@@ -186,9 +186,9 @@ def test_answer_cache_is_session_scoped_and_deleted(monkeypatch):
             assert db.execute('SELECT COUNT(*) FROM cache_owners WHERE owner=?',(owner,)).fetchone()[0]==0
 
 
-def test_cloud_run_requires_explicit_ephemeral_demo(monkeypatch):
+def test_production_requires_explicit_ephemeral_demo(monkeypatch):
     from app import cloud_start
-    monkeypatch.setenv('K_SERVICE','test-service')
+    monkeypatch.setenv('DATEMATE_ENV','production')
     monkeypatch.setenv('DATABASE_URL','')
     monkeypatch.delenv('DATEMATE_EPHEMERAL_DEMO',raising=False)
     with pytest.raises(RuntimeError):cloud_start.main()

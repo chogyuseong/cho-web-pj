@@ -1,0 +1,11 @@
+{
+  "name": "datemate-cloudflare",
+  "private": true,
+  "scripts": {
+    "cloudflare:dev": "wrangler dev",
+    "cloudflare:deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.160.1"
+  }
+}

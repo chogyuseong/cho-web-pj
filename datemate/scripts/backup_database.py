@@ -11,7 +11,7 @@ from app.config import RUNTIME
 def backup(destination):
     from app.database import postgres_enabled
     if postgres_enabled():
-        raise ValueError('PostgreSQL은 Cloud SQL 백업 또는 pg_dump로 백업하세요.')
+        raise ValueError('PostgreSQL은 제공자의 백업 또는 pg_dump로 백업하세요.')
     source = RUNTIME / 'datemate.sqlite'
     destination = Path(destination).resolve()
     if not source.exists():

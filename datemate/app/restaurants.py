@@ -27,7 +27,9 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500)
     if plan.get('conditions',{}).get('mode')=='demo':return dict(status='demo',restaurants=[],message='가상 장소에서는 실제 식당을 검색하지 않습니다.')
     if index<0 or index>=len(plan['places']):raise ValueError('식사 추천 장소가 올바르지 않습니다.')
     a=plan['places'][index];b=plan['places'][min(index+1,len(plan['places'])-1)]
-    query='서울 '+(district or a['name'])+' '+query_suffix
+    from .regions import region_from_address, korean_coordinates
+    region=plan.get('conditions',{}).get('region') or region_from_address(a.get('address')) or '서울'
+    query=region+' '+(district or a['name'])+' '+query_suffix
     search_url='https://map.naver.com/p/search/'+query
     if not search_enabled():return dict(status='key_missing',restaurants=[],message='네이버 검색 키를 설정해 주세요.',search_url=search_url)
     avoid=plan.get('conditions',{}).get('avoid',[])
@@ -44,13 +46,13 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500)
             category=plain(item.get('category',''))
             if not any(word in category for word in ('음식점','한식','중식','일식','양식','분식')) or '카페' in category:continue
             address=plain(item.get('roadAddress') or item.get('address') or '')
-            if not address.startswith('서울'):continue
+            if region_from_address(address)!=region:continue
             if district and district not in address.split():continue
             try:
                 lon,lat=float(item['mapx']),float(item['mapy'])
                 if abs(lon)>180:lon/=10000000
                 if abs(lat)>90:lat/=10000000
-                if not (37.4<lat<37.75 and 126.7<lon<127.3):continue
+                if not korean_coordinates(lat,lon):continue
             except (KeyError,ValueError,TypeError):continue
             name=plain(item.get('title',''));r=dict(name=name,lat=lat,lon=lon)
             if any(word.casefold() in (name+' '+category).casefold() for word in avoid if word):continue
@@ -58,7 +60,7 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500)
             near=distance(a,r)
             if not district and near*1000>radius_m:continue
             id='food:naver-'+hashlib.sha256((name+address).encode()).hexdigest()[:16]
-            r.update(id=id,address=address,cuisine=category,category='카페·미식',region='서울',demo=False,review_search_rank=rank,meal=True,setting=None,breaks=None,last_entry=None,
+            r.update(id=id,address=address,cuisine=category,category='카페·미식',region=region,demo=False,review_search_rank=rank,meal=True,setting=None,breaks=None,last_entry=None,
                 recognition=f'네이버 카페·블로그 리뷰순 검색 {rank}번째 결과 · 별점 미제공',source=search_url,source_type='네이버 지역 검색',
                 hours_text='운영시간·메뉴는 지도에서 확인',extra_distance_km=round(extra,1),route_offset_km=round(offset,1),
                 distance_m=round(near*1000),search_radius_m=radius_m,

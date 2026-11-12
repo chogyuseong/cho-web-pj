@@ -70,7 +70,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
   async function load(){try{
     let data=await fetchPlacePhotos(place,photoMode,refreshNext);refreshNext=false;
     panel.replaceChildren();
-    if(!data.photos.length){const empty=node('div',undefined,'photo-empty-card');empty.append(node('strong',place.name),node('p',place.category||'서울 장소'),node('p',place.address||'주소는 장소 정보에서 확인해 주세요.'));panel.append(empty);panel.append(node('p',data.message||'해당 장소의 사진을 찾지 못했습니다.','photo-status'),link('네이버에서 장소 사진 보기 ↗',data.search_url||'https://search.naver.com/search.naver?where=image&query='+encodeURIComponent(place.name+' 서울')),retry());return;}
+    if(!data.photos.length){const empty=node('div',undefined,'photo-empty-card');empty.append(node('strong',place.name),node('p',place.category||'장소'),node('p',place.address||'주소는 장소 정보에서 확인해 주세요.'));panel.append(empty);panel.append(node('p',data.message||'해당 장소의 사진을 찾지 못했습니다.','photo-status'),link('네이버에서 장소 사진 보기 ↗',data.search_url||'https://search.naver.com/search.naver?where=image&query='+encodeURIComponent(place.name+' '+(place.region||''))),retry());return;}
     const photo=data.photos[0],figure=node('figure',undefined,'place-photo'),img=node('img');
     img.alt=photo.title+' — '+place.name;img.loading=eager?'eager':'lazy';img.decoding='async';img.width=640;img.height=420;
     img.referrerPolicy='no-referrer';

@@ -9,7 +9,9 @@ def place_blogs(place):
     empty={'posts':[],'provider':'네이버 블로그 검색','verification':'검색 결과 · 실제 방문·후기 진위 확인 안 됨'}
     if place.get('demo'):return dict(empty,status='demo',message='가상 장소의 실제 블로그 후기는 검색하지 않습니다.')
     if not search_enabled():return dict(empty,status='key_missing',message='블로그 검색 API 키가 설정되지 않았습니다.')
-    query=f'{place["name"]} 서울 방문 후기'
+    from .regions import normalize_region, region_from_address
+    region=normalize_region(place.get('region')) or region_from_address(place.get('address')) or '서울'
+    query=f'{place["name"]} {region} 방문 후기'
     try:
         with _lock,httpx.Client(timeout=10) as client:
             response=observed_http(client.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params={'query':query,'display':10,'start':1,'sort':'sim','format':'json'},

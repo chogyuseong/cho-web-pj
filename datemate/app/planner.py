@@ -16,7 +16,6 @@ def candidates(c):
     classified=classification_themes(c)
     from .quality import pool,is_meal
     for p in pool(c):
-        if p['region'] not in ('서울', '서울시', '서울특별시'):continue
         place_themes=set(p.get('themes') or [p['category']])
         meal=c.include_meal and is_meal(p)
         if c.themes and not place_themes.intersection(c.themes) and not meal:continue

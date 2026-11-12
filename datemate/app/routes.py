@@ -29,9 +29,6 @@ def leg(a,b,conditions,force_api=False):
     base=dict(origin=a['name'],destination=b['name'],link=app_link(a,b,conditions.transport),
               status='unavailable',minutes=None,walking=None,distance_km=None,cost=None,source=None,
               toll=None,fuel=None,transfers=None,checked_at=None,path=[])
-    if conditions.mode=='real' and conditions.transport in ('walk','transit') and (force_api or not conditions.allow_estimates):
-        from .route_providers import route
-        return dict(base,**route(a,b,conditions.transport,conditions.people))
     if conditions.mode=='demo' or (conditions.allow_estimates and not force_api):
         km=distance(a,b) * (1 if conditions.mode=='demo' else 1.35)
         speed={'walk':4,'bicycle':12,'car':25,'transit':18}[conditions.transport]

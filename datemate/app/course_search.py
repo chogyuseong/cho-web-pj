@@ -67,9 +67,10 @@ def base_course_query(c):
         name=district_at(c.origin.lat,c.origin.lon)
         if not name:return '지도 위치의 지역명 확인 필요'
     district=re.search(r'([가-힣]{1,8}구)(?:\s|$)',name)
-    if district:return district[1]+' 데이트 코스'
+    if district:return (c.region+' ' if c.region!='서울' else '')+district[1]+' 데이트 코스'
     area=re.search(r'[가-힣]{2,8}동',c.request+' '+name)
-    if area:return area[0]+' 데이트 코스'
+    if area:return (c.region+' ' if c.region!='서울' else '')+area[0]+' 데이트 코스'
+    if c.region!='서울':return c.region+' '+re.sub(r'\s*(지역 중심|지도에서 선택.*)$','',name).strip()+' 데이트 코스'
     anchors=[('연남동',37.5572,126.9254),('성수동',37.5446,127.0559),('종로',37.5765,126.9855),('강남',37.4979,127.0276)]
     closest=min(anchors,key=lambda a:distance(c.origin.model_dump(),dict(lat=a[1],lon=a[2])))
     if distance(c.origin.model_dump(),dict(lat=closest[1],lon=closest[2]))<2:return closest[0]+' 데이트 코스'

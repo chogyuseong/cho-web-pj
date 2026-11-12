@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(Path(os.getenv('DATEMATE_ENV_FILE', str(ROOT / '.env'))))
 RUNTIME = Path(os.getenv('DATEMATE_RUNTIME', str(ROOT / 'runtime')))
 RUNTIME.mkdir(parents=True, exist_ok=True)
-REGION = '서울'  # 이번 프로젝트의 서비스 범위는 서울특별시로 고정한다.
+REGION = '서울'  # 기존 사용자의 기본 선택 지역.
 
 def production():
     return os.getenv('DATEMATE_ENV') == 'production'

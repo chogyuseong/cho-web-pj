@@ -135,7 +135,7 @@ def test_address_keyboard_navigation_and_invalid_input(audit_page):
     page.locator('#submit-plan').click()
     assert page.locator('[name=budget]').evaluate('element=>!element.validity.valid')
     assert page.locator('.conditions').is_visible()
-    page.get_by_role('button',name='서울 장소 둘러보기',exact=True).click()
+    page.get_by_role('button',name='서울 자료 둘러보기',exact=True).click()
     assert page.locator('#explore-section').is_visible()
     page.get_by_role('button',name='코스 만들기',exact=True).click()
     assert page.locator('.conditions').is_visible()
@@ -226,7 +226,7 @@ def test_explore_paging_filter_empty_retry_and_mobile(audit_page,monkeypatch):
             return route.fulfill(status=503,json={'detail':'점검용 연결 실패'})
         return route.continue_()
     page.route('**/api/explore?*',outage)
-    page.get_by_role('button',name='서울 장소 둘러보기',exact=True).click()
+    page.get_by_role('button',name='서울 자료 둘러보기',exact=True).click()
     page.get_by_role('button',name='다시 불러오기',exact=True).click()
     page.wait_for_function('document.querySelectorAll("#catalog .place-card").length===24')
     page.get_by_role('button',name='장소 더 보기 · 24 / 500',exact=True).click()
@@ -242,3 +242,39 @@ def test_explore_paging_filter_empty_retry_and_mobile(audit_page,monkeypatch):
     for width in (320,390,768,1440):
         page.set_viewport_size({'width':width,'height':900})
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width
+
+
+def test_course_submit_shows_festivals_below_plans(audit_page):
+    page,base,errors=audit_page
+    assert page.locator('#festival-search').count()==0
+    requested=[]
+    rows=[dict(id=str(i),title=f'점검 축제 {i} '+'아주긴이름'*8,start='2026-10-24',end='2026-10-24',region='서울',
+               address='서울특별시 중구 점검로 '+str(i),source_url='https://korean.visitkorea.or.kr/search/search_list.do?keyword=x') for i in range(8)]
+    def festivals(route):
+        requested.append(route.request.url)
+        return route.fulfill(json=dict(status='available',festivals=rows,total_matches=8,truncated=False,message='한국관광공사 행사정보 자료입니다.'))
+    page.route('**/api/festivals?*',festivals)
+    generate(page)
+    page.wait_for_function('document.querySelectorAll("#festival-results .festival-card").length===6')
+    assert 'start=2026-10-24' in requested[0] and 'end=2026-10-24' in requested[0] and 'region=%EC%84%9C%EC%9A%B8' in requested[0]
+    section=page.locator('.results-area #festival-section')
+    assert section.is_visible() and page.locator('#results .plan-card').count()>=1
+    assert page.evaluate('document.querySelector("#results").compareDocumentPosition(document.querySelector("#festival-section"))&Node.DOCUMENT_POSITION_FOLLOWING')
+    assert section.locator('h3').inner_text()=='2026-10-24 서울에서 열리는 축제·행사'
+    assert page.locator('#festival-demo-note').is_visible()
+    assert '방문 전 공식 안내를 확인' in section.inner_text()
+    page.get_by_role('button',name='축제 더 보기 (2건)',exact=True).click()
+    assert page.locator('#festival-results .festival-card').count()==8
+    for width in (320,390):
+        page.set_viewport_size({'width':width,'height':900})
+        assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width
+
+
+def test_festival_failure_never_blocks_course_results(audit_page):
+    page,base,errors=audit_page
+    page.route('**/api/festivals?*',lambda route:route.fulfill(status=503,json={'detail':'점검용 연결 실패'}))
+    generate(page)
+    assert page.locator('#results .plan-card').count()>=1
+    assert '추천 완료' in page.locator('#progress').inner_text()
+    page.wait_for_function('document.querySelector("#festival-status").textContent.includes("연결하지 못했어요")')
+    assert page.locator('#festival-results .festival-card').count()==0

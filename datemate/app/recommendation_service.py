@@ -186,9 +186,7 @@ def _research(data):
 def _finish(data, result, owner):
     from .pricing import price_plans
 
-    from .route_providers import configured
-
-    if data.mode == "real" and (data.transport == "car" or configured(data.transport)):
+    if data.mode == "real" and data.transport == "car":
         from .planner import evaluate
         from .condition_audit import audit_plan
 
@@ -199,11 +197,7 @@ def _finish(data, result, owner):
             if verified:
                 plan.update(verified)
                 result["plans"][i] = audit_plan(plan, data)
-                plan["route_verification"] = {
-                    "car": "네이버 자동차 길찾기 조회 반영 (조회 시점 기준)",
-                    "walk": "TMAP 도보 경로 조회 반영 · 방문일 현장 상황 별도 확인",
-                    "transit": "TMAP 대중교통 경로 조회 반영 · 방문일 시간표 별도 확인",
-                }[data.transport]
+                plan["route_verification"] = "네이버 자동차 길찾기 조회 반영 (조회 시점 기준)"
             else:
                 plan["route_verification"] = (
                     "실제 경로 확인 실패: " + str(error) + " · 추정 동선을 유지했어요."

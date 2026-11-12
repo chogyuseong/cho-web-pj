@@ -27,8 +27,6 @@ def rehearse():
             "NAVER_MAPS_KEY",
             "NAVER_SEARCH_CLIENT_ID",
             "NAVER_SEARCH_CLIENT_SECRET",
-            "TMAP_APP_KEY",
-            "TMAP_TRANSIT_APP_KEY",
         ):
             env.pop(key, None)
         code = """

@@ -56,7 +56,7 @@ async def lifespan(app):
 
 
 app = FastAPI(
-    title="서울 데이트메이트 · 서울 데이트 코스 추천",
+    title="데이트메이트 · 전국 데이트 코스 추천",
     version="0.2.0",
     lifespan=lifespan,
     docs_url=None if production() else "/docs",
@@ -81,6 +81,9 @@ app.include_router(sharing_router)
 from .planning_outcomes import router as outcomes_router
 
 app.include_router(outcomes_router)
+from .festivals import router as festivals_router
+
+app.include_router(festivals_router)
 
 
 @app.get("/healthz", include_in_schema=False)
@@ -379,10 +382,10 @@ def parse(data: ParseInput):
     from .request_intent import interpret, resolved_patch
 
     parsed = interpret(data.text)
-    patch = dict(resolved_patch(parsed, data.people, data.explicit_people), region=REGION)
+    patch = dict(resolved_patch(parsed, data.people, data.explicit_people))
     warnings = [
         "입력 글에서 확인한 활동·인원·예산·이동수단을 적용했어요. 폼에서 확인하고 수정할 수 있어요.",
-        "추천 지역은 서울특별시로 고정됩니다. 서울 밖 장소는 추천하지 않습니다.",
+        "추천 지역과 시작 위치가 같은 시·도인지 확인해 주세요.",
     ]
     if parsed["excluded"]:
         warnings.append("제외 요청은 코스 추천 시 장소 유형과 대조해 적용해요.")

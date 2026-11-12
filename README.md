@@ -45,7 +45,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 | 서버 | Python, FastAPI, Uvicorn |
 | 저장 | 로컬 SQLite / 운영 PostgreSQL, 공유 캐시·세션 |
 | 검색·질문 | ChromaDB, LangChain, 선택적 GMS LLM/임베딩 연결 |
-| 외부 정보 | 네이버 검색 API, Maps API, 공개 장소 자료, 선택적 TMAP 도보·대중교통 연결 |
+| 외부 정보 | 네이버 검색 API, Maps API, 공개 장소 자료, 네이버 자동차 길찾기 (도보·대중교통은 추정 시간) |
 | 지도 | 네이버 지도, Leaflet/OpenStreetMap 대체 지도 |
 | 운영 배포 | Cloudflare Worker + Containers, 외부 PostgreSQL |
 
@@ -90,6 +90,6 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 - [운영 자료·공급처·동선·피드백·비용·인수인계 개선](datemate/docs/improvements-three-eight-2026-10-29.md)
 - [운영 점검·격리 복원 훈련·메뉴 자료 반영 방법](datemate/docs/operations-handoff.md)
 
-운영 자료는 항목별 출처·확인일·유효기간으로 관리합니다. 업체 제공 메뉴를 가져오는 도구와 요청별 외부 호출 제한을 제공합니다. TMAP 연결은 해당 상품 키 설정 후 사용하며, 키가 없는 현재 환경에서는 실제 도보·대중교통 경로가 연결됐다고 표시하지 않습니다. 사진·자료·API의 사용 및 양도 범위는 제공처별 확인이 필요합니다.
+운영 자료는 항목별 출처·확인일·유효기간으로 관리합니다. 업체 제공 메뉴를 가져오는 도구와 요청별 외부 호출 제한을 제공합니다. 도보·대중교통은 추정 시간으로 표시하며 실제 경로 공급자는 연결하지 않습니다. 사진·자료·API의 사용 및 양도 범위는 제공처별 확인이 필요합니다.
 
 `.env`, 가상환경, `runtime/`은 Git에 포함하지 않습니다. 로컬 개발은 SQLite를 사용합니다. `compose.test.yaml`은 운영 키 없이 두 인스턴스와 PostgreSQL을 검증하는 로컬 전용 구성입니다.

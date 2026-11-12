@@ -41,6 +41,11 @@ def interpret(text):
         if no:excluded.append(key)
         elif yes:active.append(key)
     patch={}
+    from .regions import REGIONS
+    for region,names in REGIONS.items():
+        if any(re.search(r'(?<![가-힣])'+re.escape(name)+r'(?=\s|에서|으로|로|에|의|$)',text) for name in sorted(names,key=len,reverse=True)):
+            patch['region']=region
+            break
     if active:patch['themes']=list(dict.fromkeys(INTENTS[key][0] for key in active))
     if re.search(r'실내|비\s*(?:오는|와|가\s*오)|비올|우천',text):patch['setting']='indoor'
     elif re.search(r'야외|실외',text):patch['setting']='outdoor'
@@ -97,6 +102,8 @@ def intent(c):return interpret(c.course_query+' '+c.request)
 def normalize(c):
     parsed=intent(c)
     patch=resolved_patch(parsed,c.people,'people' in c.explicit_fields)
+    # The chosen region and coordinates are explicit form inputs.
+    patch.pop('region',None)
     # Explicit free text takes precedence over the generic quick-start concept.
     if parsed['intents']:
         patch.update(date_category='',date_subcategory='')

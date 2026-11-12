@@ -38,8 +38,11 @@ def headers(response, request, request_id):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['X-Request-ID'] = request_id
     response.headers['Permissions-Policy'] = 'camera=(), microphone=(), payment=()'
+    # http 로컬 개발 주소에서는 네이버 지도 SDK가 인증·스타일 스크립트를 http로 요청한다.
+    local_http = (' http://oapi.map.naver.com http://nrbe.map.naver.net http://*.pstatic.net'
+                  if not production() and request.url.scheme == 'http' else '')
     response.headers['Content-Security-Policy'] = (
-        "script-src 'self' https://oapi.map.naver.com https://*.pstatic.net; "
+        f"script-src 'self' https://oapi.map.naver.com https://*.pstatic.net{local_http}; "
         "script-src-attr 'none'; object-src 'none'; base-uri 'self'; "
         "frame-ancestors 'none'; form-action 'self'"
     )

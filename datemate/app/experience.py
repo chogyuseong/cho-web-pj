@@ -27,8 +27,7 @@ def verification_summary(plan):
 def make_draft(plan,original,owner,kind,summary):
     if original.get('recommendation_group_id'):plan['recommendation_group_id']=original['recommendation_group_id']
     c=Conditions.model_validate(plan['conditions'])
-    from .route_providers import configured
-    if c.mode=='real' and (c.transport=='car' or configured(c.transport)) and not all(r['status']=='api' for r in plan['legs']):
+    if c.mode=='real' and c.transport=='car' and not all(r['status']=='api' for r in plan['legs']):
         from .planner import evaluate
         from .pricing import price_plans
         recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True)

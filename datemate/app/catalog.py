@@ -31,8 +31,8 @@ def places(mode='demo',visit_date=None):
             if visit_date and str(visit_date.weekday()) in p.get('weekly_hours',{}):p['hours']=p['weekly_hours'][str(visit_date.weekday())]
             if p.get('last_entry_offset') is not None and p.get('hours'):p['last_entry']=p['hours'][1]-p['last_entry_offset']
             if p.get('price') is not None:p['price_status']='confirmed' if field_current(p,'price') else 'estimated'
-    # 검색·상세·추천이 같은 카탈로그를 사용하므로 다른 지역 자료가 섞여도 노출하지 않는다.
-    return [p for p in rows if p.get('region') in ('서울', '서울시', '서울특별시')]
+    from .regions import normalize_region, region_from_address
+    return [p for p in rows if normalize_region(p.get('region')) or region_from_address(p.get('address'))]
 
 def get_place(place_id, mode):
     found=next((p for p in places(mode) if p['id']==place_id), None)

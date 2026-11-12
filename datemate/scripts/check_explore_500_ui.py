@@ -1,10 +1,10 @@
-﻿from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
-    page.get_by_role('button',name='서울 장소 둘러보기',exact=True).click()
+    page.get_by_role('button',name='서울 자료 둘러보기',exact=True).click()
     page.wait_for_function('document.querySelector("#search-info").textContent.includes("500 / 최대 500")',timeout=240000)
     assert page.locator('#catalog .place-card').count()==24
     page.get_by_role('button',name='장소 더 보기 · 24 / 500').click()

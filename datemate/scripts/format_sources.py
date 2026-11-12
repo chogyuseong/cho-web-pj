@@ -22,7 +22,6 @@ PYTHON = [
     "app/planning_outcomes.py",
     "app/operating_evidence.py",
     "app/operating_import.py",
-    "app/route_providers.py",
     "app/request_usage.py",
     "app/feedback_preferences.py",
     "app/execution.py",

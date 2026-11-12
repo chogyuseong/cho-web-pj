@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   function group(title,required=false){const section=node('fieldset',undefined,'simple-form-group'),legend=node('legend',title);if(required)legend.append(node('span','필수','field-requirement'));section.append(legend);form.append(section);return section;}
   function take(name){return form.elements[name]?.closest('label');}
   const region=group('1. 어디에서 만날까요?',true);
-  region.append(document.getElementById('origin-location'),node('p','서울 지역명이나 주소를 검색하거나 지도에서 골라주세요.','hint'));
+  region.append(document.getElementById('origin-location'),node('p','선택한 시·도의 주소를 검색하거나 지도에서 골라주세요.','hint'));
   const when=group('2. 언제, 몇 시에 만날까요?',true),time=node('div',undefined,'field-grid');
   when.append(take('visit_date'));time.append(take('start'),take('end'));when.append(time);
   const budget=group('3. 전체 예산은 얼마인가요?',true);

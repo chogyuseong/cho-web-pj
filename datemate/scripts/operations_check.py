@@ -7,7 +7,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app import store
 from app.config import ROOT, RUNTIME, validate_runtime
 from app.operating_evidence import evidence_rows
-from app.route_providers import configured
 
 
 def report():
@@ -38,10 +37,6 @@ def report():
     except (ValueError, OSError):
         registry = []
         checks["provider_registry"] = False
-    if not configured("walk"):
-        warnings.append("도보 API 키 없음: 실제 도보 경로 연결 미완료")
-    if not configured("transit"):
-        warnings.append("대중교통 API 키 없음: 실제 대중교통 경로 연결 미완료")
     warnings.append("자료·사진·API의 상업 이용 및 양도 범위는 제공처별 증빙 확인 필요")
     return dict(
         ok=all(checks.values()),

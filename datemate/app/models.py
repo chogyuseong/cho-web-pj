@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator, field_validator
 from .taxonomy import DATE_CATEGORIES
 from .service_time import today
+from .regions import normalize_region, region_from_address
 
 THEMES = ['레저·활동', '카페·미식', '휴식·힐링', '문화·예술', '체험·제작', '오락·놀이', '산책·풍경']
 
@@ -56,13 +57,19 @@ class Conditions(BaseModel):
 
     @field_validator('region')
     @classmethod
-    def seoul_only(cls, value):
-        if value.strip() not in ('서울', '서울시', '서울특별시'):
-            raise ValueError('데이트 코스는 서울특별시 내 장소만 추천합니다. 서비스 지역은 서울로 선택해 주세요.')
-        return '서울'
+    def supported_region(cls, value):
+        region = normalize_region(value)
+        if not region:
+            raise ValueError('추천 지역은 대한민국의 시·도 중에서 선택해 주세요.')
+        return region
 
     @model_validator(mode='after')
     def valid(self):
+        if self.mode == 'demo' and self.region != '서울':
+            raise ValueError('가상 장소 데모는 서울 자료만 제공합니다. 전국 추천은 실제 장소 모드를 선택해 주세요.')
+        origin_region = region_from_address(self.origin.name)
+        if origin_region and origin_region != self.region:
+            raise ValueError('선택한 시·도와 출발지 주소가 다릅니다.')
         if self.date_subcategory and self.date_subcategory not in DATE_CATEGORIES.get(self.date_category, []):
             raise ValueError('선택한 대분류에 맞는 데이트 소분류를 선택해 주세요.')
         if self.end <= self.start:

@@ -18,16 +18,11 @@ def save_change(plan, original, owner):
     from .recommendation_summary import enrich
     from .pricing import price_plans
     from .planner import evaluate
-    from .route_providers import configured
 
     updated = copy.deepcopy(plan)
     conditions = Conditions.model_validate(updated["conditions"])
     moved = [p["id"] for p in updated["places"]] != [p["id"] for p in original["places"]]
-    if (
-        moved
-        and conditions.mode == "real"
-        and (conditions.transport == "car" or configured(conditions.transport))
-    ):
+    if moved and conditions.mode == "real" and conditions.transport == "car":
         checked, error = evaluate(
             updated["places"], conditions, soft=bool(updated.get("best_effort")), verify_routes=True
         )

@@ -12,6 +12,7 @@
   document.getElementById('quick-start').onclick=()=>{
     if(!document.querySelector('[name=themes]')){toast('장소 정보를 준비 중이에요. 잠시 후 다시 눌러 주세요.');return;}
     if(form.elements.mode.value!=='real'){form.elements.mode.value='real';form.elements.mode.dispatchEvent(new Event('change',{bubbles:true}));}
+    form.elements.region.value='서울';
     locationState.origin={...points[region]};form.elements.origin_name.value=points[region].name;
     setDateClassification(['사교적인','활동적인'].includes(mood)?'타입별':'콘셉트별',mood);
     document.getElementById('nav-plan').click();

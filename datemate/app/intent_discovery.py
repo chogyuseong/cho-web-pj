@@ -9,6 +9,7 @@ from .request_intent import intent,INTENTS
 from .image_search import search_enabled,plain
 from .discovery import local_lookup
 from .quality import in_area
+from .regions import region_from_address, korean_coordinates, same_region
 
 
 def discover_requested_places(c):
@@ -17,9 +18,12 @@ def discover_requested_places(c):
     supplement=False
     if not keys:
         from .catalog import places
-        if sum(in_area(p,c) for p in places('real',c.visit_date))>=c.count:return dict(status='not_needed',resolved=0)
+        if sum(same_region(p,c.region) and in_area(p,c) for p in places('real',c.visit_date))>=c.count:return dict(status='not_needed',resolved=0)
         keys=['cafe','walk','culture'];supplement=True
     area=(c.area_center or c.origin).name.replace(' 중심','').replace(' 지역 중심','')
+    if area.startswith('지도에서 선택'):
+        from .geocoding import district_at
+        area=district_at(c.origin.lat,c.origin.lon) or c.region
     district=re.search(r'[가-힣]{1,8}구(?:\s|$)',area)
     if district:area=district[0].strip()
     fingerprint=hashlib.sha256(str([area,(c.area_center or c.origin).model_dump(),c.neighborhood_radius_km,keys]).encode()).hexdigest()
@@ -31,11 +35,11 @@ def discover_requested_places(c):
                 'walk':['공원','산책','정원'],'workshop':['공방','도자기 공방','체험 공방']}
     queries=[(key,term) for key in keys[:4] for term in variations.get(key,[INTENTS[key][1][0]])]
     for key,term in queries:
-        items,status=local_lookup(term,'서울 '+area);statuses.append(status)
+        items,status=local_lookup(term,c.region+' '+area);statuses.append(status)
         for item in items:
             category=plain(item.get('category',''));name=plain(item.get('title',''))
             address=plain(item.get('roadAddress') or item.get('address',''))
-            if not name or not address.startswith('서울'):continue
+            if not name or region_from_address(address)!=c.region:continue
             if any(word in category for word in ('자동차','주차장','부동산','병원','의원')):continue
             checks={'cafe':['카페','디저트','베이커리'],'meal':['음식점','한식','양식','일식','중식'],
                 'cinema':['영화관','극장','시네마'],'performance':['공연','연극','뮤지컬','극장'],
@@ -52,14 +56,14 @@ def discover_requested_places(c):
                 lon,lat=float(item['mapx']),float(item['mapy'])
                 if abs(lon)>180:lon/=10000000
                 if abs(lat)>90:lat/=10000000
-                if not (37.4<lat<37.75 and 126.7<lon<127.3):continue
+                if not korean_coordinates(lat,lon):continue
             except (KeyError,ValueError,TypeError):continue
             if not in_area(dict(lat=lat,lon=lon),c):continue
             pid='discovered:'+hashlib.sha256((name+address).encode()).hexdigest()[:20]
             if pid in resolved_ids:continue
             resolved_ids.add(pid)
             source='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address}))
-            row=dict(id=pid,name=name,address=address,lat=lat,lon=lon,region='서울',demo=False,
+            row=dict(id=pid,name=name,address=address,lat=lat,lon=lon,region=c.region,demo=False,
                 category=INTENTS[key][0],themes=[INTENTS[key][0]],tags=[key,category],meal=key=='meal',
                 description=category,source=source,source_type='네이버 지역 검색 · 요청 활동 유형 연결',
                 checked_at=datetime.now(timezone.utc).isoformat(),discovery_verification='네이버 업체 분류·상호·주소·좌표 연결 · 영업 여부 별도 확인',

@@ -64,11 +64,13 @@ def _search_place_images(place):
     if re.sub(r'\s+','',place['name']).casefold()=='saan2' and re.search(r'충무로4길\s*3(?:\s|$)',(place.get('address') or '')):
         place=dict(place,image_aliases=['SAAN 을지로 카페','산 을지로점','SAAN2'],image_keywords=['SAAN','을지로'],image_queries=['SAAN 을지로 카페 서울','SAAN2 카페'])
     aliases=image_aliases(place)
-    query=f'{aliases[0] if aliases else place["name"]} 서울'
+    from .regions import normalize_region, region_from_address
+    region=normalize_region(place.get('region')) or region_from_address(place.get('address')) or '서울'
+    query=f'{aliases[0] if aliases else place["name"]} {region}'
     try:
         with _image_slots, httpx.Client(timeout=7) as client:
             items=[]
-            district=re.search(r'서울(?:특별시|시)?\s+([가-힣]+구)',(place.get('address') or ''))
+            district=re.search(r'\s([가-힣]+(?:구|시|군))(?=\s|$)',(place.get('address') or ''))
             queries=place.get('image_queries') or list(dict.fromkeys([query,*([place_query(place)] if street_address(place.get('address')) else []),*([place['name']+' '+district[1]+' 사진'] if district else [])]))
             for search_query in queries[:3]:
                 response=observed_http(client.get,'https://naverapihub.apigw.ntruss.com/search/v1/image',params={'query':search_query,'display':30,'start':1,'sort':'sim','filter':'all','format':'json'},
@@ -89,9 +91,9 @@ def _search_place_images(place):
             seen.add(original)
             photos.append(dict(id=f'naver-{rank}',kind='search_result',provider='네이버 이미지 검색',rank=rank,sort='sim',
                 title=title,image_url=image,url=image,source=original,search_url='https://search.naver.com/search.naver?'+urlencode({'where':'image','query':query}),
-                caption=f'{place["name"]} 서울 검색 결과의 참고 이미지입니다. 장소 일치 여부와 이용 조건은 원본에서 확인해 주세요.',
+                caption=f'{place["name"]} {region} 검색 결과의 참고 이미지입니다. 장소 일치 여부와 이용 조건은 원본에서 확인해 주세요.',
                 author=None,license=None,license_url=None,taken_at=None,checked_at=datetime.now(timezone.utc).isoformat(),
-                association='장소명+서울 검색 및 제목 문자 일치 · 별도 실물 검수 아님'))
+                association=f'장소명+{region} 검색 및 제목 문자 일치 · 별도 실물 검수 아님'))
             if len(photos)==5:break
         def role(photo):
             title=photo['title']

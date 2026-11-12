@@ -15,8 +15,10 @@ def district_at(lat,lon):
                     headers={'x-ncp-apigw-api-key-id':os.environ['NAVER_MAPS_KEY_ID'],'x-ncp-apigw-api-key':os.environ['NAVER_MAPS_KEY']},timeout=5)
         r.raise_for_status()
         region=r.json().get('results',[{}])[0].get('region',{})
-        if not region.get('area1',{}).get('name','').startswith('서울'):return ''
-        return ' '.join(region.get(k,{}).get('name','') for k in ('area2','area3')).strip()
+        from .regions import normalize_region
+        province=normalize_region(region.get('area1',{}).get('name',''))
+        if not province:return ''
+        return ' '.join([province,*(region.get(k,{}).get('name','') for k in ('area2','area3'))]).strip()
     except (httpx.HTTPError,ValueError,IndexError,KeyError,TypeError):return ''
 
 def search_address(query):

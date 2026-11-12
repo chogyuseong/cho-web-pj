@@ -28,7 +28,8 @@ def audit_plan(plan,c=None):
     if meal_due(c):
         timed=meal_time_matches(plan)
         add('meal','식사 구성','met' if timed else 'unmet','식사 시간대에 음식점 방문을 포함했어요.' if timed else '조건에 맞는 식사 시간대의 음식점 구성을 찾지 못했어요. 식사 후보 또는 시간 조건을 확인해 주세요.')
-    test('region','지역',all(p['region'] in ('서울','서울시','서울특별시') for p in venues),'방문 장소가 모두 서울 안에 있어요.','서울 밖 장소가 포함되어 있어요.')
+    from .regions import same_region
+    test('region','지역',all(same_region(p,c.region) for p in venues),f'방문 장소가 모두 {c.region} 지역에 있어요.',f'{c.region} 밖 장소가 포함되어 있어요.')
     test('origin','출발지',bool(routes) and routes[0]['origin']==c.origin.name,'선택한 출발지에서 코스를 시작해요.','선택한 출발지가 경로에 반영되지 않았어요.')
     add('mode','장소 데이터','info','실제 장소로 구성했어요.' if real else '가상 장소 데모예요. 실제 방문할 수 없어요.')
     closed=[p for p in venues if (p['closed_days'] is not None and c.visit_date.weekday() in p['closed_days']) or str(c.visit_date) in p.get('closed_dates',[])]

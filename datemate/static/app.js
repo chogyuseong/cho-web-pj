@@ -87,11 +87,38 @@ function placeSearchQuery(place) {
   return [cleanPlaceText(place.name), streetAddressText(place.address)].filter(Boolean).join(' ');
 }
 
+// app/regions.py 의 REGIONS 와 같은 시·도 별칭 표
+const REGION_ALIASES = Object.fromEntries(Object.entries({
+  서울: ['서울시', '서울특별시'],
+  부산: ['부산시', '부산광역시'],
+  대구: ['대구시', '대구광역시'],
+  인천: ['인천시', '인천광역시'],
+  광주: ['광주시', '광주광역시'],
+  대전: ['대전시', '대전광역시'],
+  울산: ['울산시', '울산광역시'],
+  세종: ['세종시', '세종특별자치시'],
+  경기: ['경기도'],
+  강원: ['강원도', '강원특별자치도'],
+  충북: ['충청북도'],
+  충남: ['충청남도'],
+  전북: ['전라북도', '전북특별자치도'],
+  전남: ['전라남도'],
+  경북: ['경상북도'],
+  경남: ['경상남도'],
+  제주: ['제주도', '제주특별자치도'],
+}).flatMap(([region, names]) => [region, ...names].map(alias => [alias, region])));
+
+function regionFromAddress(address) {
+  return REGION_ALIASES[String(address || '').trim().split(' ')[0]] || null;
+}
+
 function placeMapQuery(place) {
   const name = cleanPlaceText(place.name),
     address = cleanPlaceText(place.address);
   const district = address.match(/(?:^|\s)([가-힣]+구)(?=\s|$)/);
-  return ['서울', district?.[1], name].filter(Boolean).join(' ');
+  // 지역 정보가 전혀 없는 장소는 기존 서울 수집 자료뿐이므로 서울로 본다.
+  const region = REGION_ALIASES[place.region] || regionFromAddress(address) || '서울';
+  return [region, district?.[1], name].filter(Boolean).join(' ');
 }
 
 const verifiedMapTargets = new Map();
@@ -257,7 +284,7 @@ function values() {
 async function init() {
   try {
     statusData = await api('/status');
-    $('#status').textContent = `서울 전용 · 가상 장소 ${statusData.counts.demo.places}건 · 실제 장소 메타데이터 ${statusData.counts.real.places}건 / 색인 ${statusData.counts.real.indexed}건 · ${statusData.llm} · ${statusData.embedding==='demo'?'문자 해시 임베딩 데모 (의미 검색 아님)':'의미 임베딩 설정'} · 실제 운영정보 확인 필요`;
+    $('#status').textContent = `전국 실제 장소 검색 · 서울 가상 장소 ${statusData.counts.demo.places}건 · 기존 장소 메타데이터 ${statusData.counts.real.places}건 / 색인 ${statusData.counts.real.indexed}건 · ${statusData.llm} · ${statusData.embedding==='demo'?'문자 해시 임베딩 데모 (의미 검색 아님)':'의미 임베딩 설정'} · 실제 운영정보 확인 필요`;
     for (const theme of statusData.themes) {
       const l = node('label'),
         i = node('input');
@@ -353,6 +380,10 @@ form.addEventListener('submit', async e => {
     setTab(false);
     showPlannerPage(true);
     $('#progress').append(node('p', '적용 조건: ' + FormState.summary(data), 'applied-conditions'));
+    // 축제는 코스와 병렬로 조회한다. 실패해도 코스 흐름에 전파하지 않는다.
+    try {
+      FestivalPanel.load(data);
+    } catch {}
     const result = await createPlanWithProgress(data);
     plans = result.plans;
     selected = plans[0] || null;
@@ -377,9 +408,18 @@ form.elements.mode.addEventListener('change', () => {
   plans = [];
   mode = form.elements.mode.value;
   clearLocationsForMode();
+  if (mode === 'demo') form.elements.region.value = '서울';
   $('#mode-badge').textContent = mode === 'demo' ? 'DEMO SPACE' : 'REAL DATA';
   renderResults();
   renderDetail();
+});
+form.elements.region.addEventListener('change', () => {
+  if (form.elements.mode.value === 'demo' && form.elements.region.value !== '서울') form.elements.mode.value = 'real';
+  locationState.origin = null;
+  form.elements.origin_name.value = '';
+  selected = null;
+  locks.clear();
+  plans = [];
 });
 
 

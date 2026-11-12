@@ -135,6 +135,11 @@ def fetch_festivals(start, end, region):
     cache_key = f'festivals:v5:{start}:{end}:{region or "all"}'
     cached = store.cached(cache_key)
     if cached:
+        # 캐시에서 나온 목록도 화면에 표시되므로 상세 조회가 가능해야 한다.
+        # (표시가 만료됐거나, 표시 기능이 생기기 전에 만들어진 캐시일 수 있다.)
+        ids = [str(row.get('id')) for row in cached.get('festivals', []) if str(row.get('id')).isdigit()]
+        if ids and not seen(ids[0]):
+            mark_seen(ids)
         return cached
     items = []
     total = 0

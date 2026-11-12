@@ -210,3 +210,15 @@ def test_festival_detail_key_missing_and_provider_errors(monkeypatch):
                         lambda fn, url, params: DetailResponse(detail_payload(), content=b'x' * 1_000_001))
     with TestClient(app) as client:
         assert client.get('/api/festivals/770004/detail').json()['status'] == 'unavailable'
+
+
+def test_cached_list_without_markers_still_allows_detail(monkeypatch):
+    # 운영에서 실제로 난 문제: 표시 기능이 생기기 전에 캐시된 목록의 축제는 상세 조회가 404였다.
+    from app import store
+    monkeypatch.setenv('TOUR_API_KEY', 'test-only-secret')
+    day = date(2026, 11, 12)
+    store.cache(f'festivals:v5:{day}:{day}:부산',
+                dict(status='available', festivals=[dict(id='770099', title='캐시된 축제')], message=''), 3600)
+    assert not festivals.seen('770099')
+    assert festivals.fetch_festivals(day, day, '부산')['festivals'][0]['id'] == '770099'
+    assert festivals.seen('770099')

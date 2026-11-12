@@ -11,6 +11,9 @@ from .search_address_text import place_query,street_address
 
 _lock=threading.Lock()
 _image_slots=threading.BoundedSemaphore(3)
+# Shared provider slots are waited for briefly; a busy slot returns 'unavailable'
+# instead of parking request threads (and exhausting the thread pool) behind it.
+LOCK_WAIT_SECONDS=2.5
 
 def search_enabled():
     return bool(os.getenv('NAVER_SEARCH_CLIENT_ID') and os.getenv('NAVER_SEARCH_CLIENT_SECRET'))
@@ -67,8 +70,9 @@ def _search_place_images(place):
     from .regions import normalize_region, region_from_address
     region=normalize_region(place.get('region')) or region_from_address(place.get('address')) or ''
     query=f'{aliases[0] if aliases else place["name"]} {region}'.strip()
+    if not _image_slots.acquire(timeout=LOCK_WAIT_SECONDS):return {'status':'unavailable','photos':[],'busy':True}
     try:
-        with _image_slots, httpx.Client(timeout=7) as client:
+        with httpx.Client(timeout=7) as client:
             items=[]
             district=re.search(r'\s([가-힣]+(?:구|시|군))(?=\s|$)',(place.get('address') or ''))
             queries=place.get('image_queries') or list(dict.fromkeys([query,*([place_query(place)] if street_address(place.get('address')) else []),*([place['name']+' '+district[1]+' 사진'] if district else [])]))
@@ -104,10 +108,12 @@ def _search_place_images(place):
         photos.sort(key=lambda p:0 if p['image_role']=='공간 관련 제목' else 1)
         return {'status':'available' if photos else 'not_found','photos':photos}
     except (httpx.HTTPError,ValueError,TypeError,KeyError):return {'status':'unavailable','photos':[]}
+    finally:_image_slots.release()
 
 
 def search_place_images(place,force=False):
-    if not place.get('id') or place.get('demo') or not search_enabled():return _search_place_images(place)
+    if not place.get('id') or place.get('demo') or not search_enabled():
+        result=_search_place_images(place);result.pop('busy',None);return result
     from . import store
     import hashlib,json
     key='image-search-v4:'+hashlib.sha256(json.dumps([place.get(k) for k in ('id','name','address','image_aliases','image_keywords','image_queries','wikipedia')],ensure_ascii=False).encode()).hexdigest()
@@ -115,5 +121,6 @@ def search_place_images(place,force=False):
         cached=store.cached(key)
         if cached:return cached
     result=_search_place_images(place)
+    if result.pop('busy',False):return result
     store.cache(key,result,3600 if result['photos'] else 60)
     return result

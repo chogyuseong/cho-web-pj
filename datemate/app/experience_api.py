@@ -7,6 +7,7 @@ from fastapi import APIRouter,Request,HTTPException
 from pydantic import BaseModel,Field
 from . import store
 from . import experience as service
+from .models import PlaceId
 
 router=APIRouter(prefix='/api')
 
@@ -106,7 +107,7 @@ def place_report(pid:str,data:PlaceReport,request:Request):
     return dict(saved=True,message='제보를 접수했어요. 사실 확정 없이 확인 대기 상태로 표시하고 추천 우선순위를 낮춥니다.')
 
 class Votes(BaseModel):
-    choices:dict[str,Literal['yes','no','neutral','must']]=Field(max_length=5)
+    choices:dict[PlaceId,Literal['yes','no','neutral','must']]=Field(max_length=5)
 
 @router.get('/plans/{pid}/agreement')
 def agreement(pid:str,request:Request):

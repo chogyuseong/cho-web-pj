@@ -25,9 +25,10 @@ async function loadReviews(root, p) {
   v.max = today();
   const [body, b] = field('후기 내용', 'textarea', 'body');
   b.rows = 4;
+  b.maxLength = 2000;
   grid.append(nick, rating, visit);
   const save = node('button', '후기 저장 / 내 후기 수정', 'primary');
-  f.append(grid, body, save, node('p', '최대 2 MiB 요청. 같은 브라우저의 동일 방문 순서 후기는 한 건으로 갱신됩니다.', 'hint'));
+  f.append(grid, body, save, node('p', '후기는 2,000자까지 쓸 수 있어요. 같은 브라우저의 동일 방문 순서 후기는 한 건으로 갱신됩니다.', 'hint'));
   const mine = data.rows.find(x => x.mine);
   if (mine) {
     n.value = mine.nickname;

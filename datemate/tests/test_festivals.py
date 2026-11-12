@@ -2,8 +2,16 @@ from datetime import date
 
 from fastapi.testclient import TestClient
 
+import pytest
+
 from app import festivals
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def fixed_today(monkeypatch):
+    # 조회 가능 기간이 오늘 기준이라, 날짜를 고정하지 않으면 시간이 지나 테스트가 깨진다.
+    monkeypatch.setattr(festivals, 'today', lambda: date(2026, 11, 12))
 
 
 def test_festival_dates_and_regions_are_checked():
@@ -149,6 +157,7 @@ def test_festival_detail_cleans_fee_and_hours_and_caches_for_a_day(monkeypatch):
             playtime='10:00~18:00<br />(입장 마감 17:00)', eventplace='<b>올림픽공원</b>'))
 
     monkeypatch.setattr(festivals, 'observed_http', fake_get)
+    festivals.mark_seen(['770001'])
     with TestClient(app) as client:
         first = client.get('/api/festivals/770001/detail').json()
         second = client.get('/api/festivals/770001/detail').json()
@@ -165,6 +174,7 @@ def test_festival_detail_missing_values_are_none_and_long_text_is_cut(monkeypatc
     monkeypatch.setenv('TOUR_API_KEY', 'test-only-secret')
     monkeypatch.setattr(festivals, 'observed_http',
                         lambda fn, url, params: DetailResponse(detail_payload(usetimefestival='가' * 500, playtime='  <br> ')))
+    festivals.mark_seen(['770002'])
     with TestClient(app) as client:
         result = client.get('/api/festivals/770002/detail').json()
     assert len(result['fee']) == 300 and result['hours'] is None and result['place'] is None
@@ -190,6 +200,7 @@ def test_festival_detail_key_missing_and_provider_errors(monkeypatch):
         return DetailResponse({'response': {'header': {'resultCode': '30', 'resultMsg': 'SERVICE KEY ERROR'}}})
 
     monkeypatch.setattr(festivals, 'observed_http', failing)
+    festivals.mark_seen(['770003', '770004'])
     with TestClient(app) as client:
         result = client.get('/api/festivals/770003/detail').json()
         assert result['status'] == 'unavailable' and result['fee'] is None

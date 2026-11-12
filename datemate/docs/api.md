@@ -44,6 +44,6 @@ transport: walk/transit/car/bicycle. count 2~5, people 1~20. start/end는 같은
 
 추천 응답의 costs: category, name, unit([min,max] 또는 null), quantity, formula, amount, status(confirmed/estimated/unknown), source, checked_at. total/confirmed/estimated/remaining은 범위 배열, unknown은 누락 항목. 미확인 비용이 있으면 total은 전체 지출 보장이 아니다.
 
-오류: 403 소유권/Origin, 404 없는 리소스, 413 2 MiB 초과, 422 입력/조건 오류, 429 연속 후기 작성 제한, 500 일반 오류. 오류 응답에 키/스택/프롬프트를 넣지 않는다. 모든 요청에 `Server-Timing` 헤더. 채팅 생성 실패는 정상 JSON의 `status=external_error`로 안내.
+오류: 403 소유권/Origin, 404 없는 리소스, 413 요청 64 KiB 초과 또는 저장할 일정 300 KB 초과, 422 입력/조건 오류, 429 요청 한도(브라우저·IP 범위별) 초과, 500 일반 오류. 오류 응답에 키/스택/프롬프트를 넣지 않는다. 모든 요청에 `Server-Timing` 헤더. 채팅 생성 실패는 정상 JSON의 `status=external_error`로 안내.
 
 공유 링크는 무작위 ID를 아는 로컬 서버 이용자에게 일정과 입력 위치/조건을 보여준다. 외부 공개 링크 발급이나 인터넷 호스팅은 제공하지 않는다. 실제 운영 시 명시적 공유 권한/인증을 추가해야 한다.

@@ -7,6 +7,8 @@ import os
 import time
 from fastapi import HTTPException
 from . import store
+from .request_usage import client_range
+from .web_security import limit
 
 _slots = BoundedSemaphore(2)
 _owners = set()
@@ -22,16 +24,23 @@ def recommendation_slot(owner):
     try:
         if store.revoked(owner):
             raise HTTPException(410, "삭제된 세션입니다.")
-        if not store.reserve_budget(
-            [
-                ("recommendations", int(os.getenv("DATEMATE_RECOMMENDATIONS_PER_MINUTE", "30"))),
+        limits = [
+            ("recommendations", int(os.getenv("DATEMATE_RECOMMENDATIONS_PER_MINUTE", "30"))),
+            (
+                "recommendations:" + owner,
+                int(os.getenv("DATEMATE_USER_RECOMMENDATIONS_PER_MINUTE", "6")),
+            ),
+        ]
+        client = client_range()
+        if client:
+            # A fresh cookie per request must not reset the per-user allowance.
+            limits.append(
                 (
-                    "recommendations:" + owner,
-                    int(os.getenv("DATEMATE_USER_RECOMMENDATIONS_PER_MINUTE", "6")),
-                ),
-            ],
-            int(time.time() // 60),
-        ):
+                    "ip:recommendations:" + client,
+                    limit("DATEMATE_IP_RECOMMENDATIONS_PER_MINUTE", 12),
+                )
+            )
+        if not store.reserve_budget(limits, int(time.time() // 60)):
             raise HTTPException(429, "분당 검색 한도에 도달했어요. 잠시 후 다시 시도해 주세요.")
         yield
     finally:

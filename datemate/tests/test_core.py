@@ -111,7 +111,7 @@ def test_unknown_cost_and_unsupported_route():
 def test_review_key_threshold_and_upsert(monkeypatch):
     assert store.aggregate_key(['a','b'])==store.aggregate_key(['a','b'])
     assert store.aggregate_key(['a','b'])!=store.aggregate_key(['b','a'])
-    key=store.aggregate_key(['test-a','test-b']);data=ReviewInput(rating=4,body='긴 후기입니다. '*10000,nickname='별명',visited=date(2026,1,1))
+    key=store.aggregate_key(['test-a','test-b']);data=ReviewInput(rating=4,body='긴 후기입니다. '*200,nickname='별명',visited=date(2026,1,1))
     for i in range(9):store.put_review(key,f'person-{i}',data)
     assert store.reviews(key)['average'] is None
     store.put_review(key,'person-9',data);assert store.reviews(key)['average']==4

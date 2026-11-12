@@ -7,7 +7,7 @@ from app.main import app
 
 def test_personal_deletion_removes_chat_budget_and_preserves_other_user():
     with TestClient(app) as client:
-        client.get('/')
+        client.get('/api/status')
         owner=client.cookies['dm_session']
         bucket=int(time.time()//60)
         store.reserve_budget([('chat:'+owner,10),('chat:other-cleanup-user',10)],bucket)

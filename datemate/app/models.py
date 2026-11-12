@@ -1,11 +1,16 @@
 from datetime import date
-from typing import Literal
-from pydantic import BaseModel, Field, model_validator, field_validator
+from typing import Annotated, Literal
+from pydantic import BaseModel, Field, StringConstraints, model_validator, field_validator
 from .taxonomy import DATE_CATEGORIES
 from .service_time import today
 from .regions import normalize_region, region_from_address
 
 THEMES = ['레저·활동', '카페·미식', '휴식·힐링', '문화·예술', '체험·제작', '오락·놀이', '산책·풍경']
+
+# Every stored string has a bound: plans keep their conditions and never expire.
+PlaceId = Annotated[str, StringConstraints(max_length=150)]
+AvoidWord = Annotated[str, StringConstraints(max_length=30)]
+ThemeName = Annotated[str, StringConstraints(max_length=20)]
 
 class Point(BaseModel):
     name: str = Field(min_length=1, max_length=200)
@@ -20,7 +25,7 @@ class Conditions(BaseModel):
     trust_mode: Literal['balanced','operating_sources','discovery'] = 'balanced'
     hard_constraints: list[Literal['budget','end','max_leg','max_walk','setting','reservation','themes','meal','neighborhood','avoid']] = Field(default_factory=list,max_length=10)
     use_feedback: bool = False
-    excluded_place_ids: list[str] = Field(default_factory=list,max_length=100)
+    excluded_place_ids: list[PlaceId] = Field(default_factory=list,max_length=100)
     include_meal: bool = False
     neighborhood_radius_km: float = Field(default=2.5,ge=0.5,le=10)
     area_center: Point | None = None
@@ -30,7 +35,7 @@ class Conditions(BaseModel):
     stay_minutes: int = Field(default=60, ge=15, le=240)
     transition_buffer_minutes: int = Field(default=0,ge=0,le=30)
     mode: Literal['demo', 'real'] = 'demo'
-    region: str = '서울'
+    region: str = Field(default='서울', max_length=20)
     origin: Point = Point(name='데모 출발점', lat=37.575, lon=126.985)
     visit_date: date
     start: str = Field(default='11:00', pattern=r'^([01]\d|2[0-3]):[0-5]\d$')
@@ -39,12 +44,12 @@ class Conditions(BaseModel):
     budget: int = Field(default=100000, ge=0, le=10000000)
     transport: Literal['walk', 'transit', 'car', 'bicycle'] = 'walk'
     count: int = Field(default=3, ge=2, le=5)
-    themes: list[str] = Field(default_factory=list, max_length=7)
+    themes: list[ThemeName] = Field(default_factory=list, max_length=7)
     date_category: Literal['', '계절별', '날씨별', '콘셉트별', '타입별'] = ''
     date_subcategory: str = Field(default='', max_length=30)
     theme_mode: Literal['mix', 'focus'] = 'mix'
     setting: Literal['any', 'indoor', 'outdoor'] = 'any'
-    avoid: list[str] = Field(default_factory=list, max_length=30)
+    avoid: list[AvoidWord] = Field(default_factory=list, max_length=30)
     reservation: bool = False
     max_leg: int = Field(default=30, ge=1, le=180)
     max_walk: int | None = Field(default=None, ge=0, le=600)
@@ -53,7 +58,7 @@ class Conditions(BaseModel):
     mbti: str = Field(default='', pattern=r'^([IE][NS][FT][JP])?$')
     use_mbti: bool = False
     request: str = Field(default='', max_length=4000)
-    locked: dict[int, str] = Field(default_factory=dict)
+    locked: dict[int, PlaceId] = Field(default_factory=dict, max_length=5)
 
     @field_validator('region')
     @classmethod
@@ -84,7 +89,7 @@ class Conditions(BaseModel):
 
 class ReviewInput(BaseModel):
     rating: int = Field(ge=1, le=5)
-    body: str = Field(min_length=1, max_length=500000)
+    body: str = Field(min_length=1, max_length=2000)
     nickname: str = Field(min_length=1, max_length=40)
     visited: date
 

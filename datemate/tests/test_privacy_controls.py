@@ -5,7 +5,7 @@ from app import store
 
 def test_delete_only_current_browser_data():
     with TestClient(app) as client:
-        client.get('/')
+        client.get('/api/status')
         owner=client.cookies.get('dm_session')
         with store.connect() as db:
             db.execute('INSERT INTO chats VALUES(?,?,?,?,?)',(owner,'private','user','private text',1))

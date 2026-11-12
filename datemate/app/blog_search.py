@@ -1,9 +1,14 @@
 """자체 후기와 구분하는 네이버 블로그 검색 요약. 본문 수집/실제 방문 인증 아님."""
+import hashlib
 import os
 from urllib.parse import urlsplit,urlencode
 import httpx
+from . import store
 from .telemetry import observed_http
-from .image_search import search_enabled,plain,safe_https,_lock
+from .image_search import search_enabled,plain,safe_https,_lock,LOCK_WAIT_SECONDS
+
+RESULT_TTL=3600
+NOT_FOUND_TTL=600
 
 def place_blogs(place):
     empty={'posts':[],'provider':'네이버 블로그 검색','verification':'검색 결과 · 실제 방문·후기 진위 확인 안 됨'}
@@ -12,13 +17,24 @@ def place_blogs(place):
     from .regions import normalize_region, region_from_address
     region=normalize_region(place.get('region')) or region_from_address(place.get('address')) or '서울'
     query=f'{place["name"]} {region} 방문 후기'
+    keywords=place.get('image_keywords') or [place['name']]
+    # Same place and query: reuse the answer for an hour instead of spending provider budget.
+    key='place-blogs-v1:'+hashlib.sha256(repr([place.get('id'),query,keywords]).encode()).hexdigest()
+    cached=store.cached(key)
+    if cached:return cached
+    unavailable=dict(empty,status='unavailable',message='블로그 검색에 연결하지 못했습니다. 잠시 후 다시 확인해 주세요.')
+    # Wait briefly for the shared search slot; never queue request threads behind it.
+    if not _lock.acquire(timeout=LOCK_WAIT_SECONDS):return unavailable
     try:
-        with _lock,httpx.Client(timeout=10) as client:
+        with httpx.Client(timeout=10) as client:
             response=observed_http(client.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params={'query':query,'display':10,'start':1,'sort':'sim','format':'json'},
                 headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']})
             response.raise_for_status();data=response.json()
+    except (httpx.HTTPError,ValueError,TypeError,KeyError):return unavailable
+    finally:_lock.release()
+    try:
         if not isinstance(data,dict) or not isinstance(data.get('items',[]),list):raise ValueError('invalid_response')
-        posts=[];seen=set();keywords=place.get('image_keywords') or [place['name']]
+        posts=[];seen=set()
         for item in data.get('items',[]):
             if not isinstance(item,dict):continue
             title=plain(item.get('title',''));description=plain(item.get('description',''));url=item.get('link','')
@@ -29,7 +45,10 @@ def place_blogs(place):
             posts.append(dict(title=title,description=description,url=url,blogger=plain(item.get('bloggername','')),
                 posted_at=f'{date[:4]}-{date[4:6]}-{date[6:]}' if len(date)==8 and date.isdigit() else None))
             if len(posts)==3:break
-        return dict(empty,posts=posts,status='available' if posts else 'not_found',
+        result=dict(empty,posts=posts,status='available' if posts else 'not_found',
             message='' if posts else '이 장소와 관련된 네이버 블로그 검색 결과가 없습니다.',
             search_url='https://search.naver.com/search.naver?'+urlencode({'where':'blog','query':query}))
-    except (httpx.HTTPError,ValueError,TypeError,KeyError):return dict(empty,status='unavailable',message='블로그 검색에 연결하지 못했습니다. 잠시 후 다시 확인해 주세요.')
+    except (ValueError,TypeError,KeyError):return unavailable
+    # Failures are not cached so the next visit can retry.
+    store.cache(key,result,RESULT_TTL if posts else NOT_FOUND_TTL)
+    return result

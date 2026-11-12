@@ -51,6 +51,7 @@ def save_change(plan, original, owner):
         )
     updated.update(id=uuid.uuid4().hex, parent=original["id"])
     updated["aggregate_key"] = store.aggregate_key([p["id"] for p in updated["places"]])
+    payload = store.plan_payload(updated)
     with store.connect() as db:
         db.execute("BEGIN IMMEDIATE")
         row = db.execute(
@@ -68,7 +69,7 @@ def save_change(plan, original, owner):
                 owner,
                 original["id"],
                 updated["aggregate_key"],
-                json.dumps(updated, ensure_ascii=False),
+                payload,
             ),
         )
     return updated

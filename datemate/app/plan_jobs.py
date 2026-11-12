@@ -12,7 +12,7 @@ import logging
 import hashlib
 import json
 from . import store
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from fastapi import APIRouter, Request, HTTPException
@@ -191,7 +191,9 @@ def start(data: Conditions, request: Request):
             job["id"] = key
             _write(db, key, job)
         _jobs[key] = dict(job, started=now)
-    _pool.submit(_run, key, data, owner)
+    # Carry the request context (the caller's IP range) so limits and provider
+    # budgets in the worker are charged to the person who started the search.
+    _pool.submit(copy_context().run, _run, key, data, owner)
     return {"id": key}
 
 

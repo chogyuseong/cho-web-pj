@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import Literal
 from . import store
 from .config import ROOT
+from .models import PlaceId
 
 router = APIRouter()
 
@@ -75,7 +76,7 @@ def read_shared(request: Request,authorization: str | None = Header(default=None
 
 
 class SharedVote(BaseModel):
-    choices: dict[str, Literal['yes','no','neutral','must']] = Field(max_length=5)
+    choices: dict[PlaceId, Literal['yes','no','neutral','must']] = Field(max_length=5)
 
 
 @router.post('/api/shared-plan/vote')

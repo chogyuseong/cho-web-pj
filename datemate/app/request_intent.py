@@ -61,7 +61,9 @@ def interpret(text):
         for word,value in [('둘이',2),('두 명',2),('셋이',3),('세 명',3),('넷이',4),('네 명',4)]:
             if word in text:patch['people']=value;break
     amounts=[]
-    for m in re.finditer(r'(?<![\d.])(\d[\d,]*(?:\.\d+)?)\s*(?:(만)\s*(?:(\d+)\s*천\s*)?|(천)\s*)?원',text):
+    # Start only at the beginning of a digit/comma run: otherwise every position in a
+    # long "1,1,1,..." run restarts the scan and the search becomes quadratic.
+    for m in re.finditer(r'(?<![\d.,])(\d[\d,]*(?:\.\d+)?)\s*(?:(만)\s*(?:(\d+)\s*천\s*)?|(천)\s*)?원',text):
         value=Decimal(m[1].replace(',',''))*(10000 if m[2] else 1000 if m[4] else 1)+int(m[3] or 0)*1000
         if value==int(value):amounts.append(int(value))
     if len(amounts)==1 and 0<=amounts[0]<=10000000:patch['budget']=amounts[0]

@@ -35,7 +35,7 @@ def maintain():
         db.execute('DELETE FROM plan_shares WHERE expires<=?',(time.time(),))
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'recommendations%' AND bucket<?",(int(time.time()//60)-2,))
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'provider:%' AND bucket<?",(int(time.time()//3600)-2,))
-        db.execute("DELETE FROM request_budgets WHERE (scope LIKE 'http:%' OR scope LIKE 'chat:%') AND bucket<?",(int(time.time()//60)-2,))
+        db.execute("DELETE FROM request_budgets WHERE (scope LIKE 'http:%' OR scope LIKE 'chat:%' OR scope LIKE 'ip:%') AND bucket<?",(int(time.time()//60)-2,))
         db.execute('DELETE FROM provider_metrics WHERE hour<?',(int(time.time()//3600)-24*30,))
     directory=os.getenv('DATEMATE_BACKUP_DIR','')
     if directory and not postgres_enabled():

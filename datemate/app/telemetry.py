@@ -11,6 +11,22 @@ from . import store
 _slots=BoundedSemaphore(6)
 
 
+def provider_limits(provider):
+    """Hourly budget per provider, plus a share per client IP range.
+
+    The share keeps one client from emptying the global budget for everyone.
+    Calls outside a request (scripts, maintenance) only count against the global budget.
+    """
+    from .request_usage import client_range
+    total=max(1,int(os.getenv('DATEMATE_PROVIDER_CALLS_PER_HOUR','600')))
+    limits=[('provider:'+provider,total)]
+    client=client_range()
+    if client:
+        share=max(1,int(os.getenv('DATEMATE_PROVIDER_CALLS_PER_IP_PER_HOUR',str(max(1,total//2)))))
+        limits.append(('provider:ip:'+provider+':'+client,share))
+    return limits
+
+
 @contextmanager
 def operation(provider):
     start=time.perf_counter();failed=True;attempted=False
@@ -20,7 +36,7 @@ def operation(provider):
         raise httpx.PoolTimeout('External request capacity reached')
     try:
         if usage:usage.reserve(provider);charged=True
-        if not store.reserve_budget([('provider:'+provider,int(os.getenv('DATEMATE_PROVIDER_CALLS_PER_HOUR','600')))],int(time.time()//3600)):
+        if not store.reserve_budget(provider_limits(provider),int(time.time()//3600)):
             raise httpx.PoolTimeout('Provider hourly request budget reached')
         attempted=True
         state={'failed':False}

@@ -10,6 +10,22 @@ from threading import Lock
 import httpx
 
 _current = ContextVar("recommendation_usage", default=None)
+# Hashed client IP range of the HTTP request being served (see web_security.client_key).
+# Copied into worker threads by context_map and into queued recommendation jobs.
+_client = ContextVar("client_range", default=None)
+
+
+def client_range():
+    return _client.get()
+
+
+def bind_client(key):
+    """Set the current client range; returns a token for ContextVar.reset."""
+    return _client.set(key)
+
+
+def unbind_client(token):
+    _client.reset(token)
 
 
 class Usage:

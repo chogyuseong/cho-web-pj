@@ -21,7 +21,7 @@ else:
 
 
 def plan_for(client):
-    client.get('/')
+    client.get('/api/status')
     return store.save_plan({'places':[{'id':'sample','name':'공개 장소','category':'문화','address':'서울'}],
         'timeline':[{'arrival':'12:00','departure':'13:00'}],
         'conditions':{'origin':{'name':'SECRET_HOME'},'request':'SECRET_REQUEST'},
@@ -157,7 +157,7 @@ def test_provider_metrics_never_store_query_or_credentials():
 def test_common_rate_budget_blocks_direct_api(monkeypatch):
     monkeypatch.setenv('DATEMATE_USER_RECOMMENDATIONS_PER_MINUTE','1')
     with TestClient(app) as client:
-        client.get('/')
+        client.get('/api/status')
         owner=client.cookies['dm_session']
         assert store.reserve_budget([('recommendations:'+owner,1)],int(time.time()//60))
         assert client.post('/api/plans',json={'visit_date':'2026-10-24'}).status_code==429
@@ -176,7 +176,7 @@ def test_answer_cache_is_session_scoped_and_deleted(monkeypatch):
     from app import rag
     monkeypatch.setattr(rag,'generate_node',lambda state:{'answer':'private','citations':[],'status':'ok','trace':[]})
     with TestClient(app) as client:
-        client.get('/');owner=client.cookies['dm_session']
+        client.get('/api/status');owner=client.cookies['dm_session']
         state={'evidence':[],'question':'personal question','mode':'demo','owner':owner}
         assert rag.cached_generate_node(state)['cache_hit'] is False
         assert rag.cached_generate_node(state)['cache_hit'] is True

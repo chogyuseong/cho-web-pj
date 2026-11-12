@@ -16,6 +16,7 @@ from .regions import REGIONS,korean_coordinates,normalize_region,region_from_add
 from .request_usage import context_map
 from .routes import distance
 from .search_address_text import place_query
+from .web_security import require_ip
 
 router=APIRouter()
 ACTIVITIES=['카페','맛집','전시','공방','산책','실내','이색체험','소품샵','미술관','박물관','서점','방탈출','볼링','정원']
@@ -102,6 +103,8 @@ def results(region,activity='',q=''):
     cached=store.cached(key)
     if cached is not None:return cached
     if not search_enabled():return dict(status='key_missing',places=[],message='네이버 검색 키가 필요해요.',queries_used=0)
+    # A new (uncached) search costs up to 16 provider calls; bound them per IP range.
+    require_ip('explore-search','DATEMATE_IP_EXPLORE_SEARCHES_PER_MINUTE',10,'새 조건 검색이 많아요. 잠시 후 다시 시도해 주세요.')
     bank={};errors=0;permission=False;planned=queries(region,activity,q)
     with httpx.Client(timeout=8) as client,ThreadPoolExecutor(max_workers=4) as pool:
         found=context_map(pool,lambda query:lookup(client,query),planned)
@@ -123,7 +126,7 @@ def results(region,activity='',q=''):
     return result
 
 @router.get('/api/explore')
-def explore(region:str=Query(default='서울',max_length=20),activity:str=Query(default='',max_length=20),q:str=Query(default='',max_length=200),
+def explore(region:str=Query(default='서울',max_length=20),activity:str=Query(default='',max_length=20),q:str=Query(default='',max_length=60),
             offset:int=Query(default=0,ge=0),limit:int=Query(default=24,ge=1,le=60)):
     canonical=normalize_region(region)
     if canonical not in REGIONS:raise HTTPException(422,'지원하지 않는 시·도예요.')

@@ -3,6 +3,7 @@
 import html
 import os
 import re
+import time
 from datetime import date, timedelta
 from urllib.parse import quote, urlsplit
 
@@ -11,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Path, Query
 
 from . import store
 from .regions import korean_coordinates, normalize_region, region_from_address
+from .service_time import today
 from .telemetry import observed_http
 
 router = APIRouter()
@@ -104,6 +106,28 @@ def festival_order(item):
     return days, item['start'], item['title']
 
 
+SEEN_TTL = 86400
+PAST_DAYS = 31
+FUTURE_DAYS = 366
+
+
+def mark_seen(content_ids):
+    """Remember IDs shown in a festival list; only those may trigger a detail lookup."""
+    rows = [str(i) for i in content_ids if str(i).isdigit()]
+    if not rows:
+        return
+    expires = time.time() + SEEN_TTL
+    with store.connect() as db:
+        db.executemany(
+            'INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',
+            [('festival-seen:' + i, 'true', expires) for i in rows],
+        )
+
+
+def seen(content_id):
+    return bool(store.cached('festival-seen:' + content_id))
+
+
 def fetch_festivals(start, end, region):
     key = os.getenv('TOUR_API_KEY', '').strip()
     if not key:
@@ -145,9 +169,11 @@ def fetch_festivals(start, end, region):
             row = normalize_item(item, start, end, region)
             if row:
                 rows[row['id']] = row
+        shown = sorted(rows.values(), key=festival_order)[:120]
+        mark_seen(row['id'] for row in shown)
         result = dict(
             status='available',
-            festivals=sorted(rows.values(), key=festival_order)[:120],
+            festivals=shown,
             total_matches=len(rows), truncated=total > len(items) or len(rows) > 120,
             checked_at=date.today().isoformat(),
             message='한국관광공사 행사정보 자료입니다. 개최·취소·시간·요금은 방문 전 주최 측에서 다시 확인해 주세요.',
@@ -200,6 +226,10 @@ def fetch_festival_detail(content_id):
 
 @router.get('/api/festivals/{content_id}/detail')
 def festival_detail(content_id: str = Path(pattern=r'^\d{1,12}$')):
+    # Arbitrary IDs must not turn into tourism API calls: only festivals a recent
+    # list returned can be looked up (the list marks them when it is fetched).
+    if os.getenv('TOUR_API_KEY', '').strip() and not seen(content_id):
+        raise HTTPException(404, '축제 목록에서 다시 선택해 주세요.')
     return fetch_festival_detail(content_id)
 
 
@@ -207,6 +237,9 @@ def festival_detail(content_id: str = Path(pattern=r'^\d{1,12}$')):
 def festivals(start: date, end: date, region: str = Query(default='전국', max_length=20)):
     if end < start or (end - start).days > 92:
         raise HTTPException(422, '조회 기간은 1일부터 최대 93일까지 선택해 주세요.')
+    now = today()
+    if not now - timedelta(days=PAST_DAYS) <= start <= now + timedelta(days=FUTURE_DAYS):
+        raise HTTPException(422, '조회 시작일은 오늘 기준 31일 전부터 1년 뒤까지 선택해 주세요.')
     normalized = None if region == '전국' else normalize_region(region)
     if region != '전국' and not normalized:
         raise HTTPException(422, '지원하지 않는 지역입니다.')

@@ -79,7 +79,7 @@ def apply_draft(parent,token,owner):
         if draft.get('vote_snapshot') is not None and vote_status(json.loads(original_row['payload']),owner)['places']!=draft['vote_snapshot']:raise ValueError('의견이 바뀌었어요. 다시 계산해 주세요.')
         result=dict(plan,id=uuid.uuid4().hex,parent=parent)
         result['aggregate_key']=store.aggregate_key([p['id'] for p in result['places']])
-        db.execute('INSERT INTO plans VALUES(?,?,?,?,?)',(result['id'],owner,parent,result['aggregate_key'],json.dumps(result,ensure_ascii=False)))
+        db.execute('INSERT INTO plans VALUES(?,?,?,?,?)',(result['id'],owner,parent,result['aggregate_key'],store.plan_payload(result)))
         db.execute('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',('applied-draft:'+token,json.dumps(dict(id=result['id'],owner=owner,parent=parent)),time.time()+600))
     event(owner,parent,'apply_'+draft['kind'],dict(new_plan_id=result['id']))
     return result

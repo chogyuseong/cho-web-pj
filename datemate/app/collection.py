@@ -3,7 +3,7 @@ import json
 import os
 import threading
 import time
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 import httpx
 from pydantic import BaseModel, Field
 from . import store
@@ -12,15 +12,31 @@ from .telemetry import observed_http, invoke_model
 
 _lock=threading.Lock()
 _last=0.0
+LOCK_WAIT_SECONDS=2.5
+
+def _wiki_pace(contact):
+    """Space Wikipedia calls (6 s without a contact address) without holding the lock while waiting.
+
+    A caller whose turn would be more than one interval away gives up instead of queueing.
+    """
+    global _last
+    interval=.5 if contact else 6
+    if not _lock.acquire(timeout=LOCK_WAIT_SECONDS):
+        raise httpx.PoolTimeout('Wikipedia request slot busy')
+    try:
+        now=time.monotonic()
+        slot=max(now,_last+interval)
+        if slot-now>interval:raise httpx.PoolTimeout('Wikipedia request slot busy')
+        _last=slot
+    finally:_lock.release()
+    if slot>now:time.sleep(slot-now)
 
 def fetch_json(url,params=None,headers=None):
-    global _last
     contact=os.getenv('WIKI_CONTACT','')
+    # Only Wikimedia asks for request spacing; NAVER directions etc. are not paced.
+    wiki=(urlsplit(url).hostname or '').endswith(('wikipedia.org','wikimedia.org','wikidata.org'))
     for attempt in range(3):
-        with _lock:
-            delay=max(0,(.5 if contact else 6)-(time.monotonic()-_last))
-            if delay:time.sleep(delay)
-            _last=time.monotonic()
+        if wiki:_wiki_pace(contact)
         try:
             with httpx.Client(timeout=25,follow_redirects=False) as client:
                 response=observed_http(client.get,url,params=params,headers={'User-Agent':f'DateMate/0.2 ({contact or "max 10 calls/min"})',**(headers or {})})

@@ -65,8 +65,11 @@ def test_production_requires_same_origin_for_changes_and_does_not_cache_session_
 
 def test_https_session_cookie():
     with TestClient(app, base_url='https://testserver') as client:
-        cookie=client.get('/').headers['set-cookie'].lower()
-        assert 'secure' in cookie and 'httponly' in cookie and 'samesite=strict' in cookie
+        # Pages do not create sessions; the first API call does.
+        assert 'set-cookie' not in client.get('/').headers
+        cookie=client.get('/api/status').headers['set-cookie'].lower()
+        # Lax: arriving from another site's link must not replace the saved session.
+        assert 'secure' in cookie and 'httponly' in cookie and 'samesite=lax' in cookie
 
 
 def test_ip_budget_survives_cookie_rotation(monkeypatch):
@@ -85,7 +88,7 @@ def test_ip_budget_survives_cookie_rotation(monkeypatch):
 def test_chat_budget_rejects_before_model(monkeypatch):
     monkeypatch.setenv('DATEMATE_USER_CHATS_PER_MINUTE', '1')
     with TestClient(app) as client:
-        client.get('/')
+        client.get('/api/status')
         owner=client.cookies['dm_session']
         store.reserve_budget([('chat:'+owner,1)],int(time.time()//60))
         assert client.post('/api/chat/place/missing',json={'question':'질문'}).status_code == 429

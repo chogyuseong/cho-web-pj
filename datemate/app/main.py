@@ -28,6 +28,15 @@ from .geocoding import search_address
 from .taxonomy import DATE_CATEGORIES
 from .media import media_info
 from .blog_search import place_blogs
+from .request_usage import bind_client, unbind_client
+
+# Provider keys (e.g. the tourism API key) travel in URL queries; httpx logs request
+# URLs at INFO, so keep its loggers quiet even if INFO logging is enabled later.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+# Largest legitimate body is a recommendation request (~30 KB worst case).
+MAX_BODY_BYTES = 64 * 1024
 
 # Windows 레지스트리의 .js=text/plain 매핑에서도 nosniff와 호환되도록 고정한다.
 mimetypes.add_type("text/javascript", ".js")
@@ -111,6 +120,7 @@ async def safety(request: Request, call_next):
 
     token = None
     exists = True
+    client_token = None
     try:
         if not web_security.allowed_host(request):
             return finish(
@@ -118,6 +128,10 @@ async def safety(request: Request, call_next):
             )
         if request.url.path in ("/healthz", "/readyz") or request.url.path.startswith("/static/"):
             return finish(await call_next(request))
+        client = web_security.client_key(request)
+        # Limits and provider budgets below the HTTP layer read the caller's IP range.
+        client_token = bind_client(client)
+        api = request.url.path.startswith("/api/")
         if request.method in ("POST", "PUT", "PATCH", "DELETE"):
             origin = request.headers.get("origin")
             expected = public_origin() or str(request.base_url).rstrip("/")
@@ -138,10 +152,10 @@ async def safety(request: Request, call_next):
                 async with asyncio.timeout(15):
                     async for chunk in request.stream():
                         body.extend(chunk)
-                        if len(body) > 2 * 1024 * 1024:
+                        if len(body) > MAX_BODY_BYTES:
                             return finish(
                                 JSONResponse(
-                                    {"detail": "요청은 2 MiB 이하로 보내주세요."}, status_code=413
+                                    {"detail": "요청은 64 KiB 이하로 보내주세요."}, status_code=413
                                 )
                             )
             except TimeoutError:
@@ -149,7 +163,13 @@ async def safety(request: Request, call_next):
                     JSONResponse({"detail": "요청 전송 시간이 초과됐어요."}, status_code=408)
                 )
             request._body = bytes(body)
-        if not await run_in_threadpool(web_security.api_budget, request):
+
+        def admitted():
+            return web_security.api_budget(request, client) and web_security.expensive_budget(
+                request, client
+            )
+
+        if not await run_in_threadpool(admitted):
             return finish(
                 JSONResponse(
                     {"detail": "요청이 많아요. 잠시 후 다시 시도해 주세요."},
@@ -160,14 +180,35 @@ async def safety(request: Request, call_next):
 
         def identify():
             token = request.cookies.get("dm_session", "")[:128]
+            if token:
+                with store.connect() as db:
+                    if db.execute("SELECT 1 FROM sessions WHERE token=?", (token,)).fetchone():
+                        return token, True
+            # New sessions only for API calls, and a bounded number per IP range, so
+            # page views and bots cannot grow the sessions table without limit.
+            if not web_security.ip_allow(
+                "session", "DATEMATE_IP_SESSIONS_PER_MINUTE", 30, key=client
+            ):
+                return None, False
+            token = secrets.token_urlsafe(32)
             with store.connect() as db:
-                exists = db.execute("SELECT 1 FROM sessions WHERE token=?", (token,)).fetchone()
-                if not exists:
-                    token = secrets.token_urlsafe(32)
-                    db.execute("INSERT INTO sessions VALUES(?,?)", (token, time.time()))
-            return token, bool(exists)
+                db.execute("INSERT INTO sessions VALUES(?,?)", (token, time.time()))
+            return token, False
 
+        if not api:
+            # HTML, shared page and 404s do not need an owner; no session is created.
+            request.state.owner = None
+            response = await call_next(request)
+            return finish(response)
         token, exists = await run_in_threadpool(identify)
+        if token is None:
+            return finish(
+                JSONResponse(
+                    {"detail": "새 연결 요청이 많아요. 잠시 후 다시 시도해 주세요."},
+                    status_code=429,
+                    headers={"Retry-After": "60"},
+                )
+            )
         request.state.owner = token
         match = re.match(r"^/api/(?:plans/|chat/plan/)([^/]+)", request.url.path)
         if match:
@@ -189,12 +230,17 @@ async def safety(request: Request, call_next):
             {"detail": "요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."},
             status_code=500,
         )
+    finally:
+        if client_token is not None:
+            unbind_client(client_token)
     if token and not exists and request.url.path != "/api/me/data":
+        # Lax keeps the session when arriving from another site's link; state changes
+        # are still refused above by the Origin/Sec-Fetch-Site check.
         response.set_cookie(
             "dm_session",
             token,
             httponly=True,
-            samesite="strict",
+            samesite="lax",
             secure=production() or request.url.scheme == "https",
             max_age=2592000,
         )
@@ -257,6 +303,7 @@ def delete_my_data(request: Request, response: Response):
             "geocode-rate:",
             "region-rate:",
             "menu-refresh:",
+            "media-refresh:",
             "price-refresh:",
             "local-rate:",
         ):
@@ -272,8 +319,22 @@ def delete_my_data(request: Request, response: Response):
     }
 
 
+STATUS_TTL_SECONDS = 60
+_status_cache = {"expires": 0.0, "value": None}
+
+
 @app.get("/api/status")
 def status():
+    # Counting index rows and reading place files on every page load is avoidable work.
+    now = time.monotonic()
+    if _status_cache["value"] is not None and _status_cache["expires"] > now:
+        return _status_cache["value"]
+    value = _status()
+    _status_cache.update(value=value, expires=now + STATUS_TTL_SECONDS)
+    return value
+
+
+def _status():
     counts = {}
     for mode in ("demo", "real"):
         a, b = collections(mode)
@@ -284,7 +345,6 @@ def status():
         counts=counts,
         llm="키 설정됨 · 실호출 결과 별도" if os.getenv("GMS_KEY") else "GMS 키 없음",
         embedding=embedding_mode(),
-        route="자동차 API 설정됨" if os.getenv("NAVER_MAPS_KEY") else "실제 경로 API 키 없음",
         themes=THEMES,
         date_categories=DATE_CATEGORIES,
         map_js_key=os.getenv("NAVER_MAPS_JS_KEY_ID", ""),
@@ -306,6 +366,9 @@ def location_search(data: AddressInput, request: Request):
     key = "geocode-rate:" + request.state.owner
     if store.cached(key):
         raise HTTPException(429, "주소 검색은 잠시 후 다시 시도하세요.")
+    web_security.require_ip(
+        "geocode", "DATEMATE_IP_GEOCODE_PER_MINUTE", 20, "주소 검색은 잠시 후 다시 시도하세요."
+    )
     store.cache(key, True, 1)
     return search_address(data.query.strip())
 
@@ -339,6 +402,12 @@ def location_region(data: CoordinateInput, request: Request):
     key = "region-rate:" + request.state.owner
     if store.cached(key):
         raise HTTPException(429, "위치 확인은 잠시 후 다시 시도하세요.")
+    web_security.require_ip(
+        "reverse-geocode",
+        "DATEMATE_IP_REVERSE_GEOCODE_PER_MINUTE",
+        30,
+        "위치 확인은 잠시 후 다시 시도하세요.",
+    )
     store.cache(key, True, 1)
     label = district_at(data.lat, data.lon)
     region = region_from_address(label)
@@ -382,9 +451,19 @@ class ParseInput(BaseModel):
     explicit_people: bool = False
 
 
+def refresh_allowed(kind, owner, message):
+    """Forced provider re-reads: one per 5 s per browser and a shared IP-range cap."""
+    key = kind + "-refresh:" + owner
+    if store.cached(key):
+        raise HTTPException(429, message)
+    web_security.require_ip("refresh", "DATEMATE_IP_REFRESHES_PER_MINUTE", 12, message)
+    store.cache(key, True, 5)
+
+
 @app.get("/api/places/{id}/media")
 def place_media(
     id: str,
+    request: Request,
     mode: Literal["demo", "real"] = "real",
     fallback: Literal["", "place", "reviews"] = "",
     refresh: bool = False,
@@ -392,6 +471,10 @@ def place_media(
     p = get_place(id, mode)
     if p is None:
         raise HTTPException(404, "장소를 찾을 수 없습니다.")
+    if refresh:
+        refresh_allowed(
+            "media", request.state.owner, "사진 새로 조회는 잠시 후 다시 시도해 주세요."
+        )
     return media_info(
         p, prefer_public=fallback == "place", force=refresh, review_only=fallback == "reviews"
     )
@@ -415,10 +498,7 @@ def place_menu(
     from .menus import restaurant_menu
 
     if refresh:
-        key = "menu-refresh:" + request.state.owner
-        if store.cached(key):
-            raise HTTPException(429, "메뉴 새로 조회는 잠시 후 다시 시도해 주세요.")
-        store.cache(key, True, 5)
+        refresh_allowed("menu", request.state.owner, "메뉴 새로 조회는 잠시 후 다시 시도해 주세요.")
     return restaurant_menu(p, force=refresh)
 
 
@@ -442,7 +522,10 @@ def parse(data: ParseInput):
 def create(data: Conditions, request: Request):
     from .recommendation_service import generate
 
-    return generate(data, request.state.owner)
+    try:
+        return generate(data, request.state.owner)
+    except store.PlanTooLarge as exc:
+        raise HTTPException(413, str(exc))
 
 
 @app.get("/api/plans/{id}")
@@ -455,10 +538,7 @@ def get_plan(id: str, request: Request):
 @app.post("/api/plans/{id}/prices")
 def refresh_prices(id: str, request: Request):
     _, plan = plan_row(id, request.state.owner)
-    rate_key = "price-refresh:" + request.state.owner
-    if store.cached(rate_key):
-        raise HTTPException(429, "단가 검색은 잠시 후 다시 시도해 주세요.")
-    store.cache(rate_key, True, 5)
+    refresh_allowed("price", request.state.owner, "단가 검색은 잠시 후 다시 시도해 주세요.")
     from .pricing import price_plans
 
     updated = price_plans([plan], force=True)[0]
@@ -493,6 +573,12 @@ def nearby_restaurants(id: str, request: Request, after_index: int = Query(defau
     key = "local-rate:" + request.state.owner
     if store.cached(key):
         raise HTTPException(429, "주변 식당 검색은 잠시 후 다시 시도해 주세요.")
+    web_security.require_ip(
+        "local-search",
+        "DATEMATE_IP_LOCAL_SEARCHES_PER_MINUTE",
+        30,
+        "주변 식당 검색은 잠시 후 다시 시도해 주세요.",
+    )
     store.cache(key, True, 1)
     try:
         return search_nearby(plan, after_index)
@@ -503,7 +589,7 @@ def nearby_restaurants(id: str, request: Request, after_index: int = Query(defau
 class ReplaceInput(BaseModel):
     index: int = Field(ge=0, le=4)
     locked: list[int] = Field(default_factory=list, max_length=5)
-    replacement_id: str | None = None
+    replacement_id: str | None = Field(default=None, max_length=150)
 
 
 @app.get("/api/plans/{id}/meal-rescue")
@@ -575,6 +661,9 @@ def reviews(id: str, request: Request):
 @app.put("/api/plans/{id}/review")
 def review(id: str, data: ReviewInput, request: Request):
     row, _ = plan_row(id)
+    web_security.require_ip(
+        "review", "DATEMATE_IP_REVIEWS_PER_MINUTE", 20, "후기 작성은 잠시 후 다시 시도해 주세요."
+    )
     try:
         store.put_review(row["aggregate_key"], request.state.owner, data)
     except ValueError as exc:
@@ -647,6 +736,9 @@ def chat(kind: Literal["place", "plan"], id: str, data: ChatInput, request: Requ
         raise HTTPException(
             429, "질문이 많아요. 잠시 후 다시 시도해 주세요.", headers={"Retry-After": "60"}
         )
+    web_security.require_ip(
+        "chat", "DATEMATE_IP_CHATS_PER_MINUTE", 12, "질문이 많아요. 잠시 후 다시 시도해 주세요."
+    )
     ids = scope_ids(kind, id, data.mode)
     scope = f"{data.mode}:{kind}:{id}"
     from .plan_chat import answer_plan

@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { validPublicOrigin, validDatabaseUrl } from "./validation.mjs";
+import { validPublicOrigin, validDatabaseUrl, internalProbePath } from "./validation.mjs";
 
 const PORT = 8080;
 const IDLE_MS = 10 * 60 * 1000;
@@ -83,8 +83,12 @@ export default {
     if (!validPublicOrigin(env.PUBLIC_ORIGIN) || !validDatabaseUrl(env.DATABASE_URL)) {
       return new Response("Cloudflare deployment requires HTTPS PUBLIC_ORIGIN and TLS PostgreSQL DATABASE_URL", { status: 503 });
     }
-    if (new URL(request.url).origin !== env.PUBLIC_ORIGIN) {
+    const url = new URL(request.url);
+    if (url.origin !== env.PUBLIC_ORIGIN) {
       return new Response("Unknown host", { status: 421 });
+    }
+    if (internalProbePath(url.pathname)) {
+      return new Response("Not found", { status: 404 });
     }
     // 사용자·네이버·관광공사·DB가 모두 아시아에 있다. 위치 힌트는 객체를 처음 만들 때만 적용되므로
     // 이름을 바꿔 아시아에 새로 만든다. 영속 데이터는 PostgreSQL에 있어 객체를 바꿔도 잃는 것이 없다.

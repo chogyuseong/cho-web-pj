@@ -14,6 +14,6 @@ def test_preferences_are_opt_in_owner_scoped_and_never_invented():
             assert any(p['category'] in ' '.join(explanation(profile)['messages']) for p in plan['places'])
         with personalizing(token,False):assert bonus(plan)==0
         with personalizing(token,True,'real') as profile:assert profile['samples']==0
-        other.get('/')
+        other.get('/api/status')
         with personalizing(other.cookies['dm_session'],True) as profile:
             assert profile['samples']==0 and bonus(plan)==0

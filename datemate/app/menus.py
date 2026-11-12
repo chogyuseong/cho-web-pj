@@ -7,7 +7,7 @@ from urllib.parse import urlencode,urlsplit
 import httpx
 from . import store
 from .routes import distance
-from .image_search import plain,safe_https
+from .image_search import plain,safe_https,LOCK_WAIT_SECONDS
 from .search_address_text import place_query
 from .telemetry import observed_stream
 
@@ -142,8 +142,11 @@ def restaurant_menu(place,force=False):
     if cooldown:
         return dict(result,status='unavailable',reason='provider_cooldown',provider_status=cooldown['status'],
                     message='메뉴 제공처의 접근 제한으로 자동 조회를 잠시 쉬고 있어요. 지도에서 메뉴를 확인해 주세요.')
+    # Do not park request threads behind the shared page-fetch slots.
+    if not _limit.acquire(timeout=LOCK_WAIT_SECONDS):
+        return dict(result,status='unavailable',reason='busy',message='메뉴 조회 요청이 많아 잠시 후 다시 시도해 주세요. 지도에서 메뉴를 확인할 수도 있어요.')
     try:
-        with _limit,httpx.Client(timeout=8,follow_redirects=False) as client:
+        with httpx.Client(timeout=8,follow_redirects=False) as client:
             for query in queries:
                 html=fetch_page(client,query);parsed=extract_menus(html,place)
                 if not parsed:continue
@@ -161,5 +164,6 @@ def restaurant_menu(place,force=False):
             reason='access_restricted' if provider_status in (401,403) else 'rate_limited' if provider_status==429 else 'provider_unavailable'
             if provider_status in (401,403,429):store.cache('menu-provider-cooldown',{'status':provider_status},300)
             result.update(status='unavailable',reason=reason,provider_status=provider_status,message='메뉴 제공처 접근 제한으로 가격을 확인하지 못했어요. 지도 메뉴를 확인해 주세요.' if provider_status in (401,403,429) else '공개 메뉴 조회에 연결하지 못했어요. 다시 조회하거나 지도 메뉴를 확인해 주세요.')
+    finally:_limit.release()
     store.cache(key,result,3600 if result['status'] in ('available','image_only') else 60)
     return result

@@ -6,7 +6,7 @@ from urllib.parse import urlsplit, urlencode, parse_qs, unquote
 import httpx
 from . import store
 from .menus import states, dictionaries, identified, resolve, fetch_page, _limit
-from .image_search import safe_https
+from .image_search import safe_https, LOCK_WAIT_SECONDS
 from .search_address_text import place_query
 from .telemetry import observed_stream
 
@@ -248,8 +248,11 @@ def public_place_photos(place, force=False):
         return dict(result, status="unavailable")
     district = area_words(place)
     query = place_query(place)
+    # Busy shared slots: answer 'unavailable' now (not cached) instead of queueing.
+    if not _limit.acquire(timeout=LOCK_WAIT_SECONDS):
+        return dict(result, status="unavailable")
     try:
-        with _limit, httpx.Client(timeout=8, follow_redirects=False) as client:
+        with httpx.Client(timeout=8, follow_redirects=False) as client:
             records = []
             pid = None
             # A representative photo alone is not a complete gallery.
@@ -327,5 +330,7 @@ def public_place_photos(place, force=False):
             store.cache("public-place-photo-cooldown", True, 60)
     except (httpx.HTTPError, ValueError, TypeError, KeyError):
         result["status"] = "unavailable"
+    finally:
+        _limit.release()
     store.cache(key, result, 3600 if result["photos"] else 60)
     return result

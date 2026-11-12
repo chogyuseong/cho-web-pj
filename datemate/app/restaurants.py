@@ -88,7 +88,8 @@ def meal_rescue(plan):
     cached=store.cached(key)
     if cached:return cached
     indices=list(range(len(plan['places'])))
-    with ThreadPoolExecutor(max_workers=3) as pool:groups=list(pool.map(lambda i:search_nearby(plan,i),indices))
+    from .request_usage import context_map
+    with ThreadPoolExecutor(max_workers=3) as pool:groups=context_map(pool,lambda i:search_nearby(plan,i),indices)
     rows={};existing={p['id'] for p in plan['places']}
     for index,group in zip(indices,groups):
         for food in group['restaurants']:
@@ -178,8 +179,9 @@ def restaurant_matches(plan):
         return dict(last,restaurants=choices[:3],status='available' if choices else last.get('status','not_found'),
             searched_radii_m=attempts,effective_radius_m=attempts[-1],
             note='500m부터 찾고, 3곳 미만이면 1,000m → 1,500m 순서로 보충해요. 표시는 코스 장소에서의 직선거리이며 일정에는 미포함입니다.')
+    from .request_usage import context_map
     with ThreadPoolExecutor(max_workers=3) as pool:
-        results=list(pool.map(nearby,jobs))
+        results=context_map(pool,nearby,jobs)
     groups=[]
     for i,(base,live) in enumerate(zip(curated,results)):
         groups.append(dict(base,**{key:value for key,value in live.items() if key!='search_url'}))

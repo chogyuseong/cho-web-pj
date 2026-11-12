@@ -67,9 +67,28 @@ def aggregate_key(ids):
     return hashlib.sha256(json.dumps(ids, ensure_ascii=False).encode()).hexdigest()
 
 
+class PlanTooLarge(ValueError):
+    """A plan whose stored form exceeds MAX_PLAN_BYTES; the message is safe to show."""
+
+
+# Real plans are ~30 KB. Plans never expire, so one request must not store megabytes.
+MAX_PLAN_BYTES = 300 * 1024
+
+
+def plan_payload(plan):
+    """Serialized plan for the plans table, refused above MAX_PLAN_BYTES."""
+    payload = json.dumps(plan, ensure_ascii=False)
+    if len(payload.encode()) > MAX_PLAN_BYTES:
+        raise PlanTooLarge(
+            "코스 자료가 너무 커서 저장하지 않았어요. 요청 글이나 조건을 줄여 다시 시도해 주세요."
+        )
+    return payload
+
+
 def save_plan(plan, owner, parent=None):
     plan = dict(plan, id=uuid.uuid4().hex, parent=parent)
     plan["aggregate_key"] = aggregate_key([p["id"] for p in plan["places"]])
+    payload = plan_payload(plan)
     with connect() as db:
         db.execute(
             "INSERT INTO plans VALUES(?,?,?,?,?)",
@@ -78,7 +97,7 @@ def save_plan(plan, owner, parent=None):
                 owner,
                 parent,
                 plan["aggregate_key"],
-                json.dumps(plan, ensure_ascii=False),
+                payload,
             ),
         )
     return plan

@@ -86,6 +86,9 @@ export default {
     if (new URL(request.url).origin !== env.PUBLIC_ORIGIN) {
       return new Response("Unknown host", { status: 421 });
     }
-    return env.DATEMATE_CONTAINER.getByName("production").fetch(request);
+    // 사용자·네이버·관광공사·DB가 모두 아시아에 있다. 위치 힌트는 객체를 처음 만들 때만 적용되므로
+    // 이름을 바꿔 아시아에 새로 만든다. 영속 데이터는 PostgreSQL에 있어 객체를 바꿔도 잃는 것이 없다.
+    const id = env.DATEMATE_CONTAINER.idFromName("production-apac");
+    return env.DATEMATE_CONTAINER.get(id, { locationHint: "apac" }).fetch(request);
   },
 };

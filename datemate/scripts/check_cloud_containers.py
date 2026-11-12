@@ -32,11 +32,15 @@ def main():
     with httpx.Client(headers=HEADERS,timeout=30) as client:
         home=client.get(FIRST+'/')
         assert home.status_code==200
-        assert 'Secure' in home.headers['set-cookie']
+        # Pages do not create sessions; the first /api/ call does.
+        assert 'set-cookie' not in home.headers
+        first=client.get(FIRST+'/api/status')
+        cookie=first.headers['set-cookie']
+        assert 'Secure' in cookie and 'HttpOnly' in cookie and cookie.startswith('__Host-dm_session=')
         # This local harness emulates the managed TLS ingress. The application
         # correctly issues Secure cookies; explicitly forward one over loopback.
-        token=home.cookies['dm_session']
-        client.headers['Cookie']='dm_session='+token
+        token=cookie.split(';',1)[0].split('=',1)[1]
+        client.headers['Cookie']='__Host-dm_session='+token
         assert client.get(FIRST+'/docs').status_code==404
         assert client.get(FIRST+'/openapi.json').status_code==404
         checks['production_headers_and_private_docs']=True

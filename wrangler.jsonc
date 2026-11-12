@@ -28,6 +28,23 @@
       "storage": "sqlite"
     }
   },
+  // Per-IP front shield checked by the Worker before the container wakes up.
+  // Pages/API: 600 per 60 s, 2.5x the app's own 240/min, so the app limit trips first
+  // for normal traffic. Static files (not limited by the app): 1200 per 60 s, about
+  // 30 cold home-page loads per minute from one shared public IP.
+  // namespace_id is an account-unique positive integer chosen for this Worker.
+  "ratelimits": [
+    {
+      "name": "EDGE_LIMIT_APP",
+      "namespace_id": "4101",
+      "simple": { "limit": 600, "period": 60 }
+    },
+    {
+      "name": "EDGE_LIMIT_STATIC",
+      "namespace_id": "4102",
+      "simple": { "limit": 1200, "period": 60 }
+    }
+  ],
   "observability": {
     "enabled": true
   }

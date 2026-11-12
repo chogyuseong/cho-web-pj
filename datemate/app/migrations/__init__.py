@@ -5,9 +5,9 @@ The startup lock prevents two instances from applying the same migration.
 """
 
 import time
-from . import v0001_baseline, v0002_operational_indexes
+from . import v0001_baseline, v0002_operational_indexes, v0003_hashed_session_owners
 
-MIGRATIONS = (v0001_baseline, v0002_operational_indexes)
+MIGRATIONS = (v0001_baseline, v0002_operational_indexes, v0003_hashed_session_owners)
 
 
 def upgrade(connect, backend, migrations=None):

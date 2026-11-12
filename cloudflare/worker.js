@@ -1,5 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
-import { validPublicOrigin, validDatabaseUrl, internalProbePath } from "./validation.mjs";
+import {
+  validPublicOrigin, validDatabaseUrl, internalProbePath, edgeRateLimitKey, staticAssetPath,
+} from "./validation.mjs";
 
 const PORT = 8080;
 const IDLE_MS = 10 * 60 * 1000;
@@ -78,8 +80,26 @@ export class DatemateContainer extends DurableObject {
   }
 }
 
+// Front shield in front of the app's own limits (240/min per IP range, static excluded).
+// Limits live in wrangler.jsonc ("ratelimits"); both windows are 60 seconds.
+const RATE_LIMIT_RETRY_SECONDS = "60";
+
+async function withinEdgeLimit(request, env, pathname) {
+  const limiter = staticAssetPath(pathname) ? env.EDGE_LIMIT_STATIC : env.EDGE_LIMIT_APP;
+  const key = edgeRateLimitKey(request.headers.get("cf-connecting-ip"));
+  // Availability first: without a binding (local dev), a key, or a working limiter,
+  // let the request through. The app still enforces its own limits behind this.
+  if (!limiter || !key) return true;
+  try {
+    const { success } = await limiter.limit({ key });
+    return success !== false;
+  } catch {
+    return true;
+  }
+}
+
 export default {
-  fetch(request, env) {
+  async fetch(request, env) {
     if (!validPublicOrigin(env.PUBLIC_ORIGIN) || !validDatabaseUrl(env.DATABASE_URL)) {
       return new Response("Cloudflare deployment requires HTTPS PUBLIC_ORIGIN and TLS PostgreSQL DATABASE_URL", { status: 503 });
     }
@@ -89,6 +109,17 @@ export default {
     }
     if (internalProbePath(url.pathname)) {
       return new Response("Not found", { status: 404 });
+    }
+    if (!(await withinEdgeLimit(request, env, url.pathname))) {
+      // Same body shape as the app's own 429 so the frontend shows the message.
+      return new Response(JSON.stringify({ detail: "요청이 많아요. 잠시 후 다시 시도해 주세요." }), {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "retry-after": RATE_LIMIT_RETRY_SECONDS,
+          "cache-control": "no-store",
+        },
+      });
     }
     // 사용자·네이버·관광공사·DB가 모두 아시아에 있다. 위치 힌트는 객체를 처음 만들 때만 적용되므로
     // 이름을 바꿔 아시아에 새로 만든다. 영속 데이터는 PostgreSQL에 있어 객체를 바꿔도 잃는 것이 없다.

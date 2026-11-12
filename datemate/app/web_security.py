@@ -97,20 +97,72 @@ def expensive_budget(request, key):
     return ip_allow('expensive', 'DATEMATE_IP_EXPENSIVE_REQUESTS_PER_MINUTE', 120, key=key)
 
 
+SESSION_COOKIE = 'dm_session'
+# Over HTTPS the __Host- prefix makes browsers refuse the cookie unless it is Secure,
+# host-only (no Domain) and Path=/, so a sibling subdomain cannot plant or shadow it.
+SECURE_SESSION_COOKIE = '__Host-dm_session'
+SESSION_MAX_AGE = 30 * 86400
+
+
+def secure_cookies(request):
+    return production() or request.url.scheme == 'https'
+
+
+def session_cookie(request):
+    return SECURE_SESSION_COOKIE if secure_cookies(request) else SESSION_COOKIE
+
+
+def local_http(request):
+    return not production() and request.url.scheme == 'http'
+
+
+# 네이버 지도 SDK는 인증·로그·타일·스타일을 여러 네이버 호스트에서 받는다. 지도가 깨지는
+# 것보다 조금 넓은 정책이 낫기 때문에 네이버 계열 https 호스트는 묶어서 허용한다.
+NAVER_HTTPS = 'https://*.naver.com https://*.naver.net https://*.navercorp.com https://*.pstatic.net'
+# http 로컬 개발 주소에서는 SDK가 인증·스타일 스크립트와 타일을 http로 요청한다
+# (oapi.map.naver.com, nrbe.map.naver.net, static.naver.net). 운영(https)에는 넣지 않는다.
+NAVER_LOCAL_HTTP = 'http://*.naver.com http://*.naver.net http://*.pstatic.net'
+
+
+def content_security_policy(local=False):
+    """The page policy. The deployed https variant and the http-local variant differ
+    only in http sources (Naver map scripts; images, which the page also accepts over
+    http when it is itself served over http) and upgrade-insecure-requests."""
+    directives = [
+        "default-src 'self'",
+        f"script-src 'self' https://oapi.map.naver.com {NAVER_HTTPS}"
+        + (' ' + NAVER_LOCAL_HTTP if local else ''),
+        "script-src-attr 'none'",
+        # The map SDKs and Leaflet position tiles and markers with inline styles.
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        # Place photos come from arbitrary https hosts (blogs, Naver, Wikimedia, tourism);
+        # the course card is drawn to a canvas and saved through a blob: URL.
+        "img-src 'self' data: blob: https:" + (' http:' if local else ''),
+        # Wikimedia photo lookups run in the browser; the map SDK posts usage logs.
+        f"connect-src 'self' https://www.wikidata.org https://commons.wikimedia.org {NAVER_HTTPS}",
+        "media-src 'self'",
+        "worker-src 'self' blob:",
+        "child-src 'self' blob:",
+        "frame-src 'none'",
+        "manifest-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+    ]
+    if not local:
+        directives.append('upgrade-insecure-requests')
+    return '; '.join(directives)
+
+
 def headers(response, request, request_id):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['X-Request-ID'] = request_id
     response.headers['Permissions-Policy'] = 'camera=(), microphone=(), payment=()'
-    # http 로컬 개발 주소에서는 네이버 지도 SDK가 인증·스타일 스크립트를 http로 요청한다.
-    local_http = (' http://oapi.map.naver.com http://nrbe.map.naver.net http://*.pstatic.net'
-                  if not production() and request.url.scheme == 'http' else '')
-    response.headers['Content-Security-Policy'] = (
-        f"script-src 'self' https://oapi.map.naver.com https://*.pstatic.net{local_http}; "
-        "script-src-attr 'none'; object-src 'none'; base-uri 'self'; "
-        "frame-ancestors 'none'; form-action 'self'"
-    )
+    response.headers['Content-Security-Policy'] = content_security_policy(local_http(request))
     if production() and request.url.scheme == 'https':
         response.headers['Strict-Transport-Security'] = 'max-age=31536000'
     if (request.url.path.startswith('/api/') or request.url.path in ('/', '/shared')

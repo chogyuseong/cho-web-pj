@@ -1,6 +1,48 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validPublicOrigin, validDatabaseUrl, internalProbePath } from "./validation.mjs";
+import {
+  validPublicOrigin, validDatabaseUrl, internalProbePath, edgeRateLimitKey, staticAssetPath,
+} from "./validation.mjs";
+
+test("edge rate-limit key: IPv4 per address", () => {
+  assert.equal(edgeRateLimitKey("203.0.113.7"), "ip4:203.0.113.7");
+  assert.equal(edgeRateLimitKey(" 203.0.113.7 "), "ip4:203.0.113.7");
+  assert.notEqual(edgeRateLimitKey("203.0.113.7"), edgeRateLimitKey("203.0.113.8"));
+});
+
+test("edge rate-limit key: IPv6 grouped by /64", () => {
+  const key = "ip6:2001:db8:abcd:12::/64";
+  for (const value of [
+    "2001:db8:abcd:12::1", "2001:db8:abcd:12:ffff:ffff:ffff:ffff",
+    "2001:0DB8:ABCD:0012:0000:0000:0000:0001", "2001:db8:abcd:12:1:2:3.4.5.6",
+    "2001:db8:abcd:12::9%eth0",
+  ]) assert.equal(edgeRateLimitKey(value), key, value);
+  assert.notEqual(edgeRateLimitKey("2001:db8:abcd:13::1"), key);
+  assert.equal(edgeRateLimitKey("::1"), "ip6:0:0:0:0::/64");
+  assert.equal(edgeRateLimitKey("2001:db8::"), "ip6:2001:db8:0:0::/64");
+});
+
+test("edge rate-limit key: IPv4-mapped IPv6 counts as the IPv4 address", () => {
+  assert.equal(edgeRateLimitKey("::ffff:203.0.113.7"), "ip4:203.0.113.7");
+  assert.equal(edgeRateLimitKey("::ffff:cb00:7107"), "ip4:203.0.113.7");
+  assert.equal(edgeRateLimitKey("0:0:0:0:0:ffff:203.0.113.7"), "ip4:203.0.113.7");
+});
+
+test("edge rate-limit key: missing or invalid header gives no key", () => {
+  for (const value of [
+    null, undefined, "", "  ", "unknown", "256.1.1.1", "1.2.3", "1.2.3.4.5",
+    "1::2::3", "1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6:7", "12345::1", "g::1", ":::", "::ffff:300.1.1.1",
+  ]) assert.equal(edgeRateLimitKey(value), null, String(value));
+});
+
+test("static asset paths get their own edge bucket", () => {
+  for (const path of ["/static/app.js", "/static/img/a.png", "/%73tatic/app.js"]) {
+    assert.equal(staticAssetPath(path), true, path);
+  }
+  for (const path of ["/", "/static", "/api/static/x", "/staticx/a", "/%E0%A4%A"]) {
+    assert.equal(staticAssetPath(path), false, path);
+  }
+});
 
 test("public origin must be one exact HTTPS origin", () => {
   assert.equal(validPublicOrigin("https://date.example.com"), true);

@@ -45,7 +45,7 @@ def test_textual_exclusions_survive_every_relaxation():
 def test_completed_job_survives_in_memory_eviction(client):
     from app import plan_jobs,store
     key='durability-test'
-    owner=client.get('/api/status').cookies.get('dm_session') or client.cookies.get('dm_session')
+    owner=store.owner_of(client.get('/api/status').cookies.get('dm_session') or client.cookies.get('dm_session'))
     store.cache('plan-job:'+key,dict(owner=owner,status='complete',result={'plans':[]}),600)
     plan_jobs._jobs.pop(key,None)
     response=client.get('/api/plan-jobs/'+key)
@@ -54,7 +54,7 @@ def test_completed_job_survives_in_memory_eviction(client):
 def test_interrupted_job_reports_recovery(client):
     from app import store
     client.get('/api/status')
-    store.cache('plan-job:interrupted',dict(owner=client.cookies.get('dm_session'),status='running'),600)
+    store.cache('plan-job:interrupted',dict(owner=store.owner_of(client.cookies.get('dm_session')),status='running'),600)
     response=client.get('/api/plan-jobs/interrupted')
     assert response.json()['status']=='failed'
     assert '재시작' in response.json()['message']

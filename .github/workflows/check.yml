@@ -14,6 +14,39 @@ jobs:
       - run: npm ci
       - run: npm run test:security
       - run: npm audit --audit-level=moderate
+  python-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # Audit exactly what the production image installs (Dockerfile: pip 26.3 plus
+      # requirements.txt under the cloud lock), not the dev/test tools.
+      - name: Resolve the production package set
+        run: |
+          python -m venv "$RUNNER_TEMP/runtime"
+          "$RUNNER_TEMP/runtime/bin/python" -m pip install --upgrade pip==26.3
+          "$RUNNER_TEMP/runtime/bin/python" -m pip install -r datemate/requirements.txt -c datemate/requirements-cloud.lock.txt
+          "$RUNNER_TEMP/runtime/bin/python" -m pip freeze --all > "$RUNNER_TEMP/runtime-freeze.txt"
+      - run: python -m pip install pip-audit==2.10.1
+      # Ignored: chromadb 1.5.9 advisories with no fixed release. All four target the
+      # Chroma HTTP server (its API, auth and RBAC providers); the app only uses the
+      # in-process chromadb.PersistentClient (app/indexing.py) and never runs or
+      # exposes a Chroma server. Re-check and drop these when chromadb ships a fix.
+      #   PYSEC-2026-311  = CVE-2026-45829 / GHSA-f4j7-r4q5-qw2c (pre-auth code injection in the server)
+      #   PYSEC-2026-3813 = CVE-2026-45830 / GHSA-2wm9-hf6c-p5cr (server authorization check)
+      #   PYSEC-2026-3815 = CVE-2026-45831 / GHSA-xph7-9rjv-w5fr (SimpleRBACAuthorizationProvider)
+      #   PYSEC-2026-3814 = CVE-2026-45833 / GHSA-36p7-vc44-83pf (authenticated code injection in the server)
+      # Any other known vulnerability fails this job.
+      - name: Audit production Python dependencies
+        run: >-
+          pip-audit --progress-spinner off --no-deps --disable-pip
+          -r "$RUNNER_TEMP/runtime-freeze.txt"
+          --ignore-vuln PYSEC-2026-311
+          --ignore-vuln PYSEC-2026-3813
+          --ignore-vuln PYSEC-2026-3815
+          --ignore-vuln PYSEC-2026-3814
   test:
     runs-on: ubuntu-latest
     strategy:

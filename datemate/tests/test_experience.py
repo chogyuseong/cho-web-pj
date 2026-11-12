@@ -17,7 +17,7 @@ def owned(client,hard=None):
     c=Conditions(mode='real',visit_date=date(2026,10,24),allow_estimates=True,count=2,budget=200000,max_leg=180,end='23:00',hard_constraints=hard or [])
     plan,error=evaluate(rows,c)
     assert not error
-    return store.save_plan(plan,client.cookies['dm_session'])
+    return store.save_plan(plan,store.owner_of(client.cookies['dm_session']))
 
 
 def food_fixture(monkeypatch,plan):
@@ -101,7 +101,7 @@ def test_report_pending_is_not_closed_fact_and_feedback_is_self_reported():
         client.post('/api/plans/'+plan['id']+'/feedback',json=body)
         assert client.get('/api/my/feedback-summary').json()['self_reported_visits']==1
         client.post('/api/plans/'+plan['id']+'/feedback',json=dict(kind='replace_reason',place_id=pid,reason='visited'))
-        assert pid in experience.feedback_exclusions(client.cookies['dm_session'])
+        assert pid in experience.feedback_exclusions(store.owner_of(client.cookies['dm_session']))
 
 
 def test_changed_partner_vote_invalidates_existing_preview():
@@ -151,7 +151,7 @@ def test_two_simultaneous_apply_requests_create_one_child(monkeypatch):
     with TestClient(app) as owner:
         plan=owned(owner);food=food_fixture(monkeypatch,plan)
         draft=owner.post('/api/plans/'+plan['id']+'/meal-preview',json=dict(restaurant_id=food['id'],after_index=1)).json()
-        who=owner.cookies['dm_session']
+        who=store.owner_of(owner.cookies['dm_session'])
         with ThreadPoolExecutor(max_workers=2) as pool:results=list(pool.map(lambda _:experience.apply_draft(plan['id'],draft['token'],who),range(2)))
         assert results[0]['id']==results[1]['id']
         with store.connect() as db:assert db.execute('SELECT COUNT(*) FROM plans WHERE parent=?',(plan['id'],)).fetchone()[0]==1

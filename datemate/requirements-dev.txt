@@ -1,4 +1,8 @@
 -r requirements.txt
+# Tests and maintenance scripts only (scripts/collect_official_pdfs.py reads PDFs);
+# requirements.txt is what the production image installs.
+pytest==9.1.1
+pypdf==6.21.4
 playwright==1.64.1
 ruff==0.14.3
 jsbeautifier==1.15.4

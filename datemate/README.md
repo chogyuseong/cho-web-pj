@@ -12,7 +12,7 @@ py -3.12 -m venv .venv
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-테스트까지 돌리려면 `requirements.txt` 대신 `requirements-dev.txt`를 설치합니다. 이미 가상환경과 `.env`가 있으면 재생성하지 않아도 됩니다. 공유용 `.env.example`에는 실제 키를 적지 마세요.
+`requirements.txt`는 서버 실행(운영 이미지)에 필요한 패키지만 담습니다. 테스트까지 돌리거나 `scripts/`의 관리 스크립트를 쓰려면 `requirements.txt` 대신 `requirements-dev.txt`(pytest, pypdf, playwright 등 포함)를 설치합니다. 이미 가상환경과 `.env`가 있으면 재생성하지 않아도 됩니다. 공유용 `.env.example`에는 실제 키를 적지 마세요.
 
 ## 2. API 설정
 

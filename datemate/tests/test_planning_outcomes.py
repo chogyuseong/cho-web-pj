@@ -94,7 +94,7 @@ def test_simultaneous_confirmation_stores_one_decision():
 
 def test_delete_removes_enrollment_state_and_decision():
     with TestClient(app) as client:
-        sid=enroll(client);plan=course(client,sid);owner=client.cookies['dm_session']
+        sid=enroll(client);plan=course(client,sid);owner=store.owner_of(client.cookies['dm_session'])
         client.post('/api/plans/'+plan['id']+'/decision',json={})
         assert client.delete('/api/me/data').status_code==200
         assert store.cached('planning-study:'+sid) is None

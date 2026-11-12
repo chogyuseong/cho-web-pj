@@ -25,7 +25,7 @@ def plan_for(client):
     return store.save_plan({'places':[{'id':'sample','name':'공개 장소','category':'문화','address':'서울'}],
         'timeline':[{'arrival':'12:00','departure':'13:00'}],
         'conditions':{'origin':{'name':'SECRET_HOME'},'request':'SECRET_REQUEST'},
-        'extra_private_field':'SECRET_FUTURE'},client.cookies['dm_session'])
+        'extra_private_field':'SECRET_FUTURE'},store.owner_of(client.cookies['dm_session']))
 
 
 def test_shared_projection_revocation_and_guest_vote():
@@ -56,7 +56,7 @@ def test_expired_share_and_static_request_without_session():
 
 def test_delete_blocks_late_writers_and_clears_memory():
     with TestClient(app) as client:
-        plan=plan_for(client);owner=client.cookies['dm_session']
+        plan=plan_for(client);owner=store.owner_of(client.cookies['dm_session'])
         plan_jobs._jobs['late-test']={'owner':owner,'status':'running','started':time.monotonic()}
         assert client.delete('/api/me/data').status_code==200
         assert 'late-test' not in plan_jobs._jobs
@@ -75,7 +75,7 @@ def test_manual_fields_win_over_natural_language():
 
 @pytest.mark.skipif(store.postgres_enabled(), reason='SQLite backup/restore')
 def test_backup_restore_roundtrip(tmp_path):
-    with store.connect() as db:db.execute('INSERT OR REPLACE INTO sessions VALUES(?,?)',('restore-proof',42))
+    with store.connect() as db:db.execute('INSERT OR REPLACE INTO sessions(token,created) VALUES(?,?)',('restore-proof',42))
     backup=snapshot(tmp_path/'backup.sqlite')
     restored=restore(backup,tmp_path/'restored')
     with sqlite3.connect(restored) as db:
@@ -88,7 +88,7 @@ def test_running_job_cannot_restore_deleted_data(monkeypatch):
     import app.recommendation_service as service
     entered,release=Event(),Event()
     with TestClient(app) as client:
-        plan=plan_for(client);owner=client.cookies['dm_session'];key='deletion-race'
+        plan=plan_for(client);owner=store.owner_of(client.cookies['dm_session']);key='deletion-race'
         def slow_create(data,owner):
             entered.set();assert release.wait(5)
             return {'plans':[store.save_plan(plan,owner)]}
@@ -125,7 +125,7 @@ def test_cancelled_job_cannot_publish_result(monkeypatch):
     import app.recommendation_service as service
     entered,release=Event(),Event()
     with TestClient(app) as client:
-        plan=plan_for(client);owner=client.cookies['dm_session'];key='cancel-race'
+        plan=plan_for(client);owner=store.owner_of(client.cookies['dm_session']);key='cancel-race'
         def slow_create(data,owner):
             entered.set();assert release.wait(5)
             plan_jobs.check_current()
@@ -158,7 +158,7 @@ def test_common_rate_budget_blocks_direct_api(monkeypatch):
     monkeypatch.setenv('DATEMATE_USER_RECOMMENDATIONS_PER_MINUTE','1')
     with TestClient(app) as client:
         client.get('/api/status')
-        owner=client.cookies['dm_session']
+        owner=store.owner_of(client.cookies['dm_session'])
         assert store.reserve_budget([('recommendations:'+owner,1)],int(time.time()//60))
         assert client.post('/api/plans',json={'visit_date':'2026-10-24'}).status_code==429
 
@@ -176,7 +176,7 @@ def test_answer_cache_is_session_scoped_and_deleted(monkeypatch):
     from app import rag
     monkeypatch.setattr(rag,'generate_node',lambda state:{'answer':'private','citations':[],'status':'ok','trace':[]})
     with TestClient(app) as client:
-        client.get('/api/status');owner=client.cookies['dm_session']
+        client.get('/api/status');owner=store.owner_of(client.cookies['dm_session'])
         state={'evidence':[],'question':'personal question','mode':'demo','owner':owner}
         assert rag.cached_generate_node(state)['cache_hit'] is False
         assert rag.cached_generate_node(state)['cache_hit'] is True

@@ -2,6 +2,7 @@
 
 import copy
 import json
+import time
 import uuid
 from . import store
 from .models import Conditions
@@ -63,13 +64,14 @@ def save_change(plan, original, owner):
         if current.get("lock_version", 0) != original.get("lock_version", 0):
             raise ValueError("처리 중 고정 장소가 바뀌었어요. 현재 코스에서 다시 시도해 주세요.")
         db.execute(
-            "INSERT INTO plans VALUES(?,?,?,?,?)",
+            "INSERT INTO plans(id,owner,parent,aggregate_key,payload,created) VALUES(?,?,?,?,?,?)",
             (
                 updated["id"],
                 owner,
                 original["id"],
                 updated["aggregate_key"],
                 payload,
+                time.time(),
             ),
         )
     return updated

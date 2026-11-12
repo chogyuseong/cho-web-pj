@@ -8,7 +8,7 @@ pytestmark = pytest.mark.skipif(store.postgres_enabled(), reason='SQLite backup;
 
 def test_backup_preserves_committed_rows(tmp_path):
     with store.connect() as db:
-        db.execute('INSERT OR REPLACE INTO sessions VALUES(?,?)', ('backup-test', 123))
+        db.execute('INSERT OR REPLACE INTO sessions(token,created) VALUES(?,?)', ('backup-test', 123))
     destination = backup(tmp_path / 'backup.sqlite')
     with sqlite3.connect(destination) as db:
         assert db.execute('SELECT created FROM sessions WHERE token=?', ('backup-test',)).fetchone()[0] == 123

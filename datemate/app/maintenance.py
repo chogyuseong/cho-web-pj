@@ -1,4 +1,9 @@
-"""Periodic backups and expired-cache cleanup; no silent user-data expiry."""
+"""Periodic backups, expired-cache cleanup and the stated retention period.
+
+Saved data of a browser that has not used the service for DATEMATE_RETENTION_DAYS
+(default 90) is deleted with the same routine as "delete my data", except that
+public reviews stay visible and are only detached from their former owner.
+"""
 import asyncio
 import logging
 import os
@@ -37,10 +42,55 @@ def maintain():
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'provider:%' AND bucket<?",(int(time.time()//3600)-2,))
         db.execute("DELETE FROM request_budgets WHERE (scope LIKE 'http:%' OR scope LIKE 'chat:%' OR scope LIKE 'ip:%') AND bucket<?",(int(time.time()//60)-2,))
         db.execute('DELETE FROM provider_metrics WHERE hour<?',(int(time.time()//3600)-24*30,))
+    retention()
     directory=os.getenv('DATEMATE_BACKUP_DIR','')
     if directory and not postgres_enabled():
         stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
         snapshot(Path(directory)/f'datemate-{stamp}.sqlite')
+
+
+RETENTION_BATCH = 500
+
+
+def retention_days():
+    try:
+        return max(1, int(os.getenv('DATEMATE_RETENTION_DAYS', '90')))
+    except ValueError:
+        return 90
+
+
+def retention(now=None):
+    """Delete owners idle past the retention period; one short transaction each.
+
+    Idle = a session whose last use is older than the cutoff, or plans whose owner has
+    no session row (orphans) and whose newest plan is older than the cutoff.
+    Returns the number of owners removed.
+    """
+    cutoff = (now if now is not None else time.time()) - retention_days() * 86400
+    idle_session = 'SELECT 1 FROM sessions WHERE token=? AND COALESCE(last_used,created)<?'
+    orphan = ('SELECT 1 FROM plans p WHERE p.owner=? AND NOT EXISTS(SELECT 1 FROM sessions s WHERE s.token=p.owner) '
+              'GROUP BY p.owner HAVING MAX(p.created)<?')
+    with store.connect() as db:
+        candidates = [(row[0], idle_session) for row in db.execute(
+            'SELECT token FROM sessions WHERE COALESCE(last_used,created)<? LIMIT ?', (cutoff, RETENTION_BATCH))]
+        candidates += [(row[0], orphan) for row in db.execute(
+            'SELECT p.owner FROM plans p WHERE p.owner IS NOT NULL '
+            'AND NOT EXISTS(SELECT 1 FROM sessions s WHERE s.token=p.owner) '
+            'GROUP BY p.owner HAVING MAX(p.created)<? LIMIT ?', (cutoff, RETENTION_BATCH))]
+    from .plan_jobs import forget_owner
+    removed = 0
+    for owner, still_idle in candidates:
+        with store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            # Re-check under the write lock: the browser may have come back meanwhile.
+            if not db.execute(still_idle, (owner, cutoff)).fetchone():
+                continue
+            store.purge_owner(db, owner, keep_public_reviews=True)
+        forget_owner(owner)
+        removed += 1
+    if removed:
+        logging.getLogger(__name__).info('retention_removed_owners=%s days=%s', removed, retention_days())
+    return removed
 
 
 async def loop():

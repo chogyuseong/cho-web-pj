@@ -89,7 +89,7 @@ def test_chat_budget_rejects_before_model(monkeypatch):
     monkeypatch.setenv('DATEMATE_USER_CHATS_PER_MINUTE', '1')
     with TestClient(app) as client:
         client.get('/api/status')
-        owner=client.cookies['dm_session']
+        owner=store.owner_of(client.cookies['dm_session'])
         store.reserve_budget([('chat:'+owner,1)],int(time.time()//60))
         assert client.post('/api/chat/place/missing',json={'question':'질문'}).status_code == 429
 

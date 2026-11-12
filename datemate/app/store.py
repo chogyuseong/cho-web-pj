@@ -37,6 +37,74 @@ def init():
     upgrade(connect, "postgres" if postgres_enabled() else "sqlite")
 
 
+def owner_of(token):
+    """Database identity of a session: the SHA-256 digest of the cookie token.
+
+    The cookie keeps the random token; the database only ever sees this digest, so a
+    leaked table cannot be replayed as a session cookie.
+    """
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+# Public reviews outlive their author's expired session; the marker keeps the
+# UNIQUE(aggregate_key, author) constraint by appending the review id.
+EXPIRED_AUTHOR = "expired:"
+
+# Short-lived per-browser limiter keys (owner appended) removed with the owner.
+OWNER_RATE_PREFIXES = (
+    "geocode-rate:",
+    "region-rate:",
+    "menu-refresh:",
+    "media-refresh:",
+    "price-refresh:",
+    "local-rate:",
+)
+
+
+def purge_owner(db, owner, keep_public_reviews=False):
+    """Delete everything stored for one owner inside the caller's write transaction.
+
+    A tombstone is written first so late writers for this owner are rejected. With
+    keep_public_reviews the owner's service reviews stay visible to other users but
+    are detached from the owner.
+    """
+    db.execute(
+        "INSERT INTO revoked_sessions VALUES(?,?) ON CONFLICT(token) DO NOTHING",
+        (owner, time.time()),
+    )
+    db.execute("DELETE FROM plan_shares WHERE owner=?", (owner,))
+    db.execute("DELETE FROM request_budgets WHERE scope=?", ("recommendations:" + owner,))
+    db.execute("DELETE FROM request_budgets WHERE scope=?", ("chat:" + owner,))
+    # Remove related records before removing the user's plans and reviews.
+    db.execute(
+        "DELETE FROM partner_votes WHERE plan_id IN (SELECT id FROM plans WHERE owner=?)",
+        (owner,),
+    )
+    if keep_public_reviews:
+        db.execute(f"UPDATE reviews SET author='{EXPIRED_AUTHOR}' || id WHERE author=?", (owner,))
+    else:
+        db.execute(
+            "DELETE FROM reports WHERE review_id IN (SELECT id FROM reviews WHERE author=?)",
+            (owner,),
+        )
+    for table, column in (
+        ("plans", "owner"),
+        ("chats", "owner"),
+        ("reviews", "author"),
+        ("reports", "author"),
+        ("experience_events", "owner"),
+        ("place_reports", "owner"),
+        ("partner_votes", "owner"),
+    ):
+        db.execute(f"DELETE FROM {table} WHERE {column}=?", (owner,))
+    db.execute(
+        "DELETE FROM cache WHERE key IN (SELECT key FROM cache_owners WHERE owner=?)", (owner,)
+    )
+    for prefix in OWNER_RATE_PREFIXES:
+        db.execute("DELETE FROM cache WHERE key=?", (prefix + owner,))
+    db.execute("DELETE FROM sessions WHERE token=?", (owner,))
+
+
 def revoked(owner):
     with connect() as db:
         return (
@@ -91,13 +159,14 @@ def save_plan(plan, owner, parent=None):
     payload = plan_payload(plan)
     with connect() as db:
         db.execute(
-            "INSERT INTO plans VALUES(?,?,?,?,?)",
+            "INSERT INTO plans(id,owner,parent,aggregate_key,payload,created) VALUES(?,?,?,?,?,?)",
             (
                 plan["id"],
                 owner,
                 parent,
                 plan["aggregate_key"],
                 payload,
+                time.time(),
             ),
         )
     return plan

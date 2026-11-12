@@ -119,7 +119,7 @@ async def safety(request: Request, call_next):
         return web_security.headers(response, request, request_id)
 
     token = None
-    exists = True
+    session_state = "current"
     client_token = None
     try:
         if not web_security.allowed_host(request):
@@ -179,28 +179,59 @@ async def safety(request: Request, call_next):
             )
 
         def identify():
-            token = request.cookies.get("dm_session", "")[:128]
+            """(cookie token, owner digest, state); state says which cookie to send.
+
+            "current": nothing to send; "refresh": renew the sliding expiry;
+            "legacy": move a pre-__Host- cookie to the new name; "new": first visit.
+            """
+            token = request.cookies.get(web_security.session_cookie(request), "")
+            legacy = False
+            if not token and web_security.secure_cookies(request):
+                token = request.cookies.get(web_security.SESSION_COOKIE, "")
+                legacy = bool(token)
+            token = token[:128]
+            now = time.time()
             if token:
+                owner = store.owner_of(token)
                 with store.connect() as db:
-                    if db.execute("SELECT 1 FROM sessions WHERE token=?", (token,)).fetchone():
-                        return token, True
+                    row = db.execute(
+                        "SELECT last_used,created FROM sessions WHERE token=?", (owner,)
+                    ).fetchone()
+                    if row:
+                        # One write per day at most; it also renews the cookie.
+                        stale = (row[0] if row[0] is not None else row[1] or 0) < (
+                            now - SESSION_TOUCH_SECONDS
+                        )
+                        if stale:
+                            db.execute(
+                                "UPDATE sessions SET last_used=? WHERE token=?", (now, owner)
+                            )
+                        return (
+                            token,
+                            owner,
+                            "legacy" if legacy else ("refresh" if stale else "current"),
+                        )
             # New sessions only for API calls, and a bounded number per IP range, so
             # page views and bots cannot grow the sessions table without limit.
             if not web_security.ip_allow(
                 "session", "DATEMATE_IP_SESSIONS_PER_MINUTE", 30, key=client
             ):
-                return None, False
+                return None, None, None
             token = secrets.token_urlsafe(32)
+            owner = store.owner_of(token)
             with store.connect() as db:
-                db.execute("INSERT INTO sessions VALUES(?,?)", (token, time.time()))
-            return token, False
+                db.execute(
+                    "INSERT INTO sessions(token,created,last_used) VALUES(?,?,?)",
+                    (owner, now, now),
+                )
+            return token, owner, "new"
 
         if not api:
             # HTML, shared page and 404s do not need an owner; no session is created.
             request.state.owner = None
             response = await call_next(request)
             return finish(response)
-        token, exists = await run_in_threadpool(identify)
+        token, owner, session_state = await run_in_threadpool(identify)
         if token is None:
             return finish(
                 JSONResponse(
@@ -209,11 +240,13 @@ async def safety(request: Request, call_next):
                     headers={"Retry-After": "60"},
                 )
             )
-        request.state.owner = token
+        request.state.owner = owner
         match = re.match(r"^/api/(?:plans/|chat/plan/)([^/]+)", request.url.path)
         if match:
             row = await run_in_threadpool(store.get_plan, match.group(1))
-            if not row or row["owner"] != token:
+            if not row or not secrets.compare_digest(
+                str(row["owner"] or "").encode(), owner.encode()
+            ):
                 response = JSONResponse(
                     {"detail": "일정을 찾을 수 없습니다. 공유 링크로 접속해 주세요."},
                     status_code=404,
@@ -233,18 +266,31 @@ async def safety(request: Request, call_next):
     finally:
         if client_token is not None:
             unbind_client(client_token)
-    if token and not exists and request.url.path != "/api/me/data":
-        # Lax keeps the session when arriving from another site's link; state changes
-        # are still refused above by the Origin/Sec-Fetch-Site check.
-        response.set_cookie(
-            "dm_session",
-            token,
-            httponly=True,
-            samesite="lax",
-            secure=production() or request.url.scheme == "https",
-            max_age=2592000,
-        )
+    if token and request.url.path != "/api/me/data":
+        if session_state != "current":
+            # Lax keeps the session when arriving from another site's link; state
+            # changes are still refused above by the Origin/Sec-Fetch-Site check.
+            response.set_cookie(
+                web_security.session_cookie(request),
+                token,
+                httponly=True,
+                samesite="lax",
+                secure=web_security.secure_cookies(request),
+                max_age=web_security.SESSION_MAX_AGE,
+                path="/",
+            )
+        if web_security.secure_cookies(request) and web_security.SESSION_COOKIE in request.cookies:
+            # The pre-__Host- cookie was carried over (or is stale); retire it.
+            expire_cookie(response, web_security.SESSION_COOKIE, secure=True)
     return finish(response)
+
+
+# Sessions record activity (and renew the 30-day cookie) at most once a day.
+SESSION_TOUCH_SECONDS = 86400
+
+
+def expire_cookie(response, name, secure):
+    response.delete_cookie(name, path="/", secure=secure, httponly=True, samesite="lax")
 
 
 def plan_row(id, owner=None):
@@ -270,46 +316,11 @@ def delete_my_data(request: Request, response: Response):
     owner = request.state.owner
     with store.connect() as db:
         db.execute("BEGIN IMMEDIATE")
-        db.execute(
-            "INSERT INTO revoked_sessions VALUES(?,?) ON CONFLICT(token) DO NOTHING",
-            (owner, time.time()),
-        )
-        db.execute("DELETE FROM plan_shares WHERE owner=?", (owner,))
-        db.execute("DELETE FROM request_budgets WHERE scope=?", ("recommendations:" + owner,))
-        db.execute("DELETE FROM request_budgets WHERE scope=?", ("chat:" + owner,))
-        # Remove related records before removing the user's plans and reviews.
-        db.execute(
-            "DELETE FROM partner_votes WHERE plan_id IN (SELECT id FROM plans WHERE owner=?)",
-            (owner,),
-        )
-        db.execute(
-            "DELETE FROM reports WHERE review_id IN (SELECT id FROM reviews WHERE author=?)",
-            (owner,),
-        )
-        for table, column in (
-            ("plans", "owner"),
-            ("chats", "owner"),
-            ("reviews", "author"),
-            ("reports", "author"),
-            ("experience_events", "owner"),
-            ("place_reports", "owner"),
-            ("partner_votes", "owner"),
-        ):
-            db.execute(f"DELETE FROM {table} WHERE {column}=?", (owner,))
-        db.execute(
-            "DELETE FROM cache WHERE key IN (SELECT key FROM cache_owners WHERE owner=?)", (owner,)
-        )
-        for prefix in (
-            "geocode-rate:",
-            "region-rate:",
-            "menu-refresh:",
-            "media-refresh:",
-            "price-refresh:",
-            "local-rate:",
-        ):
-            db.execute("DELETE FROM cache WHERE key=?", (prefix + owner,))
-        db.execute("DELETE FROM sessions WHERE token=?", (owner,))
-    response.delete_cookie("dm_session")
+        store.purge_owner(db, owner)
+    secure = web_security.secure_cookies(request)
+    expire_cookie(response, web_security.session_cookie(request), secure)
+    if secure:
+        expire_cookie(response, web_security.SESSION_COOKIE, secure)
     from .plan_jobs import forget_owner
 
     forget_owner(owner)

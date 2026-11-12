@@ -30,7 +30,7 @@ def test_leisure_api_replace_undo_permissions(monkeypatch):
     from app import store
     with TestClient(app) as client:
         client.get('/api/status')
-        plan=store.save_plan(fixture_plan(),client.cookies.get('dm_session'))
+        plan=store.save_plan(fixture_plan(),store.owner_of(client.cookies.get('dm_session')))
         base=plan['places'][0]
         sport=dict(base,id='api-sport',name='클라이밍 센터',category='레저·활동',themes=['레저·활동'],tags=['climbing'])
         monkeypatch.setattr('app.catalog.places',lambda *args:[sport,*plan['places']])

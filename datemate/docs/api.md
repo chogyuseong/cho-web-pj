@@ -1,6 +1,6 @@
 # API 명세
 
-Base URL: `http://127.0.0.1:8000/api`. JSON. 정확한 검증 스키마는 `/openapi.json`, 대화형 문서는 `/docs`에서 제공. 서버 발급 `dm_session` HTTP-only 쿠키 사용. 별도 인증을 구현한 것으로 해석하지 않는다.
+Base URL: `http://127.0.0.1:8000/api`. JSON. 정확한 검증 스키마는 `/openapi.json`, 대화형 문서는 `/docs`에서 제공. 서버 발급 HTTP-only 세션 쿠키 사용(로컬 http는 `dm_session`, https 운영은 `__Host-dm_session`; 30일, 하루 1회 이상 이용 시 연장). DB에는 쿠키 원문 대신 SHA-256만 저장하며, 90일(`DATEMATE_RETENTION_DAYS`) 동안 이용이 없으면 저장 데이터가 삭제되고 공개 후기는 작성자 연결만 끊긴다. 별도 인증을 구현한 것으로 해석하지 않는다.
 
 | 메서드 / 경로 | 입력 | 응답 |
 |---|---|---|

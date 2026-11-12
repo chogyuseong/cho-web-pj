@@ -26,7 +26,9 @@ Cloudflare에서 관리형 PostgreSQL 서버를 제공하는 구성은 이 앱�
 - PostgreSQL에는 앱 전용 계정을 만들고, 필요한 데이터베이스에만 권한을 부여합니다. `DATABASE_URL`은 Worker Secret에만 저장하고 `sslmode=require`, `verify-ca`, `verify-full` 중 하나를 지정합니다. 가능하면 서버 인증서와 호스트 이름까지 확인하는 `verify-full`을 사용하세요. TLS 설정이 없으면 Worker가 요청을 받지 않습니다.
 - 네이버·GMS 키도 Worker Secret으로 저장하고, 제공자 콘솔에서 필요한 API와 공개 도메인만 허용합니다. `.env` 파일과 DB 암호를 Git 또는 빌드 변수에 넣지 않습니다.
 - 공유 링크는 URL 프래그먼트에 토큰을 넣어 생성하며, 원본 일정의 개인 조건은 공유 응답에 포함하지 않습니다. 운영에서는 HTTPS 공개 주소 하나를 `PUBLIC_ORIGIN`으로 지정합니다.
-- ChromaDB는 컨테이너 내부의 `PersistentClient`로만 사용합니다. 별도의 Chroma HTTP 서버나 포트를 공개하지 않습니다. 현재 ChromaDB 서버 API 관련 보안 공지가 있으므로, 해당 포트를 추가로 노출하거나 원격 모델 실행 기능을 활성화하지 마세요.
+- ChromaDB는 컨테이너 내부의 `PersistentClient`로만 사용합니다. 별도의 Chroma HTTP 서버나 포트를 공개하지 않습니다. 현재 ChromaDB 서버 API 관련 보안 공지가 있으므로, 해당 포트를 추가로 노출하거나 원격 모델 실행 기능을 활성화하지 마세요. CI의 `pip-audit`는 이 공지 4건(PYSEC-2026-311, -3813, -3814, -3815)만 예외로 두며, 수정 버전이 나오면 업그레이드하고 예외를 지웁니다.
+- Worker는 컨테이너로 넘기기 전에 IP(IPv4는 주소, IPv6는 /64)마다 요청 수를 셉니다(`wrangler.jsonc`의 `ratelimits`). 화면·API는 60초에 600회, `/static/` 파일은 60초에 1200회를 넘으면 컨테이너를 깨우지 않고 `429`와 `Retry-After: 60`을 돌려줍니다. 앱 자체 제한(분당 240회)보다 넉넉한 앞단 방패이며, 제한 기능이 없거나 오류가 나면 요청을 통과시킵니다. Cloudflare의 이 제한은 데이터센터별로 세는 근사값입니다.
+- 운영 이미지는 `requirements.txt`(실행에 필요한 패키지)만 설치합니다. `pytest`, `pypdf` 같은 테스트·관리 도구는 `requirements-dev.txt`에 있습니다.
 
 ## 로컬에서 직접 배포하는 경우
 

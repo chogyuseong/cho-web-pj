@@ -47,6 +47,24 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 | 검색·질문 | ChromaDB, LangChain, 선택적 GMS LLM/임베딩 연결 |
 | 외부 정보 | 네이버 검색 API, Maps API, 공개 장소 자료, 선택적 TMAP 도보·대중교통 연결 |
 | 지도 | 네이버 지도, Leaflet/OpenStreetMap 대체 지도 |
+| 운영 배포 | Cloudflare Worker + Containers, 외부 PostgreSQL |
+
+## Cloudflare 배포 현황
+
+**2026-11-12 기준: 배포용 코드와 검증은 완료했고, 실제 운영 배포는 아직 하지 않았습니다.** FastAPI 앱은 Cloudflare Containers에서 실행하고 Worker가 공개 요청을 전달합니다. 상시 실행할 개인 Docker 서버는 필요하지 않습니다. Cloudflare Workers Builds를 쓰면 이미지도 Cloudflare에서 빌드하므로 로컬 Docker 실행 없이 배포할 수 있습니다.
+
+운영 데이터는 `DATABASE_URL`로 연결한 **외부 관리형 PostgreSQL**에 저장합니다. Cloudflare D1을 PostgreSQL 대신 설정만 바꿔 연결할 수는 없습니다. 컨테이너의 Chroma 장소·문서 색인은 시작 시 다시 만들며, PostgreSQL 백업은 DB 제공자에서 별도로 설정해야 합니다.
+
+실제 배포 전에 남은 작업은 다음과 같습니다.
+
+1. Cloudflare Workers Paid 플랜과 외부 접속 가능한 PostgreSQL을 준비하고, 앱 전용 DB 계정·백업을 설정합니다.
+2. Cloudflare Workers Builds에 이 저장소를 연결하고 저장소 루트의 `wrangler.jsonc`, `Dockerfile`로 빌드합니다.
+3. Worker Secret에 실제 HTTPS 주소 `PUBLIC_ORIGIN`과 TLS를 필수로 하는 `DATABASE_URL`을 등록합니다. 실제 장소 검색을 쓰려면 네이버 API 키도 등록합니다.
+4. 배포 후 `/readyz`, `/api/status`, 추천·공유 동작을 공개 주소에서 확인합니다.
+
+운영 요청에는 출처 검사, 브라우저 스크립트 실행 정책(CSP), 세션 응답 캐시 방지가 적용됩니다. PostgreSQL 연결은 `sslmode=require`, `verify-ca`, `verify-full` 중 하나가 필수입니다. 수정 가능한 의존성 경고는 반영했고, npm 감사는 취약점 0건입니다. **ChromaDB 1.5.9에는 수정 버전이 없는 보안 공지가 남아 있습니다.** 현재 앱은 Chroma를 컨테이너 내부 `PersistentClient`로만 사용하며 Chroma HTTP 포트를 공개하지 않습니다. 해당 포트나 원격 모델 실행 기능을 추가할 때는 보안을 다시 검토해야 합니다.
+
+최근 커밋 `0473e48`의 [GitHub Actions 검사](https://github.com/chogyuseong/cho-web-pj/actions/runs/43148595094)는 보안 검사, SQLite·PostgreSQL 테스트, 컨테이너 통합 검사를 모두 통과했습니다. 배포 설정과 Secret 등록 절차는 [Cloudflare 배포 안내](datemate/docs/cloudflare-deployment.md)에 있습니다.
 
 ## 데이터와 검증 범위
 
@@ -74,6 +92,4 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 운영 자료는 항목별 출처·확인일·유효기간으로 관리합니다. 업체 제공 메뉴를 가져오는 도구와 요청별 외부 호출 제한을 제공합니다. TMAP 연결은 해당 상품 키 설정 후 사용하며, 키가 없는 현재 환경에서는 실제 도보·대중교통 경로가 연결됐다고 표시하지 않습니다. 사진·자료·API의 사용 및 양도 범위는 제공처별 확인이 필요합니다.
 
-`.env`, 가상환경, `runtime/`은 Git에 포함하지 않습니다. 로컬은 SQLite를 사용하며, Cloudflare Containers 운영은 `DATABASE_URL`로 PostgreSQL을 연결합니다. 일정·후기·세션·공유·검색 상태가 외부 DB에 보존됩니다. 컨테이너의 Chroma 장소·문서 색인은 시작 시 재생성합니다.
-
-운영에는 Cloudflare Workers Paid 플랜, 외부 접속 가능한 PostgreSQL, Worker Secret 설정이 필요합니다. [Cloudflare 배포 안내](datemate/docs/cloudflare-deployment.md)에 절차가 있습니다. `compose.test.yaml`은 운영 키 없이 두 인스턴스와 PostgreSQL을 검증하는 로컬 전용 구성입니다.
+`.env`, 가상환경, `runtime/`은 Git에 포함하지 않습니다. 로컬 개발은 SQLite를 사용합니다. `compose.test.yaml`은 운영 키 없이 두 인스턴스와 PostgreSQL을 검증하는 로컬 전용 구성입니다.

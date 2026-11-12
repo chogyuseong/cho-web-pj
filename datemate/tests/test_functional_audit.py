@@ -1,4 +1,5 @@
 """Full user journeys against a local server and disposable test storage."""
+import base64
 import os
 import socket
 import threading
@@ -249,13 +250,38 @@ def test_course_submit_shows_festivals_below_plans(audit_page):
     assert page.locator('#festival-search').count()==0
     requested=[]
     rows=[dict(id=str(i),title=f'점검 축제 {i} '+'아주긴이름'*8,start='2026-10-24',end='2026-10-24',region='서울',
-               address='서울특별시 중구 점검로 '+str(i),source_url='https://korean.visitkorea.or.kr/search/search_list.do?keyword=x') for i in range(8)]
+               address='서울특별시 중구 점검로 '+str(i),source_url='https://korean.visitkorea.or.kr/search/search_list.do?keyword=x',
+               image_url=(f'https://tong.visitkorea.or.kr/cms/{"broken" if i==2 else "ok"}{i}.png' if i%3!=1 else None),
+               image_license=('Type3' if i%3!=1 else None)) for i in range(8)]
     def festivals(route):
         requested.append(route.request.url)
         return route.fulfill(json=dict(status='available',festivals=rows,total_matches=8,truncated=False,message='한국관광공사 행사정보 자료입니다.'))
+    images=[]
+    png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
+    def photo(route):
+        images.append(route.request.url)
+        if 'broken' in route.request.url:return route.fulfill(status=404,body='')
+        return route.fulfill(status=200,content_type='image/png',body=png)
     page.route('**/api/festivals?*',festivals)
+    page.route('https://tong.visitkorea.or.kr/**',photo)
     generate(page)
     page.wait_for_function('document.querySelectorAll("#festival-results .festival-card").length===6')
+    cards=page.locator('#festival-results .festival-card')
+    for i in range(6):cards.nth(i).scroll_into_view_if_needed()
+    page.wait_for_function('!document.querySelector("#festival-results .festival-card:nth-child(3) figure")')
+    page.wait_for_function('[...document.querySelectorAll("#festival-results .festival-photo img")].every(img=>img.complete&&img.naturalWidth>0)')
+    for i in range(6):
+        card=cards.nth(i)
+        if i%3==1 or i==2:
+            assert card.locator('img').count()==0 and '사진: 한국관광공사' not in card.inner_text(),i
+            continue
+        img=card.locator('.festival-photo img')
+        assert img.count()==1 and card.locator('figcaption').inner_text()=='사진: 한국관광공사',i
+        assert img.get_attribute('alt')==f'{rows[i]["title"]} 대표 사진'
+        assert img.get_attribute('loading')=='lazy' and img.get_attribute('decoding')=='async'
+        assert img.get_attribute('referrerpolicy')=='no-referrer'
+        assert img.evaluate('el=>getComputedStyle(el).objectFit')=='contain'
+    assert any('broken2' in url for url in images) and all(url.startswith('https://tong.visitkorea.or.kr/') for url in images)
     assert 'start=2026-10-24' in requested[0] and 'end=2026-10-24' in requested[0] and 'region=%EC%84%9C%EC%9A%B8' in requested[0]
     section=page.locator('.results-area #festival-section')
     assert section.is_visible() and page.locator('#results .plan-card').count()>=1
@@ -265,6 +291,7 @@ def test_course_submit_shows_festivals_below_plans(audit_page):
     assert '방문 전 공식 안내를 확인' in section.inner_text()
     page.get_by_role('button',name='축제 더 보기 (2건)',exact=True).click()
     assert page.locator('#festival-results .festival-card').count()==8
+    assert cards.nth(6).locator('.festival-photo img').count()==1 and cards.nth(7).locator('img').count()==0
     for width in (320,390):
         page.set_viewport_size({'width':width,'height':900})
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width

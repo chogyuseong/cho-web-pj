@@ -4,7 +4,7 @@ import html
 import os
 import re
 from datetime import date, timedelta
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
@@ -21,6 +21,8 @@ REGION_CODES = {
     '충북': '43', '충남': '44', '전북': '52', '전남': '46', '경북': '47',
     '경남': '48', '제주': '50',
 }
+IMAGE_HOST = 'tong.visitkorea.or.kr'
+IMAGE_LICENSES = ('Type1', 'Type3')
 
 
 def plain(value):
@@ -32,6 +34,24 @@ def parse_day(value):
         return date.fromisoformat(f'{value[:4]}-{value[4:6]}-{value[6:8]}') if len(value) == 8 and value.isdigit() else None
     except ValueError:
         return None
+
+
+def festival_image(item):
+    """Provider photo URL only when its public-use license (KOGL Type1/Type3) is explicit."""
+    license_type = str(item.get('cpyrhtDivCd') or '').strip()
+    if license_type not in IMAGE_LICENSES:
+        return None, None
+    for field in ('firstimage2', 'firstimage'):
+        url = str(item.get(field) or '').strip()
+        try:
+            parsed = urlsplit(url)
+            allowed = (parsed.scheme == 'https' and parsed.hostname == IMAGE_HOST and parsed.netloc == IMAGE_HOST
+                       and len(url) <= 500)
+        except ValueError:
+            continue
+        if allowed:
+            return url, license_type
+    return None, None
 
 
 def normalize_item(item, start, end, region):
@@ -47,11 +67,13 @@ def normalize_item(item, start, end, region):
     if not place_region or (region and place_region != region):
         return None
     content_id = str(item.get('contentid', ''))
+    image_url, image_license = festival_image(item)
     return dict(
         id=content_id if content_id.isdigit() else title + ':' + first.isoformat(),
         title=title, start=first.isoformat(), end=last.isoformat(),
         region=place_region, address=address,
         source_url='https://korean.visitkorea.or.kr/search/search_list.do?keyword=' + quote(title),
+        image_url=image_url, image_license=image_license,
     )
 
 
@@ -65,7 +87,7 @@ def fetch_festivals(start, end, region):
     key = os.getenv('TOUR_API_KEY', '').strip()
     if not key:
         return dict(status='key_missing', festivals=[], message='한국관광공사 관광정보 API 키를 설정하면 실제 축제를 조회할 수 있어요.')
-    cache_key = f'festivals:v2:{start}:{end}:{region or "all"}'
+    cache_key = f'festivals:v3:{start}:{end}:{region or "all"}'
     cached = store.cached(cache_key)
     if cached:
         return cached

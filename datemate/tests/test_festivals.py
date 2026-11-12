@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi.testclient import TestClient
 
 from app import festivals
@@ -79,3 +81,35 @@ def test_short_events_come_before_long_running_programs(monkeypatch):
     with TestClient(app) as client:
         result = client.get('/api/festivals?start=2026-11-20&end=2026-11-20&region=서울').json()
     assert [row['id'] for row in result['festivals']] == ['3', '4', '2', '1']
+
+
+def image_row(**fields):
+    item = dict(contentid='9', title='사진 축제', addr1='서울특별시 중구', eventstartdate='20261112', eventenddate='20261112', **fields)
+    return festivals.normalize_item(item, date(2026, 11, 12), date(2026, 11, 12), None)
+
+
+def test_festival_image_requires_https_provider_host_and_open_license():
+    thumb = 'https://tong.visitkorea.or.kr/cms/resource/1/thumb.jpg'
+    original = 'https://tong.visitkorea.or.kr/cms/resource/1/original.jpg'
+    for license_type in ('Type1', 'Type3'):
+        row = image_row(firstimage=original, firstimage2=thumb, cpyrhtDivCd=license_type)
+        assert row['image_url'] == thumb and row['image_license'] == license_type
+    row = image_row(firstimage=original, firstimage2='', cpyrhtDivCd='Type3')
+    assert row['image_url'] == original
+    rejected = [
+        dict(firstimage='http://tong.visitkorea.or.kr/a.jpg', cpyrhtDivCd='Type3'),
+        dict(firstimage='https://example.com/a.jpg', cpyrhtDivCd='Type3'),
+        dict(firstimage='https://tong.visitkorea.or.kr.evil.com/a.jpg', cpyrhtDivCd='Type3'),
+        dict(firstimage='https://evil.com@tong.visitkorea.or.kr/a.jpg', cpyrhtDivCd='Type1'),
+        dict(firstimage='https://tong.visitkorea.or.kr:8443/a.jpg', cpyrhtDivCd='Type1'),
+        dict(firstimage='javascript:alert(1)', cpyrhtDivCd='Type1'),
+        dict(firstimage=original),
+        dict(firstimage=original, cpyrhtDivCd=''),
+        dict(firstimage=original, cpyrhtDivCd='Type2'),
+        dict(firstimage=original, cpyrhtDivCd='Type4'),
+        dict(cpyrhtDivCd='Type3'),
+    ]
+    for fields in rejected:
+        row = image_row(**fields)
+        assert row['image_url'] is None and row['image_license'] is None, fields
+    assert image_row(firstimage2=thumb, cpyrhtDivCd='Type3')['title'] == '사진 축제'

@@ -1,4 +1,5 @@
-/* Festivals for the submitted course conditions; text-only until the provider's image rights are checked.
+/* Festivals for the submitted course conditions. Provider photos are KOGL Type1/Type3 (attribution, no alteration),
+   so they are shown whole (never cropped or filtered) with a credit line, and dropped when missing or broken.
    Runs beside the course search and never blocks or fails it. */
 const FestivalPanel = {
   generation: 0,
@@ -8,6 +9,24 @@ const FestivalPanel = {
     this.request(conditions, generation).catch(() => {
       if (generation === this.generation) this.status('축제 자료에 연결하지 못했어요. 코스 추천에는 영향이 없어요.');
     });
+  },
+  photo(festival) {
+    const url = String(festival.image_url || '');
+    if (!url.startsWith('https://tong.visitkorea.or.kr/')) return null;
+    const figure = node('figure', undefined, 'festival-photo');
+    const frame = node('div', undefined, 'festival-photo-frame');
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    img.alt = `${festival.title} 대표 사진`;
+    img.addEventListener('error', () => figure.remove(), {
+      once: true
+    });
+    img.src = url;
+    frame.append(img);
+    figure.append(frame, node('figcaption', '사진: 한국관광공사', 'festival-photo-credit'));
+    return figure;
   },
   status(text) {
     document.getElementById('festival-status').textContent = text;
@@ -53,6 +72,8 @@ const FestivalPanel = {
     this.status(text);
     const render = items => results.append(...items.map(festival => {
       const card = node('article', undefined, 'festival-card');
+      const photo = this.photo(festival);
+      if (photo) card.append(photo);
       card.append(node('strong', festival.title),
         node('p', `${festival.start} ~ ${festival.end} · ${festival.region}`, 'hint'),
         node('p', festival.address, 'hint'),

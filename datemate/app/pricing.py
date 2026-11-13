@@ -2,6 +2,7 @@ from .service_time import today
 """요청 시 가격 검색. 공식 단가 / 웹 참고 단가 / 계획용 가정을 구분한다."""
 import copy
 import os
+from collections import Counter
 import re
 from urllib.parse import unquote,urlsplit
 from datetime import datetime,timezone,date
@@ -122,10 +123,13 @@ def apply_prices(plan,lookups):
         plan=audit_plan(plan)
     return plan
 
-def price_plans(plans,force=False):
+def price_plans(plans,force=False,stats=None):
+    """stats 에 dict 를 넘기면 조회 구성(대상 장소 수, 캐시 적중, 새로 조회한 장소 id, 결과 상태별 수)을 채운다(진단용)."""
+    from .perf_trace import span
     needed={p['id']:p for plan in plans if plan['conditions']['mode']=='real' for p in plan['places'] if p['price'] is None}
     # 캐시는 한 번에 읽고(force 가 아니면) 새로 찾은 가격은 끝난 뒤 한 번에 저장한다. 조회 대상·동시 3건·캐시 시간은 그대로.
-    known={} if force or not needed else store.cached_many('price-search-v2:'+pid for pid in needed)
+    with span('price.cache_read'):
+        known={} if force or not needed else store.cached_many('price-search-v2:'+pid for pid in needed)
     writes=[]
     def one(p):
         cached=known.get('price-search-v2:'+p['id'])
@@ -133,7 +137,12 @@ def price_plans(plans,force=False):
         return lookup_price(p,True,writes)
     misses=sum(not usable(known.get('price-search-v2:'+pid)) for pid in needed) if search_enabled() else 0
     # 새로 찾을 가격 검색의 제공자 예산은 한 번에 잡는다(호출마다 잡으면 운영 DB의 쓰기 잠금에서 줄을 선다).
-    with prepaid(BLOG_SEARCH_URL,misses),ThreadPoolExecutor(max_workers=3) as executor:
+    with span('price.lookups'),prepaid(BLOG_SEARCH_URL,misses),ThreadPoolExecutor(max_workers=3) as executor:
         data=dict(zip(needed,context_map(executor,one,needed.values())))
-    store.cache_many(writes)
+    with span('price.cache_write'):
+        store.cache_many(writes)
+    if stats is not None:
+        looked={key.removeprefix('price-search-v2:') for key,_,_ in writes}
+        stats.update(places=len(needed),cached=len(needed)-len(looked),looked_up=looked,
+            statuses=dict(Counter(data[pid].get('status') for pid in looked)))
     return [apply_prices(p,data) for p in plans]

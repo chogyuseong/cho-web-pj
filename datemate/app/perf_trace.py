@@ -48,6 +48,7 @@ class Trace:
         self.db_count = 0
         self.db_ms = 0.0
         self.db_stages = {}
+        self.counts = Counter()
 
     def now(self):
         return (time.perf_counter() - self.started) * 1000
@@ -77,11 +78,15 @@ class Trace:
             row["ms"] += end - start
             row["max_ms"] = max(row["max_ms"], end - start)
             if len(self.intervals) < MAX_INTERVALS:
-                self.intervals.append((start, end))
+                self.intervals.append((start, end, stage))
 
     def add_cache_hit(self, kind):
         with self.lock:
             self.cache[kind or "other"] += 1
+
+    def add_count(self, name, n):
+        with self.lock:
+            self.counts[name] += n
 
     def add_db(self, ms):
         with self.lock:
@@ -99,6 +104,7 @@ class Trace:
             calls = {k: dict(v) for k, v in self.calls.items()}
             spans = {k: list(v) for k, v in self.spans.items()}
             cache = dict(self.cache)
+            counts = dict(sorted(self.counts.items()))
             db = dict(
                 count=self.db_count,
                 ms=round(self.db_ms),
@@ -108,20 +114,20 @@ class Trace:
         for i, (name, start) in enumerate(stages):
             end = stages[i + 1][1] if i + 1 < len(stages) else total
             rows.append(dict(name=name, start_ms=round(start), ms=round(end - start)))
-        # 외부 호출이 실제로 차지한 시간(겹친 구간은 한 번만)과 가장 많이 겹친 수.
-        wall, peak, edge = 0.0, 0, None
-        for start, end in intervals:
-            if edge is None or start > edge:
-                wall += end - start
-                edge = end
-            elif end > edge:
-                wall += end - edge
-                edge = end
-        events = sorted([(s, 1) for s, _ in intervals] + [(e, -1) for _, e in intervals])
-        running = 0
-        for _, step in events:
-            running += step
-            peak = max(peak, running)
+        wall, peak = _overlap([(s, e) for s, e, _ in intervals])
+        # 단계별로도 같은 값(가격 확인의 동시 3건이 실제로 겹치는지 등). 단계 이름은 화면 진행 문구와 같은 고정 문자열.
+        by_stage = {}
+        for s, e, name in intervals:
+            by_stage.setdefault(name, []).append((s, e))
+        stage_overlap = {}
+        for name, spans_of_stage in by_stage.items():
+            stage_wall, stage_peak = _overlap(spans_of_stage)
+            stage_overlap[name] = dict(
+                calls=len(spans_of_stage),
+                wait_ms_sum=round(sum(e - s for s, e in spans_of_stage)),
+                wall_ms=round(stage_wall),
+                peak_parallel=stage_peak,
+            )
         by_kind = [
             dict(
                 stage=stage,
@@ -148,10 +154,30 @@ class Trace:
                 peak_parallel=peak,
                 by_kind=by_kind,
             ),
+            external_by_stage=stage_overlap,
             cache_hits=cache,
+            counts=counts,
             db=db,
             scope="추천 작업 안의 시간(ms). 작업 저장·폴링·화면 표시는 포함하지 않음. 외부 호출 ms 는 호출마다 기다린 시간의 합.",
         )
+
+
+def _overlap(intervals):
+    """구간 목록이 실제로 차지한 시간(겹친 구간은 한 번만)과 가장 많이 겹친 수."""
+    wall, peak, edge = 0.0, 0, None
+    for start, end in sorted(intervals):
+        if edge is None or start > edge:
+            wall += end - start
+            edge = end
+        elif end > edge:
+            wall += end - edge
+            edge = end
+    events = sorted([(s, 1) for s, _ in intervals] + [(e, -1) for _, e in intervals])
+    running = 0
+    for _, step in events:
+        running += step
+        peak = max(peak, running)
+    return wall, peak
 
 
 def current():
@@ -191,6 +217,13 @@ def cache_hit(kind):
     trace = _current.get()
     if trace:
         trace.add_cache_hit(kind)
+
+
+def count(name, n=1):
+    """구간 안의 개수(예: 가격 조회 수, 가격 확인 뒤 바뀐 안 수). 이름은 고정 문자열만 쓴다(검색어·장소 이름 금지)."""
+    trace = _current.get()
+    if trace and n:
+        trace.add_count(name, int(n))
 
 
 class TimedConnection:

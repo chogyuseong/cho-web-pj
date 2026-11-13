@@ -18,6 +18,9 @@ body {
   font-size:16px;
   line-height:1.7;
   letter-spacing:0;
+  /* 한글은 낱말(띄어쓰기) 단위로 줄을 바꾼다. 한 낱말이 줄보다 길면(긴 주소·영문·금액 범위) 그 안에서 끊어 넘치지 않게 한다. */
+  word-break:keep-all;
+  overflow-wrap:anywhere;
 }
 h1,h2,h3,h4,h5,.brand-name,.timeline-stamp strong,.line-sample time,.line-name {
   font-family:var(--font-head);

@@ -347,12 +347,9 @@ def options(plan, index, locked, discover=False, diagnostics=None):
         if blocked:
             reject(info, [item["label"] for item in blocked])
             continue
-        from .plan_changes import cost_delta
+        from .plan_changes import change_delta
 
-        updated["delta"] = {
-            "minutes": updated["minutes"] - plan["minutes"],
-            "cost": cost_delta(plan["total"], updated["total"]),
-        }
+        updated["delta"] = change_delta(plan, updated)
         updated["change_reason"] = (
             "선택한 레저로 이 장소만 교체하고 이동·시간·비용을 다시 계산했어요."
         )

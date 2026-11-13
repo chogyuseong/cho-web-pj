@@ -11,10 +11,10 @@ Base URL: `http://127.0.0.1:8000/api`. JSON. 정확한 검증 스키마는 `/ope
 | GET /places/{id}/media | mode=real/demo | 검수 사진·저작자·라이선스 및 공개 대표 이미지 조회용 QID. 가상 장소 사진 제외 |
 | GET /places/{id}/blogs | mode=real/demo | 네이버 블로그 검색 제목·요약·블로그명·작성일·원문 링크. 자체 후기와 구분 |
 | POST /conditions/parse | text | patch, warnings, unparsed. 자동 적용 후 UI에서 확인 |
-| POST /plans | Conditions | plans 최대3, reasons, suggestions, search_note |
+| POST /plans | Conditions | plans 최대3, reasons, suggestions, search_note. 방문일이 지났거나 오늘 종료 시각이 지났으면(한국 시각) 422와 안내 문구(POST /plan-jobs 도 같음) |
 | GET /plans/{id} | 없음 | 저장된 일정; UUID 링크 공유용 |
 | POST /plans/{id}/alternatives | index, locked | 전체 재검증된 대안 최대8 |
-| POST /plans/{id}/replace | index, locked, replacement_id | 새 일정 ID, parent, aggregate_key, delta |
+| POST /plans/{id}/replace | index, locked, replacement_id | 새 일정 ID, parent, aggregate_key, delta(minutes, cost, total_before: 바꾸기 전 예상 비용 범위) |
 | POST /plans/{id}/transport | default(walk/transit/car/bicycle) 또는 legs([{index 0~5, mode}] 최대 6) | 새 일정(parent·delta·change_reason) + transport_change(바뀐 구간, 장소별 도착 전후, 종료 전후, 안내·경고). 영업·휴무·마지막 입장 위반 또는 필수 조건 위반은 409, 실제 장소 자동차 구간 재요청 5초 안 429 |
 | POST /plans/{id}/undo | 빈 JSON | parent 일정. 원본 기록은 삭제하지 않음 |
 | GET /plans/{id}/reviews | 없음 | count, average 또는 null, rows, 식별/확인 제한 안내 |

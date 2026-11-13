@@ -35,6 +35,9 @@ for _name in ('TOUR_API_KEY','NAVER_MAPS_KEY_ID','NAVER_MAPS_KEY','NAVER_MAPS_JS
 os.environ['DATEMATE_OPERATING_EVIDENCE_FILE']=''
 os.environ['DATEMATE_EXTERNAL_CALLS_PER_RECOMMENDATION']='60'
 os.environ['DATEMATE_HTTP_USD_PER_1000']='{}'
+# 테스트는 과거의 고정 방문일(2026-10-24 등)을 쓴다. 새 추천의 지난 날짜 검사만 이 시각(한국 시각) 기준으로 한다.
+# 검사 자체를 확인하는 테스트는 monkeypatch 로 바꾼다(tests/test_past_visit.py).
+os.environ['DATEMATE_PLANNING_NOW']='2026-01-01T00:00'
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import pytest
 from app import store

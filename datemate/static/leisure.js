@@ -36,7 +36,7 @@ function leisureSuggestionPanel(plan, index) {
       sport = leisureSport(row),
       card = node('article', undefined, 'leisure-result-card');
     card.dataset.sport = sport.label;
-    card.append(node('strong', place.name), node('p', leisureSportText(sport), 'leisure-sport-tag'), node('p', `${place.description||place.category} · 현재 장소에서 직선 ${leisureDistance(row.distance_m)}`, 'hint'), node('p', `교체 시 전체 소요 시간 ${row.delta.minutes>=0?'+':''}${row.delta.minutes}분 · 비용 변화 ${range(row.delta.cost)}`, 'hint'));
+    card.append(node('strong', place.name), node('p', leisureSportText(sport), 'leisure-sport-tag'), node('p', `${place.description||place.category} · 현재 장소에서 직선 ${leisureDistance(row.distance_m)}`, 'hint'), node('p', `교체 시 전체 소요 시간 ${row.delta.minutes>=0?'+':''}${row.delta.minutes}분 · ${costChangeText(row.delta.total_before, row.total)}`, 'hint'));
     const actions = node('div', undefined, 'actions');
     const select = button('이 레저로 교체', async () => {
       if (selected?.id !== plan.id) {

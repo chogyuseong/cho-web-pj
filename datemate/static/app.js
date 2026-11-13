@@ -40,6 +40,23 @@ window.addEventListener('hashchange', () => {
 });
 const won = n => n == null ? '미확인' : Number(n).toLocaleString('ko-KR') + '원';
 const range = v => v == null ? '미확인' : v[0] === v[1] ? won(v[0]) : won(v[0]) + ' ~ ' + won(v[1]);
+// 바꾸기 전·후의 예상 비용 범위를 나란히 보여 준다. 범위끼리의 차이(음수~양수)는 내지 않는다.
+function costChangeText(before, after) {
+  const known = v => Array.isArray(v) && v.length === 2 && v.every(n => n != null);
+  if (!known(before) || !known(after)) return '예상 비용 ' + range(after);
+  const low = after[0] - before[0],
+    high = after[1] - before[1];
+  if (!low && !high) return '비용은 그대로예요 · 예상 비용 ' + range(after);
+  const text = `예상 비용 ${range(before)} → ${range(after)}`;
+  return low === high ? `${text} · 약 ${won(Math.abs(low))} ${low > 0 ? '늘어요' : '줄어요'}` : text;
+}
+// 바꾸기 전 범위. 예전에 저장한 코스는 total_before 가 없어 cost(범위끼리의 차이: [후 최소−전 최대, 후 최대−전 최소])에서 되짚는다.
+function totalBefore(plan) {
+  const delta = plan.delta || {};
+  if (Array.isArray(delta.total_before)) return delta.total_before;
+  if (plan.parent && Array.isArray(delta.cost) && Array.isArray(plan.total)) return [plan.total[1] - delta.cost[1], plan.total[0] - delta.cost[0]];
+  return null;
+}
 const node = (tag, text, cls) => {
   const n = document.createElement(tag);
   if (text !== undefined) n.textContent = text;

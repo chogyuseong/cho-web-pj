@@ -36,13 +36,13 @@ def make_draft(plan,original,owner,kind,summary):
             plan.update(recalculated);plan=price_plans([plan])[0]
             plan['route_verification']='연결된 경로 공급자로 변경 동선을 재조회했어요. 조회 시점 기준입니다.'
         else:plan['route_verification']='실제 경로 확인 실패 · 추정 동선이며 실제 이동은 길찾기로 확인해 주세요.'
-    from .plan_changes import cost_delta
+    from .plan_changes import change_delta
     token=uuid.uuid4().hex;blocking=hard_blocks(plan)
     plan['verification']=verification_summary(plan)
     from .recommendation_summary import enrich
     enrich(plan)
     draft=dict(token=token,plan=plan,can_apply=not blocking,blocking=blocking,summary=summary,kind=kind,
-               delta=dict(minutes=plan['minutes']-original['minutes'],cost=cost_delta(original['total'],plan['total'])))
+               delta=change_delta(original,plan))
     draft['lock_version']=original.get('lock_version',0)
     if kind=='agreement':draft['vote_snapshot']=vote_status(original,owner)['places']
     store.cache('plan-draft:'+token,dict(owner=owner,parent=original['id'],draft=draft),600)

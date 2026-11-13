@@ -44,6 +44,7 @@ mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("text/javascript", ".mjs")
 mimetypes.add_type("text/css", ".css")
 mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("image/svg+xml", ".svg")
 
 
 @asynccontextmanager
@@ -534,7 +535,12 @@ def parse(data: ParseInput):
 @app.post("/api/plans")
 def create(data: Conditions, request: Request):
     from .recommendation_service import generate
+    from .service_time import past_visit_message
 
+    # 새 추천만 지난 날짜·시각을 막는다. 저장된 코스의 열기·공유·교체·수단 변경은 이 검사를 거치지 않는다.
+    past = past_visit_message(data)
+    if past:
+        raise HTTPException(422, past)
     try:
         return generate(data, request.state.owner)
     except store.PlanTooLarge as exc:
@@ -625,6 +631,7 @@ def alternatives(id: str, data: ReplaceInput, request: Request):
         options = filter_required(options)
         for option in options:
             option["delta"]["cost"] = [option["total"][i] - plan["total"][i] for i in (0, 1)]
+            option["delta"]["total_before"] = list(plan["total"])
         return {"alternatives": options}
     except ValueError as exc:
         raise HTTPException(422, str(exc))
@@ -849,6 +856,16 @@ def home():
     return HTMLResponse(versioned_page("index.html"), headers={"Cache-Control": "no-store"})
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    # 페이지는 /static/favicon.svg 를 연결하지만, 브라우저가 따로 찾는 /favicon.ico 도 같은 그림으로 답한다.
+    return FileResponse(
+        ROOT / "static" / "favicon.ico",
+        media_type="image/x-icon",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 
@@ -866,6 +883,7 @@ def leisure_options(id: str, data: ReplaceInput, request: Request):
                     "place": r["plan"]["places"][data.index],
                     "distance_m": r["distance_m"],
                     "delta": r["plan"]["delta"],
+                    "total": r["plan"]["total"],
                     "sport": r["sport"],
                 }
                 for r in rows

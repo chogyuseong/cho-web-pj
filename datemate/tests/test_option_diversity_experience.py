@@ -54,8 +54,10 @@ def test_same_composition_with_other_places_is_filled_with_factual_label(experie
     assert ids(result) == [['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i']]
     assert result[0]['option_purpose'] == '기준 코스'
     assert result[0]['difference'] is None
-    assert [p['option_purpose'] for p in result[1:]] == ['같은 구성 · 다른 장소'] * 2
-    assert [p['option_description'] for p in result[1:]] == ['코스 1과 같은 구성에서 장소 3곳이 달라요'] * 2
+    # 한 응답 안에서 역할 이름은 겹치지 않는다(뒤의 안은 코스 2와의 차이를 덧붙인다).
+    assert [p['option_purpose'] for p in result[1:]] == ['같은 구성 · 다른 장소', '같은 구성 · 또 다른 장소']
+    assert [p['option_description'] for p in result[1:]] == ['코스 1과 같은 구성에서 장소 3곳이 달라요',
+                                                              '코스 1과 같은 구성에서 장소 3곳이 달라요. 코스 2와도 장소 3곳이 달라요']
     assert all(p['difference']['selection_stage'] == 3 and p['difference']['composition_changed'] == 0 for p in result[1:])
     assert '같은 구성에서 장소만 다른 코스를 함께 보여요.' in result[0]['diversity_note']
     record = diagnostics['option_selection']
@@ -75,6 +77,47 @@ def test_composition_or_travel_difference_names_the_actual_change(experience):
     assert 'travel_shorter' in result[2]['difference']['kinds']
     assert result[0]['experience']['version'] == od.EXPERIENCE_VERSION
     assert result[0]['experience']['composition'] == {'카페': 1, '보기': 1, '걷기': 1}
+
+
+def purposes(result):
+    return [p['option_purpose'] for p in result]
+
+
+# 한 응답 안의 역할 이름 중복: 뒤의 안을 앞선 안과의 실제 차이로 다시 이름 붙인다.
+def test_same_role_name_is_renamed_from_what_it_swapped(experience):
+    base = plan('a:cafe b:see c:do')
+    walk_for_cafe = plan('d:walk e:see f:do')
+    walk_for_see = plan('g:cafe h:walk i:do')
+    result = od.select_options([base, walk_for_cafe, walk_for_see], conditions())
+    assert purposes(result) == ['기준 코스', '산책 넣은 코스', '전시·관람 대신 산책 넣은 코스']
+    assert result[2]['option_description'] == '코스 1의 전시·관람 1곳 대신 산책 1곳이 들어가요'
+
+
+def test_same_role_name_with_same_activities_is_renamed_from_travel(experience):
+    base = plan('a:cafe b:see c:do', minutes=40)
+    first = plan('d:cafe e:walk f:do', minutes=40)
+    shorter = plan('g:cafe h:walk i:do', minutes=15)
+    result = od.select_options([base, first, shorter], conditions())
+    assert purposes(result) == ['기준 코스', '산책 넣은 코스', '산책 넣은 코스 · 더 짧은 이동']
+    assert result[2]['option_description'] == '코스 1의 전시·관람 1곳 대신 산책 1곳이 들어가요. 코스 2보다 이동이 약 25분 짧아요'
+    result = od.select_options([plan('a:cafe b:see c:do', minutes=60), plan('d:cafe e:see f:do', minutes=40),
+                                plan('g:cafe h:see i:do', minutes=20)], conditions())
+    assert purposes(result) == ['기준 코스', '이동이 짧은 안', '이동이 가장 짧은 안']
+
+
+def test_role_names_are_unique_and_unchanged_without_duplicates(experience):
+    pool = [plan('a:cafe b:see c:walk'), plan('d:cafe e:do f:walk'), plan('g:rest h:see i:walk', minutes=50),
+            plan('j:meal k:see l:walk'), plan('m:cafe n:play o:rest', minutes=5)]
+    result = od.select_options(pool, conditions())
+    assert len(set(purposes(result))) == len(result)
+    assert all(' 대신 ' not in name and not name.endswith(' · 다른 장소') for name in purposes(result))
+
+
+def test_rename_falls_back_to_a_factual_suffix():
+    base, first, second = plan('a:cafe b:see c:do'), plan('d:cafe e:walk f:do'), plan('g:cafe h:walk i:do')
+    first_diff, second_diff = od._difference(first, base), od._difference(second, base)
+    name, text = od._distinct_role('산책 넣은 코스', '설명', second, first, 2, second_diff, first_diff)
+    assert (name, text) == ('산책 넣은 코스 · 다른 장소', '설명. 코스 2와는 장소 3곳이 달라요')
 
 
 def test_meal_and_cafe_are_separate_groups():

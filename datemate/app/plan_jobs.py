@@ -136,6 +136,12 @@ def _run(key, data, owner):
 @router.post("/api/plan-jobs", status_code=202)
 def start(data: Conditions, request: Request):
     owner = request.state.owner
+    from .service_time import past_visit_message
+
+    # 새 추천만 지난 날짜·시각을 막는다(한국 시각). 만든 코스를 바꾸는 경로는 이 검사를 거치지 않는다.
+    past = past_visit_message(data)
+    if past:
+        raise HTTPException(422, past)
     # 구간별 수단 예외는 만든 코스를 바꿀 때(/api/plans/{id}/transport)만 받는다.
     data = data.model_copy(update={"leg_modes": []})
     fingerprint = hashlib.sha256(

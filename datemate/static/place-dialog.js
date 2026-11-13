@@ -85,7 +85,7 @@ async function showAlternatives(index) {
       const info = option.replacement_evidence;
       card.append(node('p', `기존 장소에서 약 ${info.distance_m}m · 운영 정보 ${info.coverage.confirmed.length}/4항목 확인`, 'hint'), node('p', info.scope, 'hint'));
     }
-    card.append(node('h3', option.places[index].name), node('p', `전체 ${range(option.total)} · 시간 변화 ${option.delta.minutes}분 · 비용 변화 ${option.delta.cost.map(won).join(' ~ ')}`, 'hint'), button('이 장소로 교체', async () => {
+    card.append(node('h3', option.places[index].name), node('p', `시간 변화 ${option.delta.minutes}분 · ${costChangeText(option.delta.total_before, option.total)}`, 'hint'), button('이 장소로 교체', async () => {
       if (selected?.id !== planId || generation !== dialogGeneration) {
         toast('선택한 코스가 바뀌었어요. 현재 코스에서 다시 골라주세요.');
         return;

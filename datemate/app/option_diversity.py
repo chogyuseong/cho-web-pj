@@ -305,8 +305,35 @@ def experience_select(plans,c):
     return chosen,annotations,diagnostics
 
 
+def _labels(rows):
+    return ', '.join(GROUP_LABELS[r['group']] for r in rows)
+
+
+def _distinct_role(name,text,plan,other,number,difference,other_difference):
+    """앞선 코스(other, 코스 number)와 역할 이름이 같을 때 둘 사이의 실제 차이로 이름을 다시 짓는다.
+    활동 → 이동 순서로 보고, 이름으로 나타낼 차이가 없으면 사실인 꼬리말(· 다른 장소)만 붙인다."""
+    josa='와' if number==2 else '과'
+    changed=changed_places(plan,other)
+    if name==SAME_COMPOSITION_ROLE:
+        return '같은 구성 · 또 다른 장소',text+f'. 코스 {number}{josa}도 장소 {changed}곳이 달라요'
+    if dcomp(plan,other):
+        removed,added=difference['removed'],difference['added']
+        if removed and removed!=other_difference['removed']:
+            if name.endswith(' 넣은 코스'):return _labels(removed)+' 대신 '+name,text
+            return _labels(removed)+' 뺀 코스',text
+        if added and added!=other_difference['added']:return _counted(added)+' 넣은 코스',text
+    if travel_differs(plan,other):
+        delta=travel_minutes(plan)-travel_minutes(other)
+        text+=f". 코스 {number}보다 이동이 약 {abs(delta)}분 {'짧아요' if delta<0 else '길어요'}"
+        if name=='이동이 짧은 안' and delta<0:return '이동이 가장 짧은 안',text
+        if name=='같은 활동 · 다른 동선':return '같은 활동 · 또 다른 동선',text
+        return name+(' · 더 짧은 이동' if delta<0 else ' · 다른 동선'),text
+    return name+' · 다른 장소',text+f'. 코스 {number}{josa}는 장소 {changed}곳이 달라요'
+
+
 def annotate(chosen,stages,c,note):
-    """고른 안마다 표시 정보(역할 이름·설명·기준 코스와의 차이)를 만든다. stages[0]은 기준 코스(None)."""
+    """고른 안마다 표시 정보(역할 이름·설명·기준 코스와의 차이)를 만든다. stages[0]은 기준 코스(None).
+    한 응답 안에서 역할 이름은 겹치지 않는다. 뒤에 고른 안의 이름을 앞선 안과의 실제 차이로 다시 짓는다."""
     base=chosen[0];annotations=[]
     same_composition_only=c.theme_mode=='focus' or changeable_seats(base,c)==0
     for i,p in enumerate(chosen):
@@ -317,6 +344,11 @@ def annotate(chosen,stages,c,note):
         else:
             difference=_difference(p,base);difference['selection_stage']=stages[i]
             name,text=_role(p,base,difference,same_composition_only,chosen,stages[i])
+            same=next((j for j,r in enumerate(annotations) if r['option_purpose']==name),None)
+            if same is not None:
+                name,text=_distinct_role(name,text,p,chosen[same],same+1,difference,annotations[same]['difference'])
+                if any(r['option_purpose']==name for r in annotations):
+                    name=annotations[same]['option_purpose']+' · 다른 장소'
             row.update(option_purpose=name,option_description=text,difference=difference)
         annotations.append(row)
     return annotations

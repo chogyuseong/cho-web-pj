@@ -12,6 +12,16 @@ def cost_delta(before, after):
     return [after[0] - before[1], after[1] - before[0]]
 
 
+def change_delta(before, after):
+    """바꾸기 전과 후의 차이. 화면은 total_before 와 바뀐 코스의 total 을 나란히 보여 준다
+    (cost 는 범위끼리의 차이라 화면에 내지 않는다)."""
+    return dict(
+        minutes=after["minutes"] - before["minutes"],
+        cost=cost_delta(before["total"], after["total"]),
+        total_before=list(before["total"]),
+    )
+
+
 def save_change(plan, original, owner):
     from .condition_audit import audit_plan
     from .preferences import hard_blocks
@@ -53,10 +63,7 @@ def save_change(plan, original, owner):
     updated["verification"] = verification_summary(updated)
     enrich(updated)
     if moved or updated.get("delta"):
-        updated["delta"] = dict(
-            minutes=updated["minutes"] - original["minutes"],
-            cost=cost_delta(original["total"], updated["total"]),
-        )
+        updated["delta"] = change_delta(original, updated)
     updated.update(id=uuid.uuid4().hex, parent=original["id"])
     updated["aggregate_key"] = store.aggregate_key([p["id"] for p in updated["places"]])
     payload = store.plan_payload(updated)

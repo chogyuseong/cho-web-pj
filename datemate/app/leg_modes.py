@@ -199,7 +199,8 @@ def apply_change(plan, prepared):
     else:
         updated.pop('route_verification', None)
     updated['delta'] = dict(minutes=updated['minutes'] - plan['minutes'],
-                            cost=[updated['total'][i] - plan['total'][i] for i in (0, 1)])
+                            cost=[updated['total'][i] - plan['total'][i] for i in (0, 1)],
+                            total_before=list(plan['total']))
     updated['change_reason'] = '이동 수단을 바꿔 이동·시간·비용을 다시 계산했어요.'
     names = place_names(plan)
     changed = [dict(index=i, **{'from': start}, to=end, origin=names.get(start, ''), destination=names.get(end, ''),

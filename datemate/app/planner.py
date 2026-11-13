@@ -268,7 +268,7 @@ def replacements(plan,index,locked):
             if plan.get('best_effort'):
                 from .best_effort import annotate
                 updated=annotate(updated,c)
-            updated['delta']=dict(minutes=updated['minutes']-plan['minutes'],cost=[updated['total'][i]-plan['total'][i] for i in (0,1)])
+            updated['delta']=dict(minutes=updated['minutes']-plan['minutes'],cost=[updated['total'][i]-plan['total'][i] for i in (0,1)],total_before=list(plan['total']))
             updated['change_reason']='앞뒤 이동·시간·비용과 요청 조건 차이를 다시 계산했습니다.'
             alternatives.append(updated)
     if plan.get('best_effort'):alternatives.sort(key=lambda p:p['penalty'])

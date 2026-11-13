@@ -190,9 +190,11 @@ header .brand-name .brand-tagline { color:var(--muted); font-family:var(--font-b
 header nav .nav,header nav a { color:var(--muted); background:none; border-radius:0; font-weight:600; }
 header nav .nav:hover,header nav a:hover { color:var(--ink); background:none; }
 header nav .nav.active,header nav a[aria-current=page] { color:var(--ink); background:none; border-bottom:3px solid var(--hong); }
-/* 메뉴 4개(코스 만들기·장소 둘러보기·테마별 추천·피드백)가 좁은 화면에서도 한 줄로, 낱말 중간에서 끊기지 않게. */
+/* 메뉴 4개(코스 만들기·장소 둘러보기·테마별 추천·피드백)가 좁은 화면에서도 한 줄로, 낱말 중간에서 끊기지 않게.
+   네 메뉴를 한 줄에 놓으려면 약 322px 이 필요하다(한글은 글꼴과 상관없이 거의 1em 폭). 그보다 좁은 화면(320px 등)에서는
+   가로로 넘치지 않도록 메뉴 단위로 다음 줄로 넘긴다. */
 @media(max-width:480px) {
-  header nav { gap:4px; }
+  header nav { gap:4px; flex-wrap:wrap; }
   header nav a,header nav button.nav { padding:6px 4px; white-space:nowrap; }
 }
 .mode-badge { display:none!important; }

@@ -7,12 +7,14 @@ Only the fixed local test Compose project is restarted; no production resources.
 import json
 import subprocess
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import httpx
 
 ROOT=Path(__file__).resolve().parents[2]
 FIRST='http://127.0.0.1:18080'
 SECOND='http://127.0.0.1:18081'
+SEOUL=timezone(timedelta(hours=9))
 HEADERS={'Host':'datemate.test','X-Forwarded-Proto':'https','Origin':'https://datemate.test'}
 
 
@@ -47,7 +49,10 @@ def main():
         status=client.get(FIRST+'/api/status').json()
         assert all(status['counts'][mode]['chunks']>0 for mode in ('demo','real'))
         checks['places_and_documents_bootstrapped']=True
-        payload={'mode':'demo','visit_date':'2026-10-31','budget':1000000,'max_leg':180}
+        # 새 추천은 지난 날짜를 422 로 막는다(app/service_time.py, 한국 시각). 운영과 같은 설정을 쓰는 이 점검은
+        # 시각을 고정하지 않으므로, 실행하는 날의 한국 시각 기준 내일로 요청한다.
+        visit=(datetime.now(SEOUL)+timedelta(days=1)).date().isoformat()
+        payload={'mode':'demo','visit_date':visit,'budget':1000000,'max_leg':180}
         response=client.post(FIRST+'/api/plan-jobs',json=payload)
         assert response.status_code==202,response.text
         job=response.json()['id']

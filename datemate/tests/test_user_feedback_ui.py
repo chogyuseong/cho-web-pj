@@ -56,7 +56,8 @@ def test_writing_feedback_shows_success_and_blocks_resend(audit_page):
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
     with store.connect() as db:
         row = db.execute('SELECT screen,viewport_width FROM feedback_entries WHERE message=?', (text,)).fetchone()
-    assert tuple(row) == ('explore', 390)
+    # 이름으로 읽는다: SQLite 의 sqlite3.Row 는 값을, PostgreSQL 의 Record(dict, app/database.py)는 tuple() 에 열 이름을 내준다.
+    assert (row['screen'], row['viewport_width']) == ('explore', 390)
 
 
 def test_admin_lists_script_text_as_plain_text(audit_page, monkeypatch):

@@ -171,8 +171,16 @@ def recommend_strict(c,evidence=None,stage='planner'):
         if position==c.count-1:next_beam.sort(key=lambda p:meal_penalty(p,c))
         from .request_intent import plan_penalty
         next_beam.sort(key=lambda p:plan_penalty(p,c))
-        from .option_diversity import diverse_beam
-        beam=[p['places'] for p in diverse_beam(next_beam,60)]
+        from .option_diversity import composition_beam
+        # 구성 할당은 위 정렬의 앞쪽 키(요청 조건·식사 배치·선호·블로그 근거·요청 낱말)가 같은 후보끼리만 자리를 옮긴다.
+        # 한 종류에 집중(focus)하는 요청에서는 구성을 섞지 않는다.
+        words=re.findall(r'[가-힣A-Za-z0-9]{2,}',c.request)
+        final_step=position==c.count-1
+        def tier(p):
+            meal=meal_penalty(p,c) if final_step else max(0,sum(is_meal(x) for x in p['places'])-1) if meal_due(c) else 0
+            return (plan_penalty(p,c),meal,-fit_score(p,c),-(priority(p,evidence) if evidence else 0),
+                    -sum(w in (x['name']+' '+x['category']) for x in p['places'] for w in words))
+        beam=[p['places'] for p in composition_beam(next_beam,60,tier=tier,final=final_step,enabled=c.theme_mode!='focus')]
         if not beam:break
     final=[];sets=[]
     if beam and len(beam[0])==c.count:

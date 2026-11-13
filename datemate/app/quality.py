@@ -33,10 +33,28 @@ def meal_due(c):
     start,end=mins(c.start),mins(c.end)
     return c.include_meal and any(min(end,b)-max(start,a)>=45 for a,b in [(690,870),(1050,1230)])
 
+LEISURE_SEARCH_SOURCE='레저 종목 분류'
+
+def wants_leisure(c):
+    """운동·레저를 요청했거나, 고른 테마·데이트 분류가 레저를 포함하는지."""
+    from .request_intent import intent,INTENTS
+    from .taxonomy import classification_themes
+    if any(INTENTS.get(key,('',))[0]=='레저·활동' for key in intent(c)['intents']):return True
+    return '레저·활동' in set(c.themes or [])|set(classification_themes(c))
+
+def from_leisure_search(place):
+    return LEISURE_SEARCH_SOURCE in (place.get('source_type') or '')
+
 def pool(c):
     from .catalog import places
     from .regions import same_region
     rows=places(c.mode,c.visit_date)
+    # 레저 후보 조회로 찾아 둔 운동 시설(탁구장·볼링장 등)은 운동을 원한 요청에서만 추천 후보로 쓴다.
+    # 그대로 두면 누군가 레저 패널을 연 동네의 기본 추천에 '탁구장 → 식사 → 볼링장' 같은 코스가 섞인다.
+    # 사용자가 이미 고른(고정한) 장소는 남긴다. 레저 패널의 교체 후보는 이 함수를 거치지 않는다.
+    if not wants_leisure(c):
+        kept=set((c.locked or {}).values()) if isinstance(c.locked,dict) else set()
+        rows=[p for p in rows if not from_leisure_search(p) or p['id'] in kept]
     if c.mode=='real' and c.include_meal:
         from .restaurants import restaurants
         rows+=restaurants()

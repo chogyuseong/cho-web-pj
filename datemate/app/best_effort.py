@@ -80,10 +80,13 @@ def suggest(c,evidence=None,out=None,stage='best_effort'):
                 if p['id'] in {x['id'] for x in selected}:continue
                 plan,error=evaluate(selected+[p],c,partial=position<target-1,soft=True)
                 if not error:options.append(annotate(plan,c))
-        options.sort(key=score)
+        scores={id(p):score(p) for p in options}
+        options.sort(key=lambda p:scores[id(p)])
         if not options:break
-        from .option_diversity import diverse_beam
-        final=diverse_beam(options,40);beam=[p['places'] for p in final]
+        from .option_diversity import composition_beam
+        # 엄격 탐색과 같은 구성 할당. 조건 차이 점수(penalty)까지 같은 후보끼리만 자리를 옮기고, 이동·비용 순서만 양보한다.
+        final=composition_beam(options,40,tier=lambda p:scores[id(p)][:5],final=position==target-1,enabled=c.theme_mode!='focus')
+        beam=[p['places'] for p in final]
     results=[];seen=set()
     for plan in final:
         if len(plan['places'])!=target:continue

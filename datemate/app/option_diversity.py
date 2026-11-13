@@ -33,6 +33,36 @@ def diverse_beam(plans,limit):
     return out
 
 
+# 빔 구성 할당(beam-v1). 수치는 scripts/measure_option_diversity.py의 부산·경주 재현 조건으로 정했다.
+# - 순위 보호(BEAM_PROTECT): 정렬 상위 절반은 구성과 관계없이 그대로 남긴다. 1안이 될 부분 경로가
+#   상위권에서 빠지지 않게 하는 장치다(1안 동일 여부는 측정 스크립트로 확인).
+# - 구성 상한(BEAM_CAP): 한 구성(부분 경로의 group 다중집합)이 빔의 절반을 넘으면 나머지는 뒤로 미룬다.
+# - 구성별 최소 보장(BEAM_GUARANTEE): 구성마다 상위 몇 개를 먼저 넣는다. 부분 경로는 2개, 완료 후보는 3개.
+#   완료 후보에서 3개면 선택기가 같은 구성 안에서도 장소가 다른 안을 고를 여지가 남는다.
+# 할당은 같은 우선 등급(tier) 안에서만 자리를 옮긴다. 등급이 앞선 후보(필수 조건·식사 배치·요청 낱말·
+# 블로그 근거·선호 점수)는 상한에 걸려도 등급이 뒤진 후보보다 먼저 들어간다. 평가 횟수는 그대로다.
+BEAM_PROTECT=0.5
+BEAM_CAP=0.5
+BEAM_GUARANTEE_PARTIAL=2
+BEAM_GUARANTEE_FINAL=3
+
+
+def composition_beam(plans,limit,tier=None,final=False,enabled=True):
+    """정렬된 plans에서 빔 limit개를 고른다. 순서는 입력 순위를 유지한다(결정적, 난수 없음).
+    enabled=False거나 후보가 limit 이하면 diverse_beam과 같다."""
+    unique=diverse_beam(plans,len(plans))
+    if not enabled or len(unique)<=limit:return unique[:limit]
+    protect=int(limit*BEAM_PROTECT);cap=max(1,int(limit*BEAM_CAP))
+    guarantee=BEAM_GUARANTEE_FINAL if final else BEAM_GUARANTEE_PARTIAL
+    seen=Counter();order=[]
+    for rank,plan in enumerate(unique):
+        key=composition_label(plan);n=seen[key];seen[key]+=1
+        bucket=0 if rank<protect else 1 if n<guarantee else 2 if n<cap else 3
+        order.append((tier(plan) if tier else (),bucket,rank))
+    keep=sorted(rank for *_,rank in sorted(order)[:limit])
+    return [unique[r] for r in keep]
+
+
 def legacy_select_options(plans,c):
     unique=[]
     for plan in plans:

@@ -107,7 +107,7 @@ $demo.plans | Select-Object id, finish, minutes
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-전체 실행은 약 5분 걸리며 브라우저 테스트가 포함되어 Microsoft Edge가 필요합니다. 단위/API 테스트는 임시 저장소를 사용하며 외부 검색 키를 비워 실제 검색 API 사용을 막습니다. 외부 API의 현재 응답이나 모든 장소의 정보 정확성을 보증하는 검사는 아닙니다.
+전체 실행은 약 8분 걸리며(2026-11-13 기준 769개 통과, 1개 건너뜀) 브라우저 테스트가 포함되어 Microsoft Edge가 필요합니다. 단위/API 테스트는 임시 저장소를 사용하며 외부 검색 키를 비워 실제 검색 API 사용을 막습니다. 서버는 새 추천 요청의 지난 방문일을 거절하는데, 테스트는 과거의 고정 날짜를 쓰므로 `tests/conftest.py`가 `DATEMATE_PLANNING_NOW`로 그 검사의 현재 시각만 고정합니다. 운영에서는 이 값을 넣지 않습니다. 외부 API의 현재 응답이나 모든 장소의 정보 정확성을 보증하는 검사는 아닙니다.
 
 브라우저 검증은 서버가 켜진 상태에서 실행합니다. Playwright는 별도 개발 도구이며 아래 스크립트는 설치된 Microsoft Edge를 사용합니다.
 

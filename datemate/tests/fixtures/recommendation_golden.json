@@ -6679,62 +6679,6 @@
        2
       ],
       "score": 9
-     },
-     "discovered:15f891fba752b6b5a55e": {
-      "independent_authors": 1,
-      "ranks": [
-       4
-      ],
-      "score": 2
-     },
-     "discovered:25cadb86c9975415dcd2": {
-      "independent_authors": 1,
-      "ranks": [
-       5
-      ],
-      "score": 0.25
-     },
-     "discovered:292623b555f92d7dd2f1": {
-      "independent_authors": 1,
-      "ranks": [
-       1
-      ],
-      "score": 5
-     },
-     "discovered:480f7e6afd054f263d9a": {
-      "independent_authors": 1,
-      "ranks": [
-       2
-      ],
-      "score": 4
-     },
-     "discovered:955482a9871777eecdb1": {
-      "independent_authors": 1,
-      "ranks": [
-       3
-      ],
-      "score": 3
-     },
-     "discovered:a09d97eb39411d8e4772": {
-      "independent_authors": 1,
-      "ranks": [
-       5
-      ],
-      "score": 0.25
-     },
-     "discovered:abad1a78d167e057dc76": {
-      "independent_authors": 1,
-      "ranks": [
-       2
-      ],
-      "score": 4
-     },
-     "discovered:ffe1e562448e8ad3e000": {
-      "independent_authors": 1,
-      "ranks": [
-       4
-      ],
-      "score": 2
      }
     },
     "message": "검색 글에서 확인한 장소를 우선 추천해요.",
@@ -6747,8 +6691,7 @@
       "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
       "mentioned_places": [
        "건국대학교박물관",
-       "서울숲",
-       "한옥 비빔밥"
+       "서울숲"
       ],
       "posted_at": "20261101",
       "rank": 1,
@@ -6765,9 +6708,7 @@
       "description": "성수동 데이트 기와 로스터리 아메리카노 5,000원. 골목 갤러리 전시도 봤어요. 서울",
       "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
       "mentioned_places": [
-       "서울숲",
-       "기와 로스터리",
-       "골목 갤러리"
+       "서울숲"
       ],
       "posted_at": "20261101",
       "rank": 2,
@@ -6783,9 +6724,7 @@
       "content_scope": "공개 본문 + 검색 요약",
       "description": "성수동 데이트 한지 공방 체험 1인 체험비 25,000원. 남문 피순대는 비추천이에요.",
       "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-      "mentioned_places": [
-       "한지 공방"
-      ],
+      "mentioned_places": [],
       "posted_at": "20261101",
       "rank": 3,
       "search_rank": 3,
@@ -6800,10 +6739,7 @@
       "content_scope": "공개 본문 + 검색 요약",
       "description": "성수동 데이트 천변 산책로 따라 걷다가 한옥 찻집 쌍화차 7,000원.",
       "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-      "mentioned_places": [
-       "한옥 찻집",
-       "천변 산책로"
-      ],
+      "mentioned_places": [],
       "posted_at": "20261101",
       "rank": 4,
       "search_rank": 5,
@@ -6818,10 +6754,7 @@
       "content_scope": "공개 본문 + 검색 요약",
       "description": "성수동 데이트 오목대 공원 산책 · 작은 미술관 관람료 3,000원. 광고 포함 글입니",
       "evidence_note": "광고·협찬 표시 확인 · 추천 가중치 축소",
-      "mentioned_places": [
-       "작은 미술관",
-       "오목대 공원"
-      ],
+      "mentioned_places": [],
       "posted_at": "20261101",
       "rank": 5,
       "search_rank": 4,
@@ -7311,62 +7244,6 @@
          2
         ],
         "score": 9
-       },
-       "discovered:15f891fba752b6b5a55e": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
-       },
-       "discovered:25cadb86c9975415dcd2": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:292623b555f92d7dd2f1": {
-        "independent_authors": 1,
-        "ranks": [
-         1
-        ],
-        "score": 5
-       },
-       "discovered:480f7e6afd054f263d9a": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:955482a9871777eecdb1": {
-        "independent_authors": 1,
-        "ranks": [
-         3
-        ],
-        "score": 3
-       },
-       "discovered:a09d97eb39411d8e4772": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:abad1a78d167e057dc76": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:ffe1e562448e8ad3e000": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
        }
       },
       "message": "검색 글에서 확인한 장소를 우선 추천해요.",
@@ -7379,8 +7256,7 @@
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
          "건국대학교박물관",
-         "서울숲",
-         "한옥 비빔밥"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 1,
@@ -7397,9 +7273,7 @@
         "description": "성수동 데이트 기와 로스터리 아메리카노 5,000원. 골목 갤러리 전시도 봤어요. 서울",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
-         "서울숲",
-         "기와 로스터리",
-         "골목 갤러리"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 2,
@@ -7415,9 +7289,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 한지 공방 체험 1인 체험비 25,000원. 남문 피순대는 비추천이에요.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한지 공방"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 3,
         "search_rank": 3,
@@ -7432,10 +7304,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 천변 산책로 따라 걷다가 한옥 찻집 쌍화차 7,000원.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한옥 찻집",
-         "천변 산책로"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 4,
         "search_rank": 5,
@@ -7450,10 +7319,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 오목대 공원 산책 · 작은 미술관 관람료 3,000원. 광고 포함 글입니",
         "evidence_note": "광고·협찬 표시 확인 · 추천 가중치 축소",
-        "mentioned_places": [
-         "작은 미술관",
-         "오목대 공원"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 5,
         "search_rank": 4,
@@ -8340,62 +8206,6 @@
          2
         ],
         "score": 9
-       },
-       "discovered:15f891fba752b6b5a55e": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
-       },
-       "discovered:25cadb86c9975415dcd2": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:292623b555f92d7dd2f1": {
-        "independent_authors": 1,
-        "ranks": [
-         1
-        ],
-        "score": 5
-       },
-       "discovered:480f7e6afd054f263d9a": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:955482a9871777eecdb1": {
-        "independent_authors": 1,
-        "ranks": [
-         3
-        ],
-        "score": 3
-       },
-       "discovered:a09d97eb39411d8e4772": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:abad1a78d167e057dc76": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:ffe1e562448e8ad3e000": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
        }
       },
       "message": "검색 글에서 확인한 장소를 우선 추천해요.",
@@ -8408,8 +8218,7 @@
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
          "건국대학교박물관",
-         "서울숲",
-         "한옥 비빔밥"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 1,
@@ -8426,9 +8235,7 @@
         "description": "성수동 데이트 기와 로스터리 아메리카노 5,000원. 골목 갤러리 전시도 봤어요. 서울",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
-         "서울숲",
-         "기와 로스터리",
-         "골목 갤러리"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 2,
@@ -8444,9 +8251,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 한지 공방 체험 1인 체험비 25,000원. 남문 피순대는 비추천이에요.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한지 공방"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 3,
         "search_rank": 3,
@@ -8461,10 +8266,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 천변 산책로 따라 걷다가 한옥 찻집 쌍화차 7,000원.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한옥 찻집",
-         "천변 산책로"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 4,
         "search_rank": 5,
@@ -8479,10 +8281,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 오목대 공원 산책 · 작은 미술관 관람료 3,000원. 광고 포함 글입니",
         "evidence_note": "광고·협찬 표시 확인 · 추천 가중치 축소",
-        "mentioned_places": [
-         "작은 미술관",
-         "오목대 공원"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 5,
         "search_rank": 4,
@@ -9397,62 +9196,6 @@
          2
         ],
         "score": 9
-       },
-       "discovered:15f891fba752b6b5a55e": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
-       },
-       "discovered:25cadb86c9975415dcd2": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:292623b555f92d7dd2f1": {
-        "independent_authors": 1,
-        "ranks": [
-         1
-        ],
-        "score": 5
-       },
-       "discovered:480f7e6afd054f263d9a": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:955482a9871777eecdb1": {
-        "independent_authors": 1,
-        "ranks": [
-         3
-        ],
-        "score": 3
-       },
-       "discovered:a09d97eb39411d8e4772": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:abad1a78d167e057dc76": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:ffe1e562448e8ad3e000": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
        }
       },
       "message": "검색 글에서 확인한 장소를 우선 추천해요.",
@@ -9465,8 +9208,7 @@
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
          "건국대학교박물관",
-         "서울숲",
-         "한옥 비빔밥"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 1,
@@ -9483,9 +9225,7 @@
         "description": "성수동 데이트 기와 로스터리 아메리카노 5,000원. 골목 갤러리 전시도 봤어요. 서울",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
-         "서울숲",
-         "기와 로스터리",
-         "골목 갤러리"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 2,
@@ -9501,9 +9241,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 한지 공방 체험 1인 체험비 25,000원. 남문 피순대는 비추천이에요.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한지 공방"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 3,
         "search_rank": 3,
@@ -9518,10 +9256,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 천변 산책로 따라 걷다가 한옥 찻집 쌍화차 7,000원.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한옥 찻집",
-         "천변 산책로"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 4,
         "search_rank": 5,
@@ -9536,10 +9271,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 오목대 공원 산책 · 작은 미술관 관람료 3,000원. 광고 포함 글입니",
         "evidence_note": "광고·협찬 표시 확인 · 추천 가중치 축소",
-        "mentioned_places": [
-         "작은 미술관",
-         "오목대 공원"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 5,
         "search_rank": 4,
@@ -10085,62 +9817,6 @@
        2
       ],
       "score": 9
-     },
-     "discovered:15f891fba752b6b5a55e": {
-      "independent_authors": 1,
-      "ranks": [
-       4
-      ],
-      "score": 2
-     },
-     "discovered:25cadb86c9975415dcd2": {
-      "independent_authors": 1,
-      "ranks": [
-       5
-      ],
-      "score": 0.25
-     },
-     "discovered:292623b555f92d7dd2f1": {
-      "independent_authors": 1,
-      "ranks": [
-       1
-      ],
-      "score": 5
-     },
-     "discovered:480f7e6afd054f263d9a": {
-      "independent_authors": 1,
-      "ranks": [
-       2
-      ],
-      "score": 4
-     },
-     "discovered:955482a9871777eecdb1": {
-      "independent_authors": 1,
-      "ranks": [
-       3
-      ],
-      "score": 3
-     },
-     "discovered:a09d97eb39411d8e4772": {
-      "independent_authors": 1,
-      "ranks": [
-       5
-      ],
-      "score": 0.25
-     },
-     "discovered:abad1a78d167e057dc76": {
-      "independent_authors": 1,
-      "ranks": [
-       2
-      ],
-      "score": 4
-     },
-     "discovered:ffe1e562448e8ad3e000": {
-      "independent_authors": 1,
-      "ranks": [
-       4
-      ],
-      "score": 2
      }
     },
     "message": "검색 글에서 확인한 장소를 우선 추천해요.",
@@ -10153,8 +9829,7 @@
       "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
       "mentioned_places": [
        "건국대학교박물관",
-       "서울숲",
-       "한옥 비빔밥"
+       "서울숲"
       ],
       "posted_at": "20261101",
       "rank": 1,
@@ -10171,9 +9846,7 @@
       "description": "성수동 데이트 기와 로스터리 아메리카노 5,000원. 골목 갤러리 전시도 봤어요. 서울",
       "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
       "mentioned_places": [
-       "서울숲",
-       "기와 로스터리",
-       "골목 갤러리"
+       "서울숲"
       ],
       "posted_at": "20261101",
       "rank": 2,
@@ -10189,9 +9862,7 @@
       "content_scope": "공개 본문 + 검색 요약",
       "description": "성수동 데이트 한지 공방 체험 1인 체험비 25,000원. 남문 피순대는 비추천이에요.",
       "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-      "mentioned_places": [
-       "한지 공방"
-      ],
+      "mentioned_places": [],
       "posted_at": "20261101",
       "rank": 3,
       "search_rank": 3,
@@ -10206,10 +9877,7 @@
       "content_scope": "공개 본문 + 검색 요약",
       "description": "성수동 데이트 천변 산책로 따라 걷다가 한옥 찻집 쌍화차 7,000원.",
       "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-      "mentioned_places": [
-       "한옥 찻집",
-       "천변 산책로"
-      ],
+      "mentioned_places": [],
       "posted_at": "20261101",
       "rank": 4,
       "search_rank": 5,
@@ -10224,10 +9892,7 @@
       "content_scope": "공개 본문 + 검색 요약",
       "description": "성수동 데이트 오목대 공원 산책 · 작은 미술관 관람료 3,000원. 광고 포함 글입니",
       "evidence_note": "광고·협찬 표시 확인 · 추천 가중치 축소",
-      "mentioned_places": [
-       "작은 미술관",
-       "오목대 공원"
-      ],
+      "mentioned_places": [],
       "posted_at": "20261101",
       "rank": 5,
       "search_rank": 4,
@@ -10717,62 +10382,6 @@
          2
         ],
         "score": 9
-       },
-       "discovered:15f891fba752b6b5a55e": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
-       },
-       "discovered:25cadb86c9975415dcd2": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:292623b555f92d7dd2f1": {
-        "independent_authors": 1,
-        "ranks": [
-         1
-        ],
-        "score": 5
-       },
-       "discovered:480f7e6afd054f263d9a": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:955482a9871777eecdb1": {
-        "independent_authors": 1,
-        "ranks": [
-         3
-        ],
-        "score": 3
-       },
-       "discovered:a09d97eb39411d8e4772": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:abad1a78d167e057dc76": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:ffe1e562448e8ad3e000": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
        }
       },
       "message": "검색 글에서 확인한 장소를 우선 추천해요.",
@@ -10785,8 +10394,7 @@
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
          "건국대학교박물관",
-         "서울숲",
-         "한옥 비빔밥"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 1,
@@ -10803,9 +10411,7 @@
         "description": "성수동 데이트 기와 로스터리 아메리카노 5,000원. 골목 갤러리 전시도 봤어요. 서울",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
-         "서울숲",
-         "기와 로스터리",
-         "골목 갤러리"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 2,
@@ -10821,9 +10427,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 한지 공방 체험 1인 체험비 25,000원. 남문 피순대는 비추천이에요.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한지 공방"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 3,
         "search_rank": 3,
@@ -10838,10 +10442,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 천변 산책로 따라 걷다가 한옥 찻집 쌍화차 7,000원.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한옥 찻집",
-         "천변 산책로"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 4,
         "search_rank": 5,
@@ -10856,10 +10457,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 오목대 공원 산책 · 작은 미술관 관람료 3,000원. 광고 포함 글입니",
         "evidence_note": "광고·협찬 표시 확인 · 추천 가중치 축소",
-        "mentioned_places": [
-         "작은 미술관",
-         "오목대 공원"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 5,
         "search_rank": 4,
@@ -11746,62 +11344,6 @@
          2
         ],
         "score": 9
-       },
-       "discovered:15f891fba752b6b5a55e": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
-       },
-       "discovered:25cadb86c9975415dcd2": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:292623b555f92d7dd2f1": {
-        "independent_authors": 1,
-        "ranks": [
-         1
-        ],
-        "score": 5
-       },
-       "discovered:480f7e6afd054f263d9a": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:955482a9871777eecdb1": {
-        "independent_authors": 1,
-        "ranks": [
-         3
-        ],
-        "score": 3
-       },
-       "discovered:a09d97eb39411d8e4772": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:abad1a78d167e057dc76": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:ffe1e562448e8ad3e000": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
        }
       },
       "message": "검색 글에서 확인한 장소를 우선 추천해요.",
@@ -11814,8 +11356,7 @@
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
          "건국대학교박물관",
-         "서울숲",
-         "한옥 비빔밥"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 1,
@@ -11832,9 +11373,7 @@
         "description": "성수동 데이트 기와 로스터리 아메리카노 5,000원. 골목 갤러리 전시도 봤어요. 서울",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
-         "서울숲",
-         "기와 로스터리",
-         "골목 갤러리"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 2,
@@ -11850,9 +11389,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 한지 공방 체험 1인 체험비 25,000원. 남문 피순대는 비추천이에요.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한지 공방"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 3,
         "search_rank": 3,
@@ -11867,10 +11404,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 천변 산책로 따라 걷다가 한옥 찻집 쌍화차 7,000원.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한옥 찻집",
-         "천변 산책로"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 4,
         "search_rank": 5,
@@ -11885,10 +11419,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 오목대 공원 산책 · 작은 미술관 관람료 3,000원. 광고 포함 글입니",
         "evidence_note": "광고·협찬 표시 확인 · 추천 가중치 축소",
-        "mentioned_places": [
-         "작은 미술관",
-         "오목대 공원"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 5,
         "search_rank": 4,
@@ -12803,62 +12334,6 @@
          2
         ],
         "score": 9
-       },
-       "discovered:15f891fba752b6b5a55e": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
-       },
-       "discovered:25cadb86c9975415dcd2": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:292623b555f92d7dd2f1": {
-        "independent_authors": 1,
-        "ranks": [
-         1
-        ],
-        "score": 5
-       },
-       "discovered:480f7e6afd054f263d9a": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:955482a9871777eecdb1": {
-        "independent_authors": 1,
-        "ranks": [
-         3
-        ],
-        "score": 3
-       },
-       "discovered:a09d97eb39411d8e4772": {
-        "independent_authors": 1,
-        "ranks": [
-         5
-        ],
-        "score": 0.25
-       },
-       "discovered:abad1a78d167e057dc76": {
-        "independent_authors": 1,
-        "ranks": [
-         2
-        ],
-        "score": 4
-       },
-       "discovered:ffe1e562448e8ad3e000": {
-        "independent_authors": 1,
-        "ranks": [
-         4
-        ],
-        "score": 2
        }
       },
       "message": "검색 글에서 확인한 장소를 우선 추천해요.",
@@ -12871,8 +12346,7 @@
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
          "건국대학교박물관",
-         "서울숲",
-         "한옥 비빔밥"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 1,
@@ -12889,9 +12363,7 @@
         "description": "성수동 데이트 기와 로스터리 아메리카노 5,000원. 골목 갤러리 전시도 봤어요. 서울",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
         "mentioned_places": [
-         "서울숲",
-         "기와 로스터리",
-         "골목 갤러리"
+         "서울숲"
         ],
         "posted_at": "20261101",
         "rank": 2,
@@ -12907,9 +12379,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 한지 공방 체험 1인 체험비 25,000원. 남문 피순대는 비추천이에요.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한지 공방"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 3,
         "search_rank": 3,
@@ -12924,10 +12394,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 천변 산책로 따라 걷다가 한옥 찻집 쌍화차 7,000원.",
         "evidence_note": "광고·협찬 표시 미확인 · 실제 방문 인증은 아님",
-        "mentioned_places": [
-         "한옥 찻집",
-         "천변 산책로"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 4,
         "search_rank": 5,
@@ -12942,10 +12409,7 @@
         "content_scope": "공개 본문 + 검색 요약",
         "description": "성수동 데이트 오목대 공원 산책 · 작은 미술관 관람료 3,000원. 광고 포함 글입니",
         "evidence_note": "광고·협찬 표시 확인 · 추천 가중치 축소",
-        "mentioned_places": [
-         "작은 미술관",
-         "오목대 공원"
-        ],
+        "mentioned_places": [],
         "posted_at": "20261101",
         "rank": 5,
         "search_rank": 4,

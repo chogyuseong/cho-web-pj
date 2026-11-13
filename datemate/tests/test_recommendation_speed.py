@@ -128,7 +128,17 @@ def naver(monkeypatch):
     monkeypatch.setattr(httpx, 'get', fake_get)
     bodies = {f'https://blog.naver.com/author{i}/22300000000{i}': body for i, body in enumerate(BODIES)}
     monkeypatch.setattr(course_search, 'public_body', lambda url: (calls.append('body'), bodies.get(url, ''))[1])
-    return SimpleNamespace(calls=calls, region=region)
+    before = discovered_keys()
+    yield SimpleNamespace(calls=calls, region=region)
+    # 이 테스트가 찾은 장소는 지운다(다른 테스트가 장소 목록을 그대로 세는 경우가 있음).
+    with store.connect() as db:
+        for key in discovered_keys() - before:
+            db.execute('DELETE FROM cache WHERE key=?', (key,))
+
+
+def discovered_keys():
+    with store.connect() as db:
+        return {row[0] for row in db.execute("SELECT key FROM cache WHERE key LIKE 'discovered-place:%'")}
 
 
 def clean_region(region):
@@ -286,6 +296,74 @@ def test_discovered_places_are_saved_in_one_write_without_overwriting_richer_row
     assert timing['db']['count'] <= 8 + 2 * result['lookups'], timing['db']
 
 
+# --- 제공자 예산 미리 잡기 ---
+
+def budget_used(provider):
+    bucket = int(time.time() // 3600)
+    with store.connect() as db:
+        row = db.execute('SELECT calls FROM request_budgets WHERE scope=? AND bucket=?', ('provider:' + provider, bucket)).fetchone()
+    return row[0] if row else 0
+
+
+def test_reserve_budget_up_to_matches_reserving_one_by_one():
+    for used, wanted in ((0, 3), (3, 4), (5, 2), (7, 3)):
+        a, b = 'speed-seq-' + uuid.uuid4().hex, 'speed-batch-' + uuid.uuid4().hex
+        for _ in range(used):
+            store.reserve_budget([(a, 100), (a + ':ip', 6)], 1)
+            store.reserve_budget([(b, 100), (b + ':ip', 6)], 1)
+        one_by_one = sum(store.reserve_budget([(a, 100), (a + ':ip', 6)], 1) for _ in range(wanted))
+        assert store.reserve_budget_up_to([(b, 100), (b + ':ip', 6)], 1, wanted) == one_by_one
+        with store.connect() as db:
+            rows = lambda s: [tuple(r) for r in db.execute('SELECT calls FROM request_budgets WHERE scope IN (?,?) AND bucket=1 ORDER BY scope', (s, s + ':ip'))]
+            assert rows(a) == rows(b)
+
+
+def test_prepaid_calls_share_one_reservation_and_return_the_unused_part(monkeypatch):
+    from app import telemetry
+    from app.request_usage import context_map, measure
+    from concurrent.futures import ThreadPoolExecutor
+    provider = 'prepaid-' + uuid.uuid4().hex[:8] + '.example'
+    url = f'https://{provider}/search'
+    reserves = []
+    original = store.reserve_budget
+    monkeypatch.setattr(store, 'reserve_budget', lambda limits, bucket: (reserves.append(limits), original(limits, bucket))[1])
+
+    def call(status):
+        if status == 'timeout':
+            raise httpx.ConnectTimeout('slow')
+        return httpx.Response(status)
+
+    with measure(), telemetry.prepaid(url, 5) as box, ThreadPoolExecutor(max_workers=4) as pool:
+        assert box['left'] == 5
+        results = context_map(pool, lambda s: _safe(lambda: telemetry.observed_http(lambda u, **kw: call(s), url)), [200, 500, 'timeout'])
+    # 실패한 호출도 제공자 호출로 센다(전과 같음). 쓰지 않은 2건은 돌려준다.
+    assert [getattr(r, 'status_code', r) for r in results] == [200, 500, 'ConnectTimeout']
+    assert not [l for l in reserves if l[0][0] == 'provider:' + provider]
+    assert budget_used(provider) == 3
+
+
+def _safe(action):
+    try:
+        return action()
+    except httpx.HTTPError as error:
+        return type(error).__name__
+
+
+def test_prepaid_never_exceeds_the_hourly_provider_budget(monkeypatch):
+    from app import telemetry
+    monkeypatch.setenv('DATEMATE_PROVIDER_CALLS_PER_HOUR', '4')
+    provider = 'prepaid-' + uuid.uuid4().hex[:8] + '.example'
+    url = f'https://{provider}/search'
+    telemetry.observed_http(lambda u, **kw: httpx.Response(200), url)
+    outcomes = []
+    with telemetry.prepaid(url, 6) as box:
+        assert box['left'] == 3
+        for _ in range(6):
+            outcomes.append(_safe(lambda: telemetry.observed_http(lambda u, **kw: httpx.Response(200), url).status_code))
+    assert outcomes == [200, 200, 200, 'PoolTimeout', 'PoolTimeout', 'PoolTimeout']
+    assert budget_used(provider) == 4
+
+
 # --- 블로그 본문 장소 대조 ---
 
 def legacy_match_places(posts, rows):
@@ -348,7 +426,8 @@ def test_price_plans_reads_cache_once_and_saves_new_prices_together(monkeypatch)
     others = [p['id'] for p in plan['places'][1:]]
     assert sorted(i for i, _ in looked) == sorted(others) and all(force for _, force in looked)
     assert all(store.cached('price-search-v2:' + i)['status'] == 'not_found' for i in others)
-    assert db == 2
+    # 캐시 읽기 1번 + 새 가격 저장 1번 + 제공자 예산 미리 잡기·남은 몫 돌려주기 2번(조회를 흉내 내 실제 호출이 없음).
+    assert db == 4
     # force 는 캐시를 읽지 않고 모두 다시 찾는다.
     looked.clear()
     pricing.price_plans([plan], force=True)

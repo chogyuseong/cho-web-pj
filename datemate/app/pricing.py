@@ -47,11 +47,15 @@ def extract_quote(place,item):
     if not 500<=value<=300000:return None
     return dict(amount=value,item=match[1],source=url,posted_at=posted_date.isoformat(),evidence=text[max(0,match.start()-30):match.end()+40])
 
-def lookup_price(place,force=False):
+def usable(cached):
+    return bool(cached) and not (cached['status']=='key_missing' and search_enabled())
+
+def lookup_price(place,force=False,writes=None):
+    """writes 에 리스트를 넘기면 캐시 저장을 바로 하지 않고 (키, 값, ttl)로 모아 둔다(price_plans 가 한 번에 저장)."""
     key='price-search-v2:'+place['id']
     if not force:
         cached=store.cached(key)
-        if cached and not (cached['status']=='key_missing' and search_enabled()):cache_hit('price');return cached
+        if usable(cached):cache_hit('price');return cached
     result=dict(status='key_missing',quotes=[],checked_at=datetime.now(timezone.utc).isoformat())
     if search_enabled():
         try:
@@ -69,7 +73,9 @@ def lookup_price(place,force=False):
                 if len(quotes)==3:break
             result.update(status='available' if quotes else 'not_found',quotes=quotes)
         except (httpx.HTTPError,ValueError,TypeError,KeyError):result['status']='unavailable'
-    store.cache(key,result,3600 if result['status']=='available' else 300)
+    entry=(key,result,3600 if result['status']=='available' else 300)
+    if writes is None:store.cache(*entry)
+    else:writes.append(entry)
     return result
 
 def apply_prices(plan,lookups):
@@ -116,6 +122,14 @@ def apply_prices(plan,lookups):
 
 def price_plans(plans,force=False):
     needed={p['id']:p for plan in plans if plan['conditions']['mode']=='real' for p in plan['places'] if p['price'] is None}
+    # 캐시는 한 번에 읽고(force 가 아니면) 새로 찾은 가격은 끝난 뒤 한 번에 저장한다. 조회 대상·동시 3건·캐시 시간은 그대로.
+    known={} if force or not needed else store.cached_many('price-search-v2:'+pid for pid in needed)
+    writes=[]
+    def one(p):
+        cached=known.get('price-search-v2:'+p['id'])
+        if usable(cached):cache_hit('price');return cached
+        return lookup_price(p,True,writes)
     with ThreadPoolExecutor(max_workers=3) as executor:
-        data=dict(zip(needed,context_map(executor,lambda p:lookup_price(p,force),needed.values())))
+        data=dict(zip(needed,context_map(executor,one,needed.values())))
+    store.cache_many(writes)
     return [apply_prices(p,data) for p in plans]

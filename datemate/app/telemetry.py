@@ -59,17 +59,31 @@ def operation(provider,kind=None):
         # 기다린 시간은 실제 요청 구간만 센다(요청 한도 확인·지표 기록의 DB 시간은 db 로 따로 셈).
         _traced(provider,kind,sent or start,attempted,failed)
         elapsed=round((time.perf_counter()-start)*1000)
-        try:
-            with store.connect() as db:
-                if not attempted:
-                    logging.getLogger(__name__).info('provider_budget_rejected provider=%s',provider)
-                    # A rejected attempt is not a billed provider call.
-                    elapsed=0
+        if not attempted:
+            logging.getLogger(__name__).info('provider_budget_rejected provider=%s',provider)
+            # A rejected attempt is not a billed provider call.
+            elapsed=0
+        row=(int(time.time()//3600),provider,int(attempted),int(failed and attempted),elapsed)
+        # 추천·코스 변경 작업(request_usage.measure) 안에서는 작업이 끝날 때 한 번에 기록한다.
+        # 호출마다 쓰면 운영 DB(PostgreSQL)에서 쓰기 잠금 왕복이 호출 수만큼 늘어난다.
+        if not (usage and usage.defer_metric(row)):write_metrics([row])
+
+
+def write_metrics(rows):
+    """provider_metrics 에 (hour, provider, calls, errors, elapsed_ms) 행을 더한다. 같은 시간·제공자는 합쳐 한 번에."""
+    if not rows:return
+    merged={}
+    for hour,provider,calls,errors,elapsed in rows:
+        total=merged.setdefault((hour,provider),[0,0,0])
+        total[0]+=calls;total[1]+=errors;total[2]+=elapsed
+    try:
+        with store.connect() as db:
+            for (hour,provider),(calls,errors,elapsed) in merged.items():
                 db.execute('''INSERT INTO provider_metrics VALUES(?,?,?,?,?)
                     ON CONFLICT(hour,provider) DO UPDATE SET calls=provider_metrics.calls+excluded.calls,
                     errors=provider_metrics.errors+excluded.errors,elapsed_ms=provider_metrics.elapsed_ms+excluded.elapsed_ms''',
-                    (int(time.time()//3600),provider,int(attempted),int(failed and attempted),elapsed))
-        except Exception:logging.getLogger(__name__).warning('provider_metric_write_failed')
+                    (hour,provider,calls,errors,elapsed))
+    except Exception:logging.getLogger(__name__).warning('provider_metric_write_failed')
 
 
 def observed_http(call,url,**kwargs):

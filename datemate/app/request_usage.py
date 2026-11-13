@@ -35,6 +35,23 @@ class Usage:
         self.hits = 0
         self.blocked = False
         self.lock = Lock()
+        self.metrics = []
+        self.closed = False
+
+    def defer_metric(self, row):
+        """작업 안의 호출 지표를 모아 둔다. 작업이 끝난 뒤(closed)면 False 로 알려 바로 쓰게 한다."""
+        with self.lock:
+            if self.closed:
+                return False
+            self.metrics.append(row)
+            return True
+
+    def flush_metrics(self):
+        with self.lock:
+            rows, self.metrics, self.closed = self.metrics, [], True
+        from .telemetry import write_metrics
+
+        write_metrics(rows)
 
     def reserve(self, provider):
         with self.lock:
@@ -109,6 +126,7 @@ def measure(limit=None):
         yield usage
     finally:
         _current.reset(token)
+        usage.flush_metrics()
 
 
 def context_map(executor, action, values):

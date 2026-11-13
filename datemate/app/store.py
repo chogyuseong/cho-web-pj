@@ -189,6 +189,39 @@ def cached(key):
     return json.loads(row[0]) if row else None
 
 
+def cached_many(keys):
+    """cached() 를 여러 키에 한 번의 연결로. 만료되지 않은 키만 {키: 값} 으로 돌려준다."""
+    keys = list(dict.fromkeys(keys))
+    found = {}
+    if not keys:
+        return found
+    with connect() as db:
+        for start in range(0, len(keys), 200):
+            chunk = keys[start : start + 200]
+            rows = db.execute(
+                "SELECT key,payload FROM cache WHERE expires>? AND key IN ("
+                + ",".join("?" * len(chunk))
+                + ")",
+                (time.time(), *chunk),
+            ).fetchall()
+            found.update((row[0], json.loads(row[1])) for row in rows)
+    return found
+
+
+def cache_many(entries):
+    """cache() 를 여러 (키, 값, ttl) 에 한 번의 쓰기로. 같은 키가 여러 번이면 마지막 값이 남는다."""
+    rows = {}
+    for key, value, ttl in entries:
+        rows[key] = (key, json.dumps(value, ensure_ascii=False), time.time() + ttl)
+    if not rows:
+        return
+    with connect() as db:
+        db.executemany(
+            "INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires",
+            list(rows.values()),
+        )
+
+
 def cache(key, value, ttl=86400):
     with connect() as db:
         db.execute(

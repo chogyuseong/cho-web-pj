@@ -17,6 +17,11 @@
   · 가격 확인 단계: 가격 검색 묶음이 HTTP 연결을 함께 씀(전에는 검색마다 새 연결). 추천 결과는 그대로
   · 가격 확인 중에 후보 3안을 '확정 전 후보' 읽기 전용 카드로 먼저 보여 줌
   · 테스트(Docker): SQLite 896개 통과·1개 건너뜀, PostgreSQL 892개 통과·5개 건너뜀
+  · 의존성 보안 점검(CI 의 python-audit)이 2026-11-14 02:18(한국 시각, 문서만 바꾼 커밋 d93660a)부터 실패했습니다. 그 사이에 공지된
+    opentelemetry-api 1.45.1 의 CVE-2026-126360(traceparent 값 처리의 정규식 서비스 거부, 1.45.2 에서 수정) 때문입니다. chromadb 가 끌고 오는
+    간접 의존성이고, 앱이 외부 입력에서 trace context 를 꺼내 쓰는 곳은 찾지 않았습니다(영향 여부는 확인 안 함).
+    requirements-cloud.lock.txt 와 requirements.lock.txt 의 opentelemetry 묶음 7개를 1.45.2 / 0.66b2 로 올렸습니다(api 만 올리면 sdk 와 충돌).
+    Docker 에서 운영과 같은 방식으로 설치해 pip check 통과, pip-audit 통과, chromadb import 를 확인했습니다.
 열한 번째 배포로 올라간 것(내용은 6-12):
   · 추천 대기 시간 단축(추천 결과는 그대로)
   · 320px 화면에서 헤더 메뉴("피드백")가 화면 밖으로 넘치던 문제 수정

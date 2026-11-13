@@ -22,9 +22,10 @@ OPTION_SELECTORS = ('place', 'shadow', 'experience')
 
 
 def option_selector():
-    """코스 3안 선택 방식. 기본 shadow: 기존 결과를 쓰고 새 선택기는 진단으로만 남긴다."""
-    value = os.getenv('DATEMATE_OPTION_SELECTOR', '').strip().lower() or 'shadow'
-    return value if value in OPTION_SELECTORS else 'shadow'
+    """코스 3안 선택 방식. 기본 experience: 구성·이동이 다른 안을 먼저 고르고 모자란 자리는 같은 구성의 다른 장소로 채운다.
+    place로 바꾸면 이전 방식(장소 차이만)으로 완전히 되돌린다."""
+    value = os.getenv('DATEMATE_OPTION_SELECTOR', '').strip().lower() or 'experience'
+    return value if value in OPTION_SELECTORS else 'experience'
 
 
 def validate_runtime():

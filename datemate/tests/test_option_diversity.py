@@ -1,5 +1,12 @@
+import pytest
 from app.option_diversity import select_options,changed_places
 from app.models import Conditions
+
+
+@pytest.fixture(autouse=True)
+def place_mode(monkeypatch):
+    # 기존(place) 선택기 동작 자체를 검증한다. 기본 모드(experience)와 관계없이 place로 고정.
+    monkeypatch.setenv('DATEMATE_OPTION_SELECTOR','place')
 
 
 def plan(ids,minutes=20,cost=100):

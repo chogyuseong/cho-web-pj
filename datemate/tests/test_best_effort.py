@@ -13,7 +13,9 @@ def test_far_origin_returns_ranked_alternatives_with_original_conditions():
     c=conditions()
     result=recommend(c)
     assert result['status']=='best_effort' and result['plans']
-    assert [p['option_purpose'] for p in result['plans']]==['취향 우선','다른 매력','편안한 동선'][:len(result['plans'])]
+    # 기본 선택기(experience): 첫 안은 기준 코스, 나머지는 실제 차이에서 만든 역할 이름과 설명을 갖는다.
+    assert result['plans'][0]['option_purpose']=='기준 코스'
+    assert all(p['option_purpose'] and p['option_description'] for p in result['plans'])
     for plan in result['plans']:
         assert plan['conditions']==c.model_dump(mode='json')
         assert len(plan['places'])==3

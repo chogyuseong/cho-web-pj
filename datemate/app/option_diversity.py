@@ -1,15 +1,15 @@
 """Choose distinct venue sets with three explicit comparison purposes.
 
 선택 방식은 DATEMATE_OPTION_SELECTOR(config.option_selector)로 정한다.
-- place: 장소 차이만 보는 기존 선택기(legacy_select_options)
-- shadow(기본): 기존 선택기 결과를 그대로 쓰고, 새 선택기는 진단·로그로만 남긴다
-- experience: 활동 구성·이동량이 실제로 다른 안을 고르는 새 선택기(experience_select)
+- place: 장소 차이만 보는 기존 선택기(legacy_select_options). 완전히 되돌릴 때 쓴다
+- shadow: 기존 선택기 결과를 그대로 쓰고, 새 선택기는 진단·로그로만 남긴다
+- experience(기본): 활동 구성·이동량이 실제로 다른 안을 먼저 고르고, 모자란 자리는 같은 구성의 다른 장소로 채운다(experience_select)
 """
 import logging
 from collections import Counter
 from .quality import same_place,is_meal
 
-EXPERIENCE_VERSION='exp-v1'
+EXPERIENCE_VERSION='exp-v2'
 # 활동 구성 묶음. 기타는 차이로 세지 않는다.
 CATEGORY_GROUPS={'문화·예술':'보기','산책·풍경':'걷기','체험·제작':'하기','오락·놀이':'하기','레저·활동':'하기','휴식·힐링':'쉬기'}
 GROUP_ORDER=['식사','카페','보기','걷기','하기','쉬기']
@@ -99,7 +99,7 @@ def legacy_select_options(plans,c):
 
 
 # ---------------------------------------------------------------------------
-# 경험 기준 선택기 (exp-v1)
+# 경험 기준 선택기 (exp-v2: exp-v1 규칙 + 장소 기준 완화·같은 구성 채우기)
 # ---------------------------------------------------------------------------
 
 def place_group(place):
@@ -184,10 +184,22 @@ def _counted(rows):
     return '·'.join(f"{GROUP_LABELS[r['group']]} {r['count']}곳" for r in rows)
 
 
-def _role(plan,base,difference,same_composition_only):
-    """기준 코스와의 실제 차이로 역할 이름과 설명을 만든다. 모르는 값은 말하지 않는다."""
-    if same_composition_only:
-        name=SAME_COMPOSITION_ROLE;text=f"코스 1과 같은 구성에서 장소 {difference['places_changed']}곳이 달라요"
+def _same_composition_text(number,changed):
+    return f"코스 {number}{'와' if number==2 else '과'} 같은 구성에서 장소 {changed}곳이 달라요"
+
+
+def _role(plan,base,difference,same_composition_only,chosen=None,stage=1):
+    """기준 코스와의 실제 차이로 역할 이름과 설명을 만든다. 모르는 값은 말하지 않는다.
+    stage 3(같은 구성으로 채운 안)은 구성이 같은 코스(앞선 코스 중 첫째)와 비교해 장소 차이만 말한다."""
+    if stage==3 and chosen:
+        for number,other in enumerate(chosen,1):
+            if other is plan:break
+            if not dcomp(plan,other):
+                text=_same_composition_text(number,changed_places(plan,other))
+                if number==1 and 'confirm_fewer' in difference['kinds']:text+=f". 확인할 정보도 {-difference['confirm_delta']}개 적어요"
+                return SAME_COMPOSITION_ROLE,text
+    if same_composition_only and not difference['composition_changed']:
+        name=SAME_COMPOSITION_ROLE;text=_same_composition_text(1,difference['places_changed'])
     elif difference['composition_changed']:
         added,removed=difference['added'],difference['removed']
         if added:name='·'.join(GROUP_LABELS[r['group']] for r in added)+' 넣은 코스'
@@ -209,24 +221,47 @@ def _experience(plan):
         confirm_items=confirm_items(plan),version=EXPERIENCE_VERSION)
 
 
+# 3안 선택 단계(exp-v2). 자리마다 1단계부터 차례로 찾고, 앞 단계에 후보가 없을 때만 다음 단계로 내려간다.
+# 1단계: 구성이나 이동이 이미 고른 모든 안과 다르고 장소도 min(2, 바꿀 수 있는 자리)곳 이상 다른 안(exp-v1 규칙).
+# 2단계: 구성이나 이동은 다르고 장소는 1곳 이상 다른 안(1단계의 장소 기준만 낮춤). 식당 하나를 거의 모든 조합이 공유하는 지역(경주 황리단길 재현:
+#        식당 1곳이 41개 조합 전부에 들어감)에서는 바꿀 수 있는 자리가 사실상 2곳이라, 1단계 기준으로는 셋째 안이 모두
+#        'places'로 빠진다. 장소 집합이 완전히 같은 안은 고르지 않는다.
+# 3단계: 구성까지 같은 안 중 장소가 다른 안(기존 place 선택기 규칙: 장소 차이 우선, 둘째 자리는 장소 차이, 셋째 자리는 이동·비용).
+# 모든 단계에서 적합도(기준 코스보다 요청 조건에 덜 맞는 안 제외)·금지 조건을 지키고, 후보 풀이 이미 고정 장소·필수 조건을 지킨다.
+STAGES=(1,2,3)
+
+
 def _choose(candidates,c,chosen,limit=3):
-    """chosen(이미 고른 안, 첫 안이 기준)에 candidates 중 충분히 다른 안을 limit개까지 더한다.
-    반환: (추가로 고른 안 목록, 후보별 마지막 탈락 사유 dict[id(plan)]=사유)."""
-    base=chosen[0];base_fit=fit_key(base,c);picked=[]
+    """chosen(이미 고른 안, 첫 안이 기준)에 candidates 중 다른 안을 limit개까지 단계별로 더한다.
+    반환: (추가로 고른 안 목록, 후보별 1단계 기준 마지막 탈락 사유 dict[id(plan)]=사유, 고른 안별 단계 목록)."""
+    base=chosen[0];base_fit=fit_key(base,c);picked=[];stages=[]
     same_composition_only=c.theme_mode=='focus' or changeable_seats(base,c)==0
     required=min(2,changeable_seats(base,c))
     remaining=list(candidates);reasons={}
+    def differs(p,current):
+        return same_composition_only or all(dcomp(p,q)>=1 or travel_differs(p,q) for q in current)
     while remaining and len(chosen)+len(picked)<limit:
-        current=chosen+picked;eligible=[]
+        current=chosen+picked;fit=[];stage_one=[]
         for p in remaining:
-            if any(a>b for a,b in zip(fit_key(p,c),base_fit)):reasons[id(p)]='fit'
-            elif any(changed_places(p,q)<required for q in current):reasons[id(p)]='places'
-            elif not same_composition_only and not all(dcomp(p,q)>=1 or travel_differs(p,q) for q in current):reasons[id(p)]='same_experience'
-            else:reasons.pop(id(p),None);eligible.append(p)
-        if not eligible:break
-        pick=min(eligible,key=lambda p:(-min(dcomp(p,q) for q in current),remaining.index(p)))
-        picked.append(pick);remaining.remove(pick);reasons.pop(id(pick),None)
-    return picked,reasons
+            if any(a>b for a,b in zip(fit_key(p,c),base_fit)):reasons[id(p)]='fit';continue
+            fit.append(p)
+            if any(changed_places(p,q)<required for q in current):reasons[id(p)]='places'
+            elif not differs(p,current):reasons[id(p)]='same_experience'
+            else:reasons.pop(id(p),None);stage_one.append(p)
+        novelty={id(p):min(changed_places(p,q) for q in current) for p in fit}
+        distinct=[p for p in fit if novelty[id(p)]>=1]
+        if stage_one:
+            stage=1;pick=min(stage_one,key=lambda p:(-min(dcomp(p,q) for q in current),remaining.index(p)))
+        elif not same_composition_only and (stage_two:=[p for p in distinct if differs(p,current)]):
+            stage=2;pick=min(stage_two,key=lambda p:(-min(dcomp(p,q) for q in current),-novelty[id(p)],remaining.index(p)))
+        elif distinct:
+            stage=3;most=max(novelty[id(p)] for p in distinct)
+            eligible=[p for p in distinct if novelty[id(p)]>=min(required,most)]
+            if len(current)==1:pick=min(eligible,key=lambda p:(-novelty[id(p)],p.get('penalty',0),remaining.index(p)))
+            else:pick=min(eligible,key=lambda p:(travel_minutes(p),p['total'][1],p.get('penalty',0),remaining.index(p)))
+        else:break
+        picked.append(pick);stages.append(stage);remaining.remove(pick);reasons.pop(id(pick),None)
+    return picked,reasons,stages
 
 
 def _unique(plans):
@@ -255,32 +290,40 @@ def experience_select(plans,c):
     unique=_unique(plans)
     allowed=[p for p in unique if not forbidden(p,c)]
     rejected=Counter(forbidden=len(unique)-len(allowed))
-    chosen=[];annotations=[]
+    chosen=[];annotations=[];stages=[]
     if allowed:
         base=allowed[0]
-        picked,reasons=_choose(allowed[1:],c,[base])
+        picked,reasons,stages=_choose(allowed[1:],c,[base])
         chosen=[base]+picked
         rejected.update(reasons.values())
-        same_composition_only=c.theme_mode=='focus' or changeable_seats(base,c)==0
-        note=_shortfall_note(len(chosen),len(allowed),rejected,base,c)
-        for i,p in enumerate(chosen):
-            others=[q for q in chosen if q is not p]
-            minimum=min((changed_places(p,q) for q in others),default=len(p['places']))
-            row=dict(experience=_experience(p),diversity_note=note,minimum_different_places=minimum)
-            if i==0:row.update(option_purpose=BASE_ROLE[0],option_description=BASE_ROLE[1],difference=None)
-            else:
-                difference=_difference(p,base)
-                name,text=_role(p,base,difference,same_composition_only)
-                row.update(option_purpose=name,option_description=text,difference=difference)
-            annotations.append(row)
+        annotations=annotate(chosen,[None]+stages,c,_shortfall_note(len(chosen),len(allowed),rejected,base,c,filled=3 in stages))
     diagnostics=dict(input_plans=len(plans),unique_sets=len(unique),
         distinct_compositions=len({tuple(sorted(composition(p).items())) for p in unique}),
-        rejected={k:v for k,v in rejected.items() if v},returned=len(chosen),shortfall=max(0,3-len(chosen)))
+        rejected={k:v for k,v in rejected.items() if v},returned=len(chosen),shortfall=max(0,3-len(chosen)),
+        picked_by_stage={str(s):stages.count(s) for s in STAGES})
     return chosen,annotations,diagnostics
 
 
-def _shortfall_note(returned,allowed,rejected,base,c):
+def annotate(chosen,stages,c,note):
+    """고른 안마다 표시 정보(역할 이름·설명·기준 코스와의 차이)를 만든다. stages[0]은 기준 코스(None)."""
+    base=chosen[0];annotations=[]
+    same_composition_only=c.theme_mode=='focus' or changeable_seats(base,c)==0
+    for i,p in enumerate(chosen):
+        others=[q for q in chosen if q is not p]
+        minimum=min((changed_places(p,q) for q in others),default=len(p['places']))
+        row=dict(experience=_experience(p),diversity_note=note,minimum_different_places=minimum)
+        if i==0:row.update(option_purpose=BASE_ROLE[0],option_description=BASE_ROLE[1],difference=None)
+        else:
+            difference=_difference(p,base);difference['selection_stage']=stages[i]
+            name,text=_role(p,base,difference,same_composition_only,chosen,stages[i])
+            row.update(option_purpose=name,option_description=text,difference=difference)
+        annotations.append(row)
+    return annotations
+
+
+def _shortfall_note(returned,allowed,rejected,base,c,filled=False):
     notes=[]
+    if filled:notes.append('활동 구성이나 이동이 다른 조합이 부족해 같은 구성에서 장소만 다른 코스를 함께 보여요.')
     if returned<3:
         if rejected.get('same_experience'):notes.append(f"활동 구성이나 이동이 다른 코스를 찾지 못해 {returned}개만 보여요. 장소만 바꾸려면 '장소 바꾸기'를 이용해 주세요.")
         if rejected.get('fit'):notes.append('다른 구성의 조합은 요청 조건과 덜 맞아 제외했어요.')
@@ -299,28 +342,31 @@ def apply_experience(chosen,annotations):
 
 
 def reserve_candidates(pool,chosen,c,limit=12):
-    """고르지 않은 후보 중 기준 코스(chosen 첫 안) 대비 자격이 있는 상위 limit개(입력 순서)."""
+    """고르지 않은 후보 중 기준 코스(chosen 첫 안) 대비 자격이 있는 후보 limit개.
+    구성(composition_label)별로 처음 나온 순서대로 한 개씩 돌아가며 고른다(구성 안에서는 입력 순서, 결정적).
+    조건 완화 경로에서는 원래 조건 기준 차이(penalty)가 나중에 붙어, 입력 순서 상위가 한두 구성에 몰려 있으면 그 구성이
+    모두 적합도 가드에 걸리고 다른 구성·같은 구성(3단계 채우기용) 후보가 예비에 남지 않는다. 구성을 고르게 남겨 그 경우를 막는다."""
     if not chosen:return []
     base=chosen[0];base_fit=fit_key(base,c);picked={id(p) for p in chosen}
-    same_composition_only=c.theme_mode=='focus' or changeable_seats(base,c)==0
-    rows=[]
+    groups={}
     for p in _unique([q for q in pool if id(q) not in picked]):
         if any(changed_places(p,q)==0 for q in chosen) or forbidden(p,c):continue
         if any(a>b for a,b in zip(fit_key(p,c),base_fit)):continue
-        if not same_composition_only and not (dcomp(p,base)>=1 or travel_differs(p,base)):continue
-        rows.append(p)
-        if len(rows)>=limit:break
+        groups.setdefault(composition_label(p),[]).append(p)
+    rows=[];depth=0
+    while len(rows)<limit and any(len(g)>depth for g in groups.values()):
+        rows+=[g[depth] for g in groups.values() if len(g)>depth][:limit-len(rows)];depth+=1
     return rows
 
 
 def refill_candidates(kept,reserve,c,limit=2):
-    """가격 확인 뒤 줄어든 코스를 채울 예비 후보. kept 첫 안을 기준으로 같은 규칙을 적용한다."""
+    """가격 확인 뒤 줄어든 코스를 채울 예비 후보. kept 첫 안을 기준으로 같은 단계 규칙(_choose)을 적용한다."""
     pool=[p for p in _unique(reserve) if not forbidden(p,c) and all(changed_places(p,q) for q in kept)]
     if not pool:return []
     if not kept:
-        picked,_=_choose(pool[1:],c,[pool[0]],limit=min(3,limit))
+        picked,_,_=_choose(pool[1:],c,[pool[0]],limit=min(3,limit))
         return ([pool[0]]+picked)[:limit]
-    picked,_=_choose(pool,c,list(kept),limit=min(3,len(kept)+limit))
+    picked,_,_=_choose(pool,c,list(kept),limit=min(3,len(kept)+limit))
     return picked
 
 

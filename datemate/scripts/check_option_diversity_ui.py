@@ -16,9 +16,11 @@ with sync_playwright() as pw:
     page.wait_for_function('selected?.id&&!document.querySelector("#submit-plan").disabled',timeout=60000)
     rows=page.evaluate('plans.map(p=>({purpose:p.option_purpose,ids:p.places.map(v=>v.id),note:p.diversity_note}))')
     assert len(rows)==3,rows
-    assert [r['purpose'] for r in rows]==['취향 우선','다른 매력','편안한 동선']
+    # 기본 선택기(experience): 첫 안은 기준 코스, 나머지는 실제 차이에서 만든 이름. place 모드면 이전 이름이 나온다.
+    purposes=[r['purpose'] for r in rows]
+    assert purposes==['취향 우선','다른 매력','편안한 동선'] or (purposes[0]=='기준 코스' and all(purposes)),purposes
     for i,a in enumerate(rows):
-        for b in rows[i+1:]:assert len(set(a['ids'])-set(b['ids']))>=2,(a,b)
+        for b in rows[i+1:]:assert set(a['ids'])!=set(b['ids']),(a,b)
     for i in range(3):
         page.locator('.plan-option-tabs button').nth(i).click()
         assert rows[i]['purpose'] in page.locator('#results .plan-card.selected').inner_text()
@@ -26,5 +28,5 @@ with sync_playwright() as pw:
     page.set_viewport_size({'width':390,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
     assert not errors,errors
-    print(json.dumps({'options':len(rows),'at_least_two_different_places':True,'purposes_visible':True,'map_sync':True,'mobile_overflow':False,'errors':errors}))
+    print(json.dumps({'options':len(rows),'distinct_place_sets':True,'purposes_visible':True,'map_sync':True,'mobile_overflow':False,'errors':errors}))
     browser.close()

@@ -1,4 +1,4 @@
-"""경험 기준 코스 선택기(exp-v1)와 선택 모드(place/shadow/experience) 검증."""
+"""경험 기준 코스 선택기(exp-v2: 구성·이동 차이 → 장소 기준 완화 → 같은 구성 채우기)와 선택 모드(place/shadow/experience) 검증."""
 import copy
 import json
 import logging
@@ -46,18 +46,21 @@ def ids(plans):
     return [[p['id'] for p in plan['places']] for plan in plans]
 
 
-# ① 장소 ID만 다르고 구성이 같은 후보 → 1개와 안내 문구
-def test_same_composition_with_other_places_returns_one_with_note(experience):
+# ① 장소 ID만 다르고 구성이 같은 후보 → 3단계(같은 구성 · 다른 장소)로 채우고 사실대로 이름 붙임
+def test_same_composition_with_other_places_is_filled_with_factual_label(experience):
     plans = [plan('a:cafe b:see c:walk'), plan('d:cafe e:see f:walk'), plan('g:cafe h:see i:walk', minutes=22)]
     diagnostics = {}
     result = od.select_options(plans, conditions(), diagnostics)
-    assert ids(result) == [['a', 'b', 'c']]
+    assert ids(result) == [['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i']]
     assert result[0]['option_purpose'] == '기준 코스'
     assert result[0]['difference'] is None
-    assert "활동 구성이나 이동이 다른 코스를 찾지 못해 1개만 보여요. 장소만 바꾸려면 '장소 바꾸기'를 이용해 주세요." in result[0]['diversity_note']
+    assert [p['option_purpose'] for p in result[1:]] == ['같은 구성 · 다른 장소'] * 2
+    assert [p['option_description'] for p in result[1:]] == ['코스 1과 같은 구성에서 장소 3곳이 달라요'] * 2
+    assert all(p['difference']['selection_stage'] == 3 and p['difference']['composition_changed'] == 0 for p in result[1:])
+    assert '같은 구성에서 장소만 다른 코스를 함께 보여요.' in result[0]['diversity_note']
     record = diagnostics['option_selection']
-    assert record['selector'] == 'experience' and record['rejected'] == {'same_experience': 2}
-    assert record['returned'] == 1 and record['shortfall'] == 2 and record['distinct_compositions'] == 1
+    assert record['selector'] == 'experience' and record['picked_by_stage'] == {'1': 0, '2': 0, '3': 2}
+    assert record['returned'] == 3 and record['shortfall'] == 0 and record['distinct_compositions'] == 1
 
 
 def test_composition_or_travel_difference_names_the_actual_change(experience):
@@ -70,7 +73,7 @@ def test_composition_or_travel_difference_names_the_actual_change(experience):
     assert result[1]['difference']['composition_changed'] == 1 and 'composition' in result[1]['difference']['kinds']
     assert result[2]['option_description'] == '약 25분 짧아요(추정 기준)'
     assert 'travel_shorter' in result[2]['difference']['kinds']
-    assert result[0]['experience']['version'] == 'exp-v1'
+    assert result[0]['experience']['version'] == od.EXPERIENCE_VERSION
     assert result[0]['experience']['composition'] == {'카페': 1, '보기': 1, '걷기': 1}
 
 
@@ -102,7 +105,10 @@ def test_worse_fit_is_rejected_even_when_composition_differs(experience):
 def test_mostly_locked_request_explains_limited_seats(experience):
     c = conditions(locked={0: 'a', 1: 'b'})
     result = od.select_options([plan('a:cafe b:see c:walk'), plan('a:cafe b:see d:walk')], c)
-    assert ids(result) == [['a', 'b', 'c']]
+    # 활동이 같으면 3단계로 채우되, 고정 장소는 그대로이고 이름·설명은 실제 차이(장소 1곳)만 말한다.
+    assert ids(result) == [['a', 'b', 'c'], ['a', 'b', 'd']]
+    assert result[1]['option_purpose'] == '같은 구성 · 다른 장소'
+    assert result[1]['option_description'] == '코스 1과 같은 구성에서 장소 1곳이 달라요'
     assert '고정한 장소 2곳은 모든 코스에서 유지해요.' in result[0]['diversity_note']
     assert '바꿀 수 있는 자리가 1곳뿐이에요.' in result[0]['diversity_note']
     # 바꿀 수 있는 자리가 하나라도 활동이 다르면 고른다.
@@ -192,12 +198,15 @@ def test_shadow_returns_legacy_result_and_records_diagnostics(monkeypatch, caplo
     assert '보드게임' not in lines[0] and '37.5' not in lines[0] and '데모 출발점' not in lines[0]
 
 
-def test_default_selector_is_shadow(monkeypatch):
+def test_default_selector_is_experience(monkeypatch):
     from app.config import option_selector
     monkeypatch.delenv('DATEMATE_OPTION_SELECTOR', raising=False)
-    assert option_selector() == 'shadow'
+    assert option_selector() == 'experience'
     monkeypatch.setenv('DATEMATE_OPTION_SELECTOR', 'unknown')
-    assert option_selector() == 'shadow'
+    assert option_selector() == 'experience'
+    for value in ('place', 'shadow', 'experience'):
+        monkeypatch.setenv('DATEMATE_OPTION_SELECTOR', value)
+        assert option_selector() == value
 
 
 # ⑨ 새 선택기가 예외를 내도 shadow 모드 추천이 성공함
@@ -240,9 +249,11 @@ def test_summary_title_changes_only_in_experience_mode(monkeypatch):
 def test_experience_mode_recommendation_end_to_end(monkeypatch):
     result = recommended(monkeypatch, 'experience', demo_conditions(request=''))
     assert result['plans'][0]['option_purpose'] == '기준 코스'
-    assert all(p['experience']['version'] == 'exp-v1' for p in result['plans'])
-    assert all(od.dcomp(a, b) >= 1 or od.travel_differs(a, b)
-               for i, a in enumerate(result['plans']) for b in result['plans'][i + 1:])
+    assert all(p['experience']['version'] == od.EXPERIENCE_VERSION for p in result['plans'])
+    # 1·2단계로 고른 안은 앞선 모든 안과 구성이나 이동이 다르다(3단계 채우기는 같은 구성일 수 있다).
+    assert all(od.dcomp(b, a) >= 1 or od.travel_differs(a, b)
+               for i, b in enumerate(result['plans']) if i and b['difference']['selection_stage'] < 3
+               for a in result['plans'][:i])
     assert len(result['reserve']) <= 12
     chosen = {frozenset(p['id'] for p in plan['places']) for plan in result['plans']}
     assert not any(frozenset(p['id'] for p in plan['places']) in chosen for plan in result['reserve'])
@@ -381,7 +392,7 @@ def test_experience_mode_uses_new_selector_and_reserve_on_relaxation_path(monkey
     record = result['diagnostics']['option_selection']
     assert record['selector'] == 'experience' and record['stage'] == 'relaxation'
     assert result['plans'][0]['option_purpose'] == '기준 코스'
-    assert all(p['experience']['version'] == 'exp-v1' for p in result['plans'])
+    assert all(p['experience']['version'] == od.EXPERIENCE_VERSION for p in result['plans'])
     assert result['reserve']
     from app.request_intent import normalize
     original = normalize(c).model_dump(mode='json')
@@ -398,7 +409,10 @@ def test_experience_mode_does_not_trade_relaxed_conditions_for_variety(monkeypat
     assert all(p['penalty'] <= base for p in result['plans'])
     record = result['diagnostics']['option_selection']
     assert record['rejected'].get('fit') and record['shortfall'] == 3 - len(result['plans'])
-    assert '다른 구성의 조합은 요청 조건과 덜 맞아 제외했어요.' in result['plans'][0]['diversity_note']
+    # 예비 후보를 구성별로 고르게 남겨, 원래 조건에도 맞는 다른 구성의 안으로 3안을 채운다(place 모드는 예약 차이가 있는 안을 넣는다).
+    assert len(result['plans']) == 3
+    place_mode = recommended(monkeypatch, 'place', c)
+    assert len(place_mode['plans']) == 3 and max(p['penalty'] for p in place_mode['plans']) > base
 
 
 def test_relaxation_path_refills_dropped_option_in_experience_mode(monkeypatch):

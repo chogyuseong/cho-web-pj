@@ -44,7 +44,8 @@ def test_readability_and_controls(audit_page,tmp_path):
     page.screenshot(path=str(output/'home-mobile.png'))
     page.locator('.conditions').scroll_into_view_if_needed()
     page.screenshot(path=str(output/'form-mobile.png'))
-    assert page.locator('.field-requirement').count()==3
+    # 사용자가 꼭 정해야 하는 것은 지역뿐이라 '필수' 표시는 하나만 남는다.
+    assert page.locator('.field-requirement').count()==1
     page.set_viewport_size({'width':1440,'height':1000})
     generate(page)
     page.locator('.plan-option-tabs button').nth(1).click()

@@ -1051,3 +1051,48 @@ h2[tabindex="-1"]:focus,h3[tabindex="-1"]:focus{outline:none!important}
 .plan-option-tabs [aria-pressed=true]{outline:2px solid #d48298!important;outline-offset:2px}
 .option-comparison th{white-space:nowrap;word-break:keep-all}
 .option-comparison td{white-space:normal;word-break:keep-all}
+
+/* 조건 화면: 지역 칩, 기본 조건 요약 한 줄, ‘바꾸기’ 안의 조건 칩, 지난번처럼 추천 */
+.quick-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.quick-chip{
+  min-height:44px;
+  padding:8px 16px;
+  border-radius:999px;
+  background-color:#ffffff;
+  color:#7d1e3a;
+  border:1.5px solid #d9b3bd;
+  font-size:15px;
+  font-weight:700;
+  word-break:keep-all;
+}
+.quick-chip:hover{background-color:#fdf0f3;border-color:#c98a9b}
+/* 색만으로 구분하지 않도록 안쪽 테두리와 밑줄을 함께 쓴다. */
+.quick-chip[aria-pressed=true]{background-color:#9e2a4b;border-color:#9e2a4b;color:#ffffff;box-shadow:inset 0 0 0 2px #68172f;text-decoration:underline;text-underline-offset:4px}
+.quick-chip:disabled{opacity:1;background-color:#f6f1f3;color:#5c4951;border-style:dashed;text-decoration:line-through;cursor:not-allowed}
+.quick-chip.current-location{background-color:#fff8fa;border-style:dashed}
+.quick-chip.current-location:disabled{text-decoration:none;cursor:wait}
+.area-status:empty,.date-note:empty{display:none}
+.quick-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px 14px;
+  flex-wrap:wrap;
+  margin-top:16px;
+  padding:14px 18px;
+  background-color:#fffafb;
+  border:1px solid #eedbe0;
+  border-radius:18px;
+}
+.quick-summary-text{margin:0;flex:1 1 220px;min-width:0;font-size:16px;line-height:1.7;color:var(--ink);overflow-wrap:anywhere}
+.quick-summary-label{display:block;font-size:14px;font-weight:700;color:#5c4951}
+.quick-summary-text strong{font-size:17px;color:#68172f}
+.condition-toggle{flex:0 0 auto}
+.condition-details{display:grid;gap:4px;padding:6px 18px 12px;border:1px solid #eedbe0;border-top:0;border-radius:0 0 18px 18px;background-color:#fffafb;margin-top:-6px}
+.condition-details .quick-field{margin:12px 0 0;padding:0;border:0}
+.condition-details .quick-field legend{padding:0;margin-bottom:8px;font-size:16px;font-weight:800;color:var(--ink)}
+.last-conditions{display:grid;gap:4px}
+.last-conditions .again-button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;min-height:58px;border-radius:18px}
+.last-conditions .again-summary{font-size:15px;font-weight:500;overflow-wrap:anywhere}
+.last-conditions .hint{margin:0}
+.last-conditions .again-button span{margin-left:0}

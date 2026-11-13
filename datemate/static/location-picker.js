@@ -10,7 +10,8 @@ function mountLocationFields(){
     selectedInput.value=locationState[kind]?.name||'';
     selectedInput.placeholder='주소 검색 또는 지도에서 선택하세요';
     label.append(selectedInput);
-    host.append(label,button('주소 검색 · 지도에서 선택',()=>openLocationPicker(kind),'secondary full'));
+    // 데이트할 지역은 조건 화면의 동네 칩·현재 위치가 먼저 보이고, 그 밖의 곳은 이 버튼으로 찾는다.
+    host.append(label,button(kind==='origin'?'다른 곳 찾기 · 주소 검색·지도':'주소 검색 · 지도에서 선택',()=>openLocationPicker(kind),'secondary full'));
   }
 }
 function selectedLocation(kind){

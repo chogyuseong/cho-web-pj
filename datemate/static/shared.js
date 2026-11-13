@@ -1,4 +1,11 @@
 'use strict';
+// festivals.js 가 쓰는 화면 도구(app.js 의 같은 이름 함수와 같은 동작). 공유 화면은 https 출처 링크만 연다.
+function node(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
+function link(text,url){
+  let href=null;try{const u=new URL(String(url||''));if(u.protocol==='https:'&&!u.username&&!u.password)href=u.href;}catch{}
+  if(!href)return node('span',text||'출처 주소 없음');
+  const a=node('a',text);a.href=href;a.target='_blank';a.rel='noopener noreferrer';return a;
+}
 (() => {
   const token=location.hash.slice(1), status=document.getElementById('shared-status'), form=document.getElementById('shared-form');
   async function request(path,body){
@@ -16,6 +23,10 @@
       label.append(select);article.append(title,text,label);document.getElementById('shared-places').append(article);
     }
     form.hidden=false;
+    // 코스의 지역·방문일(공유되는 정보는 이 둘뿐)로 그날 축제를 보여 준다. 실패해도 의견 전달에는 영향이 없다.
+    if(data.festival_search){
+      try{FestivalPanel.readOnly=true;FestivalPanel.load({region:data.festival_search.region,visit_date:data.festival_search.visit_date});}catch{}
+    }
   }).catch(error=>status.textContent=error.message);
   form.onsubmit=async event=>{
     event.preventDefault();const button=form.querySelector('button');button.disabled=true;

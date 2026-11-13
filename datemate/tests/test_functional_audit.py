@@ -127,7 +127,7 @@ def test_lock_replace_undo_chat_review_feedback_and_delete(audit_page):
 
 def test_address_keyboard_navigation_and_invalid_input(audit_page):
     page,base,errors=audit_page
-    page.locator('#origin-location').get_by_role('button',name='주소 검색 · 지도에서 선택',exact=True).click()
+    page.locator('#origin-location').get_by_role('button',name='다른 곳 찾기 · 주소 검색·지도',exact=True).click()
     page.wait_for_function('!!locationMap',timeout=25000)
     page.route('**/api/locations/region',lambda route:route.fulfill(json={'status':'key_missing','region':None,'label':'','message':'시·도를 직접 골라 주세요.'}))
     page.locator('#dialog').get_by_role('button',name='지도 중심을 선택',exact=True).click()
@@ -135,6 +135,9 @@ def test_address_keyboard_navigation_and_invalid_input(audit_page):
     page.locator('#dialog [name=location_region]').select_option('서울')
     page.locator('#dialog').get_by_role('button',name='이 지역에서 데이트하기',exact=True).click()
     assert page.locator('[name=origin_name]').input_value()
+    # 예산 입력칸은 ‘바꾸기’ → 예산 ‘직접’을 눌러야 보인다.
+    page.locator('.condition-toggle').click()
+    page.locator('#condition-details').get_by_role('group',name='전체 예산').get_by_role('button',name='직접',exact=True).click()
     page.locator('[name=budget]').fill('-1')
     page.locator('#submit-plan').click()
     assert page.locator('[name=budget]').evaluate('element=>!element.validity.valid')
@@ -292,10 +295,11 @@ def test_course_submit_shows_festivals_below_plans(audit_page):
     for i in range(6):
         card=cards.nth(i)
         if i%3==1 or i==2:
-            assert card.locator('img').count()==0 and '사진: 한국관광공사' not in card.inner_text(),i
+            assert card.locator('img').count()==0 and 'ⓒ한국관광공사' not in card.inner_text(),i
             continue
         img=card.locator('.festival-photo img')
-        assert img.count()==1 and card.locator('figcaption').inner_text()=='사진: 한국관광공사',i
+        assert img.count()==1 and card.locator('figcaption').inner_text()=='출처: ⓒ한국관광공사 · 저작권 정책 ↗',i
+        assert card.locator('figcaption a').get_attribute('href')=='https://api.visitkorea.or.kr/#/useServiceGuide/2'
         assert img.get_attribute('alt')==f'{rows[i]["title"]} 대표 사진'
         assert img.get_attribute('loading')=='lazy' and img.get_attribute('decoding')=='async'
         assert img.get_attribute('referrerpolicy')=='no-referrer'
@@ -394,7 +398,7 @@ def test_festival_failure_never_blocks_course_results(audit_page):
 
 def open_origin_picker(page):
     page.evaluate("form.elements.mode.value='real';form.elements.mode.dispatchEvent(new Event('change',{bubbles:true}))")
-    page.locator('#origin-location').get_by_role('button',name='주소 검색 · 지도에서 선택',exact=True).click()
+    page.locator('#origin-location').get_by_role('button',name='다른 곳 찾기 · 주소 검색·지도',exact=True).click()
     page.wait_for_function('!!locationMap',timeout=25000)
     page.evaluate('locationMap.setView([35.16,129.16],15,{animate:false})')
 

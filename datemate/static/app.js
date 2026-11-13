@@ -331,6 +331,10 @@ async function init() {
       plans = [selected];
       renderResults();
       renderDetail();
+      // 저장된 코스를 링크로 열 때도 그 코스의 지역·방문일 축제를 함께 보여 준다.
+      try {
+        FestivalPanel.restore(selected.conditions);
+      } catch {}
       showPlannerPage(true);
     }
     if (location.hash === '#explore-section') {
@@ -412,6 +416,7 @@ form.addEventListener('submit', async e => {
     const data = values();
     data.explicit_fields = [...FormState.edited];
     await PlanningStudy.prepare(data);
+    LastConditions.save(data);
     mode = data.mode;
     beginPlanSearch();
     setTab(false);
@@ -421,7 +426,7 @@ form.addEventListener('submit', async e => {
     try {
       FestivalPanel.load(data);
     } catch {}
-    const result = await createPlanWithProgress(data);
+    const result = await createPlanWithProgress(data, FestivalPanel.contextOf(data));
     plans = result.plans;
     selected = plans[0] || null;
     renderResults(result);

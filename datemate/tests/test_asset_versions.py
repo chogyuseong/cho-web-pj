@@ -14,3 +14,15 @@ def test_home_revalidates_script_dependencies_after_changes():
             assert url in response.text
             assert client.get(url).status_code==200
         assert response.text.index('/static/maps.js?')<response.text.index('/static/app.js?')
+
+
+def test_shared_page_revalidates_script_dependencies_after_changes():
+    with TestClient(app) as client:
+        response=client.get('/shared')
+        assert response.headers['cache-control']=='no-store'
+        assert response.headers['referrer-policy']=='no-referrer'
+        for name in ('festivals.js','shared.js','style.css'):
+            version=hashlib.sha256((ROOT/'static'/name).read_bytes()).hexdigest()[:12]
+            url=f'/static/{name}?v={version}'
+            assert url in response.text
+            assert client.get(url).status_code==200

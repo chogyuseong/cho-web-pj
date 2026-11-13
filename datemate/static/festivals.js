@@ -14,6 +14,39 @@ const FestivalPanel = {
   previous: null,
   // 코스 지도에 표시할, 좌표가 있는 방문일 축제.
   mapItems: [],
+  // 공유 화면처럼 코스를 다시 추천할 수 없는 곳에서는 축제 선택 버튼을 그리지 않는다.
+  readOnly: false,
+  // 새로고침으로 검색을 이어받을 때 축제 구역을 다시 그리는 데 필요한 조건만 남긴다.
+  // 출발지는 축제를 고른 경우(곧 축제 장소)에만 담는다.
+  contextOf(conditions) {
+    const festival = conditions.festival || null,
+      origin = conditions.origin;
+    return {
+      mode: conditions.mode,
+      region: conditions.region,
+      visit_date: conditions.visit_date,
+      festival,
+      origin: festival && origin ? {
+        name: origin.name,
+        lat: origin.lat,
+        lon: origin.lon
+      } : null
+    };
+  },
+  // 저장된 코스를 열거나 진행 중이던 검색을 이어받을 때. 그 코스가 고른 축제가 있으면 선택 상태로 되살린다.
+  // 고르기 전 조건은 남아 있지 않으므로, 해제하면 조건 화면에서 다시 고르게 한다.
+  restore(conditions) {
+    const festival = conditions.festival,
+      origin = conditions.origin;
+    this.chosen = festival && origin && conditions.mode === 'real' ? {
+      festival: {
+        ...festival
+      },
+      originName: origin.name
+    } : null;
+    this.previous = null;
+    this.load(conditions);
+  },
   load(conditions) {
     const generation = ++this.generation;
     this.detailQueue = [];
@@ -53,12 +86,13 @@ const FestivalPanel = {
       this.previous = null;
     }
     const note = document.getElementById('festival-origin-note');
+    if (!note) return;
     note.hidden = !this.chosen;
     note.replaceChildren();
     if (!this.chosen) return;
     note.append(node('strong', `‘${this.chosen.festival.title}’ 기준 코스`, 'festival-origin-title'),
       node('span', '축제 장소에서 출발해 주변 장소로 다시 추천했어요.'),
-      button('축제 선택 해제 · 원래 조건으로 다시 추천', () => this.clearChoice()));
+      button(this.previous ? '축제 선택 해제 · 원래 조건으로 다시 추천' : '축제 선택 해제 · 조건 다시 고르기', () => this.clearChoice()));
   },
   clearChoice() {
     const submit = document.getElementById('submit-plan');
@@ -83,8 +117,8 @@ const FestivalPanel = {
       form.elements.origin_name.value = previous.originName;
       form.elements.visit_date.value = previous.visitDate;
     }
-    if (!locationState.origin) {
-      // 원래 출발지가 없던 경우(축제부터 고른 경우)는 조건 화면에서 다시 고르게 한다.
+    if (!previous || !locationState.origin) {
+      // 원래 출발지가 없던 경우(축제부터 고른 경우)나 이어받은 코스라 원래 조건을 모르는 경우는 조건 화면에서 다시 고르게 한다.
       this.updateChosen({});
       setTab(false);
       showPlannerPage(false);
@@ -108,7 +142,10 @@ const FestivalPanel = {
     });
     img.src = url;
     frame.append(img);
-    figure.append(frame, node('figcaption', '사진: 한국관광공사', 'festival-photo-credit'));
+    // 한국관광콘텐츠랩 저작권 정책이 정한 출처 표기 형식과, 직접 링크로 쓸 때 함께 제공해야 하는 정책 안내 링크.
+    const credit = node('figcaption', '출처: ⓒ한국관광공사 · ', 'festival-photo-credit');
+    credit.append(link('저작권 정책 ↗', 'https://api.visitkorea.or.kr/#/useServiceGuide/2'));
+    figure.append(frame, credit);
     return figure;
   },
   status(text) {
@@ -232,9 +269,12 @@ const FestivalPanel = {
       node('p', `${festival.start} ~ ${festival.end} · ${festival.region}`, 'hint'),
       node('p', festival.address, 'hint'), fee, hours,
       link('한국관광공사에서 확인 ↗', festival.source_url));
-    if (chosen) card.append(button('이 축제 선택 해제', () => this.clearChoice()));
-    else if (this.hasPoint(festival)) card.append(button('이 축제 주변 코스 추천받기', () => this.planAround(festival)));
-    else card.append(node('p', '위치 좌표가 없어 지도 표시와 주변 코스 추천을 할 수 없어요.', 'hint'));
+    // 공유 화면에서는 보기만 하므로 축제 선택 버튼을 두지 않는다.
+    if (!this.readOnly) {
+      if (chosen) card.append(button('이 축제 선택 해제', () => this.clearChoice()));
+      else if (this.hasPoint(festival)) card.append(button('이 축제 주변 코스 추천받기', () => this.planAround(festival)));
+      else card.append(node('p', '위치 좌표가 없어 지도 표시와 주변 코스 추천을 할 수 없어요.', 'hint'));
+    }
     this.queueDetail(festival, fee, hours, generation);
     return card;
   },
@@ -285,9 +325,13 @@ const FestivalPanel = {
     }
     let festivals = Array.isArray(data.festivals) ? data.festivals : [];
     // 고른 축제는 맨 앞에 둔다. 방문일 목록에 없으면(날짜가 기간 끝으로 조정된 경우 등) 고른 정보를 그대로 앞에 붙인다.
+    // 이어받은 코스의 축제는 저장된 이름·좌표뿐이라, 목록에서 찾은 자료로 바꾸고 못 찾으면 카드를 만들지 않는다.
     if (this.chosen) {
       const id = this.chosen.festival.id;
-      festivals = [festivals.find(item => item.id === id) || this.chosen.festival, ...festivals.filter(item => item.id !== id)];
+      const found = festivals.find(item => item.id === id);
+      if (found && !this.chosen.festival.start) this.chosen.festival = found;
+      const first = found || (this.chosen.festival.start ? this.chosen.festival : null);
+      festivals = [...(first ? [first] : []), ...festivals.filter(item => item.id !== id)];
     }
     this.mapItems = festivals.filter(festival => this.hasPoint(festival));
     this.refreshMaps();

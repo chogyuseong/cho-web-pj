@@ -1,9 +1,11 @@
 ﻿const PlanSearch={
   key:'datemate-active-search',
   generation:0,
-  remember(id){try{sessionStorage.setItem(this.key,id);}catch{}},
-  forget(){try{sessionStorage.removeItem(this.key);}catch{}},
+  // 축제 구역용 조건(지역·방문일, 고른 축제)도 같은 탭에 함께 남겨 새로고침 뒤 다시 그린다.
+  remember(id,festival){try{sessionStorage.setItem(this.key,id);if(festival)sessionStorage.setItem(this.key+'-festival',JSON.stringify(festival));else sessionStorage.removeItem(this.key+'-festival');}catch{}},
+  forget(){try{sessionStorage.removeItem(this.key);sessionStorage.removeItem(this.key+'-festival');}catch{}},
   pending(){try{return sessionStorage.getItem(this.key);}catch{return null;}},
+  festival(){try{return JSON.parse(sessionStorage.getItem(this.key+'-festival'))||null;}catch{return null;}},
   async wait(id){
     const generation=++this.generation;
     const controller=new AbortController();this.controller=controller;
@@ -39,18 +41,22 @@
     this.forget();
   }
 };
-async function createPlanWithProgress(data){
+async function createPlanWithProgress(data,festival){
   const generation=PlanSearch.generation;
   const job=await api('/plan-jobs',data);
   if(generation!==PlanSearch.generation){await api('/plan-jobs/'+encodeURIComponent(job.id),null,'DELETE');throw Error('검색을 취소했어요.');}
-  PlanSearch.remember(job.id);return PlanSearch.wait(job.id);
+  PlanSearch.remember(job.id,festival);return PlanSearch.wait(job.id);
 }
 async function resumePlanSearch(){
   const id=PlanSearch.pending();if(!id||new URLSearchParams(location.search).has('plan'))return;
   const submit=document.querySelector('#submit-plan');submit.disabled=true;
   beginPlanSearch();setTab(false);showPlannerPage(true);
+  // 새 추천 때처럼 축제는 코스 검색과 나란히 조회한다. 조건이 남아 있지 않으면 받은 코스의 조건으로 조회한다.
+  const festival=PlanSearch.festival();
+  try{if(festival)FestivalPanel.restore(festival);}catch{}
   try{
     const result=await PlanSearch.wait(id);plans=result.plans;selected=plans[0]||null;
+    try{if(!festival&&selected)FestivalPanel.restore(selected.conditions);}catch{}
     renderResults(result);renderDetail();document.querySelector('#progress').textContent=`검색 복원 완료 · ${plans.length}개 일정`;
   }catch(error){showSearchFailure(error);}
   finally{submit.disabled=false;document.querySelector('#progress').classList.remove('is-searching');document.querySelector('#results').setAttribute('aria-busy','false');}

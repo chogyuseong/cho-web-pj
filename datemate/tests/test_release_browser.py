@@ -36,6 +36,9 @@ def test_input_result_share_and_mobile_flow(tmp_path):
             assert not page.locator('.results-area').is_visible()
             page.evaluate("form.elements.mode.value='demo';form.elements.mode.dispatchEvent(new Event('change',{bubbles:true}));form.elements.visit_date.value='2026-10-24';form.elements.max_leg.value=180;")
             page.locator('[name=request]').fill('2명 5만원')
+            # 예산 입력칸은 ‘바꾸기’ → 예산 ‘직접’을 눌러야 보인다.
+            page.locator('.condition-toggle').click()
+            page.locator('#condition-details').get_by_role('group',name='전체 예산').get_by_role('button',name='직접',exact=True).click()
             page.locator('[name=budget]').fill('80000')
             page.locator('[name=budget]').press('Tab')
             page.locator('#submit-plan').click()

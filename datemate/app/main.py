@@ -5,7 +5,6 @@ import time
 import mimetypes
 import logging
 import uuid
-import hashlib
 import re
 import asyncio
 from contextlib import suppress
@@ -29,6 +28,7 @@ from .taxonomy import DATE_CATEGORIES
 from .media import media_info
 from .blog_search import place_blogs
 from .request_usage import bind_client, unbind_client
+from .static_pages import versioned_page
 
 # Provider keys (e.g. the tourism API key) travel in URL queries; httpx logs request
 # URLs at INFO, so keep its loggers quiet even if INFO logging is enabled later.
@@ -771,19 +771,8 @@ def chat(kind: Literal["place", "plan"], id: str, data: ChatInput, request: Requ
 
 @app.get("/")
 def home():
-    html = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
-
     # 파일 변경 시 URL도 바꿔 이전 maps.js와 새 app.js의 혼합 로딩을 방지한다.
-    def versioned(match):
-        url = match.group(1)
-        path = ROOT / url.lstrip("/")
-        if not path.is_file():
-            return match.group(0)
-        version = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
-        return url + "?v=" + version
-
-    html = re.sub(r'(/static/[^\s"\'<>?]+\.(?:js|css))', versioned, html)
-    return HTMLResponse(html, headers={"Cache-Control": "no-store"})
+    return HTMLResponse(versioned_page("index.html"), headers={"Cache-Control": "no-store"})
 
 
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")

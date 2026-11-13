@@ -3,13 +3,16 @@ import hashlib
 import json
 import secrets
 import time
+from datetime import date
 from fastapi import APIRouter, Header, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from typing import Literal
 from . import store
 from .config import ROOT
 from .models import PlaceId
+from .regions import normalize_region
+from .static_pages import versioned_page
 
 router = APIRouter()
 
@@ -33,6 +36,16 @@ def resolve(authorization):
     return dict(row)
 
 
+def festival_search(conditions):
+    """Only the region and visit day, so the shared page can list that day's festivals."""
+    region = normalize_region(str(conditions.get('region') or '서울'))
+    try:
+        day = date.fromisoformat(str(conditions.get('visit_date') or '')).isoformat()
+    except ValueError:
+        return None
+    return dict(region=region, visit_date=day) if region else None
+
+
 def public_plan(plan):
     # Never copy the original payload and remove fields: new private fields must
     # remain private by default. No origin/home/requests/routes/free text/images.
@@ -41,6 +54,7 @@ def public_plan(plan):
                             arrival=plan['timeline'][i]['arrival'],
                             departure=plan['timeline'][i]['departure'])
                        for i,p in enumerate(plan['places'])],
+            'festival_search': festival_search(plan.get('conditions') or {}),
             'notice': '공유용 코스예요. 영업·예약·이동 시간은 방문 전 확인해 주세요.'}
 
 
@@ -92,4 +106,5 @@ def vote_shared(data: SharedVote, request: Request, authorization: str | None = 
 
 @router.get('/shared', include_in_schema=False)
 def shared_page():
-    return FileResponse(ROOT/'static'/'shared.html', headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer'})
+    # 홈과 같이 js·css 주소에 내용 해시를 붙여, 배포 직후 이전 festivals.js 가 캐시에서 섞여 쓰이지 않게 한다.
+    return HTMLResponse(versioned_page('shared.html'), headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer'})

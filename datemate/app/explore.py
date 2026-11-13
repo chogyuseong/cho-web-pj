@@ -42,17 +42,37 @@ def address_key(address):
     first,_,rest=str(address or '').strip().partition(' ')
     return normalize((normalize_region(first) or first)+rest)
 
-def classify(category):
-    if any(w in category for w in ('자동차','주차장','부동산','병원','의원','결혼','소개팅','결혼정보','여행사','호텔','숙박','유흥주점')):return None
-    for words,label in [(['카페','디저트','베이커리'],'카페·미식'),(['음식점','한식','양식','일식','중식','분식','레스토랑'],'카페·미식'),(['미술','박물관','전시','갤러리','공연','문화재','유적'],'문화·예술'),(['공방','공예','체험'],'체험·제작'),(['공원','정원','산책','숲','관광','전망','식물원'],'산책·풍경'),(['서점','도서관','책방'],'휴식·힐링'),(['방탈출','보드','오락','게임','쇼핑','소품','편집','백화점','복합문화'],'오락·놀이'),(['스포츠','레저','볼링','클라이밍','수족관','동물원'],'레저·활동')]:
-        if any(w in category for w in words):return label
+BLOCKED_CATEGORY=('자동차','주차장','부동산','병원','의원','결혼','소개팅','결혼정보','여행사','호텔','숙박','유흥주점')
+CAFE_WORDS=('카페','디저트','베이커리')
+FOOD_WORDS=('음식점','한식','양식','일식','중식','분식','레스토랑')
+# 업종 대분류('>' 앞)가 이 단어를 모두 포함하면 장소가 아니라 대행·광고 업체다(예: '지원,대행>전시,행사대행').
+SERVICE_HEADS=(('지원','대행'),('광고','마케팅'))
+
+def classify_local(category,name=''):
+    """네이버 지역 검색 업종(category)과 상호로 (활동 분류, 식사 여부)를 고른다. 후보가 아니면 None."""
+    category=str(category or '');name=str(name or '')
+    if any(w in category for w in BLOCKED_CATEGORY):return None
+    head=category.split('>')[0]
+    if any(all(w in head for w in words) for words in SERVICE_HEADS):return None
+    if any(w in category for w in CAFE_WORDS):return '카페·미식',False
+    if any(w in category for w in FOOD_WORDS):return '카페·미식',True
+    for words,label in [(['미술','박물관','전시','갤러리','공연','문화재','유적'],'문화·예술'),(['공방','공예','체험'],'체험·제작'),(['공원','정원','산책','숲','관광','전망','식물원','해변','해수욕장','해안','호수','둘레길'],'산책·풍경'),(['서점','도서관','책방'],'휴식·힐링'),(['방탈출','보드','오락','게임','쇼핑','소품','편집','백화점','복합문화'],'오락·놀이'),(['스포츠','레저','볼링','클라이밍','수족관','동물원'],'레저·활동')]:
+        if any(w in category for w in words):
+            # '갤러리카페'처럼 상호에 카페가 있으면 전시가 아니라 카페다.
+            if label=='문화·예술' and '카페' in name:return '카페·미식',False
+            return label,False
     return None
+
+def classify(category):
+    found=classify_local(category)
+    return found[0] if found else None
 
 def venue(item,query,rank,region='서울'):
     if not isinstance(item,dict):return None
     name=plain(item.get('title',''));address=plain(item.get('roadAddress') or item.get('address') or '')
-    category=plain(item.get('category',''));kind=classify(category)
-    if not name or region_from_address(address)!=region or not kind:return None
+    category=plain(item.get('category',''));found=classify_local(category,name)
+    if not name or region_from_address(address)!=region or not found:return None
+    kind,meal=found
     try:
         lon,lat=float(item['mapx']),float(item['mapy'])
         if abs(lon)>180:lon/=10000000
@@ -61,7 +81,7 @@ def venue(item,query,rank,region='서울'):
     except (KeyError,ValueError,TypeError):return None
     pid='discovered:'+hashlib.sha256((name+address).encode()).hexdigest()[:20]
     return dict(id=pid,name=name,address=address,lat=lat,lon=lon,region=region,demo=False,category=kind,themes=[kind],tags=[category],
-        meal=any(w in category for w in ('음식점','한식','양식','일식','중식','분식','레스토랑')) and not any(w in category for w in ('카페','디저트')),
+        meal=meal,
         description=category,source='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address})),source_type='네이버 지역 검색 · 장소 둘러보기',
         checked_at=datetime.now(timezone.utc).isoformat(),discovery_verification='업체명·시·도 주소·좌표 확인 · 현재 영업 여부 별도 확인',
         price=None,price_unit='person',hours=None,closed_days=None,breaks=None,last_entry=None,reservation=None,stay=None,stay_basis=None,rating=None,setting=None,

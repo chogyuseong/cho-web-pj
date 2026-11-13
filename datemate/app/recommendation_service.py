@@ -46,7 +46,7 @@ def generate(data: Conditions, owner: str):
                 data, result = _research(data)
             if profile:
                 result["personalization"] = explanation(profile)
-                for plan in result["plans"]:
+                for plan in result["plans"] + result.get("reserve", []):
                     plan["personalization"] = result["personalization"]
             result = _finish(data, result, owner)
         except Exception:
@@ -138,7 +138,7 @@ def _research(data):
             if retried["plans"]:
                 result = retried
                 evidence = broad
-                for p in result["plans"]:
+                for p in result["plans"] + result.get("reserve", []):
                     adjustments = p.setdefault(
                         "search_adjustments",
                         dict(
@@ -165,7 +165,7 @@ def _research(data):
         )
     if evidence:
         result["course_search"] = evidence
-        for plan in result["plans"]:
+        for plan in result["plans"] + result.get("reserve", []):
             plan["course_search"] = evidence
             plan["blog_score"] = priority(plan, evidence)
             plan["recommendation_method"] = (
@@ -183,25 +183,75 @@ def _research(data):
     return data, result
 
 
+def _verify_car_routes(data, plans):
+    from .planner import evaluate
+    from .condition_audit import audit_plan
+
+    for i, plan in enumerate(plans):
+        verified, error = evaluate(
+            plan["places"], data, soft=bool(plan.get("best_effort")), verify_routes=True
+        )
+        if verified:
+            plan.update(verified)
+            plans[i] = audit_plan(plan, data)
+            plan["route_verification"] = "네이버 자동차 길찾기 조회 반영 (조회 시점 기준)"
+        else:
+            plan["route_verification"] = (
+                "실제 경로 확인 실패: " + str(error) + " · 추정 동선을 유지했어요."
+            )
+
+
+# 가격 확인 뒤 빠진 코스를 예비 후보로 채울 때의 추가 외부 호출 상한.
+REFILL_PLANS = 2
+REFILL_PRICE_LOOKUPS = 6
+
+
+def _refill(data, kept, reserve):
+    """experience 모드: 필수 조건으로 빠진 자리를 예비 후보 최대 2개로 다시 검증해 채운다."""
+    from .option_diversity import refill_candidates
+    from .pricing import price_plans
+    from .preferences import filter_required
+    from .request_usage import current
+
+    candidates = refill_candidates(kept, reserve, data, limit=REFILL_PLANS)
+    looked_up = {p["id"] for plan in kept for p in plan["places"]}
+    chosen, lookups = [], set()
+    for plan in candidates:
+        needed = {
+            p["id"]
+            for p in plan["places"]
+            if data.mode == "real" and p.get("price") is None and p["id"] not in looked_up
+        }
+        if len(lookups | needed) > REFILL_PRICE_LOOKUPS:
+            continue
+        chosen.append(plan)
+        lookups |= needed
+    if not chosen:
+        return []
+    route_calls = (
+        len(chosen) * (data.count + 1) if data.mode == "real" and data.transport == "car" else 0
+    )
+    usage = current()
+    if usage:
+        snapshot = usage.snapshot()
+        if (
+            snapshot["budget_exhausted"]
+            or snapshot["limit"] - snapshot["total_calls"] < len(lookups) + route_calls
+        ):
+            return []
+    if route_calls:
+        _verify_car_routes(data, chosen)
+    return filter_required(price_plans(chosen))
+
+
 def _finish(data, result, owner):
     from .pricing import price_plans
+    from .config import option_selector
 
+    experience = option_selector() == "experience"
+    reserve = result.pop("reserve", None) or []
     if data.mode == "real" and data.transport == "car":
-        from .planner import evaluate
-        from .condition_audit import audit_plan
-
-        for i, plan in enumerate(result["plans"]):
-            verified, error = evaluate(
-                plan["places"], data, soft=bool(plan.get("best_effort")), verify_routes=True
-            )
-            if verified:
-                plan.update(verified)
-                result["plans"][i] = audit_plan(plan, data)
-                plan["route_verification"] = "네이버 자동차 길찾기 조회 반영 (조회 시점 기준)"
-            else:
-                plan["route_verification"] = (
-                    "실제 경로 확인 실패: " + str(error) + " · 추정 동선을 유지했어요."
-                )
+        _verify_car_routes(data, result["plans"])
     report(
         "가격 확인",
         "코스 후보를 찾았어요. 가격과 필수 조건을 마지막으로 확인해요",
@@ -211,7 +261,13 @@ def _finish(data, result, owner):
     from .preferences import filter_required, hard_blocks
 
     blocked = [p for p in result["plans"] if hard_blocks(p)]
+    priced = len(result["plans"])
     result["plans"] = filter_required(result["plans"])
+    dropped = priced - len(result["plans"])
+    refilled = []
+    if experience and dropped and reserve:
+        refilled = _refill(data, result["plans"], reserve)
+        result["plans"] += refilled
     if blocked and not result["plans"]:
         result.update(
             status="required_unmet",
@@ -220,12 +276,21 @@ def _finish(data, result, owner):
                 "필수 조건 또는 입력 범위를 직접 조정해 주세요. 미확인 조건을 충족으로 처리하지 않습니다."
             ],
         )
-    if data.mode == "real":
+    if data.mode == "real" or refilled:
         from .option_diversity import select_options
 
-        result["plans"] = select_options(result["plans"], data)
-    if result["plans"] and all(p.get("best_effort") for p in result["plans"]):
-        result["status"] = "best_effort"
+        # 탐색 단계의 option_selection(후보 풀 비교)은 그대로 두고, 가격 확인 뒤 재선택은 따로 남긴다.
+        final_selection = {}
+        result["plans"] = select_options(
+            result["plans"], data, final_selection, stage="after_pricing"
+        )
+        result.setdefault("diagnostics", {})["option_selection_after_pricing"] = final_selection[
+            "option_selection"
+        ]
+    if experience and dropped:
+        for p in result["plans"]:
+            note = f"가격 확인 후 필수 조건을 넘은 코스 {dropped}개를 제외했어요."
+            p["diversity_note"] = " ".join(filter(None, [p.get("diversity_note"), note]))
     from .experience import verification_summary
     from .request_usage import current
 

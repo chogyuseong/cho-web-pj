@@ -47,7 +47,7 @@ def annotate(plan,c):
         status='조건에 가까운 대안 · 차이 확인 필요')
     return plan
 
-def suggest(c,evidence=None):
+def suggest(c,evidence=None,out=None,stage='best_effort'):
     from .planner import evaluate
     from .quality import pool as quality_pool,meal_penalty,meal_due,is_meal
     pool=[p for p in quality_pool(c) if not any(w.lower() in (p['name']+' '+p['category']+' '+' '.join(p['tags'])).lower() for w in c.avoid if w)]
@@ -90,8 +90,15 @@ def suggest(c,evidence=None):
         ids=frozenset(p['id'] for p in plan['places'])
         if ids in seen:continue
         seen.add(ids);results.append(plan)
-    from .option_diversity import select_options
-    return select_options(results,c)
+    from .option_diversity import select_options,reserve_candidates
+    from .config import option_selector
+    diagnostics={}
+    chosen=select_options(results,c,diagnostics,stage=stage)
+    if out is not None:
+        # 최종 코스를 고른 선택의 진단. experience 모드에서는 가격 확인 뒤 채울 예비 후보도 둔다.
+        out['diagnostics']=diagnostics
+        if option_selector()=='experience':out['reserve']=reserve_candidates(results,chosen,c,limit=12)
+    return chosen
 
 
 def progressive_suggest(c,evidence=None):

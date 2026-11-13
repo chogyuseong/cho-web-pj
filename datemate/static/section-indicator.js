@@ -37,7 +37,8 @@
       activeTop = -Infinity,
       sectionTop = -Infinity;
     for (const heading of document.querySelectorAll(selector)) {
-      if (heading.closest('dialog,.hero')) continue;
+      // 닫힌 접힘 안의 제목은 브라우저에 따라 상자가 남아 있어도 보이지 않으므로 건너뛴다.
+      if (heading.closest('dialog,.hero,details:not([open])')) continue;
       const rects = heading.getClientRects();
       // 숨겨졌거나 닫힌 펼침 안의 제목은 건너뛴다.
       if (!rects.length) continue;
@@ -57,7 +58,9 @@
       bar.classList.remove('is-visible');
       return;
     }
-    const context = section && section !== active ? headingText(section) : '';
+    // 축제·부가 정보 구역은 상세(h2) 밖에 있으므로 위쪽 h2를 상위 이름으로 붙이지 않는다.
+    const own = active?.closest('#festival-section,#plan-extras');
+    const context = section && section !== active && (!own || own.contains(section)) ? headingText(section) : '';
     parent.textContent = context;
     parent.hidden = !context;
     current.textContent = text;

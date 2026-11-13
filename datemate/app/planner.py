@@ -103,7 +103,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         walking=walking,finish=clock(now),status=status,conditions=c.model_dump(mode='json'),
         reasons=[f'{p["category"]} · 체류 {t["stay"]}분'+(' (사용자 설정)' if p['stay'] is None else '')+(' · 식사 방문 (시간·예산 포함)' if p.get('meal') else '')+(' · '+p['discovery_verification'] if p.get('discovery_verification') else '')+f' · 근거: {p["source"]}' for p,t in zip(selected,timeline)]),None
 
-def recommend_strict(c,evidence=None):
+def recommend_strict(c,evidence=None,stage='planner'):
     pool=candidates(c); reasons=Counter(); beam=[[]]
     if not pool:
         filters=[]
@@ -135,7 +135,10 @@ def recommend_strict(c,evidence=None):
                 if error:reasons[error]+=1
                 else:next_beam.append(plan)
         # 제한된 빔 탐색: 비용·동선과 테마 다양성으로 후보를 줄여 폭발을 막는다.
-        next_beam.sort(key=lambda p:(-sum(w in (x['name']+' '+x['category']) for x in p['places'] for w in re.findall(r'[가-힣A-Za-z0-9]{2,}',c.request)),-len({x['category'] for x in p['places']}) if c.theme_mode=='mix' else 0,
+        # 식사와 카페는 같은 '카페·미식' 카테고리지만 다른 활동으로 센다. 같이 세면 식사+카페 조합이
+        # 종류가 적은 코스로 밀려, 카페가 있는 지역에서도 카페가 든 조합이 빔에서 사라진다.
+        from .quality import is_meal as _is_meal
+        next_beam.sort(key=lambda p:(-sum(w in (x['name']+' '+x['category']) for x in p['places'] for w in re.findall(r'[가-힣A-Za-z0-9]{2,}',c.request)),-len({(x['category'],_is_meal(x)) for x in p['places']}) if c.theme_mode=='mix' else 0,
                                      sum(r['minutes'] for r in p['legs'])-(.1*sum(x['category']==('휴식·힐링' if c.mbti.startswith('I') else '레저·활동') for x in p['places']) if c.use_mbti and c.mbti and not c.themes and not c.date_subcategory else 0),p['total'][1]))
         if evidence:
             from .course_search import priority
@@ -157,11 +160,26 @@ def recommend_strict(c,evidence=None):
             if ids in sets:continue
             plan,error=evaluate(selected,c)
             if plan:final.append(plan);sets.append(ids)
-    from .option_diversity import select_options
-    final=select_options(final,c)
-    return dict(plans=final,status='ok' if final else 'constraints_unmet',reasons=[k for k,_ in reasons.most_common(5)] if len(final)<3 else [],
+    from .option_diversity import select_options,reserve_candidates
+    from .config import option_selector
+    experience=option_selector()=='experience'
+    # 모든 선택 모드에서 식사·요청 활동 미충족 안을 먼저 빼고 고른다. recommend()·조건 완화가 고른 뒤 이 안들을 버리므로,
+    # 나중에 빼면 식사 장소가 적은 동네(예: 강릉 안목해변)에서 3안을 골라 놓고 1안만 남는다.
+    from .condition_audit import audit_plan
+    final=[p for p in (audit_plan(p,c) for p in final) if not unmet_composition(p)]
+    diagnostics={}
+    pool_before_selection=list(final)
+    final=select_options(final,c,diagnostics,stage=stage)
+    result=dict(plans=final,status='ok' if final else 'constraints_unmet',reasons=[k for k,_ in reasons.most_common(5)] if len(final)<3 else [],
         suggestions=['조건은 자동 완화하지 않았습니다. 시간·예산·테마·예약 가능 여부를 수정해 다시 검색하세요.'] if len(final)<3 else [],
-        search_note='최대 60개 빔 후보 내 탐색 결과이며 가능한 모든 일정의 존재를 보장하지 않습니다.')
+        search_note='최대 60개 빔 후보 내 탐색 결과이며 가능한 모든 일정의 존재를 보장하지 않습니다.',diagnostics=diagnostics)
+    if experience:
+        # 가격 확인 뒤 필수 조건으로 빠지는 코스를 채울 예비 후보. 응답·저장 전에 반드시 지운다.
+        result['reserve']=reserve_candidates(pool_before_selection,final,c,limit=12)
+    return result
+
+def unmet_composition(plan):
+    return any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in plan['condition_checks'])
 
 def recommend(c,evidence=None):
     from .request_intent import normalize,plan_penalty
@@ -176,19 +194,32 @@ def recommend(c,evidence=None):
         from .course_search import priority
         if not any(priority(p,evidence) for p in result['plans']):
             from .best_effort import suggest
-            sourced=suggest(c,evidence)
+            out={}
+            sourced=suggest(c,evidence,out,stage='best_effort_sourced')
             if sourced and priority(sourced[0],evidence) and (not result['plans'] or plan_penalty(sourced[0],c)<=plan_penalty(result['plans'][0],c)):
-                return dict(plans=[audit_plan(p,c) for p in sourced],status='best_effort',
-                            reasons=['네이버 상위 글에 등장하는 장소를 우선 포함한 대안입니다. 입력 조건과의 차이를 확인하세요.'])
+                return with_selection(dict(plans=[audit_plan(p,c) for p in sourced],status='best_effort',
+                            reasons=['네이버 상위 글에 등장하는 장소를 우선 포함한 대안입니다. 입력 조건과의 차이를 확인하세요.']),out,result,c)
     if result['plans']:
         result['plans']=[audit_plan(p,c) for p in result['plans']]
         return result
     from .search_relaxation import search_progressively
-    alternatives=search_progressively(c,evidence)
+    out={}
+    alternatives=search_progressively(c,evidence,out)
     if not alternatives:return result
-    return dict(plans=[audit_plan(p,c) for p in alternatives],status='best_effort',reasons=['모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다.'],
+    return with_selection(dict(plans=[audit_plan(p,c) for p in alternatives],status='best_effort',reasons=['모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다.'],
         suggestions=['각 코스에 표시된 차이를 보고 조건을 수정하거나 장소를 교체해 주세요.'],strict_failure=result.get('status'),
-        search_note='조건 차이와 이동·비용을 점수로 비교한 후보입니다. 미확인 운영정보·비용은 별도 확인이 필요합니다.')
+        search_note='조건 차이와 이동·비용을 점수로 비교한 후보입니다. 미확인 운영정보·비용은 별도 확인이 필요합니다.'),out,result,c)
+
+def with_selection(alternative,out,strict,c):
+    """대체 경로 결과에 최종 코스를 고른 선택의 진단을 싣는다. 엄격 탐색의 선택 진단은 비교용으로 따로 둔다.
+    experience 모드의 예비 후보(reserve)도 넘긴다(응답·저장 전에 _finish가 지운다)."""
+    diagnostics=dict(out.get('diagnostics') or {})
+    if (strict.get('diagnostics') or {}).get('option_selection'):diagnostics['option_selection_strict']=strict['diagnostics']['option_selection']
+    alternative['diagnostics']=diagnostics
+    if out.get('reserve'):
+        from .condition_audit import audit_plan
+        alternative['reserve']=[audit_plan(p,c) for p in out['reserve']]
+    return alternative
 
 def replacements(plan,index,locked):
     c=Conditions.model_validate(plan['conditions'])

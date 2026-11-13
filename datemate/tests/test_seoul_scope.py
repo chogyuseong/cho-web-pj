@@ -66,10 +66,13 @@ def test_busan_local_search_can_build_a_real_plan(monkeypatch):
         dict(title='해운대 카페', category='카페', roadAddress='부산광역시 해운대구 우동 1', mapx=129.163, mapy=35.163),
         dict(title='해운대 전시관', category='전시', roadAddress='부산광역시 해운대구 우동 2', mapx=129.164, mapy=35.164),
         dict(title='해운대 공원', category='공원', roadAddress='부산광역시 해운대구 우동 3', mapx=129.165, mapy=35.165),
+        dict(title='해운대 두번째 카페', category='카페', roadAddress='부산광역시 해운대구 우동 4', mapx=129.1635, mapy=35.1635),
+        dict(title='해운대 두번째 전시관', category='전시', roadAddress='부산광역시 해운대구 우동 5', mapx=129.1645, mapy=35.1645),
+        dict(title='해운대 두번째 공원', category='공원', roadAddress='부산광역시 해운대구 우동 6', mapx=129.1655, mapy=35.1655),
         dict(title='서울 카페', category='카페', roadAddress='서울특별시 중구 1', mapx=126.97, mapy=37.56),
     ]
     monkeypatch.setattr(intent_discovery, 'search_enabled', lambda: True)
-    monkeypatch.setattr(intent_discovery, 'local_lookup', lambda name, area: (rows, 'available'))
+    monkeypatch.setattr(intent_discovery, 'local_lookup', lambda name, area, **kw: (rows, 'available'))
     c = Conditions(mode='real', allow_estimates=True, visit_date='2026-11-12', region='부산',
                    origin={'name': '부산광역시 해운대구 우동', 'lat': 35.163, 'lon': 129.163}, count=2)
     found = intent_discovery.discover_requested_places(c)
@@ -80,12 +83,15 @@ def test_busan_local_search_can_build_a_real_plan(monkeypatch):
 
     # 같은 시·도에 장소가 충분해도 출발지에서 닿지 않으면 그 동네를 새로 검색한다.
     queries = []
-    monkeypatch.setattr(intent_discovery, 'local_lookup', lambda name, area: (queries.append(area), ([], 'available'))[1])
+    monkeypatch.setattr(intent_discovery, 'local_lookup', lambda name, area, **kw: (queries.append(area), ([], 'available'))[1])
     far = c.model_copy(update={'origin': c.origin.model_copy(update={
         'name': '부산 동구 초량동 · 점검 축제 행사장 주변', 'lat': 35.1144, 'lon': 129.0464})})
     assert intent_discovery.discover_requested_places(far)['status'] == 'not_found'
-    assert queries and set(queries) == {'부산 동구'}
-    assert intent_discovery.discover_requested_places(c)['status'] == 'not_needed'
+    # 동네(초량동)로 먼저 찾고, 0건이면 남은 상한 안에서 구 단위로 한 번 되돌아간다.
+    assert queries[0] == '부산 동구 초량동' and set(queries) == {'부산 동구 초량동', '부산 동구'} and len(queries) <= 8
+    # 닿는 거리에 2곳 이상 확보된 종류(카페·전시·산책)가 2개 이상이면 다시 찾지 않는다.
+    queries.clear()
+    assert intent_discovery.discover_requested_places(c)['status'] == 'not_needed' and not queries
 
 
 @pytest.mark.parametrize('name,expected', [

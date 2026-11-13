@@ -92,12 +92,12 @@ def test_lock_replace_undo_chat_review_feedback_and_delete(audit_page):
     assert page.evaluate('selected.places[0].id')==locked
     page.get_by_role('button',name='교체 되돌리기',exact=True).click()
     page.wait_for_function('(id)=>selected.id===id',arg=original)
-    chat=page.locator('#plan-detail .chat-form').first
+    chat=page.locator('#plan-extras .chat-form').first
     chat.locator('input').fill('총비용은 얼마야?')
     chat.get_by_role('button',name='질문하기',exact=True).click()
-    page.wait_for_function("document.querySelector('#plan-detail .chat-form button').disabled===false")
-    assert '메이트:' in page.locator('#plan-detail .chat-box').first.inner_text()
-    review=page.locator('#plan-detail .review-form')
+    page.wait_for_function("document.querySelector('#plan-extras .chat-form button').disabled===false")
+    assert '메이트:' in page.locator('#plan-extras .chat-box').first.inner_text()
+    review=page.locator('#plan-extras .review-form')
     review.locator('[name=nickname]').fill('기능점검')
     review.locator('[name=visited]').fill('2026-01-01')
     review.locator('[name=body]').fill('기능점검 전용 후기입니다.')

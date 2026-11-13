@@ -23,7 +23,7 @@ main{max-width:1400px;padding:0 40px}button,input,select,textarea{font:inherit}b
 .plan-map-card h2{font-size:20px;margin:0 0 14px}.map-option-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.map-option-tabs button{font-size:14px;padding:8px 4px;min-height:44px}.map-course-title{font-weight:700;margin:14px 0 0;overflow-wrap:anywhere}.plan-map-card .plan-map{margin:14px 0 0}.plan-map-card .naver-plan-map{height:clamp(240px,40dvh,440px)}.map-place-list{display:grid;gap:8px;margin-top:12px}.map-place-list a{font-size:14px;overflow-wrap:anywhere}.plan-map-card .map-reconnect{min-height:170px;padding:18px}.plan-map-card .map-caption{font-size:13px}
 @media(min-width:1280px){main:has(.has-plan-map){max-width:1760px}.workspace.has-plan-map{grid-template-columns:280px minmax(0,1fr) 340px;gap:24px}.has-plan-map .conditions.panel{padding:18px}}
 @media(min-width:801px) and (max-width:1279px){.workspace.has-plan-map{grid-template-columns:minmax(0,1fr) 340px;gap:24px}.has-plan-map>.conditions{grid-column:1 / -1}.has-plan-map>.results-area{grid-column:1;grid-row:2}.has-plan-map>.plan-map-rail{grid-column:2;grid-row:2}}
-@media(max-width:800px){.workspace.has-plan-map{display:flex;flex-direction:column}.has-plan-map>.conditions{order:0}.has-plan-map>.plan-map-rail{order:1}.has-plan-map>.results-area{order:2}.plan-map-card{position:static;max-height:none;overflow:visible}.plan-map-card .naver-plan-map{height:300px}}
+@media(max-width:800px){.workspace.has-plan-map{display:flex;flex-direction:column}.plan-map-card{position:static;max-height:none;overflow:visible}.plan-map-card .naver-plan-map{height:300px}}
 @media print{.plan-map-rail{display:none!important}.workspace.has-plan-map{display:block}}.experience-controls .hint,.menu-checked,.restaurant-menu>a{font-size:14px;line-height:1.75}
 .menu-checked{color:var(--muted)}
 body{font-size:16px;line-height:1.75}
@@ -57,15 +57,13 @@ nav a,.nav,.nav-cta,summary{font-size:15px}
 body:not(.show-date-plan) .romance-hero{grid-template-columns:1fr;min-height:0;padding-block:32px}
 body:not(.show-date-plan) .hero-photo{display:none}
 body:not(.show-date-plan) .hero-copy{max-width:800px}
-.plan-option-tabs small{line-height:1.6}
 .plan-card:not(.selected) .plan-photo-preview{display:none}
 @media(min-width:801px){.simple-plan-form{max-width:760px;margin-inline:auto}}
 .option-comparison{padding:20px;border:1px solid #dce3e8;border-radius:16px;margin:16px 0;background:#f8fafc}
-.option-comparison th,.option-comparison td{padding:12px;text-align:left;vertical-align:top}
 .place-evidence{margin:12px 0;padding:12px;border:1px solid #e0e6e4;border-radius:10px;background:#f8faf9}
 .place-evidence summary{font-weight:650;cursor:pointer}
 .place-evidence a{overflow-wrap:anywhere;display:block}
-@media(max-width:800px){.option-comparison{padding:10px}.option-comparison table{min-width:580px}}
+@media(max-width:800px){.option-comparison{padding:10px}}
 .place-evidence a,.timeline-card .hint a{color:#245b91;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere;cursor:pointer}
 .place-evidence a:focus-visible,.timeline-card .hint a:focus-visible{outline:2px solid #245b91;outline-offset:3px}
 .source-link-options{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 12px;max-width:100%;overflow-wrap:anywhere}

@@ -45,10 +45,11 @@ def extract(posts):
         return valid,'available'
     except Exception:return [],'extraction_unavailable'
 
-def local_lookup(name,area):
+def local_lookup(name,area,sort='random'):
+    """sort: 'random'(정확도순, 기본) 또는 'comment'(카페·블로그 리뷰 수순)."""
     if store.cached('discovery-local-permission'):return [],'permission_required'
     try:
-        r=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=area+' '+name,display=5,sort='random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.getenv('NAVER_SEARCH_CLIENT_ID',''),'X-NCP-APIGW-API-KEY':os.getenv('NAVER_SEARCH_CLIENT_SECRET','')},timeout=6)
+        r=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=area+' '+name,display=5,sort=sort if sort in ('random','comment') else 'random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.getenv('NAVER_SEARCH_CLIENT_ID',''),'X-NCP-APIGW-API-KEY':os.getenv('NAVER_SEARCH_CLIENT_SECRET','')},timeout=6)
         if r.status_code in (401,403):
             store.cache('discovery-local-permission',True,60)
             return [],'permission_required'

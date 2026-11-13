@@ -154,6 +154,37 @@ const FestivalPanel = {
   hasPoint(festival) {
     return Number.isFinite(festival.lat) && Number.isFinite(festival.lon);
   },
+  // 거리 기준이 되는 출발지. 사용자가 고른 실제 출발지만 쓴다(데모 출발점·공유 화면은 기준이 없다).
+  originOf(conditions) {
+    const origin = conditions.origin;
+    return conditions.mode === 'real' && origin && this.hasPoint(origin) ? {
+      lat: origin.lat,
+      lon: origin.lon
+    } : null;
+  },
+  // 두 좌표 사이의 직선거리(m). 실제 이동 거리와 다를 수 있다.
+  distance(a, b) {
+    const rad = Math.PI / 180,
+      dLat = (b.lat - a.lat) * rad,
+      dLon = (b.lon - a.lon) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
+    return 2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h)));
+  },
+  distanceText(meters) {
+    if (meters < 950) return `약 ${Math.max(100, Math.round(meters / 100) * 100)}m`;
+    const km = meters / 1000;
+    return `약 ${km < 10 ? String(Math.round(km * 10) / 10) : Math.round(km)}km`;
+  },
+  // 좌표가 있는 축제는 출발지에서 가까운 순으로, 좌표가 없는 축제는 받은 순서 그대로 뒤에 둔다.
+  byDistance(festivals, origin) {
+    const located = festivals.filter(festival => this.hasPoint(festival)).map((festival, index) => ({
+      festival,
+      index,
+      meters: this.distance(origin, festival)
+    }));
+    located.sort((a, b) => a.meters - b.meters || a.index - b.index);
+    return [...located.map(item => item.festival), ...festivals.filter(festival => !this.hasPoint(festival))];
+  },
   // 방문일이 축제 기간 밖이면 기간 안에서 오늘 이후 가장 가까운 날로 맞춘다. 이미 끝난 축제면 그대로 둔다.
   visitDayFor(festival, current) {
     const lower = festival.start > today() ? festival.start : today();
@@ -253,7 +284,7 @@ const FestivalPanel = {
     hours.textContent = data.hours ? `운영 시간: ${data.hours}` : '';
     hours.hidden = !data.hours;
   },
-  card(festival, generation) {
+  card(festival, generation, origin) {
     const card = node('article', undefined, 'festival-card');
     const chosen = this.chosen && this.chosen.festival.id === festival.id;
     if (chosen) {
@@ -267,8 +298,10 @@ const FestivalPanel = {
     hours.hidden = true;
     card.append(node('strong', festival.title),
       node('p', `${festival.start} ~ ${festival.end} · ${festival.region}`, 'hint'),
-      node('p', festival.address, 'hint'), fee, hours,
-      link('한국관광공사에서 확인 ↗', festival.source_url));
+      node('p', festival.address, 'hint'));
+    // 고른 축제는 곧 출발지라 거리를 적지 않는다. 좌표가 없으면 거리를 만들어 내지 않는다.
+    if (origin && !chosen && this.hasPoint(festival)) card.append(node('p', `출발지에서 직선거리 ${this.distanceText(this.distance(origin, festival))}`, 'hint festival-distance'));
+    card.append(fee, hours, link('한국관광공사에서 확인 ↗', festival.source_url));
     // 공유 화면에서는 보기만 하므로 축제 선택 버튼을 두지 않는다.
     if (!this.readOnly) {
       if (chosen) card.append(button('이 축제 선택 해제', () => this.clearChoice()));
@@ -324,6 +357,9 @@ const FestivalPanel = {
       return;
     }
     let festivals = Array.isArray(data.festivals) ? data.festivals : [];
+    // 시·도 전체 축제가 오므로, 출발지가 있으면 가까운 축제부터 보여 주고 요금·시간도 그 순서로 조회한다.
+    const origin = this.originOf(conditions);
+    if (origin) festivals = this.byDistance(festivals, origin);
     // 고른 축제는 맨 앞에 둔다. 방문일 목록에 없으면(날짜가 기간 끝으로 조정된 경우 등) 고른 정보를 그대로 앞에 붙인다.
     // 이어받은 코스의 축제는 저장된 이름·좌표뿐이라, 목록에서 찾은 자료로 바꾸고 못 찾으면 카드를 만들지 않는다.
     if (this.chosen) {
@@ -340,11 +376,16 @@ const FestivalPanel = {
       results.append(node('p', '방문일에 확인된 축제가 없어요.', 'hint'));
       return;
     }
-    let text = `${festivals.length}건 · ${data.message || ''}`;
+    let text = `${festivals.length}건 · `;
+    if (origin) {
+      text += this.chosen ? '선택한 축제를 맨 위에 두고, 나머지는 축제 장소에서 가까운 순(직선거리)으로 보여드려요. ' : `${region} 전체 축제를 출발지에서 가까운 순(직선거리)으로 보여드려요. `;
+      if (festivals.some(festival => !this.hasPoint(festival))) text += '위치 정보가 없는 축제는 맨 뒤에 있어요. ';
+    }
+    text += data.message || '';
     if (data.truncated) text += ' 조회 결과가 많아 일부만 표시합니다.';
     this.status(text);
     jump.textContent = `${region} 축제 ${festivals.length}건 보기 ↓`;
-    const render = items => results.append(...items.map(festival => this.card(festival, generation)));
+    const render = items => results.append(...items.map(festival => this.card(festival, generation, origin)));
     render(festivals.slice(0, this.firstPage));
     if (festivals.length > this.firstPage) {
       more.textContent = `축제 더 보기 (${festivals.length - this.firstPage}건)`;

@@ -52,7 +52,23 @@ def relaxation_steps(c):
             if value:yield value
 
 
-def search_progressively(c,evidence=None):
+def experience_mode():
+    from .config import option_selector
+    return option_selector()=='experience'
+
+
+def reselect(options,reserve,adapt,conditions,stage):
+    """experience 모드: 고른 코스와 예비 후보를 원래 조건 기준으로 표시한 뒤 같은 규칙으로 다시 고른다."""
+    from .option_diversity import select_options,reserve_candidates
+    from .preferences import filter_required
+    pool=options+filter_required([p for p in map(adapt,reserve) if p is not None])
+    diagnostics={}
+    chosen=select_options(pool,conditions,diagnostics,stage=stage)
+    return chosen,diagnostics['option_selection'],reserve_candidates(pool,chosen,conditions,limit=12)
+
+
+def search_progressively(c,evidence=None,out=None):
+    """out(dict)을 주면 최종 코스를 고른 선택의 진단(diagnostics)과 experience 모드 예비 후보(reserve)를 담는다."""
     from .planner import recommend_strict
     from .condition_audit import audit_plan
     from .best_effort import annotate,suggest
@@ -60,30 +76,46 @@ def search_progressively(c,evidence=None):
     attempts=[];last=None
     for attempt,messages,changes in relaxation_steps(c):
         last=attempt
-        result=recommend_strict(attempt,evidence)
+        result=recommend_strict(attempt,evidence,stage='relaxation')
         serialized=attempt.model_dump(mode='json')
         attempts.append(dict(step=len(attempts)+1,changes={key:serialized[key] for key in changes},plans=len(result['plans'])))
-        options=[]
-        for p in result['plans']:
+        def adapt(p):
             checked=audit_plan(p,attempt)
-            if any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in checked['condition_checks']):continue
+            if any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in checked['condition_checks']):return None
             p['conditions']=c.model_dump(mode='json')
             p=audit_plan(annotate(p,c),c)
             p['search_adjustments']=dict(stage='nearby' if attempt.neighborhood_radius_km>c.neighborhood_radius_km else 'same_location',
                 origin_unchanged=True,original_radius_km=c.neighborhood_radius_km,effective_radius_km=attempt.neighborhood_radius_km,
                 messages=messages,differences=[dict(label=r['label'],message=r['message']) for r in p['condition_checks'] if r['state']=='unmet'],
                 attempts=list(attempts),effective_conditions=attempt.model_dump(mode='json'))
-            options.append(p)
-        options=filter_required(options)
+            return p
+        options=filter_required([p for p in map(adapt,result['plans']) if p is not None])
+        selection=dict(result.get('diagnostics',{}).get('option_selection') or {})
+        reserve=[]
+        if experience_mode() and options:
+            # 원래 조건 대비 차이(penalty)는 adapt 뒤에야 붙으므로, 같은 선택 규칙을 그 점수로 다시 적용한다.
+            options,selection,reserve=reselect(options,result.get('reserve',[]),adapt,attempt,'relaxation')
         attempts[-1]['accepted_plans']=len(options)
-        if options:return options
+        if options:
+            if out is not None:
+                if selection:selection.update(relaxation_step=len(attempts),accepted_plans=len(options))
+                out['diagnostics']={'option_selection':selection} if selection else {}
+                if reserve:out['reserve']=reserve
+            return options
     # Last resort remains a labelled approximation; known closures and locks still apply.
     if last:
-        options=suggest(last,evidence)
-        for p in options:
+        options=suggest(last,evidence,out,stage='relaxation_best_effort')
+        def label(p):
             p['conditions']=c.model_dump(mode='json');audit_plan(annotate(p,c),c)
             p['search_adjustments']=dict(stage='nearby',origin_unchanged=True,original_radius_km=c.neighborhood_radius_km,
                 effective_radius_km=last.neighborhood_radius_km,messages=messages+['단계별 검색으로도 충족되지 않은 조건은 차이를 표시한 참고 코스로 안내해요.'],
                 differences=[dict(label=r['label'],message=r['message']) for r in p['condition_checks'] if r['state']=='unmet'],attempts=attempts)
+        for p in options:label(p)
+        if experience_mode() and options and out is not None:
+            def relabel(p):label(p);return p
+            options,selection,reserve=reselect(filter_required(options),out.pop('reserve',[]),relabel,last,'relaxation_best_effort')
+            out['diagnostics']={'option_selection':selection}
+            if reserve:out['reserve']=reserve
+            return options
         return filter_required(options)
     return []

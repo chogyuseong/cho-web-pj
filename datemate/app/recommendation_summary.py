@@ -78,11 +78,20 @@ def enrich(plan):
         n=sum(matches(p,key) for p in plan['places'])
         label=INTENTS[key][1][0]
         if n:reasons.append(f'{label} 요청에 맞는 후보 {n}곳을 포함했어요.')
-    for label,category in [('카페·식사','카페·미식'),('전시·문화','문화·예술'),('산책','산책·풍경'),('체험','체험·제작'),('놀이','오락·놀이'),('활동','레저·활동'),('휴식','휴식·힐링')]:
-        n=kinds.get(category,0)
+    experience=bool(plan.get('experience'))
+    labels=[('카페','카페·미식'),('전시·문화','문화·예술'),('산책','산책·풍경'),('체험','체험·제작'),('놀이','오락·놀이'),('활동','레저·활동'),('휴식','휴식·힐링')]
+    # 식사(식사 장소 표시)와 카페(식사가 아닌 카페·미식)를 나눠 센다.
+    from .quality import is_meal
+    meals=sum(is_meal(p) for p in plan['places'])
+    if meals:counts.append(f'식사 {meals}곳')
+    counted=Counter(p.get('category','기타') for p in plan['places'] if not is_meal(p))
+    for label,category in labels:
+        n=counted.get(category,0)
         if n:counts.append(f'{label} {n}곳')
     title=' · '.join(counts) or '함께 보내는 하루'
-    if plan.get('option_purpose')=='편안한 동선':title=f"{mode['name']} 이동 약 {travel}분 · "+title
+    if experience:
+        if 'travel_shorter' in ((plan.get('difference') or {}).get('kinds') or []):title=f"{mode['name']} 이동 약 {travel}분 · "+title
+    elif plan.get('option_purpose')=='편안한 동선':title=f"{mode['name']} 이동 약 {travel}분 · "+title
     plan['decision_summary']['title']=title
     plan['decision_summary']['activity_label']=' · '.join(counts)
     if c.get('setting') in ('indoor','outdoor'):

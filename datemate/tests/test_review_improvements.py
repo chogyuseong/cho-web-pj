@@ -100,4 +100,4 @@ def test_fit_reason_counts_actual_candidates():
     enrich(p)
     reasons=' '.join(p['decision_summary']['fit_reasons'])
     assert '후보 1곳' in reasons and '1/2곳' in reasons
-    assert '카페·식사 1곳' in p['decision_summary']['title']
+    assert '카페 1곳' in p['decision_summary']['title']

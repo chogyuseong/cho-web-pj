@@ -391,6 +391,7 @@ function beginPlanSearch() {
   const detail = $('#plan-detail');
   detail.replaceChildren();
   $('#results').replaceChildren(detail);
+  $('#plan-extras')?.replaceChildren();
   renderPlanMapCard();
   $('#results').setAttribute('aria-busy', 'true');
   $('#result-count').textContent = '새 코스를 찾고 있어요';

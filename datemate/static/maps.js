@@ -24,12 +24,20 @@ function loadNaverMaps(key,force=false){
   return pending;
 }
 
+// 지도 자리: 모바일은 선택한 코스 카드 바로 뒤(#plan-map-slot), 데스크톱은 오른쪽 패널(#plan-map-rail).
+const PLAN_MAP_MOBILE=matchMedia('(max-width:800px)');
+let planMapCard=null;
+PLAN_MAP_MOBILE.addEventListener('change',()=>{if(typeof selected!=='undefined'&&selected)renderPlanMapCard();});
 function renderPlanMapCard(){
   let rail=document.getElementById('plan-map-rail');
   if(!rail){rail=node('aside',undefined,'plan-map-rail');rail.id='plan-map-rail';rail.setAttribute('aria-label','데이트 코스 지도');document.getElementById('planner-section').append(rail);}
-  rail.querySelectorAll('.plan-map').forEach(map=>map.disposeMap?.());
-  rail.replaceChildren();rail.hidden=!selected;
-  document.getElementById('planner-section').classList.toggle('has-plan-map',Boolean(selected));
+  // 이전 지도는 어느 자리에 있었든(이미 문서에서 떨어졌어도) 정리한다.
+  for(const holder of [planMapCard,rail])holder?.querySelectorAll('.plan-map').forEach(map=>map.disposeMap?.());
+  planMapCard?.remove();planMapCard=null;
+  const slot=document.getElementById('plan-map-slot'),mobile=Boolean(slot&&PLAN_MAP_MOBILE.matches);
+  rail.replaceChildren();rail.hidden=!selected||mobile;
+  if(slot){slot.replaceChildren();slot.hidden=!selected||!mobile;}
+  document.getElementById('planner-section').classList.toggle('has-plan-map',Boolean(selected)&&!mobile);
   if(!selected)return;
   const card=node('section',undefined,'plan-map-card'),tabs=node('div',undefined,'map-option-tabs');
   tabs.setAttribute('aria-label','지도에서 볼 코스 선택');
@@ -40,14 +48,14 @@ function renderPlanMapCard(){
       selected=plan;locks=new Set(Object.keys(plan.conditions.locked||{}).map(Number));
       api('/plans/'+plan.id+'/feedback',{kind:'selection'}).catch(()=>{});
       renderResults();renderDetail();
-      requestAnimationFrame(()=>{window.scrollTo({top:scrollY,behavior:'instant'});document.querySelector('#plan-map-rail [aria-pressed="true"]')?.focus({preventScroll:true});});
+      requestAnimationFrame(()=>{window.scrollTo({top:scrollY,behavior:'instant'});document.querySelector('.plan-map-card [aria-pressed="true"]')?.focus({preventScroll:true});});
     },selected.id===plan.id?'primary':'secondary');
     tab.dataset.mapOption=String(index+1);tab.setAttribute('aria-pressed',String(selected.id===plan.id));tabs.append(tab);
   });
   card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
   const places=node('div',undefined,'map-place-list');
   selected.places.forEach((place,index)=>places.append(placeMapLink((index+1)+'. '+place.name,place)));
-  card.append(places);rail.append(card);
+  card.append(places);(mobile?slot:rail).append(card);planMapCard=card;
 }
 
 /* 방문일 축제는 코스 지점과 구분되는 표시로 겹쳐 보여준다. 좌표가 있는 축제만, 코스에는 넣지 않는다. */

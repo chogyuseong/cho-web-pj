@@ -18,7 +18,19 @@ def public_origin():
     return os.getenv('DATEMATE_PUBLIC_ORIGIN', '').strip().rstrip('/')
 
 
+OPTION_SELECTORS = ('place', 'shadow', 'experience')
+
+
+def option_selector():
+    """코스 3안 선택 방식. 기본 shadow: 기존 결과를 쓰고 새 선택기는 진단으로만 남긴다."""
+    value = os.getenv('DATEMATE_OPTION_SELECTOR', '').strip().lower() or 'shadow'
+    return value if value in OPTION_SELECTORS else 'shadow'
+
+
 def validate_runtime():
+    selector = os.getenv('DATEMATE_OPTION_SELECTOR', '').strip().lower()
+    if selector and selector not in OPTION_SELECTORS:
+        raise RuntimeError('DATEMATE_OPTION_SELECTOR는 place, shadow, experience 중 하나여야 합니다.')
     if os.getenv('DATEMATE_OPERATING_EVIDENCE_FILE','').strip():
         try:
             from .operating_evidence import evidence_rows

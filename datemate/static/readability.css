@@ -101,10 +101,22 @@ header .brand-name small { font-size:13px; color:#5c4951; }
   font-weight:700;
   color:#7d1e3a;
 }
-.plan-option-tabs strong { font-size:18px; line-height:1.55; color:#261c21; }
-.plan-option-tabs small { font-size:14px; line-height:1.7; color:#544048; }
+/* 코스 카드 요약: 1 코스·목적 / 2 장소 순서(2줄 말줄임, 전체 이름은 DOM에 남김) / 3 서버 제목 / 4 시간·이동·비용 / 5 코스 1과의 차이 */
+.plan-option-tabs button>span,.plan-option-tabs button>strong { display:block; width:100%; min-width:0; }
+.plan-option-tabs button span { margin-left:0; }
+.plan-option-tabs .option-purpose { font-weight:700; }
+.plan-option-tabs .option-relaxed { font-size:13px; font-weight:750; padding:1px 8px; border-radius:999px; border:1px solid currentColor; }
+.plan-option-tabs .option-route {
+  font-size:17px; line-height:1.5; color:#261c21; word-break:keep-all; overflow-wrap:anywhere;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden;
+}
+.plan-option-tabs :is(.option-title,.option-facts,.option-difference) { font-size:14px; line-height:1.55; color:#544048; font-weight:500; word-break:keep-all; }
+.plan-option-tabs .option-facts { font-variant-numeric:tabular-nums; }
+.plan-option-tabs .option-facts .range-lines { display:inline; }
+.plan-option-tabs .option-facts .range-lines>span+span { margin-left:.3em; }
+.plan-option-tabs .option-facts .range-lines>span { display:inline-block; }
 .plan-option-tabs button[aria-pressed=true] { box-shadow:inset 0 0 0 2px #68172f; }
-.plan-option-tabs button[aria-pressed=true] :is(strong,small,.option-label) { color:#ffffff!important; }
+.plan-option-tabs button[aria-pressed=true] :is(strong,span,.option-label) { color:#ffffff!important; }
 .selection-indicator {
   font-size:12px;
   font-weight:750;
@@ -117,8 +129,6 @@ header .brand-name small { font-size:13px; color:#5c4951; }
 
 .plan-card .number { font-size:14px; letter-spacing:0; color:#7d1e3a; }
 .plan-card .path-text { font-size:16px; color:#4a353d; }
-.plan-card .inspect-plan { font-size:15px; min-height:46px; }
-.plan-card .option-heading .inspect-plan { font-size:15px; min-height:46px; white-space:normal; }
 .plan-card .stats { gap:20px; padding:20px; background-color:#fff8fa; border:1px solid #ead5d9; }
 .plan-card .stats b { font-size:25px; line-height:1.4; font-variant-numeric:tabular-nums; color:#7d1e3a; }
 .plan-card .stats small { display:block; font-size:14px; margin-top:5px; color:#5c4951; }
@@ -127,15 +137,11 @@ header .brand-name small { font-size:13px; color:#5c4951; }
 .option-comparison th { font-size:14px; color:#68172f; background-color:#fdf0f3; }
 
 .detail-header h2 { font-size:26px; line-height:1.5; }
-.detail .actions button { font-size:15px; min-height:44px; padding:10px 16px; border:1px solid #dfb8c2; }
 .detail .timeline-card h4 { font-size:25px; line-height:1.5; margin:12px 0 8px; }
 .detail .timeline-card :is(.small,.hint) { font-size:15px; line-height:1.8; }
 .detail .route-line { font-size:15px; line-height:1.8; color:#5c2839; padding:12px 16px; }
 .detail .stop-cost { font-size:15px; line-height:1.65; color:#7d1e3a; }
-.detail .map-link-list { gap:12px; font-size:15px; }
 .detail .map-link-list a {
-  display:inline-flex;
-  align-items:center;
   padding:6px 14px;
   border-radius:999px;
   background-color:#fff5f7;
@@ -145,6 +151,33 @@ header .brand-name small { font-size:13px; color:#5c4951; }
   text-decoration:none;
 }
 .detail .map-link-list a:hover { background-color:#fae4ea; }
+
+/* 버튼 체계: 결과 화면의 모든 버튼과 버튼처럼 쓰는 링크.
+   - 최소 높이 44px, 글자와 화살표 세로 가운데, 긴 문구는 낱말 단위로 줄바꿈.
+   - 구역마다 .primary는 하나(코스 카드 선택 표시 제외).
+   - 모바일: 1~2개 묶음은 꽉 찬 폭 세로 쌓기, 3~4개는 2열 균등(홀수면 마지막은 한 줄 전체), 장소 링크는 1열.
+   - 버튼 사이 8px, 묶음 위 12px. */
+.results-area :where(button,.actions>a,.map-link-list a) {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:44px; white-space:normal; word-break:keep-all; text-align:center;
+}
+.results-area .plan-option-tabs button { display:flex; justify-content:flex-start; text-align:left; }
+.results-area .actions,.detail .map-link-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.results-area .actions>:is(button,a) { padding:10px 16px; font-size:15px; }
+.detail .actions button { border:1px solid #dfb8c2; }
+.stop .actions>a { border:1px solid #dfb8c2; border-radius:10px; background-color:#fff5f7; color:#7d1e3a; font-weight:650; text-decoration:none; }
+.detail .map-link-list { font-size:15px; }
+.plan-card .option-heading .inspect-plan { font-size:15px; padding:10px 16px; }
+@media(max-width:800px) {
+  .results-area .actions { display:grid; grid-template-columns:minmax(0,1fr); }
+  .results-area .actions:has(>:nth-child(3)) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .results-area .actions:has(>:nth-child(3))>:last-child:nth-child(odd) { grid-column:1 / -1; }
+  .results-area .actions>:is(button,a) { width:100%; }
+  .detail .map-link-list { display:grid; grid-template-columns:minmax(0,1fr); }
+  .detail .map-link-list a { width:100%; }
+  .plan-card .option-heading { flex-direction:column; align-items:stretch; }
+  .plan-card .option-heading .inspect-plan { width:100%; }
+}
 .detail .table-scroll { border:1px solid #ead5d9; border-radius:14px; margin:16px 0; background-color:#ffffff; }
 .detail .table-scroll:focus-visible { outline:3px solid #9e2a4b; outline-offset:3px; }
 .detail table { white-space:normal; min-width:700px; }
@@ -243,8 +276,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
   main .hero .hero-description { font-size:17px!important; }
   .conditions.panel,.detail.panel,.plan-card { padding:20px 16px; }
   .conditions .field-grid { gap:12px; }
-  .detail-header>.actions { grid-template-columns:1fr 1fr; }
-  .detail-header>.actions button { font-size:14px; }
   .detail .chat-form { flex-wrap:wrap; }
   .detail .chat-form input { flex-basis:100%; }
   .detail .chat-form button { width:100%; min-height:46px; }
@@ -282,3 +313,12 @@ html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 @media(max-width:480px) { .leisure-photo-grid { gap:8px; } .leisure-photo-grid img,.leisure-photo-empty { aspect-ratio:1/1; } }
 
 .leisure-photo-grid>figure:only-child { grid-column:1 / -1; width:100%; max-width:480px; }
+
+/* 결과 화면 구역 간격(사용자 흐름 순서: 코스 카드 → 지도 → 일정 → 확인 → 결정·공유 → 축제 → 부가 정보) */
+.plan-map-slot { margin:16px 0; }
+.plan-map-slot .plan-map-card { position:static; max-height:none; overflow:visible; }
+.plan-share { margin-top:28px; }
+.plan-share>h3 { font-size:19px; margin:20px 0 0; }
+#plan-extras>.plan-extras-panel { margin-top:24px; }
+.plan-photo-details { margin-top:14px; }
+.cost-table-details { margin:8px 0 12px; }

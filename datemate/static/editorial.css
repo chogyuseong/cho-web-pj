@@ -461,13 +461,6 @@ input:focus,textarea:focus,select:focus{
   color:#ffffff!important;
   box-shadow:0 8px 20px rgba(158,42,75,0.22)!important;
 }
-.plan-option-tabs small{
-  white-space:normal;
-  overflow:visible;
-  text-overflow:clip;
-  color:var(--muted);
-}
-.plan-option-tabs button[aria-pressed=true] small{color:#fce8ee!important}
 
 .option-comparison{
   border:1px solid var(--line);
@@ -939,7 +932,6 @@ body.show-date-plan .discovery-rail,body.show-explore .discovery-rail{display:no
   .section-heading h2{font-size:22px}
   .plan-option-tabs{position:static;display:grid;grid-template-columns:1fr;padding:8px}
   .plan-option-tabs button{width:100%;padding:14px}
-  .plan-option-tabs strong{font-size:16px}
   .plan-card,.detail.panel{padding:20px;border-radius:20px}
   .plan-card h3{font-size:22px}
   .stats{padding:16px;gap:14px}
@@ -949,8 +941,6 @@ body.show-date-plan .discovery-rail,body.show-explore .discovery-rail{display:no
   .timeline-card h4{font-size:21px}
   .curation-heading h2{font-size:26px}
   .data-banner{padding:26px}
-  .detail-header .actions{flex-wrap:wrap}
-  .detail-header .actions button{font-size:14px}
   .plan-photo-preview{grid-template-columns:1fr}
   .plan-photo-preview .place-photo img{height:185px}
   .plan-photo-preview .place-photo-copy,.plan-photo-preview .place-blogs,.plan-photo-preview .photo-choices{display:none}
@@ -970,8 +960,6 @@ body.show-date-plan .discovery-rail,body.show-explore .discovery-rail{display:no
   .leisure-course-panel .actions button{width:100%;white-space:normal}
   .detail-header{align-items:stretch;gap:12px}
   .detail-header h2{flex-basis:100%;font-size:22px}
-  .detail-header>.actions{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-  .detail-header>.actions button{width:100%;font-size:14px}
   .stop{display:block;min-width:0;margin-top:18px}
   .stop:before{display:none}
   .timeline-stamp{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:0 0 10px;text-align:left}
@@ -988,8 +976,6 @@ body.show-date-plan .discovery-rail,body.show-explore .discovery-rail{display:no
   .hero-photo figcaption span{font-size:18px}
   .hero-photo figcaption small{font-size:13px}
   dialog{padding:18px 14px}
-  .plan-option-tabs strong{font-size:16px}
-  .plan-option-tabs small{font-size:14px}
 }
 @media(max-width:420px){
   header{padding:12px 16px}
@@ -1044,13 +1030,31 @@ h2[tabindex="-1"]:focus,h3[tabindex="-1"]:focus{outline:none!important}
   border-top-color:#9e2a4b!important;
   border-right-color:#c96b84!important;
 }
-@media(min-width:801px){
-  .option-comparison table{min-width:0!important;width:100%;white-space:normal}
-}
-
 .plan-option-tabs [aria-pressed=true]{outline:2px solid #d48298!important;outline-offset:2px}
-.option-comparison th{white-space:nowrap;word-break:keep-all}
-.option-comparison td{white-space:normal;word-break:keep-all}
+
+/* 표 규칙(코스 비교 표 · 상세 비용표): 글은 왼쪽, 금액·시간은 오른쪽 정렬과 고정폭 숫자. 줄은 낱말·항목 사이에서만 바뀐다. */
+.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.nowrap{white-space:nowrap}
+.range-lines{display:inline-flex;flex-direction:column;align-items:flex-end}
+.option-comparison table{width:100%;min-width:0;border-collapse:collapse;white-space:normal}
+.option-comparison :is(th,td),.cost-table :is(th,td){padding:10px 8px;line-height:1.5;vertical-align:top;text-align:left;word-break:keep-all;overflow-wrap:normal}
+.option-comparison thead th{white-space:normal}
+.option-comparison :is(th,td).num,.cost-table :is(th,td).num{text-align:right;font-variant-numeric:tabular-nums}
+.option-comparison tbody th{position:sticky;left:0;z-index:1;background-color:#ffffff;color:#261c21;font-weight:750;white-space:nowrap}
+.option-comparison thead th:first-child{position:sticky;left:0;z-index:2}
+.comparison-course-title{display:block;font-weight:600;white-space:normal;color:#5c4951}
+.option-comparison .comparison-basis{display:block;font-size:14px;line-height:1.5;color:#5c4951}
+.option-comparison td:nth-child(4){min-width:7em}
+.option-comparison td:nth-child(5){min-width:7em}
+.detail .cost-table td{overflow-wrap:normal}
+.detail .cost-table td:last-child{overflow-wrap:anywhere}
+.comparison-details{margin:16px 0}
+.comparison-details>summary,.cost-table-details>summary,.plan-photo-details>summary{font-weight:700;color:#68172f}
+.comparison-details>.option-comparison{margin:8px 0 0}
+@media(max-width:800px){
+  .comparison-details>.option-comparison{padding:12px 10px}
+  .comparison-course-title{display:none}
+}
 
 /* 조건 화면: 지역 칩, 기본 조건 요약 한 줄, ‘바꾸기’ 안의 조건 칩, 지난번처럼 추천 */
 .quick-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}

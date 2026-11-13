@@ -10,13 +10,31 @@ function legModeLabel(plan,leg){
   return name+' '+(leg.minutes??'?')+'분 · '+(plan.conditions?.mode==='demo'?'가상 추정':leg.status==='api'?'네이버 길찾기':'추정');
 }
 function travelMinutes(plan){return plan.decision_summary?.travel_minutes??plan.legs.reduce((n,x)=>n+(x.minutes||0),0);}
+// 금액 범위를 "23,000원 ~"과 "43,000원" 두 줄로 나눈다. 각 줄 안에서는 줄을 바꾸지 않는다.
+function rangeLines(value){
+  const box=node('span',undefined,'range-lines');
+  if(value==null||value[0]===value[1]){box.append(node('span',range(value),'nowrap'));return box;}
+  box.append(node('span',won(value[0])+' ~','nowrap'),node('span',won(value[1]),'nowrap'));
+  return box;
+}
+// 목록을 항목마다 줄바꿈 금지로 감싸 가운뎃점 사이에서만 줄이 바뀌게 한다.
+function nowrapList(items,separator=' · '){
+  const box=node('span');
+  items.forEach((item,i)=>{if(i)box.append(document.createTextNode(separator));box.append(node('span',item,'nowrap'));});
+  return box;
+}
 function optionComparison(items){
   const wrap=node('section',undefined,'option-comparison');wrap.setAttribute('aria-label','옵션 한눈에 비교');
   wrap.append(node('h3','어떤 코스가 더 끌리나요?'));
-  const scroll=node('div',undefined,'table-scroll'),table=node('table'),head=node('tr');
-  ['코스','주요 활동','예상 전체 비용','총 이동 시간 (수단 · 근거)','장소 차이'].forEach(x=>head.append(node('th',x)));table.append(head);
+  const scroll=node('div',undefined,'table-scroll'),table=node('table'),caption=node('caption','세 코스 비용·이동 시간 비교','visually-hidden'),thead=node('thead'),head=node('tr'),body=node('tbody');
+  [['코스',''],['예상 전체 비용','num'],['총 이동 시간 (수단 · 근거)','num'],['주요 활동',''],['장소 차이','']].forEach(([text,cls])=>{const th=node('th',text,cls||undefined);th.scope='col';head.append(th);});
+  thead.append(head);table.append(caption,thead,body);
   items.forEach((p,i)=>{const row=node('tr');const others=p.places.filter(x=>!items[0].places.some(y=>y.id===x.id)).length;const mode=travelMode(p);
-    [String(i+1)+' · '+(p.decision_summary?.title||p.option_purpose||'추천'),[...new Set(p.places.map(x=>x.category))].join(' · '),range(p.total),`${mode.name} ${travelMinutes(p)}분 · ${mode.basis}`,i?`코스 1과 ${others}곳 다름`:'비교 기준'].forEach(x=>row.append(node('td',x)));table.append(row);
+    const course=node('th',`코스 ${i+1}`);course.scope='row';course.append(node('span',p.decision_summary?.title||p.option_purpose||'추천','comparison-course-title'));
+    const cost=node('td',undefined,'num');cost.append(rangeLines(p.total));
+    const time=node('td',undefined,'num');time.append(node('span',`${mode.name} ${travelMinutes(p)}분`,'nowrap'),node('small',mode.basis,'comparison-basis'));
+    const activity=node('td');activity.append(nowrapList([...new Set(p.places.map(x=>x.category))]));
+    row.append(course,cost,time,activity,node('td',i?`코스 1과 ${others}곳 다름`+(p.difference?.composition_changed?` · 활동 ${p.difference.composition_changed}곳 바뀜`:''):'비교 기준'));body.append(row);
   });scroll.append(table);scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','코스 비교 표 · 가로로 넘겨 확인');wrap.append(node('p','비용과 이동 시간을 비교해 보세요. 도보·대중교통·자전거는 직선거리로 추정한 시간이고, 자동차는 네이버 길찾기로 조회한 구간만 길찾기로 표시해요. 표는 좌우로 넘길 수 있어요.','hint'),scroll);return wrap;
 }
 // 확인 상태를 쉬운 말의 항목으로 보여준다. state: ok(확인됨) · check(확인 필요) · info(참고)

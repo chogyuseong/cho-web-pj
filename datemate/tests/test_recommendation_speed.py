@@ -540,3 +540,89 @@ def test_long_poll_over_http_with_cancel(monkeypatch):
                     break
                 time.sleep(.05)
         assert client.get(f'/api/plan-jobs/{key}').json()['status'] == 'cancelled'
+
+
+# --- 계측·예산 돌려주기 실패가 추천을 망치지 않음 (2026-11-14 검토 반영) ---
+
+def test_release_failure_keeps_the_batch_result(monkeypatch):
+    import sqlite3
+    from app import telemetry
+    monkeypatch.setattr(store, 'release_budget', lambda *a: (_ for _ in ()).throw(sqlite3.OperationalError('database is locked')))
+    url = f'https://release-{uuid.uuid4().hex[:8]}.example/x'
+    with telemetry.prepaid(url, 3):
+        answer = telemetry.observed_http(lambda u, **kw: httpx.Response(200), url)
+    assert answer.status_code == 200
+
+
+def test_release_failure_does_not_hide_the_original_error(monkeypatch):
+    import sqlite3
+    from app import telemetry
+    monkeypatch.setattr(store, 'release_budget', lambda *a: (_ for _ in ()).throw(sqlite3.OperationalError('database is locked')))
+    with pytest.raises(ValueError, match='원래 오류'):
+        with telemetry.prepaid(f'https://release-{uuid.uuid4().hex[:8]}.example/x', 3):
+            raise ValueError('원래 오류')
+
+
+def test_prepay_failure_falls_back_to_reserving_per_call(monkeypatch):
+    import sqlite3
+    from app import telemetry
+    monkeypatch.setattr(store, 'reserve_budget_up_to', lambda *a: (_ for _ in ()).throw(sqlite3.OperationalError('locked')))
+    provider = 'prepay-' + uuid.uuid4().hex[:8] + '.example'
+    with telemetry.prepaid(f'https://{provider}/x', 2) as box:
+        assert box['left'] == 0
+        assert telemetry.observed_http(lambda u, **kw: httpx.Response(200), f'https://{provider}/x').status_code == 200
+    assert budget_used(provider) == 1
+
+
+def test_recommendation_succeeds_when_returning_unused_budget_fails(monkeypatch, naver):
+    """고정 자료에서는 블로그 본문을 흉내 내 본문 5건 몫이 쓰이지 않고 남는다. 그 몫을 돌려주는 쓰기가 실패해도 결과는 같다."""
+    import sqlite3
+    released = []
+
+    def fail(*args):
+        released.append(args)
+        raise sqlite3.OperationalError('database is locked')
+
+    monkeypatch.setattr(store, 'release_budget', fail)
+    clean_region('전북')
+    result = run('jeonju', naver)
+    assert released
+    expected = json.loads(GOLDEN.read_text('utf-8'))['jeonju']['cold']
+    assert json.loads(json.dumps(comparable(result), ensure_ascii=False)) == expected
+
+
+def test_timing_failure_keeps_a_successful_recommendation(monkeypatch):
+    from app import perf_trace, recommendation_service as service
+    monkeypatch.setattr(perf_trace.Trace, 'summary', lambda self: 1 / 0)
+    owner = 'timing-fail-' + uuid.uuid4().hex
+    result = service.generate(Conditions(visit_date='2026-10-31'), owner)
+    assert result['plans'] and 'timing' not in (result.get('diagnostics') or {})
+    with store.connect() as db:
+        row = db.execute("SELECT payload FROM experience_events WHERE owner=? AND kind='recommendation'", (owner,)).fetchone()
+    event = json.loads(row[0])
+    assert event['status'] == 'complete' and 'timing' not in event
+
+
+def test_timing_failure_does_not_hide_the_original_error(monkeypatch):
+    from app import perf_trace, recommendation_service as service
+    monkeypatch.setattr(perf_trace.Trace, 'summary', lambda self: 1 / 0)
+    monkeypatch.setattr(service, '_research', lambda data: (_ for _ in ()).throw(ValueError('original failure')))
+    owner = 'timing-fail-' + uuid.uuid4().hex
+    with pytest.raises(ValueError, match='original failure'):
+        service.generate(Conditions(visit_date='2026-10-31'), owner)
+    with store.connect() as db:
+        row = db.execute("SELECT payload FROM experience_events WHERE owner=?", (owner,)).fetchone()
+    assert json.loads(row[0])['status'] == 'failed'
+
+
+def test_response_timing_hides_hosts_and_rejections_but_server_keeps_them(caplog, naver):
+    import logging
+    clean_region('전북')
+    with caplog.at_level(logging.INFO, logger='app.recommendation_service'):
+        result = run('jeonju', naver)
+    external = result['diagnostics']['timing']['external']
+    assert set(external) == {'calls', 'failed', 'wait_ms_sum', 'wall_ms', 'peak_parallel'}
+    assert 'naverapihub' not in json.dumps(result['diagnostics']['timing'])
+    line = next(r.getMessage() for r in caplog.records if r.getMessage().startswith('recommendation_timing'))
+    logged = json.loads(line.split(' ', 2)[2])
+    assert logged['by_kind'] and logged['by_kind'][0]['provider'] and 'rejected' in logged['external']

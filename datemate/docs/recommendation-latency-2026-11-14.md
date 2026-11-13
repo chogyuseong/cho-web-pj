@@ -10,15 +10,19 @@
   - `stages`: 준비·장소 검색·코스 구성·가격 확인의 시작 시각과 소요(ms). 단계 이름은 화면 진행 문구와 같다.
   - `spans`: 주요 구간(예: `research.course_search`, `course_search.blog_bodies`, `intent_discovery.lookups`,
     `compose.recommend`, `price.price_plans`, `save.plans`, `catalog.places`)의 횟수와 합계 ms.
-  - `external`: 외부 호출 수·실패·거절, 기다린 시간의 합(`wait_ms_sum`), 실제로 차지한 시간(`wall_ms`, 겹친 구간은 한 번),
-    가장 많이 겹친 수(`peak_parallel`), `by_kind`(단계·호스트·종류별 수와 ms).
-    종류는 고정 경로 이름만 쓴다: blog_search, local_search, blog_body, driving_route, geocode, reverse_geocode, image_search, llm, other.
-    블로그 글 주소·검색어·키는 남기지 않는다(테스트 `test_summary_has_no_query_text_or_post_path`).
-    호출 시간은 실제 요청 구간만이고, 요청 한도 확인·지표 기록의 DB 시간은 `db` 로 따로 센다.
+  - `external`: 외부 호출 수(`calls`)·실패(`failed`), 기다린 시간의 합(`wait_ms_sum`), 실제로 차지한 시간(`wall_ms`, 겹친 구간은 한 번),
+    가장 많이 겹친 수(`peak_parallel`). 호출 시간은 실제 요청 구간만이고, 요청 한도 확인·지표 기록의 DB 시간은 `db` 로 따로 센다.
+    응답에는 호스트 이름이 드러나는 종류별 표(`by_kind`)와 예산 거절 수(`rejected`)를 싣지 않는다(아래 서버 기록에만).
   - `cache_hits`: course_blog, price, driving_route, intent_local 적중 수.
   - `db`: `store.connect()` 블록 수와 그 안의 시간 합, 단계별(`by_stage`).
-- 추천 이벤트(experience_events, kind=recommendation)에 같은 내용의 요약(`timing`: 단계별 ms, 외부 호출 합계, DB 합계)을 남기고,
-  로그에 `recommendation_timing status=… {…}` 한 줄과 작업 저장 뒤 `recommendation_job_saved … persist_ms … result_bytes …` 를 남긴다.
+- 서버 기록
+  - 추천 이벤트(experience_events, kind=recommendation)의 `timing`: 단계별 ms, 외부 호출 합계(`calls`, `failed`, `rejected`,
+    `wait_ms_sum`, `wall_ms`, `peak_parallel`), 캐시 적중, DB 합계·단계별.
+  - 로그 `recommendation_timing status=… {…}`: 이벤트의 `timing` 에 `by_kind`(단계·호스트·종류별 수·실패·거절·ms·최대 ms)를 더한 것.
+    종류는 고정 경로 이름만 쓴다: blog_search, local_search, blog_body, driving_route, geocode, reverse_geocode, image_search, llm, other.
+    블로그 글 주소·검색어·키는 남기지 않는다(테스트 `test_summary_has_no_query_text_or_post_path`).
+  - 작업 저장 뒤 로그 `recommendation_job_saved … persist_ms … stored_chars …`(저장한 작업 상태의 문자 수).
+  - 시간 기록 계산이 실패하면 경고 로그(`recommendation_timing_failed`)만 남기고 timing 을 빼며, 추천 결과와 실패 경로의 원래 오류는 그대로다.
 - 테스트: `tests/test_perf_trace.py`.
 
 ## 2. 측정 방법
@@ -128,11 +132,16 @@ SQLite·CPU 제한 없음(전주): 빈 상태 서버 3.16초 → 1.98초, 찬 �
 - 찾은 장소·새 가격은 검색 묶음이 끝난 뒤 저장한다. 도중에 처리 오류가 나면 전에는 일부가 남았고 이제는 남지 않는다.
 - 작업 안의 외부 호출 지표는 작업이 끝날 때 쓴다. 작업 도중 프로세스가 죽으면 그 지표는 남지 않는다.
 - 묶음 예산은 묶음을 시작한 시각의 시간 구간에 센다(정각을 걸치면 다음 시간 구간이 아니라 앞 구간에 셈).
+- 묶음 예산을 미리 잡는 DB 쓰기가 실패하면 경고 로그(`provider_budget_prepay_failed`)를 남기고 전처럼 호출마다 확인한다.
+  쓰지 않은 몫을 돌려주는 쓰기가 실패하면 경고 로그(`provider_budget_release_failed`)만 남기고 결과는 그대로 돌려준다
+  (돌려주지 못한 몫은 그 시간 구간에 쓴 것으로 남아 예산을 덜 쓰는 쪽으로만 틀린다).
 
 ## 9. 운영에서 확인할 것
 
 - 배포 뒤 전주 한옥마을 카드로 처음 검색 1번, 재검색 1번. 완료 응답의 `result.diagnostics.timing` 에서
-  `stages`, `db.by_stage`, `external.peak_parallel`(4 근처면 동시 실행이 살아 있음)을 본다. 로그(`npx wrangler tail`)의 `recommendation_timing` 도 같다.
+  `stages`, `db.by_stage`, `external.peak_parallel`(4 근처면 동시 실행이 살아 있음)을 본다. 이 셋은 응답에 남는다.
+  종류별 호출(`by_kind`: 호스트·종류별 수와 ms)과 예산 거절 수(`rejected`)는 응답에 없으므로 로그(`npx wrangler tail`)의
+  `recommendation_timing` 한 줄에서 본다(거절 수는 추천 이벤트의 `timing.external.rejected` 에도 있음).
 - 개발자 도구 네트워크에서 `/api/plan-jobs/…?wait=8&stage=…` 요청이 단계마다 1번 정도이고 단계 표시가 늦지 않은지.
 - 운영의 Neon 왕복이 근사(25ms)보다 크면 남은 DB 블록(빈 상태 약 35개, 찬 상태 약 25개)의 비중이 커진다. 그때는 `db.by_stage` 로 다음 대상을 고른다.
 - `scripts/operations_report.py` 의 제공자별 호출 수가 전처럼 쌓이는지(지표 묶어 쓰기).

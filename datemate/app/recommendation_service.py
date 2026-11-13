@@ -57,9 +57,9 @@ def generate(data: Conditions, owner: str):
             _record(
                 owner,
                 started,
+                trace=trace,
                 status="failed",
                 external_usage=usage.snapshot(),
-                timing=_compact(trace.summary()),
             )
             raise
         _record(
@@ -77,13 +77,22 @@ def generate(data: Conditions, owner: str):
                 for p in result["plans"]
             ),
             external_usage=usage.snapshot(),
-            timing=_compact(trace.summary()),
+            trace=trace,
         )
         return result
 
 
+def _public(summary):
+    """응답(diagnostics.timing)에 싣는 것: 외부 호출의 호스트 이름이 드러나는 종류별 표와 예산 거절 수는 뺀다.
+
+    그 둘은 서버 로그(recommendation_timing)와 추천 이벤트에만 남는다.
+    """
+    external = {k: v for k, v in summary["external"].items() if k not in ("by_kind", "rejected")}
+    return dict(summary, external=external)
+
+
 def _compact(summary):
-    """이벤트·로그용 요약: 단계별 시간, 외부 호출 합계, DB 합계만(종류별 표는 응답 진단에만)."""
+    """이벤트·로그용 요약: 단계별 시간, 외부 호출 합계, DB 합계만(종류별 표는 로그에만 덧붙임)."""
     return dict(
         total_ms=summary["total_ms"],
         stages={row["name"]: row["ms"] for row in summary["stages"]},
@@ -96,17 +105,28 @@ def _compact(summary):
     )
 
 
-def _record(owner, started, **values):
+def _record(owner, started, trace=None, **values):
     # Observability must never turn a successfully saved recommendation into an error.
     from .experience import event
 
-    try:
-        if values.get("timing"):
+    if trace is not None:
+        # 시간 기록 계산이 실패해도 추천 결과나 실패 경로의 원래 예외를 가리지 않는다(timing 만 빠짐).
+        try:
+            summary = trace.summary()
+            values["timing"] = _compact(summary)
             logging.getLogger(__name__).info(
                 "recommendation_timing status=%s %s",
                 values.get("status"),
-                json.dumps(values["timing"], ensure_ascii=False, separators=(",", ":")),
+                json.dumps(
+                    dict(values["timing"], by_kind=summary["external"]["by_kind"]),
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                ),
             )
+        except Exception:
+            values.pop("timing", None)
+            logging.getLogger(__name__).warning("recommendation_timing_failed")
+    try:
         event(
             owner,
             "",
@@ -360,5 +380,12 @@ def _finish(data, result, owner):
     trace = current_trace()
     if trace:
         # 결과에만 싣는다(저장된 코스에는 넣지 않음). 시간 값이라 같은 입력이어도 매번 다르다.
-        result.setdefault("diagnostics", {})["timing"] = trace.summary()
+        # 계산이 실패하면 timing 만 빼고 이미 저장한 추천은 그대로 돌려준다.
+        try:
+            timing = _public(trace.summary())
+        except Exception:
+            timing = None
+            logging.getLogger(__name__).warning("recommendation_timing_failed")
+        if timing is not None:
+            result.setdefault("diagnostics", {})["timing"] = timing
     return result

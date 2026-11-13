@@ -47,6 +47,7 @@ class Trace:
         self.cache = Counter()
         self.db_count = 0
         self.db_ms = 0.0
+        self.db_stages = {}
 
     def now(self):
         return (time.perf_counter() - self.started) * 1000
@@ -86,6 +87,9 @@ class Trace:
         with self.lock:
             self.db_count += 1
             self.db_ms += ms
+            row = self.db_stages.setdefault(self.stage, [0, 0.0])
+            row[0] += 1
+            row[1] += ms
 
     def summary(self):
         with self.lock:
@@ -95,7 +99,11 @@ class Trace:
             calls = {k: dict(v) for k, v in self.calls.items()}
             spans = {k: list(v) for k, v in self.spans.items()}
             cache = dict(self.cache)
-            db = dict(count=self.db_count, ms=round(self.db_ms))
+            db = dict(
+                count=self.db_count,
+                ms=round(self.db_ms),
+                by_stage={k: dict(count=v[0], ms=round(v[1])) for k, v in self.db_stages.items()},
+            )
         rows = []
         for i, (name, start) in enumerate(stages):
             end = stages[i + 1][1] if i + 1 < len(stages) else total

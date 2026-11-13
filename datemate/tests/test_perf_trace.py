@@ -60,6 +60,7 @@ def test_stages_spans_cache_and_db_are_summarised():
     assert summary['spans']['research.course_search']['ms'] >= 20
     assert summary['cache_hits'] == {'price': 2}
     assert summary['db']['count'] == 1
+    assert summary['db']['by_stage']['코스 구성']['count'] == 1
 
 
 def test_parallel_calls_are_counted_by_kind_with_wall_time_and_peak():

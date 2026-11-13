@@ -38,6 +38,9 @@ function renderResults(result={}){
   root.replaceChildren();$('#result-count').textContent=`추천 일정 ${plans.length}개`;
   function choose(p,showDetail=false){if(selected?.id!==p.id)locks=new Set(Object.keys(p.conditions.locked||{}).map(Number));selected=p;api('/plans/'+p.id+'/feedback',{kind:'selection'}).catch(()=>{});renderResults();renderDetail();requestAnimationFrame(()=>{const target=showDetail?$('#plan-detail'):$('#results .plan-option-tabs');target?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});});}
   const current=selected||plans[0];
+  // 1. 가격 확인 전에 보여 준 후보와 확정된 코스가 다르면 무엇이 달라졌는지 먼저 적는다(plan-progress.js PlanPreview).
+  const previewChanges=typeof PlanPreview!=='undefined'?PlanPreview.notice(result):null;
+  if(previewChanges)root.append(previewChanges);
   // 2. 조건을 넓히거나 달라진 조건 안내는 코스 카드보다 먼저, 항상 펼쳐 보여 준다.
   if(current)root.append(conditionDifferences(current));
   if(plans.length&&result.reasons?.length)root.append(node('p',result.reasons.join(' · '),'hint'));

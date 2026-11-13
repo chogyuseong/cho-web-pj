@@ -458,7 +458,7 @@ form.addEventListener('submit', async e => {
     selected = plans[0] || null;
     renderResults(result);
     renderDetail();
-    $('#progress').textContent = plans.length ? `추천 완료 · ${plans.length}개의 일정` : (result.reasons?.[0] || '추천 조건을 확인해 주세요.');
+    $('#progress').textContent = (plans.length ? `추천 완료 · ${plans.length}개의 일정` : (result.reasons?.[0] || '추천 조건을 확인해 주세요.')) + PlanPreview.summary();
     if (window.innerWidth < 720) $('#results').scrollIntoView({
       behavior: 'smooth'
     });

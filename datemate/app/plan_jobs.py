@@ -90,7 +90,9 @@ def forget_owner(owner):
                 del _jobs[key]
 
 
-def report(stage, message, preview=None):
+def report(stage, message, preview=None, preview_options=None):
+    """preview: 후보 안별 장소 이름 목록(예전 화면용). preview_options: 확정 전 후보 카드용(안별 이름과 장소 id·이름).
+    둘 다 가격 확인 전 값이라 화면은 '확정 전'으로만 보여 준다. 취소하면 지운다."""
     from .perf_trace import stage as traced_stage
 
     traced_stage(stage)
@@ -108,6 +110,8 @@ def report(stage, message, preview=None):
                 _jobs[key].update(stage=stage, message=message)
                 if preview is not None:
                     _jobs[key]["preview"] = preview
+                if preview_options is not None:
+                    _jobs[key]["preview_options"] = preview_options
                 _persist(key)
 
 
@@ -290,6 +294,7 @@ def cancel(key: str, request: Request):
             if job["status"] == "running":
                 job = dict(job, status="cancelled", message="검색을 취소했어요.")
                 job.pop("preview", None)
+                job.pop("preview_options", None)
                 _write(db, key, job)
         if key in _jobs:
             _jobs[key].update(job, finished=time.monotonic())

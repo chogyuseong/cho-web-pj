@@ -180,6 +180,53 @@ def test_price_plans_uses_one_client_per_batch_and_closes_it(monkeypatch):
     assert len(made) == 1
 
 
+def test_preview_options_are_the_options_before_pricing_without_prices(naver, monkeypatch):
+    from app import recommendation_service
+    reported = []
+    original = recommendation_service.report
+    monkeypatch.setattr(recommendation_service, 'report', lambda *a, **kw: (reported.append(kw), original(*a, **kw))[1])
+    clean_region(SCENARIOS['jeonju']['region'])
+    result = run('jeonju', naver)
+    options = next(kw['preview_options'] for kw in reported if 'preview_options' in kw)
+    # 고정 입력에서는 가격 확인이 3안을 바꾸지 않으므로 확정 전 후보 = 확정 코스(장소 id·순서·이름).
+    assert [[p['id'] for p in o['places']] for o in options] == [[p['id'] for p in plan['places']] for plan in result['plans']]
+    assert [o['purpose'] for o in options] == [plan['option_purpose'] for plan in result['plans']]
+    # 가격·비용·조건 확인 값은 싣지 않는다.
+    assert all(set(o) == {'purpose', 'places'} and all(set(p) == {'id', 'name'} for p in o['places']) for o in options)
+
+
+def test_job_state_carries_preview_options_until_cancelled(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import plan_jobs, recommendation_service
+    from app.main import app
+    entered, release = threading.Event(), threading.Event()
+    options = [dict(purpose='기준 코스', places=[dict(id='a', name='가')])]
+
+    def slow_research(data):
+        plan_jobs.report('가격 확인', '확인 중', preview=[['가']], preview_options=options)
+        entered.set()
+        release.wait(10)
+        plan_jobs.check_current()
+        return data, {'plans': []}
+
+    monkeypatch.setattr(recommendation_service, '_research', slow_research)
+    with TestClient(app) as client:
+        key = client.post('/api/plan-jobs', json={'visit_date': '2026-10-24'}).json()['id']
+        try:
+            assert entered.wait(10)
+            state = client.get(f'/api/plan-jobs/{key}').json()
+            assert state['preview_options'] == options and state['preview'] == [['가']]
+            assert client.delete(f'/api/plan-jobs/{key}').status_code == 200
+            state = client.get(f'/api/plan-jobs/{key}').json()
+            assert state['status'] == 'cancelled' and 'preview' not in state and 'preview_options' not in state
+        finally:
+            release.set()
+            for _ in range(100):
+                if plan_jobs._jobs.get(key, {}).get('finished'):
+                    break
+                time.sleep(.05)
+
+
 def test_fixed_input_recommendation_reports_the_price_stage(naver):
     clean_region(SCENARIOS['jeonju']['region'])
     result = run('jeonju', naver)

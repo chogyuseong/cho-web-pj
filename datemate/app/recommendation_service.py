@@ -261,7 +261,11 @@ def _verify_car_routes(data, plans):
 def _shape(plans):
     """가격 확인 전후 비교용: 안마다 (장소 id 순서, 이름, 설명). 진단에만 쓰고 응답에는 개수만 싣는다."""
     return [
-        (tuple(p["id"] for p in plan["places"]), plan.get("option_purpose"), plan.get("option_description"))
+        (
+            tuple(p["id"] for p in plan["places"]),
+            plan.get("option_purpose"),
+            plan.get("option_description"),
+        )
         for plan in plans
     ]
 
@@ -291,7 +295,9 @@ def _count_pricing(before, plans, price_stats, refill_stats):
                 count(name, flag)
                 changed |= flag
             count("price.plans_unchanged", not changed)
-        count("price.plans_added", sum(not any(set(r[0]) == set(b[0]) for b in before) for r in after))
+        count(
+            "price.plans_added", sum(not any(set(r[0]) == set(b[0]) for b in before) for r in after)
+        )
         for prefix, stats in (("price", price_stats), ("price.refill", refill_stats)):
             looked = stats.get("looked_up") or set()
             count(prefix + ".places", stats.get("places", 0))
@@ -361,6 +367,14 @@ def _finish(data, result, owner):
         "가격 확인",
         "코스 후보를 찾았어요. 가격과 필수 조건을 마지막으로 확인해요",
         preview=[[p["name"] for p in plan["places"]] for plan in result["plans"]],
+        # 확정 전 후보 카드: 가격·비용·조건 확인 결과는 싣지 않는다(확정 전 값을 확정값처럼 보이지 않게).
+        preview_options=[
+            dict(
+                purpose=plan.get("option_purpose"),
+                places=[dict(id=p["id"], name=p["name"]) for p in plan["places"]],
+            )
+            for plan in result["plans"]
+        ],
     )
     from .pricing import collecting_stats
 

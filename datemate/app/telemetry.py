@@ -27,24 +27,37 @@ def provider_limits(provider):
     return limits
 
 
+def _traced(provider,kind,started,attempted,failed):
+    """추천 안이면 호출 종류별 기다린 시간을 남긴다(검색어·URL 경로는 남기지 않음)."""
+    from .perf_trace import current as trace
+    t=trace()
+    if t:
+        end=t.now();stage=t.stage
+        t.add_call(provider,kind or 'other',stage,end-(time.perf_counter()-started)*1000,end,
+                   'rejected' if not attempted else 'failed' if failed else 'ok')
+
+
 @contextmanager
-def operation(provider):
-    start=time.perf_counter();failed=True;attempted=False
+def operation(provider,kind=None):
+    start=time.perf_counter();failed=True;attempted=False;sent=None
     from .request_usage import current
     usage=current();charged=False
     if not _slots.acquire(blocking=False):
+        _traced(provider,kind,start,False,True)
         raise httpx.PoolTimeout('External request capacity reached')
     try:
         if usage:usage.reserve(provider);charged=True
         if not store.reserve_budget(provider_limits(provider),int(time.time()//3600)):
             raise httpx.PoolTimeout('Provider hourly request budget reached')
-        attempted=True
+        attempted=True;sent=time.perf_counter()
         state={'failed':False}
         yield state
         failed=state['failed']
     finally:
         if charged and not attempted:usage.undo(provider)
         _slots.release()
+        # 기다린 시간은 실제 요청 구간만 센다(요청 한도 확인·지표 기록의 DB 시간은 db 로 따로 셈).
+        _traced(provider,kind,sent or start,attempted,failed)
         elapsed=round((time.perf_counter()-start)*1000)
         try:
             with store.connect() as db:
@@ -60,7 +73,8 @@ def operation(provider):
 
 
 def observed_http(call,url,**kwargs):
-    with operation(urlsplit(url).hostname or 'unknown') as state:
+    from .perf_trace import call_kind
+    with operation(urlsplit(url).hostname or 'unknown',call_kind(url)) as state:
         response=call(url,**kwargs)
         state['failed']=response.status_code>=400
         return response
@@ -68,7 +82,8 @@ def observed_http(call,url,**kwargs):
 
 @contextmanager
 def observed_stream(client,method,url,**kwargs):
-    with operation(urlsplit(url).hostname or 'unknown') as state:
+    from .perf_trace import call_kind
+    with operation(urlsplit(url).hostname or 'unknown',call_kind(url)) as state:
         with client.stream(method,url,**kwargs) as response:
             state['failed']=response.status_code>=400
             yield response
@@ -76,7 +91,7 @@ def observed_stream(client,method,url,**kwargs):
 
 def invoke_model(model, messages):
     # Count logical SDK calls (SDK retries may make additional HTTP requests).
-    with operation('sdk:llm'):
+    with operation('sdk:llm','llm'):
         result=model.invoke(messages)
     usage=getattr(result,'usage_metadata',None) or {}
     if usage:

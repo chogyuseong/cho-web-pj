@@ -12,6 +12,7 @@ from .image_search import plain, search_enabled
 from .catalog import places
 from .routes import distance
 from .request_usage import context_map,cache_hit
+from .perf_trace import span
 
 
 class BlogText(HTMLParser):
@@ -164,7 +165,7 @@ def search_courses(c):
         return result
     key='course-blog-five-v3:'+query+':'+str(c.visit_date)
     cached=store.cached(key)
-    if cached:cache_hit();return cached
+    if cached:cache_hit('course_blog');return cached
     try:
         response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=20,start=1,sort='sim',format='json'),
             headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
@@ -179,18 +180,20 @@ def search_courses(c):
             result['search_history'].append(dict(query=query,result_count=len(response.json().get('items',[]))))
         result['posts']=select_posts(response.json().get('items',[]),query)
         result['selection_note']='실제 방문자 수나 평점 순위가 아닌, 검색 결과 기반 선정입니다.'
-        with ThreadPoolExecutor(max_workers=5) as pool:
+        with span('course_search.blog_bodies'),ThreadPoolExecutor(max_workers=5) as pool:
             bodies=context_map(pool,public_body,[p['url'] for p in result['posts']])
         for post,body in zip(result['posts'],bodies):
             post.update(_body=body,content_scope='공개 본문 + 검색 요약' if body else '검색 요약만 확인',summary=post['description'])
             post['commercial_disclosure']=post['commercial_disclosure'] or disclosure(body)
             post['evidence_note']='광고·협찬 표시 확인 · 추천 가중치 축소' if post['commercial_disclosure'] else '광고·협찬 표시 미확인 · 실제 방문 인증은 아님'
         from .discovery import discover
-        new_places,discovery=discover(result['posts'],base_course_query(c))
+        with span('course_search.discover'):
+            new_places,discovery=discover(result['posts'],base_course_query(c))
         result['discovery']=discovery
         result['discovered_ids']=[p['id'] for p in new_places]
-        result['matches']=match_places(result['posts'],places('real',c.visit_date))
-        rows=places('real',c.visit_date)
+        with span('course_search.match_places'):
+            result['matches']=match_places(result['posts'],places('real',c.visit_date))
+            rows=places('real',c.visit_date)
         for post in result['posts']:
             post['mentioned_places']=[p['name'] for p in rows if post['rank'] in result['matches'].get(p['id'],{}).get('ranks',[])][:12]
         # 같은 작성자의 반복 게시물은 독립적인 추천으로 중복 가산하지 않는다.

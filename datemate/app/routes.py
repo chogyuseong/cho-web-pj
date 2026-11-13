@@ -46,7 +46,7 @@ def leg(a,b,conditions,force_api=False):
     hit=store.cached(key)
     if hit:
         from .request_usage import cache_hit
-        cache_hit();return dict(hit,mode='car')
+        cache_hit('driving_route');return dict(hit,mode='car')
     from .collection import fetch_json
     try:
         data=fetch_json('https://maps.apigw.ntruss.com/map-direction/v1/driving',

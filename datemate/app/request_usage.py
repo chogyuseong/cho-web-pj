@@ -86,7 +86,10 @@ def current():
     return _current.get()
 
 
-def cache_hit():
+def cache_hit(kind=None):
+    from .perf_trace import cache_hit as traced_hit
+
+    traced_hit(kind)
     usage = current()
     if usage:
         with usage.lock:

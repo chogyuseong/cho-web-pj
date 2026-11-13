@@ -129,8 +129,10 @@ def discover_requested_places(c):
     keys=intent(c)['intents']
     if c.mode!='real' or not search_enabled():return dict(status='not_available',resolved=0)
     supplement=False;supply=None;existing={}
+    from .perf_trace import span
     if not keys:
-        keys,supply,existing=supply_gaps(c)
+        with span('intent_discovery.supply_gaps'):
+            keys,supply,existing=supply_gaps(c)
         if not keys:return dict(status='not_needed',resolved=0,searched_kinds=[],lookups=0,supply=supply)
         supplement=True
     name=place_area(c)
@@ -141,7 +143,9 @@ def discover_requested_places(c):
     cachekey='intent-local-v6:'+fingerprint
     cached=store.cached(cachekey)
     # 캐시된 결과의 lookups 는 처음 검색했을 때의 건수다. 이번에는 외부 호출이 없다.
-    if cached:return dict(cached,cache_hit=True)
+    if cached:
+        from .perf_trace import cache_hit as traced_hit
+        traced_hit('intent_local');return dict(cached,cache_hit=True)
     count=0;statuses=[];resolved_ids=set()
     variations={'cafe':['카페','로스터리','디저트 카페'],'culture':['전시','미술관','갤러리'],
                 'walk':['공원','산책','정원'],'workshop':['공방','도자기 공방','체험 공방']}
@@ -210,9 +214,11 @@ def discover_requested_places(c):
             # Preserve richer blog evidence for a previously resolved venue.
             if not store.cached('discovered-place:'+pid):store.cache('discovered-place:'+pid,row,604800)
             count+=1
-    found=lookup_all(queries)
-    for (key,_,_),(items,status) in zip(queries,found):
-        statuses.append(status);absorb(key,items)
+    with span('intent_discovery.lookups'):
+        found=lookup_all(queries)
+    with span('intent_discovery.absorb'):
+        for (key,_,_),(items,status) in zip(queries,found):
+            statuses.append(status);absorb(key,items)
     fallback=[];fallback_found=[]
     if supplement:
         from .quality import meal_due
@@ -229,9 +235,11 @@ def discover_requested_places(c):
             if answered and all(s!='available' for s in answered):continue
             if stats[kind]['received']==0 and coarse:fallback.append((kind,DEFAULT_SEARCHES[kind][0],full(coarse)))
             else:fallback.append((kind,FALLBACK_TERMS[kind],full(area)))
-        fallback_found=lookup_all(fallback)
-        for (key,_,_),(items,status) in zip(fallback,fallback_found):
-            statuses.append(status);absorb(key,items)
+        with span('intent_discovery.fallback_lookups'):
+            fallback_found=lookup_all(fallback)
+        with span('intent_discovery.absorb'):
+            for (key,_,_),(items,status) in zip(fallback,fallback_found):
+                statuses.append(status);absorb(key,items)
     meal_supply=None
     if supplement and 'meal' in keys:
         total=have('meal')

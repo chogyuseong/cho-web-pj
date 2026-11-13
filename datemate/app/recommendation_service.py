@@ -4,6 +4,7 @@ Stage order is intentional: normalize, research, verify, price, enforce required
 conditions, diversify, explain, then check cancellation before persistence.
 """
 
+import json
 import logging
 import time
 import uuid
@@ -15,10 +16,12 @@ from .plan_jobs import report
 from .request_intent import normalize
 from .feedback_preferences import personalizing, explanation
 from .request_usage import measure
+from .perf_trace import current as current_trace, recording, span
 
 
 def generate(data: Conditions, owner: str):
     with (
+        recording() as trace,
         recommendation_slot(owner),
         personalizing(owner, data.use_feedback, data.mode) as profile,
         measure() as usage,
@@ -51,7 +54,13 @@ def generate(data: Conditions, owner: str):
                     plan["personalization"] = result["personalization"]
             result = _finish(data, result, owner)
         except Exception:
-            _record(owner, started, status="failed", external_usage=usage.snapshot())
+            _record(
+                owner,
+                started,
+                status="failed",
+                external_usage=usage.snapshot(),
+                timing=_compact(trace.summary()),
+            )
             raise
         _record(
             owner,
@@ -68,8 +77,23 @@ def generate(data: Conditions, owner: str):
                 for p in result["plans"]
             ),
             external_usage=usage.snapshot(),
+            timing=_compact(trace.summary()),
         )
         return result
+
+
+def _compact(summary):
+    """이벤트·로그용 요약: 단계별 시간, 외부 호출 합계, DB 합계만(종류별 표는 응답 진단에만)."""
+    return dict(
+        total_ms=summary["total_ms"],
+        stages={row["name"]: row["ms"] for row in summary["stages"]},
+        external={
+            k: summary["external"][k]
+            for k in ("calls", "failed", "rejected", "wait_ms_sum", "wall_ms", "peak_parallel")
+        },
+        cache_hits=summary["cache_hits"],
+        db=summary["db"],
+    )
 
 
 def _record(owner, started, **values):
@@ -77,6 +101,12 @@ def _record(owner, started, **values):
     from .experience import event
 
     try:
+        if values.get("timing"):
+            logging.getLogger(__name__).info(
+                "recommendation_timing status=%s %s",
+                values.get("status"),
+                json.dumps(values["timing"], ensure_ascii=False, separators=(",", ":")),
+            )
         event(
             owner,
             "",
@@ -95,16 +125,19 @@ def _research(data):
     report("장소 검색", "선택 지역의 후기와 실제 장소를 찾고 있어요")
     from .course_search import search_courses, priority
 
-    evidence = search_courses(data) if data.mode == "real" else None
+    with span("research.course_search"):
+        evidence = search_courses(data) if data.mode == "real" else None
     if data.mode == "real":
         from .quality import configure
 
         data = configure(data, evidence["query"])
         from .intent_discovery import discover_requested_places
 
-        evidence["intent_discovery"] = discover_requested_places(data)
+        with span("research.intent_discovery"):
+            evidence["intent_discovery"] = discover_requested_places(data)
     report("코스 구성", "취향·필수 조건·이동 동선을 비교하고 있어요")
-    result = recommend(data, evidence)
+    with span("compose.recommend"):
+        result = recommend(data, evidence)
     if data.mode == "real" and (
         not result["plans"] or any(p.get("search_adjustments") for p in result["plans"])
     ):
@@ -120,8 +153,9 @@ def _research(data):
                 "trust_mode": "balanced",
             }
         )
-        broad = search_courses(local)
-        discover_requested_places(local)
+        with span("compose.retry_search"):
+            broad = search_courses(local)
+            discover_requested_places(local)
         if broad["status"] == "available" and (
             broad["query"] != evidence["query"] or not result["plans"]
         ):
@@ -135,7 +169,8 @@ def _research(data):
             broad["relaxation_note"] = (
                 "위치는 유지하고 취향 검색어를 줄여 같은 지역의 일반 데이트 후기를 다시 검색했어요."
             )
-            retried = recommend(data, broad)
+            with span("compose.retry_recommend"):
+                retried = recommend(data, broad)
             if retried["plans"]:
                 result = retried
                 evidence = broad
@@ -252,13 +287,15 @@ def _finish(data, result, owner):
     experience = option_selector() == "experience"
     reserve = result.pop("reserve", None) or []
     if data.mode == "real" and data.transport == "car":
-        _verify_car_routes(data, result["plans"])
+        with span("compose.verify_car_routes"):
+            _verify_car_routes(data, result["plans"])
     report(
         "가격 확인",
         "코스 후보를 찾았어요. 가격과 필수 조건을 마지막으로 확인해요",
         preview=[[p["name"] for p in plan["places"]] for plan in result["plans"]],
     )
-    result["plans"] = price_plans(result["plans"])
+    with span("price.price_plans"):
+        result["plans"] = price_plans(result["plans"])
     from .preferences import filter_required, hard_blocks
 
     blocked = [p for p in result["plans"] if hard_blocks(p)]
@@ -267,7 +304,8 @@ def _finish(data, result, owner):
     dropped = priced - len(result["plans"])
     refilled = []
     if experience and dropped and reserve:
-        refilled = _refill(data, result["plans"], reserve)
+        with span("price.refill"):
+            refilled = _refill(data, result["plans"], reserve)
         result["plans"] += refilled
     if blocked and not result["plans"]:
         result.update(
@@ -282,9 +320,10 @@ def _finish(data, result, owner):
 
         # 탐색 단계의 option_selection(후보 풀 비교)은 그대로 두고, 가격 확인 뒤 재선택은 따로 남긴다.
         final_selection = {}
-        result["plans"] = select_options(
-            result["plans"], data, final_selection, stage="after_pricing"
-        )
+        with span("price.select_options"):
+            result["plans"] = select_options(
+                result["plans"], data, final_selection, stage="after_pricing"
+            )
         result.setdefault("diagnostics", {})["option_selection_after_pricing"] = final_selection[
             "option_selection"
         ]
@@ -300,19 +339,26 @@ def _finish(data, result, owner):
             "일부 자료 조회가 요청 한도에 도달해 확인 자료와 추정을 함께 표시했어요. 누락된 영업·가격·이동 정보는 방문 전 확인해 주세요."
         )
 
-    for p in result["plans"]:
-        if result.get("resource_notice"):
-            p["resource_notice"] = result["resource_notice"]
-        p["verification"] = verification_summary(p)
+    with span("price.verification_summary"):
+        for p in result["plans"]:
+            if result.get("resource_notice"):
+                p["resource_notice"] = result["resource_notice"]
+            p["verification"] = verification_summary(p)
     from .recommendation_summary import enrich
 
-    for p in result["plans"]:
-        enrich(p)
+    with span("price.enrich"):
+        for p in result["plans"]:
+            enrich(p)
     from .plan_jobs import check_current
 
     check_current()
     group_id = uuid.uuid4().hex
     for plan in result["plans"]:
         plan["recommendation_group_id"] = group_id
-    result["plans"] = [store.save_plan(p, owner) for p in result["plans"]]
+    with span("save.plans"):
+        result["plans"] = [store.save_plan(p, owner) for p in result["plans"]]
+    trace = current_trace()
+    if trace:
+        # 결과에만 싣는다(저장된 코스에는 넣지 않음). 시간 값이라 같은 입력이어도 매번 다르다.
+        result.setdefault("diagnostics", {})["timing"] = trace.summary()
     return result

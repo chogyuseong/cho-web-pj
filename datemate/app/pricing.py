@@ -51,7 +51,7 @@ def lookup_price(place,force=False):
     key='price-search-v2:'+place['id']
     if not force:
         cached=store.cached(key)
-        if cached and not (cached['status']=='key_missing' and search_enabled()):cache_hit();return cached
+        if cached and not (cached['status']=='key_missing' and search_enabled()):cache_hit('price');return cached
     result=dict(status='key_missing',quotes=[],checked_at=datetime.now(timezone.utc).isoformat())
     if search_enabled():
         try:

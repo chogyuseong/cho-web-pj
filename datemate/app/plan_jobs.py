@@ -87,6 +87,9 @@ def forget_owner(owner):
 
 
 def report(stage, message, preview=None):
+    from .perf_trace import stage as traced_stage
+
+    traced_stage(stage)
     check_current()
     key = _current.get()
     if key:
@@ -130,7 +133,15 @@ def _run(key, data, owner):
         with _lock:
             if key in _jobs:
                 _jobs[key]["finished"] = time.monotonic()
+                saving = time.perf_counter()
                 _persist(key)
+                logging.getLogger(__name__).info(
+                    "recommendation_job_saved id=%s status=%s persist_ms=%.1f result_bytes=%d",
+                    key,
+                    _jobs[key]["status"],
+                    (time.perf_counter() - saving) * 1000,
+                    len(json.dumps(_jobs[key].get("result") or {}, ensure_ascii=False).encode()),
+                )
 
 
 @router.post("/api/plan-jobs", status_code=202)

@@ -19,13 +19,16 @@ class ClosingConnection(sqlite3.Connection):
 
 
 def connect():
+    # 추천 작업 안에서만 with 블록 시간을 잰다(perf_trace). 그 밖에서는 연결을 그대로 돌려준다.
+    from .perf_trace import timed_connection
+
     if postgres_enabled():
         from .database import PostgresConnection
 
-        return PostgresConnection()
+        return timed_connection(PostgresConnection())
     db = sqlite3.connect(RUNTIME / "datemate.sqlite", timeout=20, factory=ClosingConnection)
     db.row_factory = sqlite3.Row
-    return db
+    return timed_connection(db)
 
 
 def init():

@@ -1,3 +1,6 @@
+# [예전 기준 점검 스크립트] 데이트 분류 버튼이 조건 화면에 바로 보이던 예전 화면 기준입니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_date_categories.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 데이트 분류 버튼이 조건 화면에 바로 보이던 예전 화면 기준입니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_date_categories.py', flush=True)
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 

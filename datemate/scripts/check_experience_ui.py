@@ -1,4 +1,7 @@
+# [예전 기준 점검 스크립트] 지금 화면에 없는 만남 유형 선택(meeting_type)을 씁니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_experience.py, tests/test_feedback_ui.py 에서 확인합니다.
 """실제 추천·식당 변경 미리보기·필수 조건·피드백·공유 의견 UI 검증."""
+print('[예전 기준 점검 스크립트] 지금 화면에 없는 만남 유형 선택(meeting_type)을 씁니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_experience.py, tests/test_feedback_ui.py', flush=True)
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -7,7 +10,7 @@ root=Path(__file__).resolve().parents[1]
 base='http://127.0.0.1:8000'
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    context=browser.new_context(viewport={'width':1440,'height':1000})
+    context=browser.new_context(bypass_csp=True,viewport={'width':1440,'height':1000})
     page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto(base,wait_until='networkidle');page.wait_for_function('Boolean(statusData)')
     page.locator('[name=meeting_type]').select_option('first')
@@ -47,7 +50,7 @@ with sync_playwright() as pw:
     page.get_by_role('button',name='내 의견 저장',exact=True).wait_for()
     page.locator('.partner-agreement select').first.select_option('yes')
     with page.expect_response('**/agreement'):page.get_by_role('button',name='내 의견 저장',exact=True).click()
-    other=browser.new_context();guest=other.new_page();guest.on('pageerror',lambda e:errors.append(str(e)))
+    other=browser.new_context(bypass_csp=True);guest=other.new_page();guest.on('pageerror',lambda e:errors.append(str(e)))
     guest.goto(base+'/?plan='+original,wait_until='networkidle');guest.locator('.partner-agreement > summary').click()
     guest.get_by_role('button',name='내 의견 저장',exact=True).wait_for();guest.locator('.partner-agreement select').first.select_option('yes')
     with guest.expect_response('**/agreement'):guest.get_by_role('button',name='내 의견 저장',exact=True).click()

@@ -1,4 +1,7 @@
+# [예전 기준 점검 스크립트] 서울 전용 시절의 25개 구 점검이고 실제 네이버 키로 외부 API를 부르며 docs/seoul-coverage.md·json 을 덮어씁니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_real_planning.py, tests/test_search_relaxation.py 에서 확인합니다.
 """서울 25개 자치구 대표 주소에서 같은 조건으로 추천 범위를 점검한다."""
+print('[예전 기준 점검 스크립트] 서울 전용 시절의 25개 구 점검이고 실제 네이버 키로 외부 API를 부르며 docs/seoul-coverage.md·json 을 덮어씁니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_real_planning.py, tests/test_search_relaxation.py', flush=True)
 import json
 import sys
 import time

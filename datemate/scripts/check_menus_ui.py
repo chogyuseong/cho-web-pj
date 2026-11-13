@@ -1,4 +1,7 @@
-﻿import sys,json
+﻿# [예전 기준 점검 스크립트] 예전 진단 파일(runtime/menu-debug/4.json, 5.json)이 있어야 합니다. 지금 저장소에는 없습니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_menus.py, tests/test_plan_asset_display.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 진단 파일(runtime/menu-debug/4.json, 5.json)이 있어야 합니다. 지금 저장소에는 없습니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_menus.py, tests/test_plan_asset_display.py', flush=True)
+import sys,json
 from pathlib import Path
 from urllib.parse import quote
 from playwright.sync_api import sync_playwright
@@ -7,7 +10,7 @@ from app.config import RUNTIME
 places=[json.loads((RUNTIME/'menu-debug'/f'{i}.json').read_text(encoding='utf-8')) for i in [4,5]]
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':1440,'height':1000})
+    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     for i,food in enumerate(places):

@@ -1,4 +1,7 @@
-﻿import sys,json
+﻿# [예전 기준 점검 스크립트] 예전 진단 파일(runtime/menu-debug)이 있어야 하고 실제 메뉴 공급자에 접속하는 일회성 점검입니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_menus.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 진단 파일(runtime/menu-debug)이 있어야 하고 실제 메뉴 공급자에 접속하는 일회성 점검입니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_menus.py', flush=True)
+import sys,json
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from app.config import RUNTIME

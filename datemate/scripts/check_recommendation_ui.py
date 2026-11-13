@@ -1,4 +1,7 @@
+# [예전 기준 점검 스크립트] 지역을 고르지 않고 바로 추천을 누르던 예전 조건 화면 기준입니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_api.py, tests/test_release_browser.py, tests/test_quick_conditions_ui.py 에서 확인합니다.
 """추천 버튼의 성공·실제자료 부족·먼 출발지·명시적 데모 복구를 검증한다."""
+print('[예전 기준 점검 스크립트] 지역을 고르지 않고 바로 추천을 누르던 예전 조건 화면 기준입니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_api.py, tests/test_release_browser.py, tests/test_quick_conditions_ui.py', flush=True)
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright

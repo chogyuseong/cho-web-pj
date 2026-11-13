@@ -1,3 +1,6 @@
+# [예전 기준 점검 스크립트] 예전 결과 화면 배치(상세 바로 앞 선택 카드)를 전제로 합니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_pricing.py, tests/test_plan_results_regressions_ui.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 결과 화면 배치(상세 바로 앞 선택 카드)를 전제로 합니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_pricing.py, tests/test_plan_results_regressions_ui.py', flush=True)
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -5,7 +8,7 @@ from playwright.sync_api import sync_playwright
 root=Path(__file__).resolve().parents[1]
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':1440,'height':1000})
+    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')

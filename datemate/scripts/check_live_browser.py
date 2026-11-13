@@ -39,11 +39,11 @@ def main():
                 else:raise AssertionError('startup timeout')
                 with sync_playwright() as pw:
                     browser=pw.chromium.launch(channel=os.getenv('DATEMATE_BROWSER_CHANNEL','msedge'),headless=True)
-                    page=browser.new_page(viewport={'width':1440,'height':1000})
+                    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
                     errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
                     page.goto(BASE,wait_until='networkidle')
                     page.wait_for_function("typeof statusData!=='undefined'&&!!statusData")
-                    page.locator('#origin-location').get_by_role('button',name='주소 검색 · 지도에서 선택',exact=True).click()
+                    page.locator('#origin-location').get_by_role('button',name='다른 곳 찾기 · 주소 검색·지도',exact=True).click()
                     page.wait_for_function('!!locationMap || !!window.naver?.maps',timeout=30000)
                     page.locator('.location-search input').fill('서울특별시 마포구 동교로 227')
                     page.locator('.location-search').get_by_role('button',name='주소 검색',exact=True).click()

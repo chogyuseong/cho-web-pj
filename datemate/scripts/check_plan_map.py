@@ -1,4 +1,7 @@
+# [예전 기준 점검 스크립트] 지역을 고르지 않고 바로 추천을 누르던 예전 조건 화면과 8011번 포트 서버를 전제로 합니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_course_map_wheel.py, tests/test_route_geometry.py 에서 확인합니다.
 """8011번 로컬 서버에서 실제 지도 표시를 확인한다. 키와 요청 URL은 출력하지 않는다."""
+print('[예전 기준 점검 스크립트] 지역을 고르지 않고 바로 추천을 누르던 예전 조건 화면과 8011번 포트 서버를 전제로 합니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_course_map_wheel.py, tests/test_route_geometry.py', flush=True)
 import json
 import os
 from pathlib import Path

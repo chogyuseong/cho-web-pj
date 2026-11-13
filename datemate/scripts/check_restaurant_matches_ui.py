@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 root=Path(__file__).resolve().parents[1]
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':1440,'height':1000})
+    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     result=page.evaluate('''async()=>await api('/plans',{mode:'real',allow_estimates:true,visit_date:'2026-10-24',

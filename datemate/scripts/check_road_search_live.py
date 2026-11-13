@@ -1,4 +1,7 @@
-﻿import sys,json,httpx,os
+﻿# [예전 기준 점검 스크립트] 없어진 서울 500곳 캐시(explore-seoul-500-v1)와 예전 진단 파일(runtime/menu-debug)이 있어야 하고 실제 네이버 API를 부릅니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_search_address_text.py, tests/test_menus.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 없어진 서울 500곳 캐시(explore-seoul-500-v1)와 예전 진단 파일(runtime/menu-debug)이 있어야 하고 실제 네이버 API를 부릅니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_search_address_text.py, tests/test_menus.py', flush=True)
+import sys,json,httpx,os
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from app.config import RUNTIME

@@ -1,3 +1,6 @@
+# [예전 기준 점검 스크립트] 예전 조건 화면(숨겨진 예산·종료 시각·이동 제한 칸을 직접 채움) 기준이고, 내 컴퓨터의 로컬 DB(runtime)에 저장된 마지막 코스를 읽습니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_condition_audit.py, tests/test_request_criteria.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 조건 화면(숨겨진 예산·종료 시각·이동 제한 칸을 직접 채움) 기준이고, 내 컴퓨터의 로컬 DB(runtime)에 저장된 마지막 코스를 읽습니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_condition_audit.py, tests/test_request_criteria.py', flush=True)
 import json
 import sys
 from pathlib import Path
@@ -10,7 +13,7 @@ root=Path(__file__).resolve().parents[1]
 plan=json.loads(store.connect().execute('SELECT payload FROM plans ORDER BY rowid DESC LIMIT 1').fetchone()[0])
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':1440,'height':1000})
+    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000/?plan='+plan['id'],wait_until='networkidle')
     page.wait_for_function('selected?.condition_checks?.length>0',timeout=20000)

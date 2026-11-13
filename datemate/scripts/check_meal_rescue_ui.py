@@ -1,3 +1,6 @@
+# [예전 기준 점검 스크립트] 예전 결과 화면 기준이고, 내 컴퓨터의 로컬 DB(runtime)에 점검용 코스를 직접 저장합니다(실패하면 남습니다).
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_meal_rescue.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 결과 화면 기준이고, 내 컴퓨터의 로컬 DB(runtime)에 점검용 코스를 직접 저장합니다(실패하면 남습니다). 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_meal_rescue.py', flush=True)
 import json
 import sys
 from pathlib import Path

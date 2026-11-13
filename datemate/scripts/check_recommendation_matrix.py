@@ -1,4 +1,7 @@
+# [예전 기준 점검 스크립트] 데이트 분류 버튼이 조건 화면에 바로 보이던 예전 화면 기준입니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_mass_input_regressions.py, tests/test_date_categories.py 에서 확인합니다.
 """여러 폼 조합으로 실제 추천 버튼과 사진을 검증한다."""
+print('[예전 기준 점검 스크립트] 데이트 분류 버튼이 조건 화면에 바로 보이던 예전 화면 기준입니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_mass_input_regressions.py, tests/test_date_categories.py', flush=True)
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -11,7 +14,7 @@ cases += [('타입별',s) for s in ['활동적인','사교적인']]
 results=[]
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':1440,'height':1000})
+    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')

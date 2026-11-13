@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 from contextlib import ExitStack
 root=Path(__file__).resolve().parents[1];sys.path.insert(0,str(root))
-from check_10000_inputs import preferences
+from check_10000_inputs import preferences,lift_local_limits
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='datemate-venue-matrix-') as temp:
         os.environ['DATEMATE_RUNTIME']=temp
         for key in ('GMS_KEY','NAVER_SEARCH_CLIENT_ID','NAVER_SEARCH_CLIENT_SECRET','NAVER_MAPS_KEY_ID','NAVER_MAPS_KEY'):os.environ[key]=''
-        os.environ['EMBEDDING_MODE']='demo'
+        os.environ['EMBEDDING_MODE']='demo';lift_local_limits()
         from fastapi.testclient import TestClient
         from app.main import app
         from app import catalog,store

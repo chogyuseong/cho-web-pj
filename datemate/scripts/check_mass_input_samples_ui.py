@@ -1,14 +1,17 @@
+# [예전 기준 점검 스크립트] 예전 조건 화면(방문 날짜 칸이 처음부터 보임) 기준이고 실제 주소 검색 키가 필요합니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_mass_input_regressions.py, tests/test_plan_chat.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 조건 화면(방문 날짜 칸이 처음부터 보임) 기준이고 실제 주소 검색 키가 필요합니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_mass_input_regressions.py, tests/test_plan_chat.py', flush=True)
 import json
 from playwright.sync_api import sync_playwright
 from check_10000_inputs import chat_ok
 
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':1440,'height':1000})
+    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
-    page.get_by_role('button',name='주소 검색 · 지도에서 선택',exact=True).first.click()
+    page.get_by_role('button',name='다른 곳 찾기 · 주소 검색·지도',exact=True).click()
     page.locator('#dialog .location-search input').fill('종로구')
     page.locator('#dialog .location-search button').click()
     page.locator('#dialog .location-result').first.wait_for(timeout=20000)

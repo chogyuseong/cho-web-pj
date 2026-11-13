@@ -1,4 +1,7 @@
-﻿import sys,json,time
+﻿# [예전 기준 점검 스크립트] 서울 500곳 수집 자료(docs/explore-photos-before.json)를 실제 사진 공급자로 다시 검사하고 docs 의 결과 파일을 덮어씁니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_public_place_photos.py, tests/test_media.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 서울 500곳 수집 자료(docs/explore-photos-before.json)를 실제 사진 공급자로 다시 검사하고 docs 의 결과 파일을 덮어씁니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_public_place_photos.py, tests/test_media.py', flush=True)
+import sys,json,time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))

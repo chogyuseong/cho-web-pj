@@ -1,3 +1,6 @@
+# [예전 기준 점검 스크립트] 서울 전용 시절 화면(제목·지역 선택 1개)을 확인합니다. 지금은 전국 17개 시·도입니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_nationwide_home.py, tests/test_seoul_scope.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 서울 전용 시절 화면(제목·지역 선택 1개)을 확인합니다. 지금은 전국 17개 시·도입니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_nationwide_home.py, tests/test_seoul_scope.py', flush=True)
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 

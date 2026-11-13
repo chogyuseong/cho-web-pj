@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jL1kAAAAASUVORK5CYII=')
 with sync_playwright() as p:
     browser=p.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':390,'height':844},has_touch=True)
+    page=browser.new_page(bypass_csp=True,viewport={'width':390,'height':844},has_touch=True)
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.route('https://photos.example.test/**',lambda r:r.fulfill(content_type='image/png',body=png))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')

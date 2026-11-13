@@ -1,8 +1,11 @@
-﻿import base64
+﻿# [예전 기준 점검 스크립트] 예전 사진 불러오기 순서를 전제로 합니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_media.py, tests/test_plan_asset_display.py, tests/test_leisure_photos_ui.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 사진 불러오기 순서를 전제로 합니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_media.py, tests/test_plan_asset_display.py, tests/test_leisure_photos_ui.py', flush=True)
+import base64
 from playwright.sync_api import sync_playwright
 png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jL1kAAAAASUVORK5CYII=')
 with sync_playwright() as p:
- b=p.chromium.launch(channel='msedge',headless=True);page=b.new_page(viewport={'width':390,'height':844})
+ b=p.chromium.launch(channel='msedge',headless=True);page=b.new_page(bypass_csp=True,viewport={'width':390,'height':844})
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.route('https://photos.example.test/**',lambda r:r.fulfill(content_type='image/png',body=png))
  page.goto('http://127.0.0.1:8000',wait_until='networkidle')

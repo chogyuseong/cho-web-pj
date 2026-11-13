@@ -1,3 +1,6 @@
+# [예전 기준 점검 스크립트] 예전 위치 선택 버튼 이름과 8001번 포트 서버를 전제로 합니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_quick_conditions_ui.py, tests/test_geocoding.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 위치 선택 버튼 이름과 8001번 포트 서버를 전제로 합니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_quick_conditions_ui.py, tests/test_geocoding.py', flush=True)
 import json
 import os
 from pathlib import Path

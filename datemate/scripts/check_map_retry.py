@@ -1,4 +1,7 @@
+# [예전 기준 점검 스크립트] 예전 지도 재연결 표시(.map-reconnect)를 기다립니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_plan_asset_display.py 에서 확인합니다.
 """SDK 최초 요청 실패 후 실제 지도 재연결을 검증한다. 비밀값·URL 출력 없음."""
+print('[예전 기준 점검 스크립트] 예전 지도 재연결 표시(.map-reconnect)를 기다립니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_plan_asset_display.py', flush=True)
 from playwright.sync_api import sync_playwright
 
 with sync_playwright() as p:

@@ -1,3 +1,6 @@
+# [예전 기준 점검 스크립트] 내 컴퓨터의 로컬 DB(runtime)에 저장된 마지막 코스가 있어야 하고, 실제 사진 공급자에 접속합니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_plan_asset_display.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 내 컴퓨터의 로컬 DB(runtime)에 저장된 마지막 코스가 있어야 하고, 실제 사진 공급자에 접속합니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_plan_asset_display.py', flush=True)
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -9,7 +12,7 @@ plan=json.loads(store.connect().execute('SELECT payload FROM plans ORDER BY rowi
 expected_images=min(3,len(plan['places']))
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':1440,'height':1000})
+    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000/?plan='+plan['id'],wait_until='networkidle')
     page.wait_for_function('Boolean(selected)',timeout=20000)

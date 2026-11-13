@@ -23,10 +23,12 @@
   새로고침으로 이어받은 검색의 축제 구역(자동 테스트로만 확인)
 - 이 확인은 CSP 를 끈 브라우저로 했습니다(자동화 도구가 페이지 상태를 읽으려면 필요). CSP 위반 여부는 따로 보지 않았습니다.
 
-배포 뒤에 고쳤고 아직 배포하지 않은 것
+같은 날 한 번 더 배포한 것 (커밋 7b19041, Worker 버전 b77899ac-31b6-43c8-8398-6778353da3b7)
 - 운영에서는 조건 화면이 뜬 뒤 서버 상태를 받기까지 2초쯤 걸리는데, 그 사이에 동네 칩을 누르면
   "잠시 후 다시 눌러 주세요"만 나왔습니다. 마지막으로 누른 동네를 준비되는 즉시 적용하도록 고쳤습니다
-  (datemate/static/simple-form.js, 테스트 추가, 전체 558개 통과). 다음 배포에 포함됩니다.
+  (datemate/static/simple-form.js, 테스트 추가, 전체 558개 통과).
+- 배포 직후에는 이전 화면이 나왔고, 13분 동안 접속하지 않은 뒤 새 버전이 나왔습니다.
+  그 뒤 모바일·데스크톱 폭에서 칩 선택 → 추천 → 축제 2건 → 네이버 지도 표시를 다시 확인했습니다.
 
 
 ★ 보안 2차 수정을 2026-11-12에 운영에 배포했습니다
@@ -213,10 +215,22 @@ Copy-Item .env.example .env
   · 공유 화면(/shared#…)에도 축제 구역이 나옵니다. 공유 응답에 새로 실리는 것은 지역과 방문일뿐이고,
     받은 사람은 보기만 할 수 있습니다(축제 주변 코스 추천 버튼 없음).
   · 자동 테스트: datemate/tests/test_festival_restore.py. 운영에서는 저장된 코스 링크만 확인했습니다.
-- datemate/docs 의 날짜가 붙은 문서와 PROJECT_NOTES.md 는 과거 시점의 기록입니다.
-  서울 전용·TMAP·500곳 수집 등 지금과 다른 내용이 남아 있습니다.
-- 수동 점검 스크립트(datemate/scripts/check_*.py) 중 일부는 예전 화면 구조를 전제로 해
-  그대로는 실패할 수 있습니다. 자동 테스트(pytest)가 기준입니다.
+- 과거 기록 문서 정리: 2026-11-13에 했습니다. datemate/docs 의 날짜가 붙은 문서와 서울 시절 기록
+  (explore-500, seoul-scope 등) 22개, PROJECT_NOTES.md 맨 위에 "과거 기록입니다" 안내와 지금과 다른 점을 붙였습니다.
+  본문은 고치지 않았습니다. README.md·datemate/README.md 의 조건 입력 설명과 cloudflare-deployment.md 의
+  /readyz 안내(공개 주소에서는 404 가 정상)는 지금에 맞게 고쳤습니다.
+  날짜가 제목에만 있는 나머지 기록(test-results, requirements, dependencies 등)에는 아직 안내를 붙이지 않았습니다.
+- 수동 점검 스크립트(datemate/scripts/check_*.py) 정리: 2026-11-13에 했습니다. 자동 테스트(pytest)가 기준입니다.
+  · 예전 화면·자료를 전제로 해 실패하는 37개는 지우지 않고 맨 위 주석과 실행할 때 나오는 안내에
+    "[예전 기준 점검 스크립트]"와 대신 볼 테스트 파일을 적었습니다.
+  · 작은 수정으로 살린 것: 보안 정책(CSP) 때문에 막히던 브라우저 점검에 bypass_csp 추가,
+    위치 버튼 이름("다른 곳 찾기 · 주소 검색·지도") 반영, check_10000_inputs·check_5000_recommendations 의 요청 제한 해제와
+    볼링 의도 이름(bowling) 반영. 키 없는 로컬 서버에서 css_readability, leisure_results, option_diversity,
+    photo_carousel, plan_chat, simple_form, calm_design, editorial_design, evidence_links, explore_navigation 이 통과합니다.
+  · 실제 키가 있어야 끝까지 도는 것(live_browser, live_catalog, live_acceptance, real_course, driving_connection,
+    concept_search, restaurant_matches, naver_content, request_intent, junggu, review, search_recovery, creator_ux 의 사진 단계)과
+    Docker 가 필요한 check_cloud_containers 는 이번에 실제로 돌려 보지 않았습니다.
+  · check_meal_rescue_ui 는 로컬 DB(runtime)에 점검용 코스를 직접 쓰고, 실패하면 지우지 못하고 남깁니다.
 
 
 8. Cloudflare 운영 배포 (완료) 와 재배포 방법

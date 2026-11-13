@@ -2,7 +2,7 @@ import json
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     browser=p.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
+    page=browser.new_page(bypass_csp=True,viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')

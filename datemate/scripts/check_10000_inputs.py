@@ -16,10 +16,24 @@ from unittest.mock import patch
 root=Path(__file__).resolve().parents[1];sys.path.insert(0,str(root))
 
 
+def lift_local_limits():
+    # 2026-11 보안 수정으로 생긴 IP·세션별 요청 제한을 이 격리 검사에서만 풀어 준다(tests/conftest.py 와 같은 방식).
+    # 풀지 않으면 같은 주소에서 수천 번 요청하는 이 검사가 http_429 로 실패한다.
+    for name in ('SESSIONS','EXPENSIVE_REQUESTS','RECOMMENDATIONS','CHATS','GEOCODE','REVERSE_GEOCODE',
+                 'LOCAL_SEARCHES','REFRESHES','REVIEWS','EXPLORE_SEARCHES','REQUESTS'):
+        os.environ['DATEMATE_IP_'+name+'_PER_MINUTE']='100000'
+    for name in ('DATEMATE_RECOMMENDATIONS_PER_MINUTE','DATEMATE_USER_RECOMMENDATIONS_PER_MINUTE',
+                 'DATEMATE_USER_CHATS_PER_MINUTE','DATEMATE_PROVIDER_CALLS_PER_HOUR','DATEMATE_PROVIDER_CALLS_PER_IP_PER_HOUR'):
+        os.environ[name]='100000'
+    os.environ['DATABASE_URL']='';os.environ['DATEMATE_BACKUP_DIR']=''
+    os.environ['DATEMATE_ENV_FILE']=str(Path(os.environ['DATEMATE_RUNTIME'])/'absent.env')
+
+
 def preferences():
     from app.seoul_districts import DISTRICT_ADDRESSES
+    # 볼링은 지금 'activity'가 아니라 전용 의도 'bowling'으로 해석된다(tests/test_leisure_intent.py).
     activities=[('cafe','카페'),('meal','맛집'),('culture','전시'),('museum','박물관'),('book','서점'),
-                ('workshop','도자기 공방'),('walk','산책'),('game','방탈출'),('activity','볼링'),('view','야경')]
+                ('workshop','도자기 공방'),('walk','산책'),('game','방탈출'),('bowling','볼링'),('view','야경')]
     for area in DISTRICT_ADDRESSES:
         for i,(key,activity) in enumerate(activities):
             excluded,avoid=activities[(i+3)%len(activities)]
@@ -83,7 +97,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='datemate-10000-') as temp:
         os.environ['DATEMATE_RUNTIME']=temp
         for key in ('GMS_KEY','NAVER_SEARCH_CLIENT_ID','NAVER_SEARCH_CLIENT_SECRET','NAVER_MAPS_KEY_ID','NAVER_MAPS_KEY'):os.environ[key]=''
-        os.environ['EMBEDDING_MODE']='demo'
+        os.environ['EMBEDDING_MODE']='demo';lift_local_limits()
         from fastapi.testclient import TestClient
         from app.main import app
         from app.request_intent import interpret,normalize

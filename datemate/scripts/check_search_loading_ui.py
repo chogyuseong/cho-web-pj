@@ -1,9 +1,12 @@
+# [예전 기준 점검 스크립트] 예전 추천 요청 주소(/api/plans)를 가로챕니다. 지금 화면은 /api/plan-jobs 를 씁니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_release_browser.py, tests/test_functional_audit.py 에서 확인합니다.
+print('[예전 기준 점검 스크립트] 예전 추천 요청 주소(/api/plans)를 가로챕니다. 지금 화면은 /api/plan-jobs 를 씁니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_release_browser.py, tests/test_functional_audit.py', flush=True)
 import json
 from playwright.sync_api import sync_playwright
 
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page(viewport={'width':1440,'height':1000})
+    page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8000',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')

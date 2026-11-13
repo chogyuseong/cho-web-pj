@@ -1,4 +1,7 @@
+# [예전 기준 점검 스크립트] 서울 시절 홈 화면(테마 카드 분위기마다 카드 하나)을 전제로 합니다. 지금 홈 테마 카드는 전국 6개 동네입니다.
+# 그대로 실행하면 실패할 수 있습니다. 자동 테스트(pytest)가 기준이며, 같은 내용은 tests/test_imported_design_ui.py, tests/test_nationwide_home.py 에서 확인합니다.
 """디자인 변경 후 주요 화면과 기존 일정 동작 확인. localhost:8000 서버 필요."""
+print('[예전 기준 점검 스크립트] 서울 시절 홈 화면(테마 카드 분위기마다 카드 하나)을 전제로 합니다. 지금 홈 테마 카드는 전국 6개 동네입니다. 그대로 실행하면 실패할 수 있습니다. 대신 볼 테스트: tests/test_imported_design_ui.py, tests/test_nationwide_home.py', flush=True)
 import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -9,7 +12,7 @@ out.mkdir(exist_ok=True)
 results=[]
 with sync_playwright() as p:
     browser=p.chromium.launch(channel='msedge',headless=True)
-    page=browser.new_page()
+    page=browser.new_page(bypass_csp=True)
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
     for width in (1440,768,390,320):

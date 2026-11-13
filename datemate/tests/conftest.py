@@ -29,6 +29,9 @@ for _name in ('SESSIONS','EXPENSIVE_REQUESTS','RECOMMENDATIONS','CHATS','GEOCODE
 # 로컬 단위 테스트가 사용자 실제 검색 키로 외부 API를 호출하지 않게 한다.
 os.environ['NAVER_SEARCH_CLIENT_ID']=''
 os.environ['NAVER_SEARCH_CLIENT_SECRET']=''
+# 셸에 실제 키가 설정돼 있어도 축제·지도 API를 실제로 호출하지 않게 한다. 필요한 테스트는 monkeypatch로 넣는다.
+for _name in ('TOUR_API_KEY','NAVER_MAPS_KEY_ID','NAVER_MAPS_KEY','NAVER_MAPS_JS_KEY_ID'):
+    os.environ[_name]=''
 os.environ['DATEMATE_OPERATING_EVIDENCE_FILE']=''
 os.environ['DATEMATE_EXTERNAL_CALLS_PER_RECOMMENDATION']='60'
 os.environ['DATEMATE_HTTP_USD_PER_1000']='{}'

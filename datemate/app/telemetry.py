@@ -41,13 +41,22 @@ def prepaid(url,count):
     """
     provider=urlsplit(url).hostname or 'unknown'
     limits=provider_limits(provider);bucket=int(time.time()//3600)
-    box=dict(provider=provider,left=store.reserve_budget_up_to(limits,bucket,count),lock=Lock())
+    try:granted=store.reserve_budget_up_to(limits,bucket,count)
+    except Exception:
+        # 미리 잡지 못하면 전처럼 호출마다 예산을 확인한다(그 확인이 같은 DB 오류를 만나면 그 호출만 실패).
+        logging.getLogger(__name__).warning('provider_budget_prepay_failed provider=%s',provider)
+        granted=0
+    box=dict(provider=provider,left=granted,lock=Lock())
     token=_prepaid.set(box)
     try:yield box
     finally:
         _prepaid.reset(token)
         with box['lock']:unused,box['left']=box['left'],0
-        if unused:store.release_budget(limits,bucket,unused)
+        if unused:
+            # 돌려주기 실패(잠금·풀 대기 초과 등)가 성공한 묶음 결과나 본문에서 난 원래 예외를 덮어쓰지 않게 한다.
+            # 돌려주지 못한 몫은 그 시간 구간 예산에 쓴 것으로 남는다(덜 쓰는 쪽이라 한도를 넘지 않음).
+            try:store.release_budget(limits,bucket,unused)
+            except Exception:logging.getLogger(__name__).warning('provider_budget_release_failed provider=%s unused=%d',provider,unused)
 
 
 def _take_prepaid(provider):

@@ -226,8 +226,9 @@ def test_provider_metrics_are_written_once_when_the_recommendation_ends():
 
     def metric():
         with store.connect() as db:
-            row = db.execute('SELECT SUM(calls),SUM(errors) FROM provider_metrics WHERE provider=?', ('batch.example',)).fetchone()
-        return tuple(v or 0 for v in row)
+            row = db.execute('SELECT SUM(calls) AS calls,SUM(errors) AS errors FROM provider_metrics WHERE provider=?', ('batch.example',)).fetchone()
+        # 이름으로 읽는다: PostgreSQL 의 Record(dict, app/database.py)는 순회하면 값이 아니라 열 이름을 내준다.
+        return (row['calls'] or 0, row['errors'] or 0)
 
     before = metric()
     with measure() as usage:

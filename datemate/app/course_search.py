@@ -139,15 +139,18 @@ def select_posts(items,query):
 def match_places(posts,rows):
     matches={}
     rank_ceiling=max(3,max((p['rank'] for p in posts),default=3))+1
+    # 글마다 본문(최대 6만 자)을 한 번만 정리한다. 전에는 장소 수 × 글 수만큼 다시 정리해 CPU 시간이 대부분 여기서 쓰였다.
+    texts=[]
+    for post in posts:
+        raw=post['title']+' '+post['description']+' '+post.get('_body','')
+        texts.append((post,raw,compact(raw)))
     for place in rows:
         names=[place['name'],*(place.get('search_aliases') or [])]
         wiki=urlsplit(place.get('wikipedia') or '')
         if wiki.hostname=='ko.wikipedia.org':names.append(unquote(wiki.path.rsplit('/',1)[-1]).replace('_',' '))
         names=[compact(re.sub(r'\s*\([^)]*\)$','',n)) for n in names]
         hits=[]
-        for post in posts:
-            raw=post['title']+' '+post['description']+' '+post.get('_body','')
-            text=compact(raw)
+        for post,raw,text in texts:
             if any(len(n)>=3 and n in text for n in names) and not any(negative_mention(raw,n) for n in [place['name'],*(place.get('search_aliases') or [])]):hits.append(post['rank'])
         if hits:matches[place['id']]={'ranks':hits,'score':sum(rank_ceiling-rank for rank in hits)}
     return matches
@@ -192,8 +195,9 @@ def search_courses(c):
         result['discovery']=discovery
         result['discovered_ids']=[p['id'] for p in new_places]
         with span('course_search.match_places'):
-            result['matches']=match_places(result['posts'],places('real',c.visit_date))
+            # 같은 장소 목록을 두 번 읽지 않는다(match_places 는 목록을 바꾸지 않음).
             rows=places('real',c.visit_date)
+            result['matches']=match_places(result['posts'],rows)
         for post in result['posts']:
             post['mentioned_places']=[p['name'] for p in rows if post['rank'] in result['matches'].get(p['id'],{}).get('ranks',[])][:12]
         # 같은 작성자의 반복 게시물은 독립적인 추천으로 중복 가산하지 않는다.

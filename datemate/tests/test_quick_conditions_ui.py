@@ -302,3 +302,25 @@ def test_last_conditions_repeat_and_privacy_delete(server):
         page.wait_for_function("typeof statusData!=='undefined'&&!!statusData&&document.querySelector('.simple-plan-form')")
         assert page.evaluate(f'localStorage.getItem("{STORE_KEY}")') is None
         assert page.locator('.last-conditions').is_hidden()
+
+
+def test_area_chip_pressed_before_status_loads_is_applied_when_ready(server):
+    with opened(server) as (page, _):
+        # 서버 상태 요청을 붙잡아 두어, 화면은 떴지만 아직 준비되지 않은 구간을 만든다.
+        held = []
+        page.route('**/api/status', lambda route: held.append(route))
+        page.goto(server)
+        page.wait_for_selector('.simple-plan-form')
+        assert page.evaluate('!statusData')
+        area_chip(page, '서울 성수').click()
+        area_chip(page, '부산 해운대').click()
+        assert page.evaluate('locationState.origin') is None
+        assert '준비' in page.locator('.area-status').inner_text()
+        assert len(held) == 1
+        held[0].continue_()
+        page.wait_for_function("!!statusData&&!!locationState.origin")
+        # 마지막으로 누른 동네가 적용되고, 상태 응답의 기본 시·도가 덮어쓰지 않는다.
+        assert page.evaluate('form.elements.region.value') == '부산'
+        assert page.evaluate('form.elements.origin_name.value').startswith('부산')
+        assert area_chip(page, '부산 해운대').get_attribute('aria-pressed') == 'true'
+        assert area_chip(page, '서울 성수').get_attribute('aria-pressed') == 'false'

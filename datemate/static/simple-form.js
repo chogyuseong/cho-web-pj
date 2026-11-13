@@ -24,7 +24,22 @@ document.addEventListener('DOMContentLoaded',()=>{
   const areaRow=chipRow('인기 동네'),areaStatus=node('p','','hint area-status');areaStatus.setAttribute('role','status');
   const areaCards=[...document.querySelectorAll('.curation-card[data-preset]')];
   function ready(){if(statusData)return true;toast('장소 정보를 준비 중이에요. 잠시 후 다시 눌러 주세요.');return false;}
-  const areaChips=areaCards.map(card=>{const item=chip(card.dataset.preset,()=>{if(!ready())return;applyPresetArea(card);areaStatus.textContent=card.dataset.preset+'을(를) 데이트할 지역으로 골랐어요.';refresh();});item.dataset.area=card.dataset.preset;return item;});
+  // 화면이 뜬 직후 서버 상태를 받기 전에 누른 동네는 버리지 않고, 준비되는 대로(최대 30초) 마지막으로 누른 것을 적용한다.
+  let pendingArea=null,pendingTimer=null;
+  function whenReady(action){
+    if(statusData){action();return;}
+    pendingArea=action;areaStatus.textContent='장소 정보를 준비하고 있어요. 곧 적용할게요…';
+    if(pendingTimer)return;
+    let waited=0;
+    pendingTimer=setInterval(()=>{
+      waited+=100;
+      if(!statusData&&waited<30000)return;
+      clearInterval(pendingTimer);pendingTimer=null;
+      const run=pendingArea;pendingArea=null;
+      if(statusData)run();else areaStatus.textContent='장소 정보를 불러오지 못했어요. 새로고침한 뒤 다시 눌러 주세요.';
+    },100);
+  }
+  const areaChips=areaCards.map(card=>{const item=chip(card.dataset.preset,()=>whenReady(()=>{applyPresetArea(card);areaStatus.textContent=card.dataset.preset+'을(를) 데이트할 지역으로 골랐어요.';refresh();}));item.dataset.area=card.dataset.preset;return item;});
   const here=button('현재 위치',useCurrentLocation,'quick-chip current-location');
   areaRow.append(...areaChips,here);
   form.elements.origin_name.placeholder='위에서 동네를 골라 주세요';

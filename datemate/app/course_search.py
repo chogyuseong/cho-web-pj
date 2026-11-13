@@ -6,7 +6,7 @@ from urllib.parse import urlsplit, unquote
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 import httpx
-from .telemetry import observed_http, observed_stream
+from .telemetry import observed_http, observed_stream, prepaid
 from . import store
 from .image_search import plain, search_enabled
 from .catalog import places
@@ -183,7 +183,8 @@ def search_courses(c):
             result['search_history'].append(dict(query=query,result_count=len(response.json().get('items',[]))))
         result['posts']=select_posts(response.json().get('items',[]),query)
         result['selection_note']='실제 방문자 수나 평점 순위가 아닌, 검색 결과 기반 선정입니다.'
-        with span('course_search.blog_bodies'),ThreadPoolExecutor(max_workers=5) as pool:
+        # 본문 5건의 제공자 예산은 한 번에 잡는다(호출마다 잡으면 운영 DB의 쓰기 잠금에서 줄을 선다).
+        with span('course_search.blog_bodies'),prepaid('https://m.blog.naver.com/',len(result['posts'])),ThreadPoolExecutor(max_workers=5) as pool:
             bodies=context_map(pool,public_body,[p['url'] for p in result['posts']])
         for post,body in zip(result['posts'],bodies):
             post.update(_body=body,content_scope='공개 본문 + 검색 요약' if body else '검색 요약만 확인',summary=post['description'])

@@ -7,7 +7,9 @@ from urllib.parse import unquote,urlsplit
 from datetime import datetime,timezone,date
 from concurrent.futures import ThreadPoolExecutor
 import httpx
-from .telemetry import observed_http
+from .telemetry import observed_http,prepaid
+
+BLOG_SEARCH_URL='https://naverapihub.apigw.ntruss.com/search/v1/blog'
 from . import store
 from .image_search import plain,safe_https,search_enabled
 from .request_usage import context_map,cache_hit
@@ -63,7 +65,7 @@ def lookup_price(place,force=False,writes=None):
             search_name=' '.join(keys) if len(keys)>=2 else price_name(place)
             if len(keys)<2 and ' ' in search_name:search_name='"'+search_name+'"'
             query=search_name+' '+('메뉴 가격' if place['category']=='카페·미식' else '입장료')
-            response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=30,start=1,sort='sim',format='json'),
+            response=observed_http(httpx.get,BLOG_SEARCH_URL,params=dict(query=query,display=30,start=1,sort='sim',format='json'),
                 headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=7)
             response.raise_for_status();quotes=[];seen=set()
             for item in response.json().get('items',[]):
@@ -129,7 +131,9 @@ def price_plans(plans,force=False):
         cached=known.get('price-search-v2:'+p['id'])
         if usable(cached):cache_hit('price');return cached
         return lookup_price(p,True,writes)
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    misses=sum(not usable(known.get('price-search-v2:'+pid)) for pid in needed) if search_enabled() else 0
+    # 새로 찾을 가격 검색의 제공자 예산은 한 번에 잡는다(호출마다 잡으면 운영 DB의 쓰기 잠금에서 줄을 선다).
+    with prepaid(BLOG_SEARCH_URL,misses),ThreadPoolExecutor(max_workers=3) as executor:
         data=dict(zip(needed,context_map(executor,one,needed.values())))
     store.cache_many(writes)
     return [apply_prices(p,data) for p in plans]

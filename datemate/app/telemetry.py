@@ -2,7 +2,8 @@
 import logging
 import time
 import os
-from threading import BoundedSemaphore
+from contextvars import ContextVar
+from threading import BoundedSemaphore, Lock
 from urllib.parse import urlsplit
 import httpx
 from contextlib import contextmanager
@@ -27,6 +28,37 @@ def provider_limits(provider):
     return limits
 
 
+# 묶음 호출(지역 검색 8건, 블로그 본문 5건, 가격 검색 등)의 시간당 제공자 예산을 한 번의 DB 쓰기로 잡아 둔 것.
+# 운영 DB(PostgreSQL)에서는 예산 확인이 호출마다 전역 쓰기 잠금을 거쳐, 동시에 보낸 호출도 사실상 하나씩 나갔다.
+_prepaid=ContextVar('prepaid_provider_calls',default=None)
+
+
+@contextmanager
+def prepaid(url,count):
+    """url 의 제공자 예산을 count 번 미리 잡는다. 차례로 잡는 것과 같은 수만 허락되고, 남은 몫은 끝날 때 돌려준다.
+
+    허락되지 않은 몫의 호출은 전처럼 호출마다 예산을 확인한다(이미 찼으면 거절).
+    """
+    provider=urlsplit(url).hostname or 'unknown'
+    limits=provider_limits(provider);bucket=int(time.time()//3600)
+    box=dict(provider=provider,left=store.reserve_budget_up_to(limits,bucket,count),lock=Lock())
+    token=_prepaid.set(box)
+    try:yield box
+    finally:
+        _prepaid.reset(token)
+        with box['lock']:unused,box['left']=box['left'],0
+        if unused:store.release_budget(limits,bucket,unused)
+
+
+def _take_prepaid(provider):
+    box=_prepaid.get()
+    if not box or box['provider']!=provider:return False
+    with box['lock']:
+        if box['left']<=0:return False
+        box['left']-=1
+        return True
+
+
 def _traced(provider,kind,started,attempted,failed):
     """추천 안이면 호출 종류별 기다린 시간을 남긴다(검색어·URL 경로는 남기지 않음)."""
     from .perf_trace import current as trace
@@ -47,7 +79,7 @@ def operation(provider,kind=None):
         raise httpx.PoolTimeout('External request capacity reached')
     try:
         if usage:usage.reserve(provider);charged=True
-        if not store.reserve_budget(provider_limits(provider),int(time.time()//3600)):
+        if not _take_prepaid(provider) and not store.reserve_budget(provider_limits(provider),int(time.time()//3600)):
             raise httpx.PoolTimeout('Provider hourly request budget reached')
         attempted=True;sent=time.perf_counter()
         state={'failed':False}

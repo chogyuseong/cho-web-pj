@@ -98,9 +98,12 @@ def lookup_all(queries):
     from .discovery import permission_checked
     # 권한 없음 표시(401·403 뒤 60초)는 묶음마다 한 번만 확인한다. 묶음 안에서 처음 401 을 받으면 각 검색이 그대로 권한 없음으로 끝난다.
     if store.cached('discovery-local-permission'):return [([],'permission_required') for _ in queries]
+    from .discovery import LOCAL_SEARCH_URL
+    from .telemetry import prepaid
     token=permission_checked.set(True)
     try:
-        with ThreadPoolExecutor(max_workers=min(MAX_PARALLEL_LOOKUPS,len(queries))) as pool:
+        # 묶음의 제공자 예산은 한 번에 잡는다(동시 4건이 예산 확인 잠금에서 줄 서지 않게).
+        with prepaid(LOCAL_SEARCH_URL,len(queries)),ThreadPoolExecutor(max_workers=min(MAX_PARALLEL_LOOKUPS,len(queries))) as pool:
             return context_map(pool,one,queries)
     finally:permission_checked.reset(token)
 

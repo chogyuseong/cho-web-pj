@@ -133,6 +133,42 @@ def reserve_budget(limits, bucket):
     return True
 
 
+def reserve_budget_up_to(limits, bucket, wanted):
+    """reserve_budget 을 wanted 번 차례로 부른 것과 같은 결과를 한 번의 쓰기로 낸다. 허락된 횟수를 돌려준다.
+
+    차례로 부르면 모든 범위가 한도 아래인 동안만 하나씩 늘므로, 허락되는 수는 범위마다 남은 수의 최솟값이다.
+    """
+    if wanted <= 0:
+        return 0
+    with connect() as db:
+        db.execute("BEGIN IMMEDIATE")
+        granted = wanted
+        for scope, limit in limits:
+            row = db.execute(
+                "SELECT calls FROM request_budgets WHERE scope=? AND bucket=?", (scope, bucket)
+            ).fetchone()
+            granted = min(granted, max(0, limit - (row[0] if row else 0)))
+        if granted:
+            for scope, limit in limits:
+                db.execute(
+                    "INSERT INTO request_budgets VALUES(?,?,?) ON CONFLICT(scope,bucket) DO UPDATE SET calls=request_budgets.calls+excluded.calls",
+                    (scope, bucket, granted),
+                )
+    return granted
+
+
+def release_budget(limits, bucket, unused):
+    """reserve_budget_up_to 로 잡았지만 쓰지 않은 횟수를 돌려준다."""
+    if unused <= 0:
+        return
+    with connect() as db:
+        for scope, limit in limits:
+            db.execute(
+                "UPDATE request_budgets SET calls=calls-? WHERE scope=? AND bucket=? AND calls>=?",
+                (unused, scope, bucket, unused),
+            )
+
+
 def aggregate_key(ids):
     # 시간과 예산은 집계 키에서 제외하고 방문 순서만 보존한다.
     return hashlib.sha256(json.dumps(ids, ensure_ascii=False).encode()).hexdigest()

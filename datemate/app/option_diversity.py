@@ -181,7 +181,8 @@ def _difference(plan,base):
 
 
 def _counted(rows):
-    return '·'.join(f"{GROUP_LABELS[r['group']]} {r['count']}곳" for r in rows)
+    # 표시 이름에 이미 가운뎃점이 있어('전시·관람') 항목 사이는 쉼표로 나눈다.
+    return ', '.join(f"{GROUP_LABELS[r['group']]} {r['count']}곳" for r in rows)
 
 
 def _same_composition_text(number,changed):
@@ -202,7 +203,7 @@ def _role(plan,base,difference,same_composition_only,chosen=None,stage=1):
         name=SAME_COMPOSITION_ROLE;text=_same_composition_text(1,difference['places_changed'])
     elif difference['composition_changed']:
         added,removed=difference['added'],difference['removed']
-        if added:name='·'.join(GROUP_LABELS[r['group']] for r in added)+' 넣은 코스'
+        if added:name=', '.join(GROUP_LABELS[r['group']] for r in added)+' 넣은 코스'
         else:name='구성이 다른 코스'
         if added and removed:text=f'코스 1의 {_counted(removed)} 대신 {_counted(added)}이 들어가요'
         elif added:text=f'코스 1에 없던 {_counted(added)}이 들어가요'

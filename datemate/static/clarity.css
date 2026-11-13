@@ -51,3 +51,13 @@ header .brand-name .brand-tagline { color:#7d1e3a; font-weight:650; letter-spaci
 @media(min-width:801px) { .section-indicator { display:none!important; } }
 @media(max-width:800px) { html { scroll-padding-top:calc(var(--site-header-height,88px) + 52px); } }
 @media(prefers-reduced-motion:reduce) { .section-indicator,.section-indicator.is-visible { transition:none; transform:none; } }
+
+/* Leisure options: indoor/outdoor sections, sport label per venue and a sport filter (chips). */
+.leisure-filter { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; min-width:0; }
+.leisure-filter button { min-height:44px; padding:8px 14px; border-radius:999px; white-space:normal; overflow-wrap:anywhere; }
+.leisure-filter button[aria-pressed=true] { background-color:#9e2a4b; border-color:#9e2a4b; color:#ffffff; }
+.leisure-setting { margin:18px 0 0; min-width:0; }
+.leisure-setting>h4 { margin:0 0 6px; font-size:17px; line-height:1.5; color:#68172f; }
+.leisure-sport-tag { display:inline-block; max-width:100%; margin:6px 0 2px; padding:3px 10px; border-radius:999px; background-color:#fae4ea; color:#68172f; font-size:14px; font-weight:700; overflow-wrap:anywhere; }
+.leisure-result-card[hidden],.leisure-filter-empty[hidden] { display:none; }
+@media(max-width:600px) { .leisure-filter { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .leisure-filter button { width:100%; } }

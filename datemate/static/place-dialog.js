@@ -15,13 +15,16 @@ function drawMap(p) {
     dy = Math.max(.002, Math.max(...lats) - minLat),
     dx = Math.max(.002, Math.max(...lons) - minLon);
   const coords = points.map(x => [60 + (x.lon - minLon) / dx * 480, 180 - (x.lat - minLat) / dy * 130]);
-  const path = document.createElementNS(ns, 'polyline');
-  path.setAttribute('points', coords.map(x => x.join(',')).join(' '));
-  path.setAttribute('fill', 'none');
-  path.setAttribute('stroke', '#91a27b');
-  path.setAttribute('stroke-width', '3');
-  path.setAttribute('stroke-dasharray', '7 6');
-  svg.append(path);
+  // 구간마다 수단에 맞는 점선(도보 짧은 점선, 그 밖 긴 점선)으로 잇는다. 개략도라 실제 도로는 그리지 않는다.
+  coords.slice(1).forEach((end, i) => {
+    const path = document.createElementNS(ns, 'polyline');
+    path.setAttribute('points', [coords[i], end].map(x => x.join(',')).join(' '));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#91a27b');
+    path.setAttribute('stroke-width', '3');
+    path.setAttribute('stroke-dasharray', LINE_DASH.svg[legLineStyle(p, p.legs?.[i]) === 'short' ? 'short' : 'long']);
+    svg.append(path);
+  });
   coords.forEach(([x, y], i) => {
     const circle = document.createElementNS(ns, 'circle');
     circle.setAttribute('cx', x);

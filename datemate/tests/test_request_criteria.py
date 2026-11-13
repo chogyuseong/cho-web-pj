@@ -14,7 +14,7 @@ from app.request_intent import interpret, normalize
     ('바닷가 걷기', {'walk'}),
     ('벚꽃 보러 가자', {'walk'}),
     ('노래방 가자', {'game'}),
-    ('서핑 하고 싶어', {'activity'}),
+    ('서핑 하고 싶어', {'surfing'}),
     ('루프탑에서 경치 보기', {'view'}),
     ('백화점 쇼핑', {'shopping'}),
     ('찜질방에서 쉬고 싶어', {'rest'}),
@@ -32,7 +32,7 @@ def test_common_expressions_become_activities(text, wanted):
     ('오래 안 걷고 싶어', 'walk'),
     ('걷고 싶지 않아', 'walk'),
     ('노래방은 별로', 'game'),
-    ('등산은 힘들어', 'activity'),
+    ('등산은 힘들어', 'hiking'),
     ('찜질방은 관심 없어', 'rest'),
 ])
 def test_negative_expressions_are_never_positive(text, key):

@@ -135,6 +135,7 @@ header .brand-name small { font-size:13px; color:#5c4951; }
 
 .option-comparison h3 { font-size:20px; }
 .option-comparison th { font-size:14px; color:#68172f; background-color:#fdf0f3; }
+.option-comparison th.travel-time { white-space:nowrap; }
 
 .detail-header h2 { font-size:26px; line-height:1.5; }
 .detail .timeline-card h4 { font-size:25px; line-height:1.5; margin:12px 0 8px; }
@@ -177,6 +178,27 @@ header .brand-name small { font-size:13px; color:#5c4951; }
   .detail .map-link-list a { width:100%; }
   .plan-card .option-heading { flex-direction:column; align-items:stretch; }
   .plan-card .option-heading .inspect-plan { width:100%; }
+}
+/* 이동 수단 바꾸기: 구간 줄의 [수단 바꾸기] 하나, 펼치면 수단 4개를 2열 균등으로. 고른 수단은 aria-pressed로 표시. */
+.detail .route-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+.detail .route-line-text { flex:1 1 14em; min-width:0; }
+.detail .route-line-source { flex-basis:100%; font-size:14px; line-height:1.7; font-weight:500; color:#6b4a55; }
+.detail .route-line .route-mode-toggle { flex:0 0 auto; padding:8px 14px; font-size:15px; border:1px solid #dfb8c2; }
+.detail .transport-chooser,.detail .transport-bulk { border:1px solid #ead5d9; border-radius:14px; padding:4px 14px 12px; margin:8px 0 12px; background-color:#ffffff; min-width:0; }
+.detail .transport-chooser>legend { padding:0 6px; font-weight:700; }
+.results-area .transport-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.results-area .transport-options>button { width:100%; }
+.results-area .transport-options>button[aria-pressed=true] { background-color:#7d1e3a; border-color:#7d1e3a; color:#ffffff; }
+.detail .transport-status:empty { display:none; }
+.detail .transport-status { margin:8px 0 0; }
+.detail .transport-notice { border-left:4px solid #9e2a4b; background-color:#fff5f7; border-radius:0 12px 12px 0; padding:10px 16px; margin:12px 0; }
+.detail .transport-notice p { margin:4px 0; }
+@media(max-width:800px) {
+  .detail .route-line .route-mode-toggle { width:100%; }
+}
+/* 코스 카드: 1280px 이상만 3열. 지도 패널이 옆에 서는 801~1279px에서는 카드가 좁아 이름이 잘리므로 1열로 쌓는다. */
+@media(min-width:801px) and (max-width:1279px) {
+  #results>.plan-option-tabs { grid-template-columns:minmax(0,1fr)!important; }
 }
 .detail .table-scroll { border:1px solid #ead5d9; border-radius:14px; margin:16px 0; background-color:#ffffff; }
 .detail .table-scroll:focus-visible { outline:3px solid #9e2a4b; outline-offset:3px; }

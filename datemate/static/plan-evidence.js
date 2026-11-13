@@ -1,12 +1,18 @@
 ﻿const TRANSPORT_NAMES={walk:'도보',transit:'대중교통',car:'자동차',bicycle:'자전거'};
-// 이동 시간의 수단과 근거. 구간 자료(status)만 보고 정하며 없는 정보를 만들지 않는다.
+// 구간의 수단. 예전 코스처럼 구간에 수단이 없으면 코스 기본 수단을 쓴다.
+function legMode(plan,leg){return leg?.mode??plan.conditions?.transport;}
+// 이동 시간의 수단과 근거. 구간 자료(mode·status)만 보고 정하며 없는 정보를 만들지 않는다.
+// 수단이 섞이면 이름은 "도보·자동차", countLabel은 "도보 2구간·자동차 1구간"이 된다(서버 travel_mode와 같은 규칙).
 function travelMode(plan){
-  const legs=plan.legs||[],statuses=new Set(legs.map(leg=>leg.status)),name=TRANSPORT_NAMES[plan.conditions?.transport]||'이동';
+  const legs=plan.legs||[],statuses=new Set(legs.map(leg=>leg.status));
+  const modes=legs.length?legs.map(leg=>legMode(plan,leg)):[plan.conditions?.transport],used=[...new Set(modes)];
+  const name=used.map(mode=>TRANSPORT_NAMES[mode]||'이동').join('·');
   const basis=plan.conditions?.mode==='demo'?'가상 직선거리 추정':legs.length&&[...statuses].every(s=>s==='api')?'네이버 길찾기':statuses.has('api')?'일부 네이버 길찾기 · 일부 추정':'추정';
-  return {name,basis,label:name+' · '+basis};
+  const countLabel=used.length>1?used.map(mode=>`${TRANSPORT_NAMES[mode]||'이동'} ${modes.filter(m=>m===mode).length}구간`).join('·'):name;
+  return {name,basis,label:name+' · '+basis,mixed:used.length>1,modes:used,countLabel};
 }
 function legModeLabel(plan,leg){
-  const name=TRANSPORT_NAMES[plan.conditions?.transport]||'이동';
+  const name=TRANSPORT_NAMES[legMode(plan,leg)]||'이동';
   return name+' '+(leg.minutes??'?')+'분 · '+(plan.conditions?.mode==='demo'?'가상 추정':leg.status==='api'?'네이버 길찾기':'추정');
 }
 function travelMinutes(plan){return plan.decision_summary?.travel_minutes??plan.legs.reduce((n,x)=>n+(x.minutes||0),0);}
@@ -27,12 +33,15 @@ function optionComparison(items){
   const wrap=node('section',undefined,'option-comparison');wrap.setAttribute('aria-label','옵션 한눈에 비교');
   wrap.append(node('h3','어떤 코스가 더 끌리나요?'));
   const scroll=node('div',undefined,'table-scroll'),table=node('table'),caption=node('caption','세 코스 비용·이동 시간 비교','visually-hidden'),thead=node('thead'),head=node('tr'),body=node('tbody');
-  [['코스',''],['예상 전체 비용','num'],['총 이동 시간 (수단 · 근거)','num'],['주요 활동',''],['장소 차이','']].forEach(([text,cls])=>{const th=node('th',text,cls||undefined);th.scope='col';head.append(th);});
+  // 머리글은 390px에서도 한 줄로 짧게 두고, 뜻(총 이동 시간 · 수단 · 근거)은 접근성 이름과 표 설명에 남긴다.
+  [['코스',''],['예상 전체 비용','num'],['이동 시간','num travel-time','총 이동 시간 (수단 · 근거)'],['주요 활동',''],['장소 차이','']].forEach(([text,cls,label])=>{const th=node('th',text,cls||undefined);th.scope='col';if(label){th.setAttribute('aria-label',label);th.title=label;}head.append(th);});
   thead.append(head);table.append(caption,thead,body);
   items.forEach((p,i)=>{const row=node('tr');const others=p.places.filter(x=>!items[0].places.some(y=>y.id===x.id)).length;const mode=travelMode(p);
     const course=node('th',`코스 ${i+1}`);course.scope='row';course.append(node('span',p.decision_summary?.title||p.option_purpose||'추천','comparison-course-title'));
     const cost=node('td',undefined,'num');cost.append(rangeLines(p.total));
-    const time=node('td',undefined,'num');time.append(node('span',`${mode.name} ${travelMinutes(p)}분`,'nowrap'),node('small',mode.basis,'comparison-basis'));
+    // "도보 2구간·자동차 1구간 34분": 수단마다 줄을 바꾸지 않고 가운뎃점에서만 바꾼다.
+    const time=node('td',undefined,'num'),parts=mode.countLabel.split('·');parts[parts.length-1]+=` ${travelMinutes(p)}분`;
+    time.append(nowrapList(parts,'·'),node('small',mode.basis,'comparison-basis'));
     const activity=node('td');activity.append(nowrapList([...new Set(p.places.map(x=>x.category))]));
     row.append(course,cost,time,activity,node('td',i?`코스 1과 ${others}곳 다름`+(p.difference?.composition_changed?` · 활동 ${p.difference.composition_changed}곳 바뀜`:''):'비교 기준'));body.append(row);
   });scroll.append(table);scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','코스 비교 표 · 가로로 넘겨 확인');wrap.append(node('p','비용과 이동 시간을 비교해 보세요. 도보·대중교통·자전거는 직선거리로 추정한 시간이고, 자동차는 네이버 길찾기로 조회한 구간만 길찾기로 표시해요. 표는 좌우로 넘길 수 있어요.','hint'),scroll);return wrap;

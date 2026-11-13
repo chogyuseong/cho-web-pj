@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import secrets
@@ -14,12 +15,12 @@ from fastapi import FastAPI, HTTPException, Request, Response, Query
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from . import store
 from .catalog import places, get_place
 from .config import ROOT, REGION, production, public_origin, validate_runtime
 from . import web_security
-from .models import Conditions, ReviewInput, ChatInput, THEMES
+from .models import Conditions, ReviewInput, ChatInput, THEMES, TransportMode
 from .planner import replacements
 from .indexing import collections, embedding_mode, search_places
 from .rag import ask
@@ -628,9 +629,26 @@ def alternatives(id: str, data: ReplaceInput, request: Request):
         raise HTTPException(422, str(exc))
 
 
+def route_refresh_allowed(plan, kind, owner, message):
+    """실제 장소 코스에 자동차 구간이 있으면 길찾기를 다시 부르므로 재요청 제한을 건다."""
+    from .leg_modes import uses_car
+
+    conditions = (
+        plan if isinstance(plan, Conditions) else Conditions.model_validate(plan["conditions"])
+    )
+    if conditions.mode == "real" and uses_car(conditions):
+        refresh_allowed(kind, owner, message)
+
+
 @app.post("/api/plans/{id}/replace")
 def replace(id: str, data: ReplaceInput, request: Request):
     _, plan = plan_row(id, request.state.owner)
+    route_refresh_allowed(
+        plan,
+        "replace",
+        request.state.owner,
+        "자동차 길찾기를 다시 확인하는 중이에요. 잠시 후 다시 바꿔 주세요.",
+    )
     try:
         options = replacements(plan, data.index, data.locked)
     except ValueError as exc:
@@ -653,6 +671,61 @@ def replace(id: str, data: ReplaceInput, request: Request):
         return save_change(updated, plan, request.state.owner)
     except ValueError as exc:
         raise HTTPException(409, str(exc))
+
+
+class LegModeInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    index: int = Field(ge=0, le=5)
+    mode: TransportMode
+
+
+class TransportInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    default: TransportMode | None = None
+    legs: list[LegModeInput] = Field(default_factory=list, max_length=6)
+
+
+@app.post("/api/plans/{id}/transport")
+def change_transport(id: str, data: TransportInput, request: Request):
+    """구간별 또는 전체 이동 수단을 바꿔 새 버전으로 저장한다. 되돌리기는 /undo."""
+    from .leg_modes import Blocked, NoChange, apply_change, prepare_change
+
+    if data.default is None and not data.legs:
+        raise HTTPException(422, "바꿀 구간이나 이동 수단을 골라 주세요.")
+    if len({leg.index for leg in data.legs}) != len(data.legs):
+        raise HTTPException(422, "같은 구간을 두 번 골랐어요.")
+    _, plan = plan_row(id, request.state.owner)
+    try:
+        prepared = prepare_change(plan, data.default, [(leg.index, leg.mode) for leg in data.legs])
+    except NoChange as exc:
+        raise HTTPException(422, str(exc))
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    route_refresh_allowed(
+        prepared["conditions"],
+        "transport",
+        request.state.owner,
+        "자동차 길찾기를 다시 확인하는 중이에요. 잠시 후 다시 바꿔 주세요.",
+    )
+    try:
+        updated, summary = apply_change(plan, prepared)
+    except Blocked as exc:
+        raise HTTPException(409, str(exc))
+    from .condition_audit import audit_plan
+    from .preferences import hard_blocks
+
+    blocked = hard_blocks(audit_plan(copy.deepcopy(updated)))
+    if blocked:
+        labels = ", ".join(dict.fromkeys(b["label"] for b in blocked))
+        raise HTTPException(409, f"필수로 고른 조건({labels})을 지키지 못해 바꾸지 않았어요.")
+    from .plan_changes import save_change
+
+    try:
+        saved = save_change(updated, plan, request.state.owner)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    saved["transport_change"] = summary
+    return saved
 
 
 @app.post("/api/plans/{id}/undo")
@@ -781,7 +854,7 @@ app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 @app.post("/api/plans/{id}/leisure-options")
 def leisure_options(id: str, data: ReplaceInput, request: Request):
     _, plan = plan_row(id, request.state.owner)
-    from .leisure import options
+    from .leisure import options, message as leisure_message
 
     try:
         diagnostics = {}
@@ -792,10 +865,11 @@ def leisure_options(id: str, data: ReplaceInput, request: Request):
                     "place": r["plan"]["places"][data.index],
                     "distance_m": r["distance_m"],
                     "delta": r["plan"]["delta"],
+                    "sport": r["sport"],
                 }
                 for r in rows
             ],
-            "message": "현재 코스 장소 반경 1.5km의 스포츠 후보예요. 선택하면 해당 순서의 장소를 교체합니다. 직선거리 기준이며 영업·예약은 별도 확인해 주세요.",
+            "message": leisure_message(Conditions.model_validate(plan["conditions"])),
             "diagnostics": diagnostics,
         }
     except ValueError as exc:

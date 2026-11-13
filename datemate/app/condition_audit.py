@@ -57,9 +57,14 @@ def audit_plan(plan,c=None):
     add('allow_price_estimates','가격 가정 사용','unmet' if assumptions and not c.allow_price_estimates else 'info',
         '가격 가정을 허용하지 않았지만 가정값이 포함되어 있어요.' if assumptions and not c.allow_price_estimates else '가격을 찾지 못한 경우 계획용 범위 사용을 허용했어요.' if c.allow_price_estimates else '계획용 가격 가정을 사용하지 않는 조건이에요.')
     if references:add('price_data','가격 근거','info',f'{len(references)}곳은 최근 웹 게시글의 참고 단가예요. 현재 공식 요금과 다를 수 있어요. 비용표의 원문을 확인해 주세요.')
-    transport={'walk':'도보','transit':'대중교통','car':'자가용','bicycle':'자전거'}[c.transport]
+    transport_names={'walk':'도보','transit':'대중교통','car':'자가용','bicycle':'자전거'}
+    leg_modes=[r.get('mode') or c.transport for r in routes]
+    used=list(dict.fromkeys(leg_modes)) or [c.transport]
+    transport='·'.join(transport_names[m] for m in used)+(' (구간별 선택: '+', '.join(f'{transport_names[m]} {leg_modes.count(m)}구간' for m in used)+')' if len(used)>1 else '')
     estimated=any(r['status']!='api' for r in routes)
     add('transport','교통수단·경로','estimated' if real and estimated and c.allow_estimates else 'unknown' if real and estimated else 'met',transport+' 기준으로 계산했어요.'+(' 허용하신 추정 경로예요. 실제 길찾기·시간표·도로 상황과 차이가 있을 수 있어요.' if real and estimated and c.allow_estimates else ' 실제 길찾기를 확인하지 못한 추정 경로예요.' if real and estimated else ''))
+    from .leg_modes import car_position_notes
+    for note in car_position_notes(plan):add('car_position','차 위치','unknown',note)
     test('count','방문 장소 수',len(venues)==c.count,f'요청한 {c.count}곳을 제안해요.',f'요청은 {c.count}곳이지만 {len(venues)}곳을 제안해요.')
     for key,label,wanted in [('themes','테마',c.themes),('date_subcategory',c.date_category or '데이트 분류',classification_themes(c))]:
         if not wanted:add(key,label,'info','별도 조건을 선택하지 않았어요.');continue

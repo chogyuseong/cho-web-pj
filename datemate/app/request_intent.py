@@ -2,6 +2,7 @@
 import re
 from decimal import Decimal
 from functools import lru_cache
+from .sports import SPORTS,BY_KEY as SPORT_BY_KEY,OUTDOOR_KEYS
 
 INTENTS={
  'cafe':('카페·미식',['카페','커피','디저트','카페투어','카페 투어','베이커리','티하우스']),
@@ -16,12 +17,8 @@ INTENTS={
  'walk':('산책·풍경',['산책','공원','정원','숲길','피크닉','한강']),
  'game':('오락·놀이',['방탈출','보드게임','오락실','게임','만화카페']),
  'activity':('레저·활동',['운동','레저','스포츠']),
- 'climbing':('레저·활동',['클라이밍','볼더링','암벽']),
- 'bowling':('레저·활동',['볼링']),
- 'table_tennis':('레저·활동',['탁구']),
- 'badminton':('레저·활동',['배드민턴']),
- 'skating':('레저·활동',['스케이트','스케이팅','아이스링크']),
- 'screen_golf':('레저·활동',['스크린골프','스크린 골프']),
+ # 종목(클라이밍·볼링·…·패러글라이딩)은 app/sports.py 한 곳에서 정의한다. 판별은 혼동 방지 정규식을 쓴다.
+ **{s.key:('레저·활동',list(s.words)) for s in SPORTS},
  'view':('산책·풍경',['야경','전망','노을','일몰']),
  'shopping':('오락·놀이',['쇼핑','소품샵','소품숍','편집샵','편집숍']),
  'rest':('휴식·힐링',['힐링','휴식','스파','찜질방','족욕','온천']),
@@ -39,7 +36,7 @@ REQUEST_WORDS={
  'workshop':['원데이클래스','원데이 클래스','클래스','체험','쿠킹','베이킹','캔들','가죽 공예','목공','꽃꽂이','플라워','드로잉','그림 그리'],
  'walk':['걷기','걷고','걷는','걸으며','둘레길','강변','호숫가','호수','해변','바닷가','바다','수목원','식물원','꽃구경','꽃놀이','벚꽃','단풍','나들이'],
  'game':['코인노래방','노래방','피시방','PC방','VR'],
- 'activity':['액티비티','서핑','수영','등산','트레킹','승마','카트'],
+ 'activity':['액티비티'],
  'view':['경치','풍경','오션뷰','루프탑','전망대','해돋이','일출','석양'],
  'shopping':['아울렛','백화점','쇼핑몰','플리마켓','시장 구경','팝업스토어','팝업 스토어'],
  'rest':['쉬고 싶','쉬러','쉬엄쉬엄','마사지','템플스테이','호캉스'],
@@ -58,7 +55,8 @@ FOOD_AVOID=[
 ]
 RAIN=r'비\s*(?:오는|와|가\s*오)|비올|우천|장마|소나기'
 SNOW=r'눈\s*(?:오는|와서|이\s*오|내리|올)|폭설|함박눈'
-HARSH=r'폭염|무더위|더운\s*날|더워|한파|추운\s*날|추워|영하|미세\s*먼지|황사'
+# '영하'는 '수영하고'처럼 낱말 안에 섞이므로 앞에 한글이 붙으면 보지 않는다.
+HARSH=r'폭염|무더위|더운\s*날|더워|한파|추운\s*날|추워|(?<![가-힣])영하|미세\s*먼지|황사'
 SEASONS=[('봄',r'(?<![가-힣])봄(?![가-힣])|(?<![가-힣])봄(?:날|철|꽃|나들이|에|엔)'),('여름',r'(?<![가-힣])여름|바캉스|피서'),
     ('가을',r'(?<![가-힣])가을'),('겨울',r'(?<![가-힣])겨울|크리스마스|연말')]
 CONCEPTS=[('콘셉트별','즐거운 데이트',r'즐거운|신나는|재밌는|재미있는'),('콘셉트별','편안한 데이트',r'편안한|편하게|여유로운|여유롭|느긋|한적'),
@@ -79,10 +77,11 @@ def interpret(text):
     active=[];excluded=[];warnings=[]
     for key in INTENTS:
         yes=False;no=False
-        for word in sorted(request_words(key),key=len,reverse=True):
-            for m in re.finditer(re.escape(word),text,re.I):
-                negative=negated(text,m)
-                no|=negative;yes|=not negative
+        if key in SPORT_BY_KEY:found=SPORT_BY_KEY[key].request_re.finditer(text)
+        else:found=(m for word in sorted(request_words(key),key=len,reverse=True) for m in re.finditer(re.escape(word),text,re.I))
+        for m in found:
+            negative=negated(text,m)
+            no|=negative;yes|=not negative
         if no:excluded.append(key)
         elif yes:active.append(key)
     patch={}
@@ -93,7 +92,7 @@ def interpret(text):
             break
     if active:patch['themes']=list(dict.fromkeys(INTENTS[key][0] for key in active))
     rain,snow,harsh=(re.search(p,text) for p in (RAIN,SNOW,HARSH))
-    outdoor_wish=bool({'walk','view','activity'}&set(active))
+    outdoor_wish=bool(({'walk','view','activity'}|OUTDOOR_KEYS)&set(active))
     if re.search(r'실내',text) or rain or snow:patch['setting']='indoor'
     elif re.search(r'야외|실외|밖에서|바깥',text):patch['setting']='outdoor'
     elif harsh and not outdoor_wish:patch['setting']='indoor'
@@ -213,6 +212,7 @@ def matches(place,key):
             *(t for t in (place.get('tags') or []) if t!='카페·미식')] if v).casefold()
         return not meal and (bool(re.search(r'카페|커피|디저트|베이커리|티하우스|찻집|cafe|coffee',cafe_text)) or 'cafe' in (place.get('tags') or []))
     if key in (place.get('tags') or []):return True
+    if key in SPORT_BY_KEY:return bool(SPORT_BY_KEY[key].place_re.search(text))
     return any(w.casefold() in text for w in INTENTS[key][1])
 
 

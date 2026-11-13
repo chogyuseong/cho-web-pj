@@ -5,22 +5,30 @@ from test_leisure_results import fixture_plan
 
 
 def test_real_leisure_null_address_uses_area_and_concurrent_discovery(monkeypatch):
-    from app.leisure import options, SPORTS
+    # 종목마다 검색하던 방식에서 묶음 검색어(최대 12건)로 바뀌었다. 주소가 없으면 출발지의 구로 찾는다.
+    from app.leisure import options, LEISURE_SEARCHES, MAX_LEISURE_LOOKUPS
+    from app import store
     plan=fixture_plan()
     plan['conditions'].update(mode='real',allow_estimates=True)
     plan['conditions']['origin']['name']='종로구'
     plan['places'][0]['address']=None
+    cache={}
+    monkeypatch.setattr(store,'cached',lambda key:cache.get(key))
+    monkeypatch.setattr(store,'cache',lambda key,value,ttl:cache.__setitem__(key,value))
     searches=[]
-    def discover(c):
-        searches.append(c)
-        return {'status':'not_found','resolved':0}
-    monkeypatch.setattr('app.intent_discovery.discover_requested_places',discover)
+    monkeypatch.setattr('app.intent_discovery.search_enabled',lambda:True)
+    def lookup(term,area,**kwargs):
+        searches.append((term,area))
+        return [],'available'
+    monkeypatch.setattr('app.intent_discovery.local_lookup',lookup)
     monkeypatch.setattr('app.leisure.nearby_sports',lambda *args:[])
     diagnostics={}
     assert options(plan,0,[],discover=True,diagnostics=diagnostics)==[]
-    assert len(searches)==len(SPORTS)
-    assert all(c.origin.name=='종로구' and c.origin.lat==plan['places'][0]['lat'] for c in searches)
-    assert diagnostics=={'search_status':'complete','nearby_count':0,'rejected':{}}
+    assert len(searches)==len(LEISURE_SEARCHES)<=MAX_LEISURE_LOOKUPS
+    assert all(area.startswith('서울') for _,area in searches)
+    assert any(area=='서울 종로구' for _,area in searches)
+    assert diagnostics['search_status']=='complete' and diagnostics['lookups']==len(searches)
+    assert diagnostics['nearby_count']==0 and diagnostics['rejected']=={}
 
 
 def test_generic_sports_category_with_specific_business_name(monkeypatch):

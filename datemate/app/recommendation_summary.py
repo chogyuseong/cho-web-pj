@@ -9,13 +9,18 @@ TRANSPORT_NAMES={'walk':'도보','transit':'대중교통','car':'자동차','bic
 def travel_mode(plan):
     """이동 시간이 어떤 수단·근거로 계산됐는지. 구간 자료(status)를 그대로 따른다."""
     c=plan.get('conditions') or {};legs=plan.get('legs') or []
-    name=TRANSPORT_NAMES.get(c.get('transport'),'이동')
+    # 구간 수단은 leg.mode, 없으면(예전 코스) 코스 기본 수단. 섞이면 "도보·자동차"처럼 나온 순서대로 잇는다.
+    modes=[leg.get('mode') or c.get('transport') for leg in legs] or [c.get('transport')]
+    used=list(dict.fromkeys(modes))
+    name='·'.join(TRANSPORT_NAMES.get(m,'이동') for m in used)
+    counts=[dict(mode=m,name=TRANSPORT_NAMES.get(m,'이동'),legs=modes.count(m)) for m in used]
     statuses={leg.get('status') for leg in legs}
     if c.get('mode')=='demo':basis='가상 직선거리 추정'
     elif legs and statuses=={'api'}:basis='네이버 길찾기'
     elif 'api' in statuses:basis='일부 네이버 길찾기 · 일부 추정'
     else:basis='추정'
-    return dict(transport=c.get('transport'),name=name,basis=basis,label=f'{name} · {basis}')
+    count_label='·'.join(f"{row['name']} {row['legs']}구간" for row in counts) if len(used)>1 else name
+    return dict(transport=c.get('transport'),name=name,basis=basis,label=f'{name} · {basis}',mixed=len(used)>1,counts=counts,count_label=count_label)
 
 
 def festival_context(plan):

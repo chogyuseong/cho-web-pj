@@ -26,7 +26,7 @@ def app_link(a,b,mode):
 def leg(a,b,conditions,force_api=False):
     # Candidate combinations use cheap estimates; verify only the selected plans.
     if _candidate_search.get() and conditions.mode=='real' and not force_api:conditions=conditions.model_copy(update={'allow_estimates':True})
-    base=dict(origin=a['name'],destination=b['name'],link=app_link(a,b,conditions.transport),
+    base=dict(origin=a['name'],destination=b['name'],mode=conditions.transport,link=app_link(a,b,conditions.transport),
               status='unavailable',minutes=None,walking=None,distance_km=None,cost=None,source=None,
               toll=None,fuel=None,transfers=None,checked_at=None,path=[])
     if conditions.mode=='demo' or (conditions.allow_estimates and not force_api):
@@ -46,7 +46,7 @@ def leg(a,b,conditions,force_api=False):
     hit=store.cached(key)
     if hit:
         from .request_usage import cache_hit
-        cache_hit();return hit
+        cache_hit();return dict(hit,mode='car')
     from .collection import fetch_json
     try:
         data=fetch_json('https://maps.apigw.ntruss.com/map-direction/v1/driving',

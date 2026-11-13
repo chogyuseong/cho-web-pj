@@ -25,7 +25,8 @@ def generate(data: Conditions, owner: str):
     ):
         started = time.perf_counter()
         try:
-            data = normalize(data)
+            # 구간별 수단은 만든 코스를 바꿀 때만 생긴다. 새 추천은 기본 수단 하나로 찾는다.
+            data = normalize(data.model_copy(update={"leg_modes": []}))
             if data.planning_session_id:
                 from .planning_outcomes import session_for
 

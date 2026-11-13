@@ -58,7 +58,7 @@ function executionSummary(plan) {
   if (estimates.length) {
     const details = node('details', undefined, 'route-assumptions');
     details.append(node('summary', '이동시간에 여유를 두려면'));
-    for (const r of estimates) details.append(node('p', `${r.origin} → ${r.destination}: ${travelMode(plan).name} 기본 ${r.minutes}분(추정) / 여유 ${r.planning_minutes_range[1]}분`));
+    for (const r of estimates) details.append(node('p', `${r.origin} → ${r.destination}: ${TRANSPORT_NAMES[legMode(plan, r)] || '이동'} 기본 ${r.minutes}분(추정) / 여유 ${r.planning_minutes_range[1]}분`));
     details.append(node('p', estimates[0].planning_note, 'hint'));
     box.append(details);
   }

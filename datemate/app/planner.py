@@ -34,16 +34,34 @@ def candidates(c):
     rows.sort(key=lambda p:-place_score(p,c))
     return rows
 
-def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
+def route_leg(a,b,route_conditions,mode,verify_routes=False,route_fallback=False):
+    """한 구간의 이동. 예외 수단이 있을 때만 그 구간의 수단을 바꿔 계산한다.
+    실제 길찾기는 자동차 구간에만 부르고, route_fallback이면 조회 실패 구간을 추정으로 바꾼다."""
+    conditions=route_conditions if mode==route_conditions.transport else route_conditions.model_copy(update={'transport':mode})
+    forced=verify_routes and mode=='car'
+    route=leg(a,b,conditions,force_api=forced)
+    if route['minutes'] is None and forced and route_fallback:
+        failure=route['source']
+        route=leg(a,b,conditions.model_copy(update={'allow_estimates':True}))
+        route.update(route_fallback=True,source='자동차 길찾기 조회 실패로 추정한 시간이에요 · '+route['source'],fallback_reason=failure)
+    return route
+
+def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None):
     from .quality import same_place
+    def fail(reason,**info):
+        if failure is not None:failure.update(info,reason=reason)
+        return None,reason
     if any(same_place(a,b) for i,a in enumerate(selected) for b in selected[i+1:]):return None,'같은 장소 중복'
     if not partial and len(selected)!=c.count and not soft:return None,'방문 장소 수 불일치'
     route_conditions=c.model_copy(update={'allow_estimates':True}) if soft and c.mode=='real' else c
     now=minutes(c.start); end=minutes(c.end); legs=[]; timeline=[]; costs=[]; unknown=[]; walking=0
     previous=c.origin.model_dump()
+    # 구간별 수단 예외: (출발 id, 도착 id) → 수단. 없으면 모든 구간이 기본 수단(c.transport)이다.
+    overrides={(m.from_,m.to):m.mode for m in c.leg_modes}
+    previous_id='origin'
     for original in selected:
         p=dict(original)
-        if str(c.visit_date) in p.get('closed_dates',[]):return None,'방문일 휴무'
+        if str(c.visit_date) in p.get('closed_dates',[]):return fail('방문일 휴무',place=p['name'])
         if c.mode=='real' and (c.allow_estimates or soft):
             if p['hours'] is None:unknown.append(p['name']+' 영업시간');p['hours']=[0,1440]
             if p['closed_days'] is None:unknown.append(p['name']+' 휴무');p['closed_days']=[]
@@ -52,8 +70,9 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         # 운영정보가 없으면 확인된 일정으로 추천하지 않고 누락 사유를 반환한다.
         if p['hours'] is None or p['stay'] is None or p['closed_days'] is None:
             return None,'운영시간·휴무·체류 시간 확인 필요'
-        if c.visit_date.weekday() in p['closed_days']:return None,'방문일 휴무'
-        route=leg(previous,p,route_conditions,force_api=verify_routes)
+        if c.visit_date.weekday() in p['closed_days']:return fail('방문일 휴무',place=p['name'])
+        mode=overrides.get((previous_id,p['id']),c.transport)
+        route=route_leg(previous,p,route_conditions,mode,verify_routes,route_fallback)
         if route['minutes'] is None:return None,'실제 이동 시간 계산 불가 (경로 공급자 또는 키 필요)'
         if route['minutes']>c.max_leg and not soft:return None,'구간 이동 시간 초과'
         walking+=route['walking'] or 0
@@ -62,8 +81,8 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         now+=route['minutes']+c.transition_buffer_minutes; opening,closing=p['hours']; now=max(now,opening)
         for start,finish in p.get('breaks') or []:
             if now<finish and now+p['stay']>start:now=finish
-        if p['last_entry'] is not None and now>p['last_entry']:return None,'마지막 입장 시간 초과'
-        if now+p['stay']>closing:return None,'영업시간 밖 방문'
+        if p['last_entry'] is not None and now>p['last_entry']:return fail('마지막 입장 시간 초과',place=p['name'],limit=clock(p['last_entry']),arrival=clock(now))
+        if now+p['stay']>closing:return fail('영업시간 밖 방문',place=p['name'],limit=clock(closing),arrival=clock(now))
         timeline.append(dict(place_id=p['id'],arrival=clock(now),departure=clock(now+p['stay']),stay=p['stay']))
         now+=p['stay']; legs.append(route)
         quantity=c.people if p['price_unit']=='person' else 1
@@ -75,10 +94,12 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         if price_evidence.get('current'):costs[-1].update(source=price_evidence['source'],checked_at=price_evidence['checked_at'],source_kind=price_evidence.get('source_kind','official'))
         if p.get('menu_pricing'):costs[-1].update(p['menu_pricing'])
         if price is None:unknown.append(p['name']+' 가격')
-        if c.transport=='car':unknown.append(p['name']+' 주차비')
-        previous=p
+        # 주차비는 자동차로 도착한 장소에만 붙인다.
+        if route['mode']=='car':unknown.append(p['name']+' 주차비')
+        previous=p;previous_id=p['id']
     if not partial and c.return_home:
-        route=leg(previous,c.home.model_dump(),route_conditions,force_api=verify_routes)
+        mode=overrides.get((previous_id,'home'),c.transport)
+        route=route_leg(previous,c.home.model_dump(),route_conditions,mode,verify_routes,route_fallback)
         if route['minutes'] is None:return None,'귀가 경로 계산 불가'
         if route['minutes']>c.max_leg and not soft:return None,'귀가 구간 이동 시간 초과'
         if c.max_walk is not None and route['walking'] is None:return None,'귀가 도보 시간 확인 불가'
@@ -89,7 +110,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False):
         costs.append(dict(category='교통',name=r['origin']+' → '+r['destination'],unit=amount,quantity=1,formula='구간 총액 (인원 반영)',
             amount=amount,status='estimated' if amount is not None else 'unknown',source=r['source'],checked_at=r['checked_at']))
         if amount is None:unknown.append('교통 또는 대여 비용')
-        if c.transport=='car' and r['toll'] is None:unknown.append('통행료')
+        if r['mode']=='car' and r['toll'] is None:unknown.append('통행료')
     if now>end and not soft:return None,'전체 일정 시간 초과'
     if c.max_walk is not None and walking>c.max_walk and not soft:return None,'전체 도보 시간 초과'
     total=[sum(row['amount'][i] for row in costs if row['amount'] is not None) for i in (0,1)]

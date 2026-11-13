@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Annotated, Literal
-from pydantic import BaseModel, Field, StringConstraints, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator, field_validator
 from .taxonomy import DATE_CATEGORIES
 from .service_time import today
 from .regions import normalize_region, region_from_address
@@ -24,6 +24,17 @@ class FestivalAnchor(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
+
+TransportMode = Literal['walk', 'transit', 'car', 'bicycle']
+
+
+class LegMode(BaseModel):
+    """한 구간의 이동 수단 예외. 출발('origin' 또는 장소 id)과 도착(장소 id 또는 'home')으로 구간을 찾는다."""
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True, extra='forbid')
+    from_: PlaceId = Field(alias='from', min_length=1)
+    to: PlaceId = Field(min_length=1)
+    mode: TransportMode
+
 
 class Conditions(BaseModel):
     planning_session_id: str = Field(default='',pattern=r'^(?:[a-f0-9]{32})?$')
@@ -51,7 +62,9 @@ class Conditions(BaseModel):
     end: str = Field(default='19:00', pattern=r'^([01]\d|2[0-3]):[0-5]\d$')
     people: int = Field(default=2, ge=1, le=20)
     budget: int = Field(default=100000, ge=0, le=10000000)
-    transport: Literal['walk', 'transit', 'car', 'bicycle'] = 'walk'
+    transport: TransportMode = 'walk'
+    # 코스를 만든 뒤 구간마다 바꾼 수단. 새 추천에서는 항상 비운다(recommendation_service.generate).
+    leg_modes: list[LegMode] = Field(default_factory=list, max_length=6)
     count: int = Field(default=3, ge=2, le=5)
     themes: list[ThemeName] = Field(default_factory=list, max_length=7)
     date_category: Literal['', '계절별', '날씨별', '콘셉트별', '타입별'] = ''
@@ -96,6 +109,8 @@ class Conditions(BaseModel):
             raise ValueError('지원하지 않는 테마입니다.')
         if any(i < 0 or i >= self.count for i in self.locked) or len(set(self.locked.values())) != len(self.locked):
             raise ValueError('고정 장소의 순서나 중복을 확인하세요.')
+        if len({(m.from_, m.to) for m in self.leg_modes}) != len(self.leg_modes):
+            raise ValueError('같은 구간의 이동 수단이 두 번 들어 있어요.')
         return self
 
 class ReviewInput(BaseModel):

@@ -110,7 +110,10 @@ REQUEST_CHECKS={'cafe':['카페','디저트','베이커리'],'meal':['음식점'
     'book':['서점','도서관','북카페','책방'],'walk':['공원','정원','산책','숲'],
     'game':['방탈출','보드','오락','게임','만화'],'workshop':['공방','공예','체험'],
     'activity':['스포츠','레저','볼링','클라이밍'],'view':['전망','공원','관광'],'shopping':['쇼핑','소품','편집']}
-SPORT_KEYS={'climbing','bowling','table_tennis','badminton','skating','screen_golf'}
+from . import sports
+SPORT_KEYS=set(sports.KEYS)
+# 종목을 직접 요청했을 때 함께 인정하는 더 구체적인 종목('테니스' 요청에 실내 테니스장).
+RELATED_SPORTS={'tennis':{'indoor_tennis'},'surfing':{'indoor_surfing'},'ski':{'indoor_ski'},'futsal':set(),'boating':{'water_leisure','paddle'}}
 
 
 def place_area(c):
@@ -150,7 +153,7 @@ def discover_requested_places(c):
         keys=[k for k in keys if not store.cached(kind_key(k))]
         if not keys:return dict(status='recently_searched',resolved=0,query_area=area,coverage_supplement=True,searched_kinds=[],lookups=0,supply=supply)
         queries=[(key,term,full(area)) for key in keys for term in DEFAULT_SEARCHES[key]][:MAX_DEFAULT_LOOKUPS]
-    else:queries=[(key,term,full(area)) for key in keys[:4] for term in variations.get(key,[INTENTS[key][1][0]])]
+    else:queries=[(key,term,full(area)) for key in keys[:4] for term in (sports.BY_KEY[key].terms if key in SPORT_KEYS else variations.get(key,[INTENTS[key][1][0]]))]
     # 진단: 검색한 종류별로 받은 수와 버린 이유, 실제 분류별 채택 수(반경 안 / 출발지에서 닿는 곳).
     stats={k:Counter() for k in keys}
     adopted=Counter();reachable=Counter();reachable_ids={}
@@ -175,8 +178,11 @@ def discover_requested_places(c):
                 tag='meal' if meal else next((k for k,v in KIND_LABELS.items() if v==label),None)
             else:
                 label,meal,tag=INTENTS[key][0],key=='meal',key
-                named_sport=key in SPORT_KEYS and any(word in category for word in ('스포츠시설','체육시설','체육관','골프연습장')) and any(word in name for word in INTENTS[key][1])
-                if not any(word in category for word in REQUEST_CHECKS.get(key,INTENTS[key][1])) and not named_sport:st['unclassified']+=1;continue
+                if key in SPORT_KEYS:
+                    # 종목은 sports.classify 로 판별한다(업종의 종목 낱말, 또는 레저 업종 + 상호). 용품점·학원·협회 등은 뺀다.
+                    found=sports.classify(category,name)
+                    if not found or (found.key!=key and found.key not in RELATED_SPORTS.get(key,())):st['unclassified']+=1;continue
+                elif not any(word in category for word in REQUEST_CHECKS.get(key,INTENTS[key][1])):st['unclassified']+=1;continue
                 if key=='meal' and ('카페' in category or '디저트' in category):st['unclassified']+=1;continue
             try:
                 lon,lat=float(item['mapx']),float(item['mapy'])

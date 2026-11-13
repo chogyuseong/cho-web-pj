@@ -19,11 +19,18 @@ def save_change(plan, original, owner):
     from .recommendation_summary import enrich
     from .pricing import price_plans
     from .planner import evaluate
+    from .leg_modes import endpoints, uses_car
 
     updated = copy.deepcopy(plan)
     conditions = Conditions.model_validate(updated["conditions"])
     moved = [p["id"] for p in updated["places"]] != [p["id"] for p in original["places"]]
-    if moved and conditions.mode == "real" and conditions.transport == "car":
+    if moved and conditions.leg_modes:
+        # 장소를 바꿔 끊긴 구간의 수단 예외는 남기지 않는다(그 구간은 이미 기본 수단으로 계산됐다).
+        current = set(endpoints(updated))
+        kept = [m for m in conditions.leg_modes if (m.from_, m.to) in current]
+        conditions = conditions.model_copy(update={"leg_modes": kept})
+        updated["conditions"]["leg_modes"] = [m.model_dump() for m in kept]
+    if moved and conditions.mode == "real" and uses_car(conditions):
         checked, error = evaluate(
             updated["places"], conditions, soft=bool(updated.get("best_effort")), verify_routes=True
         )

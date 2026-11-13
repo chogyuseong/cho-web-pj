@@ -109,7 +109,9 @@ def test_travel_time_names_the_mode_everywhere(audit_page):
     generate(page)
     cells = page.locator('.option-comparison td:nth-child(3)').all_inner_texts()
     assert cells and all(text.startswith('도보 ') and '가상 직선거리 추정' in text for text in cells)
-    assert '총 이동 시간 (수단 · 근거)' in page.locator('.option-comparison th').all_inner_texts()
+    # 머리글은 좁은 화면에서 한 줄로 짧게, 뜻은 접근성 이름에 남긴다.
+    header = page.locator('.option-comparison th', has_text='이동 시간')
+    assert header.inner_text() == '이동 시간' and header.get_attribute('aria-label') == '총 이동 시간 (수단 · 근거)'
     assert '이동 시간 · 도보 · 가상 직선거리 추정' in page.locator('.plan-card.selected .stats').inner_text()
     lines = page.locator('#plan-detail .route-line').all_inner_texts()
     assert lines and all('· 도보 ' in line and '가상 추정' in line for line in lines)

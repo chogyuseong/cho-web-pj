@@ -9,7 +9,8 @@ function optionTabContent(p,i,active){
   if(p.option_purpose)label.append(node('span','· '+p.option_purpose,'option-purpose'));
   if(p.best_effort||p.search_adjustments)label.append(node('span','조건 넓힘','option-relaxed'));
   const route=node('strong',p.places.map(x=>x.name).join(' → '),'option-route');
-  const title=node('span',p.decision_summary?.title||courseTitle(p),'option-title');
+  // 3줄은 하루 구성만 보여 준다. 이동 시간은 4줄에 있으므로 서버 제목의 "도보 이동 약 8분 · " 같은 앞부분을 다시 쓰지 않는다.
+  const title=node('span',p.decision_summary?.activity_label||p.decision_summary?.title||courseTitle(p),'option-title');
   const mode=travelMode(p),basis=mode.basis==='네이버 길찾기'?'길찾기':mode.basis.startsWith('일부')?'일부 추정':'추정';
   const unknown=p.decision_summary?.unknown_prices??p.unknown?.length??0;
   const facts=node('span',undefined,'option-facts');
@@ -47,7 +48,7 @@ function renderResults(result={}){
     const card=node('article',undefined,'plan-card'+(selected?.id===p.id?' selected':''));
     const heading=node('div',undefined,'option-heading');
     card.dataset.option=String(i+1);
-    heading.append(node('div',`Option${i+1} / ${p.conditions.mode==='demo'?'가상 장소 데모':'실제 자료'}`,'number'),button('일정 살펴보기 ↗',()=>choose(p,true),'secondary inspect-plan'));
+    heading.append(node('div',`코스 ${i+1}`,'number'),button('일정 살펴보기 ↗',()=>choose(p,true),'secondary inspect-plan'));
     card.append(heading,node('h3',p.decision_summary?.title||courseTitle(p)));
     if(p.conditions.festival)card.append(node('p',`‘${p.conditions.festival.title}’ 축제 장소에서 출발하는 코스`,'festival-course-tag'));
     if(p.decision_summary){const summary=p.decision_summary;const fit=node('div',undefined,'fit-reasons');for(const reason of summary.fit_reasons||[summary.reason])fit.append(node('p',reason));card.append(fit);if(summary.unknown_prices||summary.assumed_prices)card.append(node('p',`가격 미확인 ${summary.unknown_prices}항목 · 계획용 가정 ${summary.assumed_prices}항목`,'hint'));}

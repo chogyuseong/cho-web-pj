@@ -1,3 +1,24 @@
+const LEISURE_SETTINGS = [
+  ['indoor', '실내 레저'],
+  ['outdoor', '실외 레저']
+];
+
+function leisureDistance(meters) {
+  return meters >= 1000 ? (Math.round(meters / 100) / 10) + 'km' : meters + 'm';
+}
+
+function leisureSport(row) {
+  return row.sport || {
+    label: row.place.category || '레저',
+    setting: 'indoor',
+    varies: false
+  };
+}
+
+function leisureSportText(sport) {
+  return sport.label + ' · ' + (sport.setting === 'outdoor' ? '실외' : '실내') + (sport.varies ? ' (시설에 따라 다름)' : '');
+}
+
 function leisureSuggestionPanel(plan, index) {
   const panel = node('details', undefined, 'leisure-results');
   panel.append(node('summary', `${index+1}. ${plan.places[index].name} 주변 레저`));
@@ -9,9 +30,73 @@ function leisureSuggestionPanel(plan, index) {
   panel.append(content);
   let loaded = false,
     selecting = false;
+
+  function leisureCard(row) {
+    const place = row.place,
+      sport = leisureSport(row),
+      card = node('article', undefined, 'leisure-result-card');
+    card.dataset.sport = sport.label;
+    card.append(node('strong', place.name), node('p', leisureSportText(sport), 'leisure-sport-tag'), node('p', `${place.description||place.category} · 현재 장소에서 직선 ${leisureDistance(row.distance_m)}`, 'hint'), node('p', `교체 시 전체 소요 시간 ${row.delta.minutes>=0?'+':''}${row.delta.minutes}분 · 비용 변화 ${range(row.delta.cost)}`, 'hint'));
+    const actions = node('div', undefined, 'actions');
+    const select = button('이 레저로 교체', async () => {
+      if (selected?.id !== plan.id) {
+        toast('선택한 코스가 바뀌었어요. 현재 코스에서 다시 골라주세요.');
+        return;
+      }
+      if (selecting) return;
+      selecting = true;
+      const controls = [...content.querySelectorAll('button')];
+      controls.forEach(b => b.disabled = true);
+      try {
+        const updated = await api('/plans/' + plan.id + '/leisure-select', {
+          index,
+          locked: [...locks],
+          replacement_id: place.id
+        });
+        if (commitPlanChange(plan.id, updated)) toast('선택한 레저로 교체하고 시간·비용·지도를 다시 계산했어요.');
+      } catch (error) {
+        toast(error.message);
+      } finally {
+        selecting = false;
+        controls.forEach(b => b.disabled = false);
+      }
+    }, 'primary');
+    select.disabled = plan.can_edit === false || locks.has(index);
+    actions.append(select, placeMapLink('지도에서 확인 ↗', place));
+    card.append(leisurePhotoPanel(place, plan.conditions.mode), actions);
+    return card;
+  }
+
+  function leisureFilter(options, sections) {
+    const labels = [...new Set(options.map(row => leisureSport(row).label))];
+    const group = node('div', undefined, 'leisure-filter');
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', '종목으로 후보 좁히기');
+    const chips = [];
+
+    function apply(label) {
+      chips.forEach(chip => chip.setAttribute('aria-pressed', String(chip.dataset.sport === label)));
+      for (const section of sections) {
+        const cards = [...section.querySelectorAll('.leisure-result-card')];
+        cards.forEach(card => card.hidden = label !== '' && card.dataset.sport !== label);
+        const empty = section.querySelector('.leisure-filter-empty');
+        if (empty) empty.hidden = !cards.length || cards.some(card => !card.hidden);
+      }
+    }
+    for (const label of ['', ...labels]) {
+      const count = label ? options.filter(row => leisureSport(row).label === label).length : options.length;
+      const chip = button(`${label||'전체'} ${count}`, () => apply(label), 'secondary');
+      chip.dataset.sport = label;
+      chip.setAttribute('aria-pressed', String(label === ''));
+      chips.push(chip);
+      group.append(chip);
+    }
+    return group;
+  }
+
   async function load() {
     if (panel.getAttribute('aria-busy') === 'true') return;
-    content.replaceChildren(node('p', '코스 주변의 클라이밍·볼링 등 스포츠 장소를 찾고 있어요…', 'hint'));
+    content.replaceChildren(node('p', '코스 주변의 실내·실외 레저 장소를 찾고 있어요…', 'hint'));
     panel.setAttribute('aria-busy', 'true');
     try {
       const data = await api('/plans/' + plan.id + '/leisure-options', {
@@ -20,42 +105,31 @@ function leisureSuggestionPanel(plan, index) {
       });
       if (!panel.isConnected || selected?.id !== plan.id) return;
       content.replaceChildren(node('p', data.message, 'hint'));
-      for (const row of data.options) {
-        const place = row.place,
-          card = node('article', undefined, 'leisure-result-card');
-        card.append(node('strong', place.name), node('p', `${place.description||place.category} · 현재 장소에서 직선 ${row.distance_m}m`, 'hint'), node('p', `교체 시 전체 소요 시간 ${row.delta.minutes>=0?'+':''}${row.delta.minutes}분 · 비용 변화 ${range(row.delta.cost)}`, 'hint'));
-        const actions = node('div', undefined, 'actions');
-        const select = button('이 레저로 교체', async () => {
-          if (selected?.id !== plan.id) {
-            toast('선택한 코스가 바뀌었어요. 현재 코스에서 다시 골라주세요.');
-            return;
-          }
-          if (selecting) return;
-          selecting = true;
-          const controls = [...content.querySelectorAll('button')];
-          controls.forEach(b => b.disabled = true);
-          try {
-            const updated = await api('/plans/' + plan.id + '/leisure-select', {
-              index,
-              locked: [...locks],
-              replacement_id: place.id
-            });
-            if (commitPlanChange(plan.id, updated)) toast('선택한 레저로 교체하고 시간·비용·지도를 다시 계산했어요.');
-          } catch (error) {
-            toast(error.message);
-          } finally {
-            selecting = false;
-            controls.forEach(b => b.disabled = false);
-          }
-        }, 'primary');
-        select.disabled = plan.can_edit === false || locks.has(index);
-        actions.append(select, placeMapLink('지도에서 확인 ↗', place));
-        card.append(leisurePhotoPanel(place, plan.conditions.mode), actions);
-        content.append(card);
-      }
+      const sections = LEISURE_SETTINGS.map(([setting, title]) => {
+        const rows = data.options.filter(row => leisureSport(row).setting === setting),
+          section = node('section', undefined, 'leisure-setting');
+        section.dataset.setting = setting;
+        section.setAttribute('aria-label', title);
+        section.append(node('h4', `${title} ${rows.length}곳`));
+        if (setting === 'outdoor') section.append(node('p', '날씨와 계절에 따라 운영이 달라요. 방문 전 확인해 주세요.', 'hint leisure-outdoor-note'));
+        if (!rows.length) section.append(node('p', '주변에서 찾지 못했어요.', 'hint'));
+        else {
+          const empty = node('p', '선택한 종목은 이 구분에 없어요.', 'hint leisure-filter-empty');
+          empty.hidden = true;
+          section.append(empty, ...rows.map(leisureCard));
+        }
+        const rejected = (data.diagnostics?.rejected_by_setting || {})[setting];
+        if (rejected?.count) {
+          const reasons = Object.entries(rejected.reasons || {}).map(([reason, count]) => `${reason} ${count}곳`).join(' · ');
+          section.append(node('p', `${title} ${rejected.count}곳은 현재 일정 조건 때문에 제외했어요${reasons?' ('+reasons+')':''}. 이동 시간이나 예산을 늘리면 더 볼 수 있어요.`, 'hint leisure-rejected'));
+        }
+        return section;
+      });
+      if (new Set(data.options.map(row => leisureSport(row).label)).size > 1) content.append(leisureFilter(data.options, sections));
+      content.append(...sections);
       if (!data.options.length) {
         const diagnostics = data.diagnostics || {};
-        const message = diagnostics.search_status === 'permission_required' ? '네이버 지역 검색 권한을 확인하지 못했어요. API 사용 설정을 확인해 주세요.' : diagnostics.search_status === 'unavailable' ? '실제 지역 검색을 사용할 수 없어요. 네이버 검색 키와 연결 상태를 확인해 주세요.' : diagnostics.nearby_count ? '주변 스포츠 장소는 찾았지만 시간·예산·필수 조건 때문에 현재 일정에 넣을 수 없어요.' : '반경 1.5km에서 현재 일정에 넣을 수 있는 스포츠 후보를 찾지 못했어요. 다른 코스 위치에서도 확인해 보세요.';
+        const message = diagnostics.search_status === 'permission_required' ? '네이버 지역 검색 권한을 확인하지 못했어요. API 사용 설정을 확인해 주세요.' : diagnostics.search_status === 'unavailable' ? '실제 지역 검색을 사용할 수 없어요. 네이버 검색 키와 연결 상태를 확인해 주세요.' : diagnostics.nearby_count ? '주변 레저 장소는 찾았지만 시간·예산·필수 조건 때문에 현재 일정에 넣을 수 없어요.' : '현재 일정에 넣을 수 있는 레저 후보를 찾지 못했어요. 다른 코스 위치에서도 확인해 보세요.';
         content.append(node('p', message, 'hint'));
         for (const reason of Object.keys(diagnostics.rejected || {})) content.append(node('p', '제외 사유: ' + reason, 'hint'));
       }

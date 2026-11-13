@@ -52,10 +52,29 @@ function renderPlanMapCard(){
     },selected.id===plan.id?'primary':'secondary');
     tab.dataset.mapOption=String(index+1);tab.setAttribute('aria-pressed',String(selected.id===plan.id));tabs.append(tab);
   });
-  card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
+  card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),mapLegend(selected),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
   const places=node('div',undefined,'map-place-list');
   selected.places.forEach((place,index)=>places.append(placeMapLink((index+1)+'. '+place.name,place)));
   card.append(places);(mobile?slot:rail).append(card);planMapCard=card;
+}
+
+/* 구간 선 모양은 구간 수단(leg.mode)을 따른다. 자동차이면서 실제 길찾기 경로가 있으면 도로 실선,
+   도보는 짧은 점선, 대중교통·자전거(그리고 길찾기를 하지 않은 자동차)는 긴 점선. 점선은 직선 연결이다. */
+function legLineStyle(plan,leg){
+  const mode=legMode(plan,leg);
+  if(plan.conditions.mode==='real'&&mode==='car'&&leg?.status==='api'&&leg.path?.length>1)return 'road';
+  return mode==='walk'?'short':'long';
+}
+const LINE_DASH={leaflet:{short:'4 6',long:'14 8'},svg:{short:'4 6',long:'14 8'},naver:{road:'solid',short:'shortdash',long:'longdash'}};
+function mapLegend(plan){
+  const styles=new Map();
+  for(const leg of plan.legs||[]){const style=legLineStyle(plan,leg);if(!styles.has(style))styles.set(style,new Set());styles.get(style).add(TRANSPORT_NAMES[legMode(plan,leg)]||'이동');}
+  const parts=[];
+  if(styles.has('road'))parts.push('실선은 자동차 실제 도로 경로');
+  if(styles.has('short'))parts.push('짧은 점선은 '+[...styles.get('short')].join('·'));
+  if(styles.has('long'))parts.push('긴 점선은 '+[...styles.get('long')].join('·'));
+  const dashed=styles.has('short')||styles.has('long');
+  return node('p','선 모양: '+parts.join(' · ')+(dashed?'. 점선은 직선 연결이며 실제 경로가 아니에요.':'.'),'hint map-legend');
 }
 
 /* 방문일 축제는 코스 지점과 구분되는 표시로 겹쳐 보여준다. 좌표가 있는 축제만, 코스에는 넣지 않는다. */
@@ -111,12 +130,12 @@ function drawPlanMap(plan){
       });
       let actual=0;
       for(let i=0;i<points.length-1;i++){
-        const leg=plan.legs[i];
-        const isRoad=plan.conditions.mode==='real'&&plan.conditions.transport==='car'&&leg?.status==='api'&&leg.path?.length>1;
+        const leg=plan.legs[i],style=legLineStyle(plan,leg);
+        const isRoad=style==='road';
         const path=isRoad?leg.path.map(([lon,lat])=>new naver.maps.LatLng(lat,lon)):[coord(points[i]),coord(points[i+1])];
         if(isRoad){actual++;path.forEach(p=>bounds.extend(p));}
         new naver.maps.Polyline({map,path,strokeColor:isRoad?'#294d3d':'#a16b45',strokeWeight:isRoad?5:3,
-          strokeOpacity:.9,strokeStyle:isRoad?'solid':'shortdash'});
+          strokeOpacity:.9,strokeStyle:LINE_DASH.naver[style]});
       }
       map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
       wrap.updateFestivals=()=>{
@@ -199,7 +218,8 @@ function drawPlanMap(plan){
           const title=node('span',(i===0?'출발':i>plan.places.length?'귀가':String(i))+' · '+point.name);
           L.circleMarker([point.lat,point.lon],{radius:9,color:i===0?'#c65b32':'#294d3d',fillOpacity:.85}).addTo(map).bindTooltip(title,{permanent:true,direction:'top'});
         });
-        L.polyline(coordinates,{color:'#a16b45',weight:3,dashArray:'6 8'}).addTo(map);
+        // 구간마다 수단에 맞는 점선으로 잇는다(공개 지도에는 실제 도로 경로를 그리지 않는다).
+        for(let i=0;i<coordinates.length-1;i++){const style=legLineStyle(plan,plan.legs[i]);L.polyline([coordinates[i],coordinates[i+1]],{color:'#a16b45',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style}).addTo(map);}
         wrap.updateFestivals=()=>{
           if(disposed||!mapCanvas.isConnected)return;
           clearFestivals();const items=festivalMapItems();

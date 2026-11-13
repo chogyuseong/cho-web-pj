@@ -15,6 +15,7 @@ Base URL: `http://127.0.0.1:8000/api`. JSON. 정확한 검증 스키마는 `/ope
 | GET /plans/{id} | 없음 | 저장된 일정; UUID 링크 공유용 |
 | POST /plans/{id}/alternatives | index, locked | 전체 재검증된 대안 최대8 |
 | POST /plans/{id}/replace | index, locked, replacement_id | 새 일정 ID, parent, aggregate_key, delta |
+| POST /plans/{id}/transport | default(walk/transit/car/bicycle) 또는 legs([{index 0~5, mode}] 최대 6) | 새 일정(parent·delta·change_reason) + transport_change(바뀐 구간, 장소별 도착 전후, 종료 전후, 안내·경고). 영업·휴무·마지막 입장 위반 또는 필수 조건 위반은 409, 실제 장소 자동차 구간 재요청 5초 안 429 |
 | POST /plans/{id}/undo | 빈 JSON | parent 일정. 원본 기록은 삭제하지 않음 |
 | GET /plans/{id}/reviews | 없음 | count, average 또는 null, rows, 식별/확인 제한 안내 |
 | PUT /plans/{id}/review | rating, body, nickname, visited | 세션당 한 건 갱신 후 전체 집계 |

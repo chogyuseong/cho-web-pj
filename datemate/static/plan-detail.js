@@ -16,17 +16,18 @@ function renderDetail() {
   if (p.conditions.mode === 'real' && p.conditions.allow_estimates) box.append(estimatedPlanNotice());
   if (p.parent && p.can_edit !== false) {
     const undo = node('div', undefined, 'actions undo-actions');
-    undo.append(button('교체 되돌리기', async () => {
+    undo.append(button(p.transport_change ? '수단 변경 되돌리기' : '교체 되돌리기', async () => {
       const restored = await api('/plans/' + p.id + '/undo', {});
       if (commitPlanChange(p.id, restored)) restoreUndoLocks(p, restored);
     }));
     box.append(undo);
   }
+  box.append(transportOverview(p));
   const links = node('div', undefined, 'map-link-list');
   p.places.forEach((place, i) => links.append(placeMapLink(`${i+1}. 네이버에서 찾기`, place)));
   box.append(links);
   p.places.forEach((place, i) => {
-    box.append(node('div', `${p.legs[i].origin} → ${place.name} · ${legModeLabel(p, p.legs[i])} / ${p.legs[i].source}`, 'route-line'));
+    box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
     const stop = node('article', undefined, 'stop');
     const stamp = node('div', undefined, 'timeline-stamp');
     stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'));
@@ -48,9 +49,9 @@ function renderDetail() {
     stop.append(body);
     box.append(stop, mealSuggestionPanel(p, i));
   });
-  if (p.conditions.return_home) {
+  if (p.conditions.return_home && p.legs.length > p.places.length) {
     const r = p.legs.at(-1);
-    box.append(node('p', `귀가: ${r.origin} → ${r.destination} · ${legModeLabel(p, r)}`, 'hint'));
+    box.append(routeLine(p, p.legs.length - 1, `귀가: ${r.origin} → ${r.destination}`));
   }
   // 확인: 네 가지 확인, 비용표(접힘), 합계와 미확인 비용 경고(접힘 밖)
   box.append(executionSummary(p), node('h3', '비용은 투명하게'));

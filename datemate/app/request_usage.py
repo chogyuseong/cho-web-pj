@@ -94,9 +94,12 @@ def cache_hit():
 
 
 @contextmanager
-def measure():
+def measure(limit=None):
+    """limit: 이 작업만의 더 작은 외부 호출 상한(예: 이동 수단 변경의 자동차 구간 수)."""
     usage = Usage(
         max(1, min(500, int(os.getenv("DATEMATE_EXTERNAL_CALLS_PER_RECOMMENDATION", "60"))))
+        if limit is None
+        else max(1, min(500, int(limit)))
     )
     token = _current.set(usage)
     try:

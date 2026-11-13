@@ -136,6 +136,8 @@ def _run(key, data, owner):
 @router.post("/api/plan-jobs", status_code=202)
 def start(data: Conditions, request: Request):
     owner = request.state.owner
+    # 구간별 수단 예외는 만든 코스를 바꿀 때(/api/plans/{id}/transport)만 받는다.
+    data = data.model_copy(update={"leg_modes": []})
     fingerprint = hashlib.sha256(
         json.dumps(data.model_dump(mode="json"), sort_keys=True).encode()
     ).hexdigest()

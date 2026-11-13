@@ -5,6 +5,7 @@ import time
 import uuid
 from . import store
 from .models import Conditions
+from .leg_modes import uses_car
 from .preferences import hard_blocks,operating_source_current,selection_notes
 
 def event(owner,plan_id,kind,payload):
@@ -27,7 +28,7 @@ def verification_summary(plan):
 def make_draft(plan,original,owner,kind,summary):
     if original.get('recommendation_group_id'):plan['recommendation_group_id']=original['recommendation_group_id']
     c=Conditions.model_validate(plan['conditions'])
-    if c.mode=='real' and c.transport=='car' and not all(r['status']=='api' for r in plan['legs']):
+    if c.mode=='real' and uses_car(c) and not all(r['status']=='api' for r in plan['legs'] if r.get('mode',c.transport)=='car'):
         from .planner import evaluate
         from .pricing import price_plans
         recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True)
@@ -118,9 +119,9 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     chosen.insert(target,food)
     mapping={i+(i>=target):pid for i,pid in mapping.items()}
     c=c.model_copy(update={'count':len(chosen),'locked':mapping,'include_meal':True})
-    plan,error=evaluate(chosen,c,soft=True,verify_routes=c.mode=='real' and c.transport=='car')
+    plan,error=evaluate(chosen,c,soft=True,verify_routes=c.mode=='real' and uses_car(c))
     route_note=None
-    if error and c.mode=='real' and c.transport=='car' and c.allow_estimates:
+    if error and c.mode=='real' and uses_car(c) and c.allow_estimates:
         plan,error=evaluate(chosen,c,soft=True);route_note='자동차 경로 조회 실패로 추정 동선을 유지했어요.'
     if error:raise ValueError(error)
     if selected_menu:
@@ -131,7 +132,7 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     plan['undo_locks']=undo_locks
     if any(d['state']=='unmet' for d in plan['deviations']):plan.update(best_effort=True,status='조건 차이가 있는 변경안')
     if route_note:plan['route_verification']=route_note
-    elif c.mode=='real' and c.transport=='car':plan['route_verification']='네이버 자동차 길찾기 재조회 반영'
+    elif c.mode=='real' and uses_car(c):plan['route_verification']='네이버 자동차 길찾기 재조회 반영'
     action='교체' if replace_index is not None else '추가'
     summary=f"{food['name']} {action} · 방문 {len(original['places'])}→{len(chosen)}곳 · 식사 {food['stay']}분 및 비용·이동 재계산"
     return make_draft(plan,original,owner,'meal',summary)

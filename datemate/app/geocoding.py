@@ -50,3 +50,36 @@ def search_address(query):
         return dict(status='ok',results=results,provider='NAVER Maps',message='' if results else '주소를 찾지 못했습니다. 시·군·구와 도로명 또는 지번을 함께 입력하거나 지도에서 선택해 주세요.')
     except (httpx.HTTPError,ValueError,KeyError,TypeError):
         return dict(status='unavailable',results=[],message='주소 검색에 연결하지 못했습니다. 잠시 후 다시 시도하거나 지도에서 위치를 선택해 주세요.')
+
+
+def search_places(query):
+    """역·가게·명소 이름을 네이버 지역 검색으로 찾는다. 검색 키가 없거나 실패하면 빈 목록.
+
+    name 은 주소(도로명 우선)로 두어 주소 결과와 같은 방식으로 시·도를 판정하고 출발지 이름을 만든다.
+    장소 이름은 place_name 에 따로 싣는다(화면은 텍스트로만 넣는다)."""
+    from .explore import local_coordinates,lookup
+    from .image_search import plain,search_enabled
+    if not search_enabled():return []
+    # explore 와 같은 조회 함수: 같은 검색어는 1시간 캐시(키는 검색어 해시), 실패는 빈 목록.
+    with httpx.Client(timeout=8) as client:
+        _,items,_=lookup(client,query)
+    results=[]
+    for item in items:
+        if not isinstance(item,dict):continue
+        # plain 은 태그 자리를 공백으로 바꾸므로('<b>강남역</b> 2호선' → '강남역  2호선') 공백을 한 칸으로 줄인다.
+        title,road,jibun=(' '.join(plain(item.get(k) or '').split()) for k in ('title','roadAddress','address'))
+        point=local_coordinates(item)
+        if not title or not point:continue
+        try:point=Point(name=(road or jibun or title)[:200],lat=point[0],lon=point[1])
+        except ValueError:continue
+        results.append(dict(**point.model_dump(),road_address=road or None,jibun_address=jibun or None,
+                            place_name=title,category=plain(item.get('category',''))))
+    return results
+
+
+def with_place_fallback(query,found):
+    """주소 검색 결과(found)가 비었을 때만 장소 이름(지역 검색)으로 한 번 더 찾는다. 장소도 없으면 found 그대로."""
+    if found.get('results'):return found
+    places=search_places(query)
+    if not places:return found
+    return dict(status='ok',results=places,provider='NAVER 지역 검색',message='')

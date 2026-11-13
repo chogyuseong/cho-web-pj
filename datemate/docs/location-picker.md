@@ -6,6 +6,8 @@
 
 API: `POST /api/locations/search`, `{ "query": "서울 중구 세종대로 110" }`. 길이 2~200, 빈 공백 거부, 세션당 1초 요청 간격. 반환 `{status, message, results}`. 결과는 name, lat, lon, road_address, jibun_address. 키 누락/외부 실패/빈 결과를 각각 안내하고 임의 좌표를 만들지 않는다. 서버 키는 브라우저로 보내지 않음. 검색 주소는 로그/영구 캐시에 저장하지 않는다.
 
+2026-11-13 추가: 주소 검색 결과가 비었을 때만 네이버 지역 검색(app/explore.py lookup)으로 역·가게·명소 이름을 한 번 더 찾는다(app/geocoding.py search_places·with_place_fallback). 네이버 검색 키가 없거나 실패하면 주소 검색의 안내를 그대로 돌려준다. 장소 결과의 name 은 주소(도로명 우선)이고 장소 이름은 place_name, 업종은 category 에 싣는다(<b> 등은 제거). 지역 검색 결과는 explore 와 같은 방식으로 검색어 해시를 키로 1시간 캐시된다.
+
 지도: 네이버 JS 키 설정 시 우선 사용. 없거나 로더 실패면 Leaflet 1.9.4 + OSM 공개 타일. Leaflet JS/CSS/LICENSE를 `static/vendor/leaflet`에 저장. 클릭·터치 및 키보드 이동 후 지도 중심 선택, 선택 마커, 명시적 확정, 취소 지원. 실제 모드 전환 시 데모 좌표 해제. 검색 결과는 textContent로 렌더링.
 
 검증: 전체 단위/API **20개 통과**, 기존 브라우저 흐름 **6개 통과**, 신규 위치 선택 흐름 **6개 통과** (`location-tests.json`). 실제 OSM 타일 로드·출발지 클릭·귀가지 선택·모바일 넘침 없음 확인. 네이버 주소 검색은 키가 없으므로 응답 형식·주소 우선순위·좌표 매핑·외부 실패를 모의 검증했으며 실호출 성공을 주장하지 않는다.

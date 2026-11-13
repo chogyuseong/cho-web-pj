@@ -82,8 +82,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     results.forEach((point,i)=>{
       const known=Boolean(regionOf(point)),item=node('li',undefined,'origin-search-option');
       item.id='origin-search-option-'+i;item.setAttribute('role','option');item.setAttribute('aria-selected','false');
-      item.append(node('strong',point.road_address||point.name));
-      if(point.jibun_address&&point.jibun_address!==point.road_address)item.append(node('span','지번: '+point.jibun_address,'hint'));
+      // 역·가게·명소 이름으로 찾은 결과(place_name)는 이름과 주소를 함께 보인다. 모두 텍스트로만 넣는다.
+      if(point.place_name){
+        item.append(node('strong',point.place_name),node('span',point.road_address||point.jibun_address||'주소 정보 없음','hint origin-search-address'));
+      }else{
+        item.append(node('strong',point.road_address||point.name));
+        if(point.jibun_address&&point.jibun_address!==point.road_address)item.append(node('span','지번: '+point.jibun_address,'hint'));
+      }
       if(!known){item.setAttribute('aria-disabled','true');item.append(node('span','시·도를 알 수 없어 고를 수 없어요','hint origin-search-unknown'));}
       item.addEventListener('click',()=>chooseResult(i));
       resultList.append(item);
@@ -108,7 +113,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!area){setActive(index);searchStatus.textContent='이 결과는 시·도를 알 수 없어 고를 수 없어요. 다른 결과를 고르거나 시·도 이름을 붙여 다시 검색해 주세요.';return;}
     applyArea(area,{name:originNameOf(point,area),lat:point.lat,lon:point.lon});
     appliedOrigin=locationState.origin;closeResults();searchStatus.textContent='';closeLocationChoice();
-    areaStatus.textContent=originInput.value+'을(를) 데이트할 지역으로 골랐어요.';
+    areaStatus.textContent=(point.place_name?point.place_name+'('+originInput.value+')':originInput.value)+'을(를) 데이트할 지역으로 골랐어요.';
     refresh();
   }
   originInput.addEventListener('keydown',event=>{

@@ -67,18 +67,24 @@ def classify(category):
     found=classify_local(category)
     return found[0] if found else None
 
+def local_coordinates(item):
+    """지역 검색 결과의 mapx·mapy(경위도 × 10^7)를 (lat, lon)으로. 국내 좌표가 아니면 None."""
+    try:
+        lon,lat=float(item['mapx']),float(item['mapy'])
+        if abs(lon)>180:lon/=10000000
+        if abs(lat)>90:lat/=10000000
+        return (lat,lon) if korean_coordinates(lat,lon) else None
+    except (KeyError,ValueError,TypeError):return None
+
 def venue(item,query,rank,region='서울'):
     if not isinstance(item,dict):return None
     name=plain(item.get('title',''));address=plain(item.get('roadAddress') or item.get('address') or '')
     category=plain(item.get('category',''));found=classify_local(category,name)
     if not name or region_from_address(address)!=region or not found:return None
     kind,meal=found
-    try:
-        lon,lat=float(item['mapx']),float(item['mapy'])
-        if abs(lon)>180:lon/=10000000
-        if abs(lat)>90:lat/=10000000
-        if not korean_coordinates(lat,lon):return None
-    except (KeyError,ValueError,TypeError):return None
+    point=local_coordinates(item)
+    if not point:return None
+    lat,lon=point
     pid='discovered:'+hashlib.sha256((name+address).encode()).hexdigest()[:20]
     return dict(id=pid,name=name,address=address,lat=lat,lon=lon,region=region,demo=False,category=kind,themes=[kind],tags=[category],
         meal=meal,

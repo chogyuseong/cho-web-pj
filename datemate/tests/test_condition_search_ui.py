@@ -138,6 +138,44 @@ def test_search_messages_escape_and_other_sources_keep_field_in_sync(server):
         page.wait_for_function('form.elements.origin_name.value==="부산 해운대구 · 점검 축제 행사장 주변"')
 
 
+SEONGSIMDANG = {'name': '대전광역시 중구 대종로480번길 15', 'road_address': '대전광역시 중구 대종로480번길 15',
+                'jibun_address': '대전광역시 중구 은행동 145', 'lat': 36.3276, 'lon': 127.4273,
+                'place_name': '성심당 <b>본점</b>', 'category': '음식점>베이커리'}
+PLACE_NOWHERE = {'name': '어딘가 가게', 'road_address': None, 'jibun_address': None, 'lat': 36.3, 'lon': 127.4,
+                 'place_name': '어딘가 가게', 'category': '음식점'}
+
+
+def test_place_name_results_show_name_and_address(server):
+    with opened(server) as (page, errors):
+        bodies = intercept_jobs(page)
+        search_reply(page, {'status': 'ok', 'results': [SEONGSIMDANG, PLACE_NOWHERE], 'message': '', 'provider': 'NAVER 지역 검색'})
+        field = origin(page)
+        field.fill('대전 성심당')
+        field.press('Enter')
+        listbox = page.get_by_role('listbox', name='지역 검색 결과')
+        listbox.wait_for()
+        options = listbox.get_by_role('option')
+        assert options.count() == 2
+        first = options.nth(0)
+        # 이름과 주소를 함께 보이고, 이름은 HTML 이 아니라 글자로 넣는다.
+        assert first.locator('strong').inner_text() == '성심당 <b>본점</b>' and first.locator('b').count() == 0
+        assert SEONGSIMDANG['road_address'] in first.inner_text()
+        assert first.get_attribute('aria-disabled') is None
+        # 주소가 없어 시·도를 알 수 없는 장소는 고를 수 없다.
+        assert options.nth(1).get_attribute('aria-disabled') == 'true'
+        assert '시·도를 알 수 없어' in options.nth(1).inner_text()
+        first.click()
+        page.wait_for_function('!!locationState.origin')
+        assert field.input_value() == SEONGSIMDANG['road_address']
+        assert page.locator('[name=region]').input_value() == '대전'
+        assert page.evaluate('locationState.origin') == {'name': SEONGSIMDANG['road_address'], 'lat': SEONGSIMDANG['lat'], 'lon': SEONGSIMDANG['lon']}
+        assert '성심당 <b>본점</b>(' in page.locator('.area-status').inner_text()
+        page.locator('#submit-plan').click()
+        body = wait_job(page, bodies, 1)
+        assert Conditions.model_validate(body).region == '대전'
+        assert no_overflow(page)
+
+
 def test_date_chip_pressed_immediately_even_when_same_day_as_tomorrow(server):
     # 2026-11-13 은 금요일: ‘내일’과 ‘이번 토요일’이 같은 날이다.
     with opened(server) as (page, errors):

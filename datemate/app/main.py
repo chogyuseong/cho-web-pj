@@ -24,7 +24,7 @@ from .models import Conditions, ReviewInput, ChatInput, THEMES, TransportMode
 from .planner import replacements
 from .indexing import collections, embedding_mode, search_places
 from .rag import ask
-from .geocoding import search_address
+from .geocoding import search_address, with_place_fallback
 from .taxonomy import DATE_CATEGORIES
 from .media import media_info
 from .blog_search import place_blogs
@@ -387,7 +387,9 @@ def location_search(data: AddressInput, request: Request):
         "geocode", "DATEMATE_IP_GEOCODE_PER_MINUTE", 20, "주소 검색은 잠시 후 다시 시도하세요."
     )
     store.cache(key, True, 1)
-    return search_address(data.query.strip())
+    query = data.query.strip()
+    # 주소 검색에 결과가 없을 때만 역·가게·명소 이름으로 한 번 더 찾는다(외부 호출 최대 2건).
+    return with_place_fallback(query, search_address(query))
 
 
 class CoordinateInput(BaseModel):

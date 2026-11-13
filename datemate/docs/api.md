@@ -5,7 +5,7 @@ Base URL: `http://127.0.0.1:8000/api`. JSON. 정확한 검증 스키마는 `/ope
 | 메서드 / 경로 | 입력 | 응답 |
 |---|---|---|
 | GET /status | 없음 | 지역, 모드별 항목/색인/청크 수, 키 설정 여부, 임베딩 모드 |
-| POST /locations/search | query (2~200자 주소) | status, results (도로명·지번·좌표), message. 네이버 키 필요 |
+| POST /locations/search | query (2~200자 주소·역·가게·명소 이름) | status, results (도로명·지번·좌표), message, provider. 네이버 Maps 키 필요. 주소 결과가 없고 네이버 검색 키가 있으면 지역 검색으로 한 번 더 찾아 결과에 place_name·category 를 싣는다 |
 | GET /places | mode=demo/real, q=검색어 | places 배열, 검색 방식 |
 | GET /places/{id} | mode | 장소 상세, 없는 정보 null |
 | GET /places/{id}/media | mode=real/demo | 검수 사진·저작자·라이선스 및 공개 대표 이미지 조회용 QID. 가상 장소 사진 제외 |

@@ -16,6 +16,7 @@ from contextvars import ContextVar, copy_context
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from fastapi import APIRouter, Request, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from .models import Conditions
 
 router = APIRouter()
@@ -216,7 +217,35 @@ def start(data: Conditions, request: Request):
     return {"id": key}
 
 
+# 긴 폴링: 화면이 마지막으로 본 단계를 보내면, 이 인스턴스에서 도는 작업의 단계·상태가 바뀔 때까지 최대 이만큼 기다렸다 답한다.
+# 기다리는 동안 DB를 읽지 않고 스레드도 잡지 않는다(메모리의 작업 상태만 0.1초마다 확인).
+MAX_WAIT_SECONDS = 8.0
+WAIT_STEP_SECONDS = 0.1
+
+
+def _changed(key, owner, stage):
+    job = _jobs.get(key)
+    # 다른 인스턴스의 작업이거나 주인이 아니면 기다리지 않는다(아래 일반 조회가 404·저장 상태를 답함).
+    return (
+        not job or job["owner"] != owner or job["status"] != "running" or job.get("stage") != stage
+    )
+
+
+async def _wait_for_change(key, owner, stage, seconds, request):
+    deadline = time.monotonic() + min(max(seconds, 0.0), MAX_WAIT_SECONDS)
+    while time.monotonic() < deadline and not _changed(key, owner, stage):
+        if await request.is_disconnected():
+            return
+        await asyncio.sleep(WAIT_STEP_SECONDS)
+
+
 @router.get("/api/plan-jobs/{key}")
+async def poll_route(key: str, request: Request, wait: float = 0, stage: str | None = None):
+    if wait > 0 and stage is not None:
+        await _wait_for_change(key, request.state.owner, stage[:40], wait, request)
+    return await run_in_threadpool(poll, key, request)
+
+
 def poll(key: str, request: Request):
     with _lock:
         job = store.cached("plan-job:" + key) or _jobs.get(key)

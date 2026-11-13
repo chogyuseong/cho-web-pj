@@ -9,10 +9,12 @@
   async wait(id){
     const generation=++this.generation;
     const controller=new AbortController();this.controller=controller;
-    const deadline=Date.now()+300000;let failures=0;
+    const deadline=Date.now()+300000;let failures=0;let seen=null;
     while(Date.now()<deadline){
-      let state;
-      try{state=await api('/plan-jobs/'+encodeURIComponent(id),undefined,undefined,{signal:controller.signal});failures=0;}
+      let state;const asked=Date.now();
+      // 긴 폴링: 마지막으로 본 단계를 보내면 서버가 단계가 바뀔 때까지 최대 8초 기다렸다 답한다(app/plan_jobs.py).
+      const query=seen===null?'':'?wait=8&stage='+encodeURIComponent(seen);
+      try{state=await api('/plan-jobs/'+encodeURIComponent(id)+query,undefined,undefined,{signal:controller.signal});failures=0;}
       catch(error){
         if(generation!==this.generation)throw Error('검색을 취소했어요.');
         if([404,410].includes(error.status)){this.forget();throw error;}
@@ -30,7 +32,9 @@
         copy.replaceChildren(node('strong',state.stage),node('p',state.message),node('small','장소 검색 → 코스 구성 → 가격 확인 · 사진과 후기는 따로 불러와요.'));
         if(state.preview?.length){const preview=node('div',undefined,'candidate-preview');preview.append(node('strong','찾은 후보 · 최종 확인 후 달라질 수 있어요'));state.preview.forEach((names,i)=>preview.append(node('p',`${i+1}. ${names.join(' → ')}`)));copy.append(preview);}
       }
-      await new Promise(resolve=>setTimeout(resolve,1000));
+      // 단계가 바뀌었으면 바로 다음 대기를 건다. 같은 단계로 1초 안에 돌아왔으면(기다려 주지 않는 서버) 전처럼 1초 쉰다.
+      const changed=state.stage!==seen;seen=state.stage;
+      if(!changed&&Date.now()-asked<1000)await new Promise(resolve=>setTimeout(resolve,1000));
     }
     throw Error('검색이 오래 걸리고 있어요. 새로고침하면 진행 중인 검색에 다시 연결합니다.');
   },

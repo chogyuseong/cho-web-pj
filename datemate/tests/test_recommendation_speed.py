@@ -126,6 +126,15 @@ def naver(monkeypatch):
         return httpx.Response(200, json=dict(items=items), request=httpx.Request('GET', url))
 
     monkeypatch.setattr(httpx, 'get', fake_get)
+
+    # 가격 검색 묶음은 한 클라이언트로 연결을 다시 써서 보낸다(app.pricing.search_client, 2026-11-14 둘째 작업).
+    # 같은 가짜 응답(fake_get)을 실제 httpx.Client 경로로 돌려준다. 요청 주소·검색어·호출 기록은 전과 같다.
+    def price_client():
+        def handler(request):
+            return fake_get(str(request.url.copy_with(query=None)), params=dict(request.url.params))
+        return httpx.Client(transport=httpx.MockTransport(handler))
+
+    monkeypatch.setattr(pricing, 'search_client', price_client)
     bodies = {f'https://blog.naver.com/author{i}/22300000000{i}': body for i, body in enumerate(BODIES)}
     monkeypatch.setattr(course_search, 'public_body', lambda url: (calls.append('body'), bodies.get(url, ''))[1])
     before = discovered_keys()

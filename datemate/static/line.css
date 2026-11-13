@@ -676,3 +676,16 @@ body:has(#shared-places) main { max-width:880px; padding-block:24px 48px; }
   .line-sample li::before,.detail .stop::before,.detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
 }
 body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
+/* 확정 전 후보(가격 확인 중): 버튼이 아닌 읽기 전용 카드. 점선 테두리로 확정된 코스 카드와 구별한다(plan-progress.js PlanPreview). */
+#results .plan-preview { border:1px dashed var(--muted); border-radius:12px; padding:16px; margin:0 0 16px; min-width:0; background:var(--paper); }
+#results .plan-preview h3 { margin:0 0 6px; font-size:17px; line-height:1.5; color:var(--ink); }
+#results .plan-preview .hint { margin:0 0 12px; overflow-wrap:anywhere; }
+.plan-preview-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.plan-preview-card { display:flex; flex-direction:column; gap:2px; min-width:0; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--platform); overflow-wrap:anywhere; word-break:keep-all; }
+.plan-preview-card .option-label { font-family:var(--font-head); font-weight:800; font-size:15px; color:var(--ink); }
+.plan-preview-card .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
+.plan-preview-card .option-route { font-size:16px; line-height:1.6; color:var(--ink); }
+.plan-preview-pending { font-size:14px; line-height:1.6; color:var(--muted); }
+.plan-preview-changes { border-left:4px solid var(--hong); background:var(--platform); padding:10px 14px; margin:0 0 16px; overflow-wrap:anywhere; }
+.plan-preview-changes strong { color:var(--ink); }
+.plan-preview-changes ul { margin:6px 0 0; padding-left:20px; }

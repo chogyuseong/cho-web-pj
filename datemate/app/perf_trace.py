@@ -48,6 +48,7 @@ class Trace:
         self.db_count = 0
         self.db_ms = 0.0
         self.db_stages = {}
+        self.counts = Counter()
 
     def now(self):
         return (time.perf_counter() - self.started) * 1000
@@ -64,10 +65,11 @@ class Trace:
             row[0] += 1
             row[1] += ms
 
-    def add_call(self, provider, kind, stage, start, end, outcome):
+    def add_call(self, provider, kind, stage, start, end, outcome, connection=None):
         with self.lock:
             row = self.calls.setdefault(
-                (stage, provider, kind), dict(count=0, failed=0, rejected=0, ms=0.0, max_ms=0.0)
+                (stage, provider, kind),
+                dict(count=0, failed=0, rejected=0, ms=0.0, max_ms=0.0, observed=0, new_connections=0, connect_ms=0.0),
             )
             if outcome == "rejected":
                 row["rejected"] += 1
@@ -76,12 +78,21 @@ class Trace:
             row["failed"] += outcome == "failed"
             row["ms"] += end - start
             row["max_ms"] = max(row["max_ms"], end - start)
+            if connection is not None:
+                # httpx.Client 로 보낸 호출만 안다(httpx.get 처럼 호출마다 새 클라이언트를 만드는 호출은 세지 않음).
+                row["observed"] += 1
+                row["new_connections"] += connection[0]
+                row["connect_ms"] += connection[1]
             if len(self.intervals) < MAX_INTERVALS:
-                self.intervals.append((start, end))
+                self.intervals.append((start, end, stage))
 
     def add_cache_hit(self, kind):
         with self.lock:
             self.cache[kind or "other"] += 1
+
+    def add_count(self, name, n):
+        with self.lock:
+            self.counts[name] += n
 
     def add_db(self, ms):
         with self.lock:
@@ -99,6 +110,7 @@ class Trace:
             calls = {k: dict(v) for k, v in self.calls.items()}
             spans = {k: list(v) for k, v in self.spans.items()}
             cache = dict(self.cache)
+            counts = dict(sorted(self.counts.items()))
             db = dict(
                 count=self.db_count,
                 ms=round(self.db_ms),
@@ -108,20 +120,20 @@ class Trace:
         for i, (name, start) in enumerate(stages):
             end = stages[i + 1][1] if i + 1 < len(stages) else total
             rows.append(dict(name=name, start_ms=round(start), ms=round(end - start)))
-        # 외부 호출이 실제로 차지한 시간(겹친 구간은 한 번만)과 가장 많이 겹친 수.
-        wall, peak, edge = 0.0, 0, None
-        for start, end in intervals:
-            if edge is None or start > edge:
-                wall += end - start
-                edge = end
-            elif end > edge:
-                wall += end - edge
-                edge = end
-        events = sorted([(s, 1) for s, _ in intervals] + [(e, -1) for _, e in intervals])
-        running = 0
-        for _, step in events:
-            running += step
-            peak = max(peak, running)
+        wall, peak = _overlap([(s, e) for s, e, _ in intervals])
+        # 단계별로도 같은 값(가격 확인의 동시 3건이 실제로 겹치는지 등). 단계 이름은 화면 진행 문구와 같은 고정 문자열.
+        by_stage = {}
+        for s, e, name in intervals:
+            by_stage.setdefault(name, []).append((s, e))
+        stage_overlap = {}
+        for name, spans_of_stage in by_stage.items():
+            stage_wall, stage_peak = _overlap(spans_of_stage)
+            stage_overlap[name] = dict(
+                calls=len(spans_of_stage),
+                wait_ms_sum=round(sum(e - s for s, e in spans_of_stage)),
+                wall_ms=round(stage_wall),
+                peak_parallel=stage_peak,
+            )
         by_kind = [
             dict(
                 stage=stage,
@@ -132,9 +144,19 @@ class Trace:
                 rejected=v["rejected"],
                 ms=round(v["ms"]),
                 max_ms=round(v["max_ms"]),
+                connection_observed=v["observed"],
+                new_connections=v["new_connections"],
+                connect_ms=round(v["connect_ms"]),
             )
             for (stage, provider, kind), v in calls.items()
         ]
+        for row in by_kind:
+            # 단계별 요약에 연결 재사용 여부를 더한다(알 수 있는 호출만: connection_observed).
+            target = stage_overlap.get(row["stage"])
+            if target is not None and row["connection_observed"]:
+                target["connection_observed"] = target.get("connection_observed", 0) + row["connection_observed"]
+                target["new_connections"] = target.get("new_connections", 0) + row["new_connections"]
+                target["connect_ms"] = target.get("connect_ms", 0) + row["connect_ms"]
         return dict(
             total_ms=round(total),
             stages=rows,
@@ -148,10 +170,66 @@ class Trace:
                 peak_parallel=peak,
                 by_kind=by_kind,
             ),
+            external_by_stage=stage_overlap,
             cache_hits=cache,
+            counts=counts,
             db=db,
             scope="추천 작업 안의 시간(ms). 작업 저장·폴링·화면 표시는 포함하지 않음. 외부 호출 ms 는 호출마다 기다린 시간의 합.",
         )
+
+
+class ConnectionProbe:
+    """httpx 의 trace 확장으로 이 호출이 새 연결(TCP·TLS)을 맺었는지와 그 시간을 잰다. 주소·인증서 정보는 남기지 않는다."""
+
+    def __init__(self):
+        self.started = None
+        self.connect_ms = 0.0
+        self.new = False
+        self.seen = False
+
+    def __call__(self, event, info):
+        if event.startswith(("http11.", "http2.")):
+            self.seen = True
+        elif event == "connection.connect_tcp.started":
+            self.new = True
+            self.started = time.perf_counter()
+        elif event in ("connection.connect_tcp.complete", "connection.start_tls.complete") and self.started:
+            self.connect_ms = (time.perf_counter() - self.started) * 1000
+
+    def result(self):
+        # 실제 연결을 거치지 않은 호출(시험용 가짜 전송 등)은 모른다고 둔다.
+        return (int(self.new), self.connect_ms) if self.seen else None
+
+
+def connection_probe(client, kwargs):
+    """추천 안에서 httpx.Client 로 보내는 호출이면 kwargs 에 trace 확장을 넣고 probe 를 돌려준다. 그 밖에는 아무것도 하지 않는다."""
+    if _current.get() is None or "extensions" in kwargs:
+        return None
+    import httpx
+
+    if not isinstance(client, httpx.Client):
+        return None
+    probe = ConnectionProbe()
+    kwargs["extensions"] = {"trace": probe}
+    return probe
+
+
+def _overlap(intervals):
+    """구간 목록이 실제로 차지한 시간(겹친 구간은 한 번만)과 가장 많이 겹친 수."""
+    wall, peak, edge = 0.0, 0, None
+    for start, end in sorted(intervals):
+        if edge is None or start > edge:
+            wall += end - start
+            edge = end
+        elif end > edge:
+            wall += end - edge
+            edge = end
+    events = sorted([(s, 1) for s, _ in intervals] + [(e, -1) for _, e in intervals])
+    running = 0
+    for _, step in events:
+        running += step
+        peak = max(peak, running)
+    return wall, peak
 
 
 def current():
@@ -191,6 +269,13 @@ def cache_hit(kind):
     trace = _current.get()
     if trace:
         trace.add_cache_hit(kind)
+
+
+def count(name, n=1):
+    """구간 안의 개수(예: 가격 조회 수, 가격 확인 뒤 바뀐 안 수). 이름은 고정 문자열만 쓴다(검색어·장소 이름 금지)."""
+    trace = _current.get()
+    if trace and n:
+        trace.add_count(name, int(n))
 
 
 class TimedConnection:

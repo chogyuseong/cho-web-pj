@@ -101,6 +101,7 @@ def _compact(summary):
             for k in ("calls", "failed", "rejected", "wait_ms_sum", "wall_ms", "peak_parallel")
         },
         cache_hits=summary["cache_hits"],
+        counts=summary.get("counts", {}),
         db=summary["db"],
     )
 
@@ -257,6 +258,59 @@ def _verify_car_routes(data, plans):
             )
 
 
+def _shape(plans):
+    """가격 확인 전후 비교용: 안마다 (장소 id 순서, 이름, 설명). 진단에만 쓰고 응답에는 개수만 싣는다."""
+    return [
+        (
+            tuple(p["id"] for p in plan["places"]),
+            plan.get("option_purpose"),
+            plan.get("option_description"),
+        )
+        for plan in plans
+    ]
+
+
+def _count_pricing(before, plans, price_stats, refill_stats):
+    """가격 확인이 3안을 얼마나 바꿨는지와 조회한 가격이 최종 안에 쓰였는지를 개수로만 남긴다(timing.counts)."""
+    from .perf_trace import count
+
+    try:
+        after = _shape(plans)
+        final_places = {pid for ids, _, _ in after for pid in ids}
+        count("price.plans_before", len(before))
+        count("price.plans_after", len(after))
+        for i, (ids, purpose, description) in enumerate(before):
+            match = next((j for j, row in enumerate(after) if set(row[0]) == set(ids)), None)
+            if match is None:
+                count("price.plans_dropped")
+                continue
+            row = after[match]
+            changed = False
+            for name, flag in (
+                ("price.plans_moved", match != i),
+                ("price.order_changed", row[0] != ids),
+                ("price.renamed", row[1] != purpose),
+                ("price.redescribed", row[2] != description),
+            ):
+                count(name, flag)
+                changed |= flag
+            count("price.plans_unchanged", not changed)
+        count(
+            "price.plans_added", sum(not any(set(r[0]) == set(b[0]) for b in before) for r in after)
+        )
+        for prefix, stats in (("price", price_stats), ("price.refill", refill_stats)):
+            looked = stats.get("looked_up") or set()
+            count(prefix + ".places", stats.get("places", 0))
+            count(prefix + ".cached", stats.get("cached", 0))
+            count(prefix + ".lookups", len(looked))
+            count(prefix + ".lookups_used", len(looked & final_places))
+            for status, n in (stats.get("statuses") or {}).items():
+                if status in ("available", "not_found", "unavailable", "key_missing"):
+                    count(prefix + ".status_" + status, n)
+    except Exception:
+        logging.getLogger(__name__).warning("pricing_counts_failed")
+
+
 # 가격 확인 뒤 빠진 코스를 예비 후보로 채울 때의 추가 외부 호출 상한.
 REFILL_PLANS = 2
 REFILL_PRICE_LOOKUPS = 6
@@ -313,8 +367,19 @@ def _finish(data, result, owner):
         "가격 확인",
         "코스 후보를 찾았어요. 가격과 필수 조건을 마지막으로 확인해요",
         preview=[[p["name"] for p in plan["places"]] for plan in result["plans"]],
+        # 확정 전 후보 카드: 가격·비용·조건 확인 결과는 싣지 않는다(확정 전 값을 확정값처럼 보이지 않게).
+        preview_options=[
+            dict(
+                purpose=plan.get("option_purpose"),
+                places=[dict(id=p["id"], name=p["name"]) for p in plan["places"]],
+            )
+            for plan in result["plans"]
+        ],
     )
-    with span("price.price_plans"):
+    from .pricing import collecting_stats
+
+    before_pricing = _shape(result["plans"])
+    with span("price.price_plans"), collecting_stats() as price_stats:
         result["plans"] = price_plans(result["plans"])
     from .preferences import filter_required, hard_blocks
 
@@ -323,8 +388,9 @@ def _finish(data, result, owner):
     result["plans"] = filter_required(result["plans"])
     dropped = priced - len(result["plans"])
     refilled = []
+    refill_stats = {}
     if experience and dropped and reserve:
-        with span("price.refill"):
+        with span("price.refill"), collecting_stats() as refill_stats:
             refilled = _refill(data, result["plans"], reserve)
         result["plans"] += refilled
     if blocked and not result["plans"]:
@@ -369,6 +435,7 @@ def _finish(data, result, owner):
     with span("price.enrich"):
         for p in result["plans"]:
             enrich(p)
+    _count_pricing(before_pricing, result["plans"], price_stats, refill_stats)
     from .plan_jobs import check_current
 
     check_current()

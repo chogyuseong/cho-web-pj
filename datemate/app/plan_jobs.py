@@ -34,10 +34,13 @@ def _read(db, key):
 
 
 def _write(db, key, job):
+    """작업 상태를 저장하고 저장한 내용의 크기(문자 수)를 돌려준다."""
+    payload = json.dumps(job, ensure_ascii=False)
     db.execute(
         "INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires",
-        ("plan-job:" + key, json.dumps(job, ensure_ascii=False), time.time() + 3600),
+        ("plan-job:" + key, payload, time.time() + 3600),
     )
+    return len(payload)
 
 
 def _alive(job):
@@ -61,7 +64,7 @@ def _persist(key):
         if previous and previous["status"] in ("cancelled", "failed", "complete"):
             _jobs[key].update(previous)
             return
-        _write(db, key, job)
+        return _write(db, key, job)
 
 
 _current = ContextVar("recommendation_progress", default=None)
@@ -131,18 +134,23 @@ def _run(key, data, owner):
                 )
     finally:
         _current.reset(token)
+        saved = None
         with _lock:
             if key in _jobs:
                 _jobs[key]["finished"] = time.monotonic()
                 saving = time.perf_counter()
-                _persist(key)
+                size = _persist(key)
+                saved = (_jobs[key]["status"], (time.perf_counter() - saving) * 1000, size)
+        # 기록은 잠금 밖에서, 실패해도 작업 상태 저장과 무관하게 넘어간다. 크기는 저장할 때 만든 내용을 다시 쓴다.
+        if saved:
+            try:
                 logging.getLogger(__name__).info(
-                    "recommendation_job_saved id=%s status=%s persist_ms=%.1f result_bytes=%d",
+                    "recommendation_job_saved id=%s status=%s persist_ms=%.1f stored_chars=%s",
                     key,
-                    _jobs[key]["status"],
-                    (time.perf_counter() - saving) * 1000,
-                    len(json.dumps(_jobs[key].get("result") or {}, ensure_ascii=False).encode()),
+                    *saved,
                 )
+            except Exception:
+                pass
 
 
 @router.post("/api/plan-jobs", status_code=202)

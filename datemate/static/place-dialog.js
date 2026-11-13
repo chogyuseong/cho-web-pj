@@ -20,7 +20,7 @@ function drawMap(p) {
     const path = document.createElementNS(ns, 'polyline');
     path.setAttribute('points', [coords[i], end].map(x => x.join(',')).join(' '));
     path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', '#91a27b');
+    path.setAttribute('stroke', '#b5245e');
     path.setAttribute('stroke-width', '3');
     path.setAttribute('stroke-dasharray', LINE_DASH.svg[legLineStyle(p, p.legs?.[i]) === 'short' ? 'short' : 'long']);
     svg.append(path);
@@ -30,7 +30,7 @@ function drawMap(p) {
     circle.setAttribute('cx', x);
     circle.setAttribute('cy', y);
     circle.setAttribute('r', 17);
-    circle.setAttribute('fill', i === 0 ? '#e4774b' : '#294d3d');
+    circle.setAttribute('fill', i === 0 ? '#1f2328' : '#b5245e');
     const t = document.createElementNS(ns, 'text');
     t.setAttribute('x', x);
     t.setAttribute('y', y + 5);

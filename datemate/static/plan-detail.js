@@ -33,7 +33,7 @@ function renderDetail() {
     stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'));
     stop.append(stamp);
     const body = node('div', undefined, 'timeline-card');
-    body.append(node('span', `STEP ${i+1} · ${place.category}`, 'step-category'));
+    body.append(node('span', place.category, 'step-category'));
     const cost = p.costs.find(c => c.name === place.name);
     if (cost) body.append(node('div', `${p.conditions.people}인 장소 비용 · ${range(cost.amount)}`, 'stop-cost'));
     body.append(node('h4', place.name), node('div', `${p.timeline[i].arrival} ~ ${p.timeline[i].departure} · ${place.category}`, 'small'), linkedText('p', p.reasons[i], 'hint'));

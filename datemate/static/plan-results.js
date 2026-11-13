@@ -9,6 +9,9 @@ function optionTabContent(p,i,active){
   if(p.option_purpose)label.append(node('span','· '+p.option_purpose,'option-purpose'));
   if(p.best_effort||p.search_adjustments)label.append(node('span','조건 넓힘','option-relaxed'));
   const route=node('strong',p.places.map(x=>x.name).join(' → '),'option-route');
+  // 미니 노선: 장소 수만큼 역 원을 잇는다(그림이라 낭독하지 않음).
+  const line=node('span',undefined,'option-line');line.setAttribute('aria-hidden','true');line.style.setProperty('--stops',String(p.places.length));
+  p.places.forEach(()=>line.append(node('i')));
   // 3줄은 하루 구성만 보여 준다. 이동 시간은 4줄에 있으므로 서버 제목의 "도보 이동 약 8분 · " 같은 앞부분을 다시 쓰지 않는다.
   const title=node('span',p.decision_summary?.activity_label||p.decision_summary?.title||courseTitle(p),'option-title');
   const mode=travelMode(p),basis=mode.basis==='네이버 길찾기'?'길찾기':mode.basis.startsWith('일부')?'일부 추정':'추정';
@@ -25,7 +28,7 @@ function optionTabContent(p,i,active){
     if(same&&p.option_description&&!p.option_description.includes('같'))diff='활동 구성 같음 · '+diff;
     if(delta)diff+=` · 이동 ${delta>0?'+':'−'}${Math.abs(delta)}분`;
   }
-  return [label,route,title,facts,node('span',diff,'option-difference')];
+  return [label,line,route,title,facts,node('span',diff,'option-difference')];
 }
 function renderResults(result={}){
   const root=$('#results'),detail=$('#plan-detail')||node('div');detail.id='plan-detail';
@@ -48,7 +51,7 @@ function renderResults(result={}){
     const card=node('article',undefined,'plan-card'+(selected?.id===p.id?' selected':''));
     const heading=node('div',undefined,'option-heading');
     card.dataset.option=String(i+1);
-    heading.append(node('div',`코스 ${i+1}`,'number'),button('일정 살펴보기 ↗',()=>choose(p,true),'secondary inspect-plan'));
+    heading.append(node('div',`코스 ${i+1}`,'number'),button('일정 살펴보기',()=>choose(p,true),'secondary inspect-plan'));
     card.append(heading,node('h3',p.decision_summary?.title||courseTitle(p)));
     if(p.conditions.festival)card.append(node('p',`‘${p.conditions.festival.title}’ 축제 장소에서 출발하는 코스`,'festival-course-tag'));
     if(p.decision_summary){const summary=p.decision_summary;const fit=node('div',undefined,'fit-reasons');for(const reason of summary.fit_reasons||[summary.reason])fit.append(node('p',reason));card.append(fit);if(summary.unknown_prices||summary.assumed_prices)card.append(node('p',`가격 미확인 ${summary.unknown_prices}항목 · 계획용 가정 ${summary.assumed_prices}항목`,'hint'));}

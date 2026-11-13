@@ -43,6 +43,7 @@ MAX_BODY_BYTES = 64 * 1024
 mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("text/javascript", ".mjs")
 mimetypes.add_type("text/css", ".css")
+mimetypes.add_type("font/woff2", ".woff2")
 
 
 @asynccontextmanager

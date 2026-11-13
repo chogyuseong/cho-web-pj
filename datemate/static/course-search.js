@@ -1,6 +1,6 @@
 function courseSearchPanel(evidence,plan){
   const box=node('section',undefined,'course-search-panel');
-  box.append(node('p','NAVER COURSE RESEARCH','eyebrow'),node('h3',evidence.query),node('p',evidence.provider+' · 통합검색 화면 순위와 다를 수 있어요.','hint'));
+  box.append(node('p','네이버 블로그 코스 조사','hint'),node('h3',evidence.query),node('p',evidence.provider+' · 통합검색 화면 순위와 다를 수 있어요.','hint'));
   if(evidence.concept)box.append(node('p','선택한 콘셉트: '+evidence.concept+' · 장소명과 설명의 관련 단서를 우선 반영해요.','hint'));
   if(evidence.search_relaxed)box.append(node('p',evidence.relaxation_note||'콘셉트 검색 결과가 없어 지역 기본 검색으로 넓혔어요. 콘셉트 적합성이 보장되는 결과는 아니에요.','warning'));
   if(evidence.search_history?.length){const history=node('details'),items=node('div');history.append(node('summary','실제 검색 기록 보기'));for(const item of evidence.search_history)items.append(node('p',item.query+' · 검색 결과 '+item.result_count+'개','hint'));history.append(items);box.append(history);}

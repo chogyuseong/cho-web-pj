@@ -452,7 +452,7 @@ form.elements.mode.addEventListener('change', () => {
   mode = form.elements.mode.value;
   clearLocationsForMode();
   if (mode === 'demo') form.elements.region.value = '서울';
-  $('#mode-badge').textContent = mode === 'demo' ? 'DEMO SPACE' : 'REAL DATA';
+  $('#mode-badge').textContent = mode === 'demo' ? '가상 장소 데모' : '실제 장소';
   renderResults();
   renderDetail();
 });

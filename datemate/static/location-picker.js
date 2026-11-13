@@ -67,7 +67,7 @@ async function openLocationPicker(kind){
     regionCheck++;regionBox.hidden=true;regionSelect.value='';
     candidate={name:point.name,lat:Number(point.lat),lon:Number(point.lon),region:regionFromAddress(point.name)};
     picked.textContent='선택한 위치: '+candidate.name;confirm.disabled=false;
-    if(map){if(marker)marker.setLatLng([candidate.lat,candidate.lon]);else marker=L.circleMarker([candidate.lat,candidate.lon],{radius:10,color:'#294d3d',fillColor:'#e4774b',fillOpacity:1,weight:3}).addTo(map);if(recenter)map.setView([candidate.lat,candidate.lon],17,{animate:false});}
+    if(map){if(marker)marker.setLatLng([candidate.lat,candidate.lon]);else marker=L.circleMarker([candidate.lat,candidate.lon],{radius:10,color:'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map);if(recenter)map.setView([candidate.lat,candidate.lon],17,{animate:false});}
     if(naverMap){const coord=new naver.maps.LatLng(candidate.lat,candidate.lon);if(naverMarker)naverMarker.setPosition(coord);else naverMarker=new naver.maps.Marker({map:naverMap,position:coord});if(recenter)naverMap.setCenter(coord);}
   }
   function pickOnMap(lat,lon){

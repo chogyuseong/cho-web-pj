@@ -1,0 +1,647 @@
+/* 노선 디자인: "우리 하루는 한 줄의 노선이다". 색·글꼴 토큰은 style.css :root, 이 파일은 마지막 화면 층.
+   과감하게 쓰는 곳은 노선 띠 하나(8px 홍색 세로선 + 흰 역 원). 그라데이션·그림자 없음, 테두리는 필요한 곳에만 1px.
+   모서리: 구역 0, 코스 카드 10px, 칩 999px. 홈·공유 화면 모두 이 파일을 마지막에 읽는다. */
+@font-face {
+  font-family:'DateMate Line Heading';
+  src:url(/static/fonts/line-heading-800.woff2) format('woff2');
+  font-weight:800;
+  font-style:normal;
+  font-display:swap;
+}
+
+/* ---------- 바탕 · 글 ---------- */
+html { background-color:var(--paper); }
+body {
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:16px;
+  line-height:1.7;
+  letter-spacing:0;
+}
+h1,h2,h3,h4,h5,.brand-name,.timeline-stamp strong,.line-sample time,.line-name {
+  font-family:var(--font-head);
+  font-weight:800;
+  letter-spacing:0;
+  color:var(--ink);
+}
+h1 { font-size:44px; line-height:1.2; }
+h2 { font-size:24px; line-height:1.35; }
+h3 { font-size:19px; line-height:1.45; }
+h4,h5 { font-size:19px; line-height:1.45; }
+@media(min-width:801px) {
+  h2 { font-size:32px; }
+  h3 { font-size:24px; }
+}
+main a { color:var(--cheong); }
+.nowrap,.option-facts,.stats b,.total-row,.timeline-stamp,.num,time { font-variant-numeric:tabular-nums; }
+main :is(.hint,.muted,small,.small) { color:var(--muted); }
+main .eyebrow { display:none; }
+
+/* 포커스 표시는 그대로 두고 색만 청색으로. */
+:is(button,a,input,select,textarea,summary,[tabindex]):focus-visible {
+  outline:3px solid var(--cheong)!important;
+  outline-offset:3px;
+  box-shadow:none;
+}
+input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:none; }
+
+/* ---------- 버튼 · 칩 ---------- */
+.primary,.results-area .primary,#shared-form button.primary {
+  background:var(--hong)!important;
+  color:#fff!important;
+  border:1px solid var(--hong)!important;
+  border-radius:10px;
+  font-weight:700;
+  box-shadow:none!important;
+  transform:none!important;
+}
+.primary:hover { background:#951c4c!important; border-color:#951c4c!important; }
+.secondary,#parse {
+  background:#fff!important;
+  color:var(--ink)!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px;
+  font-weight:600;
+  box-shadow:none!important;
+}
+.secondary:hover,#parse:hover { border-color:var(--ink)!important; background:#fff!important; }
+.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary),dialog .actions button:not(.primary),.leisure-course-panel .actions>:is(button,a):not(.primary) {
+  background:#fff!important;
+  color:var(--ink)!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  font-weight:600;
+}
+:is(.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary)):hover { border-color:var(--ink)!important; }
+.text-link { color:var(--ink); font-weight:700; text-decoration:underline; text-underline-offset:4px; }
+.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.leisure-filter button,.photo-choices button,.map-option-tabs button,.date-subcategories span,.tag,.step-category,.leisure-sport-tag,.festival-course-tag,.field-requirement {
+  border-radius:999px!important;
+}
+.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button {
+  background:#fff!important;
+  color:var(--ink)!important;
+  border:1px solid var(--line)!important;
+  font-weight:600;
+}
+.quick-chip:hover,.simple-activity-ideas button:hover { border-color:var(--ink)!important; }
+/* 선택 표시는 홍. 색만으로 구분하지 않도록 밑줄을 함께 쓴다. */
+.quick-chip[aria-pressed=true],.leisure-filter button[aria-pressed=true],.photo-choices button[aria-pressed=true],
+.map-option-tabs button[aria-pressed=true],.results-area .transport-options>button[aria-pressed=true],.leisure-choices button[aria-pressed=true] {
+  background:var(--hong)!important;
+  border-color:var(--hong)!important;
+  color:#fff!important;
+  text-decoration:underline;
+  text-underline-offset:4px;
+  box-shadow:none;
+}
+.quick-chip:disabled { background:var(--platform)!important; color:var(--muted)!important; border-style:dashed!important; }
+.quick-chip.current-location { border-style:dashed!important; }
+.date-category-tabs { background:var(--platform); border-radius:10px; }
+.date-category-tab[aria-pressed=true],.date-subcategories input:checked+span,.chips input:checked+span {
+  background:var(--hong)!important; color:#fff!important; border-color:var(--hong)!important; box-shadow:none;
+}
+.tag,.step-category,.leisure-sport-tag {
+  background:var(--platform)!important;
+  color:var(--ink)!important;
+  border:0!important;
+  font-weight:600;
+}
+.field-requirement { background:var(--hong); color:#fff; border:0; }
+.selection-indicator { background:var(--hong)!important; color:#fff!important; border:0!important; }
+
+/* ---------- 입력 ---------- */
+input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select,
+.conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) {
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  color:var(--ink);
+}
+.conditions :is(input,textarea)::placeholder,dialog input::placeholder { color:var(--muted); }
+#origin-location input,#home-location input { background:var(--platform); }
+
+/* ---------- 경고 · 안내 ---------- */
+.warning,main .warning,.condition-differences,.evidence-check {
+  background:var(--warn-bg)!important;
+  color:var(--ink)!important;
+  border:0!important;
+  border-radius:0;
+}
+#parse-notice:not(:empty),.detail .transport-notice {
+  background:var(--platform);
+  color:var(--ink);
+  border-left:4px solid var(--ink);
+  border-radius:0;
+}
+#progress:not(:empty),#progress.is-searching {
+  background:var(--platform)!important;
+  color:var(--ink)!important;
+  border:0!important;
+  border-left:8px solid var(--hong)!important;
+  border-radius:0;
+  box-shadow:none!important;
+}
+.search-progress-copy :is(strong,p) { color:var(--ink)!important; }
+.search-progress-copy small { color:var(--muted)!important; }
+.search-spinner { border-color:var(--line)!important; border-top-color:var(--hong)!important; border-right-color:var(--hong)!important; }
+
+/* ---------- 머리글 ---------- */
+body > header {
+  background:#fff;
+  border-bottom:1px solid var(--line);
+  box-shadow:none;
+}
+.brand { color:var(--ink); gap:10px; }
+.brand-name { font-size:21px; line-height:1.3; }
+.brand-icon {
+  flex:0 0 auto;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:#fff;
+  border:5px solid var(--hong);
+  box-shadow:none;
+}
+header .brand-name .brand-tagline { color:var(--muted); font-family:var(--font-body); font-weight:500; font-size:14px; }
+header nav .nav,header nav a { color:var(--muted); background:none; border-radius:0; font-weight:600; }
+header nav .nav:hover,header nav a:hover { color:var(--ink); background:none; }
+header nav .nav.active { color:var(--ink); background:none; border-bottom:3px solid var(--hong); }
+.mode-badge { display:none!important; }
+.skip-to-content { background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:10px; }
+
+/* ---------- 홈 첫 화면 ---------- */
+main { --gutter:40px; padding-inline:var(--gutter); }
+@media(max-width:800px) { main { --gutter:20px; } }
+@media(max-width:420px) { main { --gutter:16px; } }
+body:not(.show-date-plan) .romance-hero { padding:40px 0 48px; }
+.hero-copy {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-areas:'title photo' 'desc photo' 'line photo' 'actions photo';
+  column-gap:64px;
+  align-items:start;
+  padding-bottom:0;
+}
+.hero h1 { grid-area:title; margin:0 0 16px; font-size:44px!important; line-height:1.2; color:var(--ink); }
+.hero .hero-description { grid-area:desc; margin:0 0 28px; font-size:19px!important; line-height:1.6; color:var(--ink); max-width:none; }
+.hero-actions { grid-area:actions; display:flex; flex-wrap:wrap; align-items:center; gap:12px 24px; margin-top:28px; }
+.hero-actions .primary { display:inline-flex; align-items:center; justify-content:center; min-height:52px; padding:12px 32px; font-size:17px; text-decoration:none; }
+.hero-actions .text-link { display:inline-flex; align-items:center; min-height:44px; font-size:16px; }
+body:not(.show-date-plan) .hero-photo {
+  display:block;
+  grid-area:photo;
+  height:auto;
+  margin:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  overflow:visible;
+}
+.hero-photo img { display:block; width:100%; height:420px; object-fit:cover; object-position:center 55%; filter:none; transform:none; transition:none; }
+.hero-photo figcaption { position:static; margin-top:8px; padding:0!important; background:none!important; color:var(--muted); font-size:14px; border:0; }
+.hero-photo:after { content:none; }
+
+/* 예시 노선 띠: 시각 · 역 · 장소 이름. 실제 일정과 같은 그림 문법을 쓴다. */
+.line-sample { grid-area:line; list-style:none; margin:0; padding:0; --time:4.6em; --rail:32px; }
+.line-sample li { position:relative; display:grid; grid-template-columns:var(--time) var(--rail) minmax(0,1fr); align-items:center; }
+.line-sample .line-stop { min-height:44px; }
+.line-sample time { grid-column:1; font-size:19px; line-height:1.3; color:var(--ink); }
+.line-sample .line-name { grid-column:3; font-size:19px; line-height:1.3; color:var(--ink); }
+.line-sample .line-leg { grid-column:3; min-height:36px; }
+.line-sample .line-leg span { grid-column:3; font-size:14px; color:var(--muted); }
+.line-sample li::before { content:''; position:absolute; left:calc(var(--time) + var(--rail) / 2 - 4px); top:0; bottom:0; border-left:8px solid var(--hong); }
+.line-sample .line-leg.walk::before { border-left-style:dotted; }
+/* 역과 역 사이 선은 구간 수단을 따른다(도보는 점선). 역 줄에는 선을 따로 긋지 않고 구간 선이 역 원 아래까지 이어진다. */
+.line-sample .line-stop::before { content:none; }
+.line-sample .line-leg::before { top:-22px; bottom:-22px; }
+.line-sample .line-stop::after { z-index:1; content:''; position:absolute; left:calc(var(--time) + var(--rail) / 2 - 11px); top:calc(50% - 11px); width:22px; height:22px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
+
+/* 홈: 인기 동네 6곳은 승강장 띠 위의 역 이름 목록처럼. */
+.curation,#curation.curation {
+  margin:0 calc(-1 * var(--gutter)) 0;
+  padding:40px var(--gutter) 48px;
+  background:var(--platform);
+  border-radius:0;
+}
+.curation-heading { text-align:left; margin:0 0 20px; }
+.curation-heading h2 { margin:0 0 6px; color:var(--ink); }
+.curation-heading p { margin:0; color:var(--muted); font-size:16px; }
+.curation-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 32px; border-top:1px solid var(--line); }
+.curation-card {
+  position:relative;
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr);
+  column-gap:12px;
+  align-items:start;
+  width:100%;
+  padding:16px 0;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:0;
+  background:transparent;
+  color:var(--ink);
+  text-align:left;
+  box-shadow:none;
+  transform:none!important;
+  overflow:visible;
+}
+.curation-card:hover { background:transparent; box-shadow:none; }
+.curation-card:hover .curation-area { text-decoration:underline; text-underline-offset:4px; }
+.curation-card::before { content:''; grid-row:1 / span 2; width:22px; height:22px; margin:3px 0 0 5px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
+.curation-area { grid-column:2; font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
+.curation-mood { grid-column:2; font-size:14px; color:var(--muted); line-height:1.6; }
+.curation-copy { grid-column:2; margin-top:4px; font-size:16px; line-height:1.6; color:var(--ink); }
+.curation-card[aria-pressed=true] .curation-area { color:var(--hong); text-decoration:underline; text-underline-offset:4px; }
+.data-banner { margin:32px 0 0; padding:0; background:none!important; color:var(--ink); border-radius:0; display:block; }
+.data-banner h2 { font-size:19px!important; margin:0 0 8px; color:var(--ink)!important; }
+.data-points { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 24px; color:var(--ink); font-size:16px; }
+.data-points li::before { content:'·'; margin-right:8px; color:var(--hong); font-weight:800; }
+
+.service-details { background:none; border:0; border-top:1px solid var(--line); border-radius:0; padding:4px 0; margin:0; color:var(--muted); }
+.service-details summary>span { color:var(--ink); }
+.notice { background:var(--platform); border:0; border-radius:0; color:var(--ink); }
+.workspace-intro { margin:40px 0 24px; padding-top:0; border-top:0; }
+.workspace-intro h2 { margin:0 0 4px; }
+.workspace-intro>p { color:var(--muted); font-size:16px; }
+
+/* ---------- 조건 입력 ---------- */
+.conditions.panel,#planner-section .conditions.panel { background:#fff; border:0; border-radius:0; box-shadow:none; padding:0; }
+.simple-form-intro { background:none!important; border:0!important; padding:0!important; color:var(--muted)!important; }
+.simple-plan-form .simple-form-group,.conditions .simple-form-group {
+  background:#fff;
+  border:0;
+  border-top:1px solid var(--line);
+  border-radius:0;
+  padding:20px 0 4px;
+  margin-top:16px;
+}
+.simple-plan-form .simple-form-group legend { float:left; width:100%; padding:0; margin:0 0 12px; font-family:var(--font-head); font-weight:800; font-size:19px; color:var(--ink); }
+.simple-plan-form .simple-form-group legend+* { clear:both; }
+.quick-summary { background:var(--platform); border:0; border-radius:10px; }
+.quick-summary-label { color:var(--muted); }
+.quick-summary-text strong { color:var(--ink); }
+.condition-details { background:#fff; border:1px solid var(--line); border-top:0; border-radius:0 0 10px 10px; }
+.simple-extra-options,.simple-plan-form .simple-extra-options,.conditions .simple-extra-options {
+  background:#fff!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+}
+.simple-extra-options>summary,.conditions .simple-extra-options>summary { color:var(--ink); }
+.simple-plan-form #submit-plan,.conditions #submit-plan { min-height:56px; font-size:18px; border-radius:10px; }
+.last-conditions .again-button { border-radius:10px; }
+
+/* ---------- 결과: 제목 · 코스 카드 ---------- */
+.section-heading .step { display:none; }
+.results-area .section-heading h2 { margin:0; }
+#results>.plan-option-tabs {
+  background:none!important;
+  border:0;
+  border-radius:0!important;
+  padding:0!important;
+  gap:12px!important;
+  box-shadow:none;
+  backdrop-filter:none;
+}
+#results .plan-option-tabs button,
+#results .plan-option-tabs button.primary,
+#results .plan-option-tabs button.secondary {
+  background:#fff!important;
+  color:var(--ink)!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  padding:16px!important;
+  box-shadow:none!important;
+  outline:0;
+}
+#results .plan-option-tabs button:hover { border-color:var(--ink)!important; }
+#results .plan-option-tabs button[aria-pressed=true] {
+  border-color:var(--line)!important;
+  border-left:4px solid var(--hong)!important;
+  padding-left:13px!important;
+}
+#results .plan-option-tabs button[aria-pressed=true] :is(strong,span) { color:var(--ink)!important; }
+#results .plan-option-tabs button[aria-pressed=true] .selection-indicator { color:#fff!important; }
+#results .plan-option-tabs .option-label { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; }
+#results .plan-option-tabs .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
+#results .plan-option-tabs button[aria-pressed=true] .option-purpose { color:var(--muted)!important; }
+#results .plan-option-tabs .option-relaxed { color:var(--ink); border-color:var(--line); }
+#results .plan-option-tabs .option-route { font-size:16px; font-weight:700; color:var(--ink); }
+#results .plan-option-tabs :is(.option-title,.option-facts,.option-difference) { color:var(--muted); }
+#results .plan-option-tabs button[aria-pressed=true] :is(.option-title,.option-facts,.option-difference) { color:var(--muted)!important; }
+/* 미니 노선: 장소 수만큼 ●─●─● */
+#results .plan-option-tabs .option-line,.option-line { position:relative; display:flex!important; justify-content:space-between; align-items:center; width:calc(var(--stops,3) * 26px)!important; height:16px; margin:2px 0; }
+.option-line::before { content:''; position:absolute; left:6px; right:6px; top:calc(50% - 2px); height:4px; background:var(--hong); }
+.option-line i { position:relative; width:14px; height:14px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
+#results .plan-option-tabs button[aria-pressed=true] .option-line i { background:var(--hong); }
+@media(forced-colors:active) {
+  .option-line::before,.line-sample li::before,.stop::before,.route-line-block::before { forced-color-adjust:none; }
+}
+
+/* 선택한 코스 요약 카드 */
+.plan-card,.plan-card.selected {
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow:none;
+  padding:24px;
+}
+.plan-card.selected { border-left:4px solid var(--hong); padding-left:21px; }
+.plan-card h3 { margin:8px 0 12px; color:var(--ink); }
+.plan-card .number { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; letter-spacing:0; }
+.fit-reasons { background:var(--platform); border:0; border-radius:0; padding:12px 16px; color:var(--ink); }
+.plan-card .stats,.stats { background:none!important; border:0!important; border-top:1px solid var(--line)!important; border-radius:0; padding:16px 0 0!important; }
+.plan-card .stats b,.stats b { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:24px; }
+.plan-card .stats small,.stats small { color:var(--muted); }
+.path-text { background:none; border:0; padding:0; color:var(--ink); }
+
+/* 비교 표: 바깥 테두리 없이 줄만. 금액·시간은 오른쪽 정렬(기존 .num). */
+.option-comparison,.comparison-details>.option-comparison { background:none; border:0; border-radius:0; padding:0; box-shadow:none; }
+.option-comparison table { border-collapse:collapse; }
+.option-comparison :is(th,td) { border-bottom:1px solid var(--line); }
+.option-comparison th,.detail th,.cost-table th { background:#fff!important; color:var(--muted)!important; font-weight:700; }
+.option-comparison thead th,.cost-table thead th { border-bottom:2px solid var(--ink); }
+.option-comparison tbody th { background:#fff!important; color:var(--ink)!important; }
+.comparison-course-title,.option-comparison .comparison-basis { color:var(--muted); }
+.comparison-details>summary,.cost-table-details>summary,.plan-photo-details>summary { color:var(--ink); }
+
+/* ---------- 일정: 노선 띠 ---------- */
+.detail.panel,.plan-extras-panel { background:#fff; border:0; border-radius:0; box-shadow:none; padding:24px 0; }
+.detail-header h2 { color:var(--ink); }
+.detail .map-link-list a { background:#fff; border:1px solid var(--line); border-radius:999px; color:var(--cheong); }
+.detail { --time:88px; --rail:40px; --band:calc(var(--time) + var(--rail)); }
+.detail .stop {
+  position:relative;
+  display:grid;
+  grid-template-columns:var(--time) var(--rail) minmax(0,1fr);
+  gap:0;
+  margin:0;
+  padding:0 0 28px;
+  border:0;
+}
+/* 세로 노선: 역 사이를 8px 홍색 선으로 잇는다. */
+.detail .stop::before,.detail .route-line-block::before {
+  content:'';
+  display:block;
+  position:absolute;
+  left:calc(var(--time) + var(--rail) / 2 - 4px);
+  top:0;
+  bottom:0;
+  border-left:8px solid var(--hong);
+}
+.detail .timeline-stamp {
+  grid-column:1 / 3;
+  grid-row:1;
+  position:static;
+  display:grid;
+  grid-template-columns:var(--time) var(--rail);
+  align-content:start;
+  padding:0;
+  text-align:left;
+}
+.detail .timeline-stamp strong { grid-column:1; font-size:24px; line-height:1.3; color:var(--ink); padding-right:8px; }
+.detail .timeline-stamp small { grid-column:1; font-size:14px; line-height:1.5; color:var(--muted); padding-right:8px; }
+.detail .stop-number {
+  position:absolute;
+  left:calc(var(--time) + var(--rail) / 2 - 17px);
+  top:0;
+  right:auto;
+  z-index:1;
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  box-sizing:border-box;
+  border:3px solid var(--hong);
+  border-radius:50%;
+  background:#fff!important;
+  color:var(--hong)!important;
+  font-family:var(--font-head);
+  font-weight:800;
+  font-size:15px;
+  box-shadow:none;
+  order:0;
+}
+.detail .stop .timeline-card,.stop .timeline-card,.timeline-card {
+  grid-column:3;
+  grid-row:1;
+  min-width:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  box-shadow:none;
+}
+.detail .timeline-card h4 { margin:2px 0 6px; font-size:24px; line-height:1.35; color:var(--ink); }
+.detail .step-category { margin:0 0 4px; }
+.stop-cost,.detail .stop-cost { display:inline-block; background:none!important; border:0!important; padding:0!important; color:var(--ink)!important; font-weight:700; font-variant-numeric:tabular-nums; }
+/* 구간 줄: 노선은 이어지고 글은 장소 이름과 같은 열. 자동차 실제 경로만 실선, 도보 짧은 점선, 그 밖 긴 점선(지도 범례와 같음). */
+.detail .route-line-block { position:relative; padding:4px 0 16px var(--band); }
+.detail .route-line-block.route-leg-short::before { border-left-style:dotted; }
+.detail .route-line-block.route-leg-long::before { border-left-style:dashed; }
+.detail .route-line {
+  margin:0;
+  padding:8px 0;
+  background:none;
+  border:0;
+  border-radius:0;
+  color:var(--muted);
+  font-weight:500;
+}
+.detail .route-line-text { color:var(--muted); }
+.detail .route-line-source { color:var(--muted); }
+.detail .transport-chooser,.detail .transport-bulk { background:#fff; border:1px solid var(--line); border-radius:10px; }
+/* 같은 열에 놓이는 주변 식당 제안도 노선 옆에 둔다. */
+.detail>.meal-suggestions { position:relative; margin:0 0 16px var(--band)!important; }
+.detail>.meal-suggestions::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
+.detail .stop:last-of-type { padding-bottom:12px; }
+@media(max-width:800px) {
+  .detail { --time:0px; --rail:36px; }
+  .detail .stop { grid-template-columns:var(--rail) minmax(0,1fr); padding-bottom:24px; }
+  .detail .timeline-stamp { grid-column:2; grid-row:1; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; padding:4px 0 2px; }
+  .detail .timeline-stamp strong { font-size:19px; padding:0; }
+  .detail .timeline-stamp small { padding:0; }
+  .detail .stop-number { left:calc(var(--rail) / 2 - 17px); top:0; }
+  .detail .stop .timeline-card,.detail .timeline-card { grid-column:2; grid-row:2; padding-left:0; }
+  .detail .timeline-card h4 { font-size:19px; }
+  .detail .stop::before,.detail .route-line-block::before { left:calc(var(--rail) / 2 - 4px); }
+  .detail .route-line-block { padding-left:var(--rail); }
+  .detail>.meal-suggestions { margin-left:var(--rail)!important; }
+}
+
+/* 일정 안의 사진·근거·블로그·메뉴: 흰 바탕, 1px 선, 그림자 없음. */
+.place-photo-panel { background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+.photo-viewport,.place-photo img { background:var(--platform); border-radius:0; }
+/* 사진 출처 줄: 글과 링크를 같은 크기로, 링크는 출처 색(청)으로. */
+:is(main,dialog) .place-photo figcaption { font-size:14px!important; line-height:1.6; color:var(--muted); }
+:is(main,dialog) .place-photo figcaption a { font-size:inherit; line-height:inherit; font-weight:400; color:var(--cheong); }
+.photo-arrow { background:var(--ink); border:1px solid #fff; box-shadow:none; }
+.photo-arrow:hover { background:var(--hong); }
+.photo-counter { background:var(--ink); }
+.photo-eyebrow { display:block; font-size:14px; letter-spacing:0; color:var(--muted); }
+.place-evidence,.place-blogs,.restaurant-menu,.verified-facts,.experience-panel>details,.experience-controls,.course-search-panel {
+  background:#fff!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+}
+.place-blogs summary,.place-evidence>summary,.course-evidence>summary,.experience-panel summary { color:var(--ink)!important; }
+.evidence-item { background:#fff; border-color:var(--line); }
+.evidence-ok .evidence-badge { background:var(--platform); color:var(--ink); border-color:var(--line); }
+.evidence-info .evidence-badge { background:#fff; color:var(--cheong); border-color:var(--line); }
+.evidence-check .evidence-badge,.evidence-summary-count { background:var(--warn-bg); color:var(--ink); border-color:var(--ink); }
+.menu-heading,.menu-price-row b { color:var(--ink); }
+.meal-suggestions { background:var(--platform)!important; border:0!important; border-radius:0!important; }
+.meal-card { background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; box-shadow:none; }
+.photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
+
+/* ---------- 확인: 네 가지 확인은 2열 정의 목록 ---------- */
+.execution-summary { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; padding:20px 0 4px; box-shadow:none; }
+.execution-summary h3 { color:var(--ink); }
+.execution-summary .execution-grid { display:block; margin:12px 0 16px; }
+.execution-summary .execution-grid>div {
+  display:grid;
+  grid-template-columns:6.5em minmax(0,1fr);
+  gap:0 16px;
+  align-items:baseline;
+  padding:10px 0;
+  background:none;
+  border:0;
+  border-bottom:1px solid var(--line);
+  border-radius:0;
+  box-shadow:none;
+}
+.execution-summary .execution-grid>div:first-child { border-top:1px solid var(--line); }
+.execution-summary .execution-grid strong { margin:0; color:var(--muted); font-size:15px; font-weight:700; }
+.execution-summary .execution-grid p { margin:0; color:var(--ink); font-size:16px; }
+.execution-summary summary { color:var(--ink); }
+.execution-summary .verification-place>a { color:var(--cheong); }
+.detail .table-scroll { border:0; border-radius:0; }
+.detail td { color:var(--ink); }
+.detail .total-row { background:none; border:0; border-bottom:1px solid var(--line); border-radius:0; padding:12px 0; }
+.detail .total-row>span:last-child { color:var(--ink); }
+.planning-decision { background:var(--platform); border:0; border-radius:0; box-shadow:none; }
+.planning-decision h3 { color:var(--ink); }
+.planning-decision>.partner-agreement { border-top:1px solid var(--line); }
+.planning-decision .actions button { border-radius:10px; }
+
+/* ---------- 축제: 청색 띠로 구분, 사진은 자르지 않고 출처는 사진 아래 ---------- */
+#festival-section,.festival-panel {
+  background:#fff;
+  border:0;
+  border-top:8px solid var(--cheong);
+  border-radius:0;
+  box-shadow:none;
+  padding:20px 0 8px;
+}
+.festival-panel .section-heading h3 { color:var(--cheong); }
+.festival-demo-note { background:var(--platform); color:var(--ink); border-radius:0; }
+.festival-card { border:1px solid var(--line); border-radius:10px; background:#fff; box-shadow:none; }
+.festival-card>strong { font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
+.festival-card a { color:var(--cheong); }
+.festival-chosen { border-color:var(--line); border-left:4px solid var(--hong); box-shadow:none; }
+.festival-photo-frame { background:var(--platform); }
+.festival-photo-frame img { object-fit:contain; }
+.festival-photo-credit { font-size:14px; color:var(--muted); text-align:left; }
+.festival-origin-note { background:var(--platform); border:0; border-left:8px solid var(--cheong); border-radius:0; color:var(--ink); }
+.festival-origin-note .festival-origin-title,.festival-context { color:var(--ink)!important; }
+.festival-course-tag { background:#fff; border:1px solid var(--cheong); color:var(--cheong); }
+.map-festival-note { color:var(--ink); }
+
+/* ---------- 지도 ---------- */
+.plan-map-card { background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:none; }
+.plan-map-card h2 { font-size:19px; color:var(--ink); }
+.naver-plan-map { border:1px solid var(--line); border-radius:0; background:var(--platform); box-shadow:none; }
+.map-reconnect { background:var(--platform); border:0; border-radius:0; }
+.route-marker { background:var(--hong); border:3px solid #fff; box-shadow:none; }
+.route-marker.route-start { background:var(--ink); }
+/* 지도 안내 문구가 "주황색 번호"라고 부르는 주변 식당 표시. */
+.route-marker.restaurant-marker { background:#a3480f; }
+
+/* ---------- 부가: 레저 · 대화 · 후기 ---------- */
+.leisure-course-panel { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; box-shadow:none; padding:24px 0; }
+.leisure-course-panel>h3 { color:var(--ink); }
+.leisure-choices,.leisure-results { background:#fff; border:1px solid var(--line); border-radius:10px; }
+.leisure-choices>summary,.leisure-results>summary,.leisure-setting>h4 { color:var(--ink); }
+.leisure-photo-grid img,.leisure-photo-empty { background:var(--platform); border-color:var(--line); border-radius:0; }
+.leisure-photo-grid figure>a { border-radius:0; }
+.chat-box { background:var(--platform); border:0; border-radius:0; }
+
+/* ---------- 장소 둘러보기 ---------- */
+.searchbar.panel,.panel.searchbar { background:var(--platform); border:0; border-radius:0; }
+.catalog .place-card,.place-card {
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow:none;
+  transform:none!important;
+}
+.catalog .place-card:hover { border-color:var(--ink); box-shadow:none; }
+.catalog .place-card h3 { font-size:19px; color:var(--ink); }
+
+/* ---------- 대화상자 · 알림 · 바닥글 ---------- */
+dialog {
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  color:var(--ink);
+  box-shadow:none;
+}
+dialog::backdrop { background:rgba(31,35,40,.6); backdrop-filter:none; }
+.dialog-top { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; letter-spacing:0; border-bottom:1px solid var(--line); }
+.dialog-top>button,.dialog-top button { background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px; }
+.location-result { background:#fff; border-color:var(--line); border-radius:10px; }
+.location-result:hover,.location-result:focus-visible { border-color:var(--ink); }
+.location-picked { background:var(--platform); border-radius:0; }
+.location-map { background:var(--platform); border-radius:0; }
+.share-canvas { border-radius:0; box-shadow:none; border:1px solid var(--line); }
+#toast { background:var(--ink); color:#fff; border:0; border-radius:10px; box-shadow:none; }
+footer { color:var(--muted); border-top:1px solid var(--line); }
+footer strong { color:var(--ink); font-family:var(--font-head); font-weight:800; }
+.section-indicator { background:#fff; border-bottom:1px solid var(--line); box-shadow:none; }
+.section-indicator-current { color:var(--ink); font-weight:700; }
+
+/* ---------- 공유 화면(shared.html) ---------- */
+/* 공유받은 코스도 같은 노선 띠: 장소마다 역 원, 사이를 8px 홍색 선으로 잇는다. */
+#shared-places { gap:0; }
+#shared-places article { position:relative; padding:0 0 24px 52px; background:none; border:0; border-radius:0; box-shadow:none; }
+#shared-places article::before { content:''; position:absolute; left:14px; top:0; bottom:0; border-left:8px solid var(--hong); }
+#shared-places article:first-child::before { top:12px; }
+#shared-places article:last-child::before { bottom:auto; height:12px; }
+#shared-places article::after { content:''; position:absolute; left:6px; top:2px; width:24px; height:24px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
+#shared-places article h2 { margin:0 0 4px; font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; color:var(--ink); }
+#shared-places article p { color:var(--muted); margin:0 0 10px; }
+body:has(#shared-places) main { max-width:880px; padding-block:24px 48px; }
+
+/* ---------- 좁은 화면 ---------- */
+@media(max-width:1000px) {
+  .hero-copy { display:block; }
+  body:not(.show-date-plan) .hero-photo { display:none; }
+  .hero .hero-description { margin-bottom:24px; }
+  .curation-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:800px) {
+  body:not(.show-date-plan) .romance-hero { padding:28px 0 36px; }
+  .hero-actions { display:grid; grid-template-columns:minmax(0,1fr); justify-items:start; gap:8px; }
+  .hero-actions .primary { width:100%; }
+  .curation { padding-block:32px 40px; }
+  .curation-grid { grid-template-columns:minmax(0,1fr); }
+  /* 모바일에서는 동네 목록도 한 줄 노선으로 잇는다. */
+  .curation-card::after { content:''; position:absolute; left:14px; top:0; bottom:0; border-left:4px solid var(--hong); z-index:0; }
+  .curation-card:first-child::after { top:22px; }
+  .curation-card:last-child::after { bottom:auto; height:22px; }
+  .curation-card::before { position:relative; z-index:1; }
+  .plan-card,.plan-card.selected { padding:18px 16px; }
+  .plan-card.selected { padding-left:13px; }
+}
+@media(max-width:420px) {
+  .hero .hero-description { font-size:16px!important; }
+  .line-sample { --time:4.2em; --rail:30px; }
+  .line-sample time,.line-sample .line-name { font-size:19px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .curation-card,.hero-photo img,.primary { transition:none; }
+}
+@media print {
+  .line-sample li::before,.detail .stop::before,.detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+}
+body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }

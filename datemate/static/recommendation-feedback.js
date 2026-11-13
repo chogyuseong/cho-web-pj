@@ -76,7 +76,7 @@ function runDemoSample(){
   for(const [key,value] of Object.entries(defaults))form.elements[key].value=value;
   for(const key of ['reservation','return_home','use_mbti'])form.elements[key].checked=false;
   setDateClassification('콘셉트별','');document.querySelectorAll('[name=themes]').forEach(input=>input.checked=false);
-  $('#mode-badge').textContent='DEMO SPACE';$('#parse-notice').textContent='가상 장소·출발지와 기본 조건으로 시연합니다. 실제 방문 일정이 아닙니다.';
+  $('#mode-badge').textContent='가상 장소 데모';$('#parse-notice').textContent='가상 장소·출발지와 기본 조건으로 시연합니다. 실제 방문 일정이 아닙니다.';
   form.requestSubmit();
 }
 

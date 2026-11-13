@@ -83,7 +83,8 @@ async function changePlanTransport(body, focusKey, box, status) {
 // 일정의 구간 줄: "A → B · 도보 18분 · 추정" + [수단 바꾸기]. 누르면 바로 아래에 수단 4개가 펼쳐진다.
 function routeLine(plan, index, label) {
   const leg = plan.legs[index],
-    wrap = node('div', undefined, 'route-line-block'),
+    // 노선 띠의 구간 선 모양은 지도 범례와 같다: 자동차 실제 경로 실선, 도보 짧은 점선, 그 밖 긴 점선.
+    wrap = node('div', undefined, 'route-line-block route-leg-' + (typeof legLineStyle === 'function' ? legLineStyle(plan, leg) : 'long')),
     line = node('div', undefined, 'route-line');
   line.append(node('span', `${label} · ${legModeLabel(plan, leg)}`, 'route-line-text'));
   wrap.append(line);

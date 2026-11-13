@@ -134,7 +134,7 @@ function drawPlanMap(plan){
         const isRoad=style==='road';
         const path=isRoad?leg.path.map(([lon,lat])=>new naver.maps.LatLng(lat,lon)):[coord(points[i]),coord(points[i+1])];
         if(isRoad){actual++;path.forEach(p=>bounds.extend(p));}
-        new naver.maps.Polyline({map,path,strokeColor:isRoad?'#294d3d':'#a16b45',strokeWeight:isRoad?5:3,
+        new naver.maps.Polyline({map,path,strokeColor:isRoad?'#b5245e':'#55606b',strokeWeight:isRoad?5:3,
           strokeOpacity:.9,strokeStyle:LINE_DASH.naver[style]});
       }
       map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
@@ -216,10 +216,10 @@ function drawPlanMap(plan){
         const coordinates=points.map(point=>[point.lat,point.lon]);
         points.forEach((point,i)=>{
           const title=node('span',(i===0?'출발':i>plan.places.length?'귀가':String(i))+' · '+point.name);
-          L.circleMarker([point.lat,point.lon],{radius:9,color:i===0?'#c65b32':'#294d3d',fillOpacity:.85}).addTo(map).bindTooltip(title,{permanent:true,direction:'top'});
+          L.circleMarker([point.lat,point.lon],{radius:9,color:i===0?'#1f2328':'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map).bindTooltip(title,{permanent:true,direction:'top'});
         });
         // 구간마다 수단에 맞는 점선으로 잇는다(공개 지도에는 실제 도로 경로를 그리지 않는다).
-        for(let i=0;i<coordinates.length-1;i++){const style=legLineStyle(plan,plan.legs[i]);L.polyline([coordinates[i],coordinates[i+1]],{color:'#a16b45',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style}).addTo(map);}
+        for(let i=0;i<coordinates.length-1;i++){const style=legLineStyle(plan,plan.legs[i]);L.polyline([coordinates[i],coordinates[i+1]],{color:'#55606b',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style}).addTo(map);}
         wrap.updateFestivals=()=>{
           if(disposed||!mapCanvas.isConnected)return;
           clearFestivals();const items=festivalMapItems();

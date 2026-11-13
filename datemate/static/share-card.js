@@ -9,17 +9,21 @@ async function makeShareCanvas(plan){
   await document.fonts.ready;
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
   const c=canvas.getContext('2d');if(!c)throw Error('이 브라우저에서는 이미지 저장을 지원하지 않아요. 인쇄/PDF를 이용해 주세요.');
-  c.fillStyle='#eef5f2';c.fillRect(0,0,1080,1350);c.fillStyle='#fff';c.fillRect(48,48,984,1254);
-  c.fillStyle='#396357';c.font='600 26px sans-serif';c.fillText('DATE MATE / OUR DAY',96,112);
-  c.fillStyle='#172f2a';c.font='bold 46px sans-serif';wrapCanvasText(c,plan.decision_summary?.title||'함께 보내는 하루',96,184,880,58,2);
-  c.font='26px sans-serif';c.fillStyle='#526960';c.fillText(`${plan.conditions.visit_date} · ${plan.conditions.people}명 · ${plan.places.length}곳`,96,310);
+  // 화면과 같은 노선 디자인: 승강장색 테두리, 홍색 노선 띠와 흰 역 원, 먹색 글.
+  const INK='#1f2328',MUTED='#55606b',HONG='#b5245e',BODY='"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif',HEAD='"DateMate Line Heading",'+BODY;
+  c.fillStyle='#f1f3f2';c.fillRect(0,0,1080,1350);c.fillStyle='#fff';c.fillRect(48,48,984,1254);
+  c.fillStyle=HONG;c.font='800 28px '+HEAD;c.fillText('데이트메이트',96,112);
+  c.fillStyle=INK;c.font='800 46px '+HEAD;wrapCanvasText(c,plan.decision_summary?.title||'함께 보내는 하루',96,184,880,58,2);
+  c.font='26px '+BODY;c.fillStyle=MUTED;c.fillText(`${plan.conditions.visit_date} · ${plan.conditions.people}명 · ${plan.places.length}곳`,96,310);
+  if(plan.places.length>1){c.fillStyle=HONG;c.fillRect(116,394,8,(plan.places.length-1)*137);}
   plan.places.forEach((p,i)=>{
-    const y=386+i*137;c.fillStyle='#e7f1eb';c.beginPath();c.arc(120,y+8,25,0,Math.PI*2);c.fill();c.fillStyle='#264e41';c.font='bold 26px sans-serif';c.fillText(String(i+1),112,y+17);
-    c.fillStyle='#172f2a';c.font='bold 31px sans-serif';wrapCanvasText(c,p.name,170,y+2,770,38,2);
-    c.fillStyle='#60766e';c.font='23px sans-serif';c.fillText(`${plan.timeline[i]?.arrival||''} · ${p.category}`,170,y+86);
+    const y=386+i*137;c.fillStyle='#fff';c.beginPath();c.arc(120,y+8,24,0,Math.PI*2);c.fill();c.lineWidth=6;c.strokeStyle=HONG;c.stroke();
+    c.fillStyle=HONG;c.font='800 24px '+HEAD;c.textAlign='center';c.fillText(String(i+1),120,y+17);c.textAlign='left';
+    c.fillStyle=INK;c.font='800 31px '+HEAD;wrapCanvasText(c,p.name,170,y+2,770,38,2);
+    c.fillStyle=MUTED;c.font='23px '+BODY;c.fillText(`${plan.timeline[i]?.arrival||''} · ${p.category}`,170,y+86);
   });
-  c.fillStyle='#264e41';c.font='bold 32px sans-serif';c.fillText(`예상 비용 ${range(plan.total)}`,96,1136);
-  c.font='23px sans-serif';c.fillStyle='#526960';const mode=travelMode(plan);c.fillText(`${mode.name} 이동 약 ${travelMinutes(plan)}분 · ${mode.basis}`,96,1181);
+  c.fillStyle=INK;c.font='800 32px '+HEAD;c.fillText(`예상 비용 ${range(plan.total)}`,96,1136);
+  c.font='23px '+BODY;c.fillStyle=MUTED;const mode=travelMode(plan);c.fillText(`${mode.name} 이동 약 ${travelMinutes(plan)}분 · ${mode.basis}`,96,1181);
   c.font='21px sans-serif';wrapCanvasText(c,'영업·예약·현재 가격은 방문 전 확인해 주세요. 미확인 비용은 합계에서 제외될 수 있어요.',96,1230,880,29,2);
   return canvas;
 }

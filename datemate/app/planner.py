@@ -13,14 +13,16 @@ def clock(value):return f'{value//60:02}:{value%60:02}'
 
 def candidates(c):
     rows=[]
-    classified=classification_themes(c)
+    from .taxonomy import filtering_themes,preferred_themes,matches_classification,indoor_weather
+    # 직접 고른 데이트 분류만 후보를 거른다. 화면이 대신 넣은 분류(홈 동네 카드)는 아래 정렬과 fit_score의 우선순위로만 쓴다.
+    classified=filtering_themes(c);classification_first=preferred_themes(c)
     from .quality import pool,is_meal
     for p in pool(c):
         place_themes=set(p.get('themes') or [p['category']])
         meal=c.include_meal and is_meal(p)
         if c.themes and not place_themes.intersection(c.themes) and not meal:continue
         if classified and not place_themes.intersection(classified) and not meal:continue
-        if c.date_category=='날씨별' and c.date_subcategory in ('비 오는 날','눈 오는 날') and p['setting']!='indoor':continue
+        if indoor_weather(c) and p['setting']!='indoor':continue
         if c.setting!='any' and p['setting']!=c.setting:continue
         if any(word and word.lower() in (p['name']+' '+p['category']+' '+' '.join(p['tags'])).lower() for word in c.avoid):continue
         if p['reservation'] and not c.reservation:continue
@@ -29,6 +31,7 @@ def candidates(c):
     preferred='휴식·힐링' if c.mbti.startswith('I') else '레저·활동'
     words=[w for w in re.findall(r'[가-힣A-Za-z0-9]+',c.request) if len(w)>1]
     rows.sort(key=lambda p: (-sum(w in (p['name']+' '+p['category']+' '+' '.join(p['tags'])) for w in words),-(.1 if c.use_mbti and c.mbti and not c.themes and not classified and p['category']==preferred else 0),distance(c.origin.model_dump(),p)))
+    if classification_first:rows.sort(key=lambda p:not matches_classification(p,classification_first))
     rows.sort(key=lambda p:-concept_score(p,c))
     from .request_intent import place_score
     rows.sort(key=lambda p:-place_score(p,c))
@@ -114,13 +117,13 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
     if now>end and not soft:return None,'전체 일정 시간 초과'
     if c.max_walk is not None and walking>c.max_walk and not soft:return None,'전체 도보 시간 초과'
     total=[sum(row['amount'][i] for row in costs if row['amount'] is not None) for i in (0,1)]
-    if total[1]>c.budget and not soft:return None,'예산 초과 (가격 범위 상한 기준)'
+    if not c.budget_unlimited and total[1]>c.budget and not soft:return None,'예산 초과 (가격 범위 상한 기준)'
     known=[sum(row['amount'][i] for row in costs if row['amount'] is not None and row['status']=='confirmed') for i in (0,1)]
     estimated=[total[i]-known[i] for i in (0,1)]
     status='데모 가정 기준 통과' if c.mode=='demo' else '실제 장소 · 추정 일정 (영업·총예산 미검증)' if c.allow_estimates else '확인 필요' if unknown else '확인 자료 기준 통과'
     if unknown:status+=' · 미확인 비용 있음'
     return dict(places=selected,timeline=timeline,legs=legs,costs=costs,total=total,confirmed=known,estimated=estimated,
-        unknown=sorted(set(unknown)),remaining=[c.budget-total[1],c.budget-total[0]],minutes=now-minutes(c.start),
+        unknown=sorted(set(unknown)),remaining=None if c.budget_unlimited else [c.budget-total[1],c.budget-total[0]],minutes=now-minutes(c.start),
         walking=walking,finish=clock(now),status=status,conditions=c.model_dump(mode='json'),
         reasons=[f'{p["category"]} · 체류 {t["stay"]}분'+(' (사용자 설정)' if p['stay'] is None else '')+(' · 식사 방문 (시간·예산 포함)' if p.get('meal') else '')+(' · '+p['discovery_verification'] if p.get('discovery_verification') else '')+f' · 근거: {p["source"]}' for p,t in zip(selected,timeline)]),None
 
@@ -129,7 +132,8 @@ def recommend_strict(c,evidence=None,stage='planner'):
     if not pool:
         filters=[]
         if c.themes:filters.append('테마: '+', '.join(c.themes))
-        if c.date_subcategory:filters.append('데이트 분류: '+c.date_subcategory)
+        from .taxonomy import classification_strict
+        if classification_strict(c):filters.append('데이트 분류: '+c.date_subcategory)
         if c.setting!='any':filters.append('실내만' if c.setting=='indoor' else '실외만')
         return dict(plans=[],status='no_candidates',reasons=['현재 확보한 실제 장소 중 '+(' / '.join(filters) or '선택 조건')+'에 맞는 후보가 없습니다.'],
             suggestions=['테마·실내외·피할 활동 조건을 확인해 주세요. 조건은 자동으로 변경하지 않습니다.'],diagnostics={'catalog_count':len(places(c.mode)),'candidate_count':0})
@@ -144,6 +148,7 @@ def recommend_strict(c,evidence=None,stage='planner'):
             return dict(plans=[],status='origin_too_far',reasons=[f'출발지에서 가장 가까운 가상 장소까지 추정 {nearest}분으로, 구간 이동 제한 {c.max_leg}분을 초과합니다.'],
                 suggestions=['가상 장소는 서울 종로 시연 구역에 모여 있습니다. 데모 기본 조건으로 시연하거나 출발지·이동 제한을 직접 조정하세요.'],
                 diagnostics={'nearest_minutes':nearest,'max_leg':c.max_leg})
+    from .quality import extra_meals
     for position in range(c.count):
         next_beam=[]
         for selected in beam:
@@ -153,6 +158,10 @@ def recommend_strict(c,evidence=None,stage='planner'):
                 if p['id'] in c.locked.values() and c.locked.get(position)!=p['id']:continue
                 if c.theme_mode=='focus' and selected and p['category']!=selected[0]['category']:continue
                 plan,error=evaluate(selected+[p],c,partial=position<c.count-1)
+                # 음식 위주 요청이 아니면 식사 시간대마다 식당 1곳까지. meal_penalty는 정렬 키라서, 데이트 분류가 카페·전시를 걸러
+                # 후보가 식당만 남으면(분류와 무관하게 식사는 남는다) '식사 3곳' 코스를 막지 못했다. 이런 조합은 탐색에서 빼고
+                # 다른 종류가 없으면 기존 조건 완화(데이트 분류 확대 등)로 넘긴다.
+                if not error and extra_meals(plan,c):error='식사 장소 중복 (식사 시간대마다 식당 1곳)'
                 if error:reasons[error]+=1
                 else:next_beam.append(plan)
         # 제한된 빔 탐색: 비용·동선과 테마 다양성으로 후보를 줄여 폭발을 막는다.
@@ -199,13 +208,25 @@ def recommend_strict(c,evidence=None,stage='planner'):
     diagnostics={}
     pool_before_selection=list(final)
     final=select_options(final,c,diagnostics,stage=stage)
+    if c.date_subcategory:diagnostics['classification']=classification_diagnostics(c,pool,final)
     result=dict(plans=final,status='ok' if final else 'constraints_unmet',reasons=[k for k,_ in reasons.most_common(5)] if len(final)<3 else [],
-        suggestions=['조건은 자동 완화하지 않았습니다. 시간·예산·테마·예약 가능 여부를 수정해 다시 검색하세요.'] if len(final)<3 else [],
+        suggestions=['조건은 자동 완화하지 않았습니다. 시간·'+('' if c.budget_unlimited else '예산·')+'테마·예약 가능 여부를 수정해 다시 검색하세요.'] if len(final)<3 else [],
         search_note='최대 60개 빔 후보 내 탐색 결과이며 가능한 모든 일정의 존재를 보장하지 않습니다.',diagnostics=diagnostics)
     if experience:
         # 가격 확인 뒤 필수 조건으로 빠지는 코스를 채울 예비 후보. 응답·저장 전에 반드시 지운다.
         result['reserve']=reserve_candidates(pool_before_selection,final,c,limit=12)
     return result
+
+def classification_diagnostics(c,pool,plans):
+    """데이트 분류를 어떻게 썼는지. preference(화면이 넣은 분류)면 분류에 맞는 장소가 부족했는지를 남긴다."""
+    from .taxonomy import classification_strict,classification_themes,matches_classification
+    from .quality import is_meal
+    themes=classification_themes(c)
+    others=lambda plan:sum(not matches_classification(p,themes) and not (c.include_meal and is_meal(p)) for p in plan['places'])
+    filler=[others(plan) for plan in plans]
+    return dict(subcategory=c.date_subcategory,applied='filter' if classification_strict(c) else 'preference',themes=themes,
+        matching_candidates=sum(matches_classification(p,themes) for p in pool),candidates=len(pool),
+        other_places_per_plan=filler,shortfall=any(filler))
 
 def unmet_composition(plan):
     return any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in plan['condition_checks'])

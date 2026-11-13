@@ -13,7 +13,7 @@ function courseTitle(plan){
 function compactConditionSummary(plan){
   const root=node('div',undefined,'compact-condition-summary'),checks=plan.condition_checks||[];
   const labelList=rows=>[...new Set(rows.map(r=>{
-    if(r.condition==='budget')return r.state==='unmet'?`예산 ${won(Math.max(0,plan.total[1]-plan.conditions.budget))} 초과`:`비용 ${range(plan.total)}`;
+    if(r.condition==='budget')return budgetUnlimited(plan)?'예산 무관':r.state==='unmet'?`예산 ${won(Math.max(0,plan.total[1]-plan.conditions.budget))} 초과`:`비용 ${range(plan.total)}`;
     if(r.condition==='people')return plan.conditions.people+'명';
     if(r.condition==='end')return plan.finish+' 종료';
     if(r.condition==='count')return plan.places.length+'곳 방문';
@@ -22,6 +22,8 @@ function compactConditionSummary(plan){
     return r.label;
   }))].join(' · ')||'없음';
   const groups=[['요청과 다른 조건',checks.filter(r=>r.state==='unmet'),'condition-alert'],['방문 전 확인',checks.filter(r=>r.state==='unknown'),'condition-pending'],['추정으로 계산',checks.filter(r=>r.state==='estimated'),''],['맞춰진 조건',checks.filter(r=>r.state==='met'),'']];
+  // 예산 무관(state info)은 경고 모양 없이 ‘참고’ 한 줄로. 다른 참고 항목은 전처럼 이 요약에 넣지 않는다.
+  const notes=checks.filter(r=>r.state==='info'&&r.condition==='budget');if(notes.length)groups.push(['참고',notes,'']);
   for(const [title,rows,cls] of groups){const line=node('p',undefined,cls);line.append(node('strong',title+' '),node('span',labelList(rows)));line.title=rows.map(r=>r.message).join('\n');root.append(line);}
   return root;
 }
@@ -47,7 +49,7 @@ function conditionDifferences(plan){
   box.append(node('p',plan.condition_summary||(names.join('·')+' 조건을 함께 확인해 주세요.'),'condition-summary'));
   const list=node('ul');
   const pending=node('ul');
-  for(const item of plan.deviations||[]){const row=node('li');row.append(node('b','['+(item.label||labels[item.condition]||'기타')+(item.state==='unknown'?' · 확인 필요':' · 불일치')+'] '),node('span',item.message));(item.state==='unknown'?pending:list).append(row);}
+  for(const item of (plan.deviations||[]).filter(item=>item.state!=='info')){const row=node('li');row.append(node('b','['+(item.label||labels[item.condition]||'기타')+(item.state==='unknown'?' · 확인 필요':' · 불일치')+'] '),node('span',item.message));(item.state==='unknown'?pending:list).append(row);}
   if(!list.children.length)list.append(node('li','계산된 일정에서 입력 조건을 넘긴 항목은 없어요.'));
   box.append(list);
   if((plan.deviations||[]).some(item=>item.condition==='meal'&&item.state==='unmet'))box.append(mealRescuePanel(plan));
@@ -74,7 +76,7 @@ function runDemoSample(){
   form.elements.mode.value='demo';mode='demo';selected=null;locks.clear();plans=[];clearLocationsForMode();
   const defaults={region:statusData?.region||'서울',visit_date:today(),start:'11:00',end:'19:00',people:2,budget:100000,transport:'walk',count:3,theme_mode:'mix',setting:'any',avoid:'',max_leg:30,max_walk:'',mbti:'',request:''};
   for(const [key,value] of Object.entries(defaults))form.elements[key].value=value;
-  for(const key of ['reservation','return_home','use_mbti'])form.elements[key].checked=false;
+  for(const key of ['reservation','return_home','use_mbti','budget_unlimited'])if(form.elements[key])form.elements[key].checked=false;
   setDateClassification('콘셉트별','');document.querySelectorAll('[name=themes]').forEach(input=>input.checked=false);
   $('#mode-badge').textContent='가상 장소 데모';$('#parse-notice').textContent='가상 장소·출발지와 기본 조건으로 시연합니다. 실제 방문 일정이 아닙니다.';
   form.requestSubmit();

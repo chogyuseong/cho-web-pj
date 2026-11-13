@@ -10,13 +10,13 @@ function mountLocationFields(){
     selectedInput.value=locationState[kind]?.name||'';
     selectedInput.placeholder='주소 검색 또는 지도에서 선택하세요';
     label.append(selectedInput);
-    // 데이트할 지역은 조건 화면의 동네 칩·현재 위치가 먼저 보이고, 그 밖의 곳은 이 버튼으로 찾는다.
-    host.append(label,button(kind==='origin'?'다른 곳 찾기 · 주소 검색·지도':'주소 검색 · 지도에서 선택',()=>openLocationPicker(kind),'secondary full'));
+    // 데이트할 지역은 조건 화면이 이 칸을 바로 검색하는 칸으로 바꾸고(simple-form.js), 이 버튼은 지도에서 고를 때 쓴다.
+    host.append(label,button(kind==='origin'?'지도에서 고르기':'주소 검색 · 지도에서 선택',()=>openLocationPicker(kind),'secondary full'));
   }
 }
 function selectedLocation(kind){
   const point=locationState[kind];
-  if(!point)throw Error((kind==='origin'?'데이트할 지역을':'귀가지를')+' 주소 검색 또는 지도에서 선택해 주세요.');
+  if(!point)throw Error(kind==='origin'?'데이트할 지역을 동네 칩·검색·지도에서 골라 주세요.':'귀가지를 주소 검색 또는 지도에서 선택해 주세요.');
   return {...point};
 }
 function clearLocationsForMode(){

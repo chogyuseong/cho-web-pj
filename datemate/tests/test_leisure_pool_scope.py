@@ -44,10 +44,17 @@ def test_default_request_leaves_out_venues_found_by_leisure_search(catalog):
     dict(request='탁구 치고 싶어'),
     dict(request='운동하고 싶어'),
     dict(themes=['레저·활동']),
-    dict(date_category='타입별', date_subcategory='활동적인'),
+    # 조건 화면에서 소분류를 직접 고른 경우(화면이 explicit_fields 에 넣는다).
+    dict(date_category='타입별', date_subcategory='활동적인', explicit_fields=['date_subcategory']),
 ])
 def test_requests_that_want_leisure_keep_them(catalog, update):
     assert 'pingpong' in _ids(_conditions(**update))
+
+
+def test_card_classification_does_not_bring_in_leisure_search_venues(catalog):
+    # 홈 동네 카드(부산 해운대)가 넣은 '활동적인'은 사용자가 고른 것이 아니다. 기본 추천과 같으므로 운동 시설을 섞지 않는다.
+    ids = _ids(_conditions(date_category='타입별', date_subcategory='활동적인'))
+    assert 'pingpong' not in ids and {'cafe', 'park', 'curated-leisure'} <= ids
 
 
 def test_request_that_rejects_sport_does_not_count_as_wanting_it(catalog):

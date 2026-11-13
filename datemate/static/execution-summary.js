@@ -18,7 +18,7 @@ function executionSummary(plan) {
   const values = [
     ['영업·예약', `${known}/${plan.places.length}곳 최근 운영 자료 · 예약은 장소별 확인`],
     ['이동', `${travelMode(plan).label} · 총 ${travelMinutes(plan)}분 · 가장 긴 구간 ${Math.max(...plan.legs.map(r=>r.minutes||0))}분`],
-    ['예산', `${range(plan.total)} · ${plan.unknown.length?'추가 확인 비용 있음':'계산한 항목 기준'}`],
+    ['예산', `${budgetUnlimited(plan)?'예산 무관 · 예상 비용 ':''}${range(plan.total)} · ${plan.unknown.length?'추가 확인 비용 있음':'계산한 항목 기준'}`],
     ['식사', meal?.message || (plan.conditions.include_meal ? '현재 시간대는 식사 포함 우선 대상이 아니에요.' : '식사 자유 선택')]
   ];
   box.append(heading);

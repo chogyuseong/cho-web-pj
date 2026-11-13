@@ -1,3 +1,25 @@
+// Secrets and variables the container may receive. Missing ones are left out (never
+// passed as undefined), so the app falls back to its own defaults.
+// FEEDBACK_ADMIN_KEY (Secret) turns on the feedback admin view; DATEMATE_FEEDBACK_ENABLED
+// ("0" to switch off) hides the feedback tab and its write API.
+export const OPTIONAL_CONTAINER_ENV = Object.freeze([
+  "GMS_KEY", "GMS_BASE_URL", "GMS_MODEL", "EMBEDDING_MODE", "EMBEDDING_MODEL",
+  "NAVER_SEARCH_CLIENT_ID", "NAVER_SEARCH_CLIENT_SECRET", "NAVER_MAPS_KEY_ID",
+  "NAVER_MAPS_KEY", "NAVER_MAPS_JS_KEY_ID",
+  "MAP_TILE_URL", "MAP_TILE_ATTRIBUTION", "WIKI_CONTACT", "PHOTO_VISUAL_CHECK",
+  "TOUR_API_KEY",
+  "FEEDBACK_ADMIN_KEY", "DATEMATE_FEEDBACK_ENABLED",
+]);
+
+export function optionalContainerEnv(source) {
+  const env = {};
+  for (const key of OPTIONAL_CONTAINER_ENV) {
+    const value = source?.[key];
+    if (value !== undefined && value !== null) env[key] = String(value);
+  }
+  return env;
+}
+
 export function validPublicOrigin(value) {
   try {
     const url = new URL(value);

@@ -8,7 +8,7 @@ from app.planner import recommend
 def test_all_conflicting_conditions_and_unknowns_are_reported():
     c=Conditions(mode='real',allow_estimates=False,visit_date=date(2026,10,24),
         origin=dict(name='요청 출발지',lat=37.5,lon=127),start='11:00',end='12:00',people=3,budget=100,
-        count=3,themes=['카페·미식'],date_category='날씨별',date_subcategory='비 오는 날',theme_mode='focus',
+        count=3,themes=['카페·미식'],date_category='날씨별',date_subcategory='비 오는 날',explicit_fields=['date_subcategory'],theme_mode='focus',
         setting='indoor',avoid=['게임'],reservation=False,max_leg=5,max_walk=5,return_home=True,
         home=dict(name='요청 귀가지',lat=37.5,lon=127),locked={0:'wanted'},stay_minutes=30,request='조용한 장소',use_mbti=True)
     a,b=[copy.deepcopy(p) for p in places('demo')[:2]]

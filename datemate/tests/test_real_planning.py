@@ -33,7 +33,7 @@ def test_real_limits_and_explicit_estimate_opt_in():
 
 @pytest.mark.parametrize('category,subcategory',[(k,s) for k,values in DATE_CATEGORIES.items() for s in values])
 def test_all_date_choices_have_real_recommendations(category,subcategory):
-    c=conditions(date_category=category,date_subcategory=subcategory)
+    c=conditions(date_category=category,date_subcategory=subcategory,explicit_fields=['date_subcategory'])
     result=recommend(c)
     assert result['plans'],(category,subcategory,result)
     for plan in result['plans']:

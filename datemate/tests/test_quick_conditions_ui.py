@@ -150,7 +150,7 @@ def test_area_chip_is_one_tap_and_map_choice_clears_it(server):
         # 지도 창(다른 곳 찾기)으로 다른 곳을 고르면 칩 선택 표시가 풀린다.
         back_to_conditions(page)
         region_reply(page, {'status': 'ok', 'region': '부산', 'label': '부산광역시 수영구 광안동', 'message': ''})
-        page.locator('#origin-location').get_by_role('button', name='다른 곳 찾기 · 주소 검색·지도', exact=True).click()
+        page.locator('#origin-location').get_by_role('button', name='지도에서 고르기', exact=True).click()
         page.wait_for_function('!!locationMap', timeout=25000)
         page.evaluate('locationMap.setView([35.153,129.118],15,{animate:false})')
         page.locator('#dialog').get_by_role('button', name='지도 중심을 선택', exact=True).click()
@@ -176,25 +176,25 @@ def test_current_location_allowed(server):
         page.locator('#submit-plan').click()
         body = wait_job(page, bodies, 1)
         assert Conditions.model_validate(body).origin.name.startswith('서울특별시')
-        # 위치는 얻었지만 시·도를 확인하지 못하면 안내하고 지도 창을 연다.
+        # 위치는 얻었지만 시·도를 확인하지 못하면 안내하고 지역 검색 칸으로 이어 준다(지도 창을 갑자기 열지 않음).
         back_to_conditions(page)
         region_reply(page, {'status': 'key_missing', 'region': None, 'label': '', 'message': '키 없음'})
         here.click()
-        page.wait_for_function('document.querySelector("#dialog").open')
-        assert '시·도를 확인하지 못했어요' in page.locator('.area-status').inner_text()
-        page.locator('#close-dialog').click()
+        page.wait_for_function('document.querySelector(".area-status").textContent.includes("시·도를 확인하지 못했어요")')
+        assert not page.locator('#dialog').evaluate('dialog=>dialog.open')
+        assert page.evaluate('document.activeElement===form.elements.origin_name')
 
 
-def test_current_location_denied_opens_map(server):
-    # 권한을 주지 않은 브라우저: 위치 요청이 거부된다.
+def test_current_location_denied_points_to_search(server):
+    # 권한을 주지 않은 브라우저: 위치 요청이 거부된다. 권한을 켜는 방법을 알리고 검색 칸으로 이어 준다.
     with opened(server) as (page, errors):
         seen = region_reply(page, {'status': 'ok', 'region': '서울', 'label': '서울특별시 중구', 'message': ''})
         page.get_by_role('group', name='인기 동네').get_by_role('button', name='현재 위치', exact=True).click()
-        page.wait_for_function('document.querySelector("#dialog").open', timeout=20000)
-        assert '위치 권한이 허용되지 않았어요' in page.locator('.area-status').inner_text()
-        assert page.locator('#dialog').get_by_role('button', name='이 지역에서 데이트하기', exact=True).count() == 1
+        page.wait_for_function('document.querySelector(".area-status").textContent.includes("위치 권한이 허용되지 않았어요")', timeout=20000)
+        assert '‘허용’' in page.locator('.area-status').inner_text()
+        assert not page.locator('#dialog').evaluate('dialog=>dialog.open')
+        assert page.evaluate('document.activeElement===form.elements.origin_name')
         assert seen == [] and page.locator('[name=origin_name]').input_value() == ''
-        page.locator('#close-dialog').click()
 
 
 def test_condition_chips_update_inputs_and_summary(server):

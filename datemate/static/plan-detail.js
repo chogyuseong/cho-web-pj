@@ -33,10 +33,10 @@ function renderDetail() {
     stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'));
     stop.append(stamp);
     const body = node('div', undefined, 'timeline-card');
-    body.append(node('span', place.category, 'step-category'));
+    body.append(node('span', placeKind(place), 'step-category'));
     const cost = p.costs.find(c => c.name === place.name);
     if (cost) body.append(node('div', `${p.conditions.people}인 장소 비용 · ${range(cost.amount)}`, 'stop-cost'));
-    body.append(node('h4', place.name), node('div', `${p.timeline[i].arrival} ~ ${p.timeline[i].departure} · ${place.category}`, 'small'), linkedText('p', p.reasons[i], 'hint'));
+    body.append(node('h4', place.name), node('div', `${p.timeline[i].arrival} ~ ${p.timeline[i].departure} · ${placeKind(place)}`, 'small'), linkedText('p', p.reasons[i], 'hint'));
     const buttons = node('div', undefined, 'actions');
     buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 변경', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)), link('도착지 지도·길찾기 확인', p.legs[i].link));
     body.append(placeEvidencePanel(p, i));
@@ -106,7 +106,7 @@ function renderDetail() {
   for (const [label, value] of [
       ['확인된 비용', range(p.confirmed)],
       ['추정 비용', range(p.estimated)],
-      ['예산 대비 차액 (미확인 비용 제외)', range(p.remaining)]
+      budgetUnlimited(p) ? ['예산', '예산 무관 · 예산과 비교하지 않아요'] : ['예산 대비 차액 (미확인 비용 제외)', range(p.remaining)]
     ]) {
     const row = node('div', undefined, 'total-row');
     row.append(node('span', label), node('span', value));

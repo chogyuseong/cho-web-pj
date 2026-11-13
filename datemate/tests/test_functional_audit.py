@@ -127,7 +127,7 @@ def test_lock_replace_undo_chat_review_feedback_and_delete(audit_page):
 
 def test_address_keyboard_navigation_and_invalid_input(audit_page):
     page,base,errors=audit_page
-    page.locator('#origin-location').get_by_role('button',name='다른 곳 찾기 · 주소 검색·지도',exact=True).click()
+    page.locator('#origin-location').get_by_role('button',name='지도에서 고르기',exact=True).click()
     page.wait_for_function('!!locationMap',timeout=25000)
     page.route('**/api/locations/region',lambda route:route.fulfill(json={'status':'key_missing','region':None,'label':'','message':'시·도를 직접 골라 주세요.'}))
     page.locator('#dialog').get_by_role('button',name='지도 중심을 선택',exact=True).click()
@@ -398,7 +398,7 @@ def test_festival_failure_never_blocks_course_results(audit_page):
 
 def open_origin_picker(page):
     page.evaluate("form.elements.mode.value='real';form.elements.mode.dispatchEvent(new Event('change',{bubbles:true}))")
-    page.locator('#origin-location').get_by_role('button',name='다른 곳 찾기 · 주소 검색·지도',exact=True).click()
+    page.locator('#origin-location').get_by_role('button',name='지도에서 고르기',exact=True).click()
     page.wait_for_function('!!locationMap',timeout=25000)
     page.evaluate('locationMap.setView([35.16,129.16],15,{animate:false})')
 

@@ -47,7 +47,8 @@ def answer_plan(plan, question):
         for row in plan['costs']:
             lines.append(f"· {row['name']}: {money(row['amount'])} ({ {'confirmed':'확정','estimated':'추정','unknown':'미확인'}.get(row['status'],row['status'])})")
         if plan.get('unknown'):lines.append('합계에 포함되지 않은 미확인 비용: '+', '.join(plan['unknown']))
-        lines.append(f"입력 예산은 {c['budget']:,}원이며, 실제 주문·현장 요금에 따라 달라질 수 있어요.")
+        if c.get('budget_unlimited'):lines.append('예산 무관으로 고른 코스예요. 비용은 실제 주문·현장 요금에 따라 달라질 수 있어요.')
+        else:lines.append(f"입력 예산은 {c['budget']:,}원이며, 실제 주문·현장 요금에 따라 달라질 수 있어요.")
     if any(w in q for w in ('시간','언제','몇시','몇분','순서','일정','요약','코스','동선','이동','거리','도보','걸어','걸려','걸리','차로','귀가','얼마나걸')):
         lines.append(f"출발 {c['start']} → 종료 예정 {plan['finish']} · 전체 {plan['minutes']}분 · 총 도보 {plan['walking']}분")
         for p,t in zip(plan['places'],plan['timeline']):

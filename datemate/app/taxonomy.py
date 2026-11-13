@@ -26,6 +26,35 @@ def classification_themes(conditions):
     return DATE_THEMES.get(conditions.date_subcategory, [])
 
 
+def classification_strict(c):
+    """데이트 분류를 후보 조건으로 지킬지. 사용자가 조건 화면에서 소분류를 직접 고르거나(explicit_fields)
+    자유 입력 글에서 분류가 나온 경우만 조건이다. 홈 동네 카드처럼 화면이 대신 넣은 분류는 우선순위로만 쓴다
+    (분류에 맞는 장소를 먼저 넣고, 모자라면 다른 종류로 채운다. 완화·미충족으로 표시하지 않는다)."""
+    if not c.date_subcategory:return False
+    if {'date_category','date_subcategory'}&set(c.explicit_fields):return True
+    from .request_intent import intent
+    return intent(c)['patch'].get('date_subcategory')==c.date_subcategory
+
+
+def filtering_themes(c):
+    """후보를 거르는 분류 유형(직접 고른 분류만)."""
+    return classification_themes(c) if classification_strict(c) else []
+
+
+def preferred_themes(c):
+    """우선순위로만 쓰는 분류 유형(화면이 대신 넣은 분류)."""
+    return [] if classification_strict(c) else classification_themes(c)
+
+
+def matches_classification(place,themes):
+    return bool(set(place.get('themes') or [place['category']]).intersection(themes))
+
+
+def indoor_weather(c):
+    """'비 오는 날'·'눈 오는 날'을 직접 골랐을 때만 실내 장소로 한정한다."""
+    return c.date_category=='날씨별' and c.date_subcategory in ('비 오는 날','눈 오는 날') and classification_strict(c)
+
+
 CONCEPT_PROFILES = {
     '즐거운 데이트': {'search':'놀거리 체험', 'keywords':['방탈출','보드게임','오락실','게임','놀이','레저','액티비티']},
     '편안한 데이트': {'search':'산책 힐링', 'keywords':['정원','공원','숲','산책','휴식','힐링','한옥','북카페']},

@@ -1,0 +1,40 @@
+/* 피드백 작성·관리 화면. 배치만 맡고 색은 style.css 의 토큰을 쓴다. line.css 가 이 파일 뒤에 읽힌다. */
+.feedback-main { max-width:720px; margin:0 auto; padding:32px 16px 64px; }
+.feedback-main h1 { font-size:32px; line-height:1.3; margin:8px 0 12px; }
+.feedback-lead { font-size:16px; color:var(--muted); margin:0 0 24px; }
+.feedback-form { display:flex; flex-direction:column; gap:8px; }
+.feedback-form label { display:block; margin:12px 0 0; font-size:16px; font-weight:700; color:var(--ink); }
+.feedback-required,.feedback-optional { font-size:14px; font-weight:500; color:var(--muted); }
+.feedback-form textarea,.feedback-form input,.feedback-form select { width:100%; min-height:44px; font-size:16px; line-height:1.6; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--ink); }
+.feedback-form textarea { min-height:160px; resize:vertical; }
+.feedback-form :is(textarea,input,select):focus-visible { outline:3px solid var(--cheong); outline-offset:2px; }
+.feedback-count,.feedback-note { font-size:14px; color:var(--muted); margin:0; }
+.feedback-trap { position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden; }
+.feedback-auto { background:var(--platform); padding:16px; margin:16px 0 8px; }
+.feedback-auto h2 { font-size:16px; margin:0 0 8px; }
+.feedback-auto ul { margin:0 0 8px; padding-left:20px; }
+.feedback-auto :is(li,p) { font-size:14px; color:var(--ink); margin:0; }
+.feedback-form button[type=submit] { align-self:flex-start; min-height:44px; min-width:120px; font-size:16px; margin-top:8px; }
+.feedback-status,.feedback-error { font-size:16px; margin:8px 0 0; }
+.feedback-status:empty,.feedback-error:empty { display:none; }
+.feedback-status { color:var(--ink); border-left:4px solid var(--hong); padding:8px 12px; background:var(--platform); }
+.feedback-error { color:var(--ink); background:var(--warn-bg); padding:8px 12px; }
+.feedback-back { margin-top:32px; font-size:16px; }
+.feedback-back a { color:var(--cheong); }
+
+/* 관리 화면 */
+.admin-login { max-width:420px; }
+.admin-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:24px 0 12px; }
+.admin-toolbar h2 { font-size:24px; margin:0; }
+.admin-toolbar p { margin:0; font-size:14px; color:var(--muted); flex:1 1 12em; }
+.admin-toolbar button,.admin-actions button,.admin-pages button { min-height:44px; font-size:15px; padding:8px 14px; }
+.admin-entries { list-style:none; margin:0; padding:0; }
+.admin-entry { border-top:1px solid var(--line); padding:16px 0; }
+.admin-entry.handled .admin-message { color:var(--muted); }
+.admin-meta { font-size:14px; color:var(--muted); margin:0 0 8px; }
+.admin-message { font-size:16px; white-space:pre-wrap; overflow-wrap:anywhere; margin:0 0 8px; }
+.admin-contact { font-size:14px; overflow-wrap:anywhere; margin:0 0 8px; }
+.admin-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.admin-empty { font-size:16px; color:var(--muted); padding:16px 0; }
+.admin-pages { display:flex; align-items:center; gap:12px; margin:16px 0 0; }
+.admin-pages span { font-size:14px; }

@@ -21,7 +21,15 @@ def fit_score(plan,c):
     from .taxonomy import concept_score
     weights={'balanced':{},'talk':{'카페·미식':1,'휴식·힐링':1},'food':{'카페·미식':1},'photo':{'산책·풍경':1,'문화·예술':.5},'activity':{'체험·제작':1,'레저·활동':1,'오락·놀이':1}}
     value=sum(weights[c.priority].get(p['category'],0)+(1 if c.priority=='food' and p.get('meal') else 0)-3*bool(p.get('report_pending')) for p in plan['places'])
-    value+=sum(concept_score(p,c) for p in plan['places'])
+    # 화면이 대신 넣은 데이트 분류(홈 동네 카드)는 거르지 않고, 분류에 맞는 장소가 든 코스에 1점, 분류 키워드 점수는
+    # 코스에서 가장 높은 1곳만 더해 먼저 넣는다. 장소마다 합산하면 분류에 다 맞는 조합만 빔의 최상위 등급을 채워
+    # (구성 할당은 같은 등급 안에서만 자리를 옮긴다) 3안이 한 구성으로 모인다(경주 '지적인 데이트': 식사+보기+하기 33개).
+    # 사용자가 직접 고른 분류는 지금처럼 장소마다 합산한다.
+    from .taxonomy import preferred_themes,matches_classification
+    preferred=preferred_themes(c)
+    concept=[concept_score(p,c) for p in plan['places']]
+    if preferred:value+=max(concept,default=0)+any(matches_classification(p,preferred) for p in plan['places'])
+    else:value+=sum(concept)
     if c.trust_mode=='discovery':value+=sum(p['id'].startswith('discovered:') for p in plan['places'])
     if c.trust_mode=='balanced':value+=.25*sum(operating_source_current(p) for p in plan['places'])
     if c.meeting_type=='first':value-=sum(r['minutes'] for r in plan['legs'])*.03

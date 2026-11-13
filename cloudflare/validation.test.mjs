@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   validPublicOrigin, validDatabaseUrl, internalProbePath, edgeRateLimitKey, staticAssetPath,
+  optionalContainerEnv, OPTIONAL_CONTAINER_ENV,
 } from "./validation.mjs";
 
 test("edge rate-limit key: IPv4 per address", () => {
@@ -72,4 +73,25 @@ test("PostgreSQL connections must require TLS without duplicate sslmode", () => 
     "postgresql://user:pass@db.example.com/app?sslmode=require&sslmode=disable",
     "https://db.example.com/app?sslmode=require", "not-a-url",
   ]) assert.equal(validDatabaseUrl(value), false, value);
+});
+
+test("optional container env skips missing values and carries the feedback settings", () => {
+  assert.deepEqual(optionalContainerEnv({}), {});
+  assert.deepEqual(optionalContainerEnv(undefined), {});
+  const env = optionalContainerEnv({
+    FEEDBACK_ADMIN_KEY: "fake-test-value", DATEMATE_FEEDBACK_ENABLED: 0,
+    TOUR_API_KEY: undefined, DATABASE_URL: "postgresql://x", UNLISTED: "y",
+  });
+  assert.deepEqual(env, { FEEDBACK_ADMIN_KEY: "fake-test-value", DATEMATE_FEEDBACK_ENABLED: "0" });
+  assert.ok(Object.values(optionalContainerEnv({ GMS_KEY: undefined, NAVER_MAPS_KEY: null })).length === 0);
+  for (const name of ["FEEDBACK_ADMIN_KEY", "DATEMATE_FEEDBACK_ENABLED", "TOUR_API_KEY"]) {
+    assert.ok(OPTIONAL_CONTAINER_ENV.includes(name), name);
+  }
+});
+
+test("feedback paths are neither blocked as probes nor counted as static files", () => {
+  for (const path of ["/feedback", "/feedback/admin", "/api/feedback", "/api/feedback/admin/entries"]) {
+    assert.equal(internalProbePath(path), false, path);
+    assert.equal(staticAssetPath(path), false, path);
+  }
 });

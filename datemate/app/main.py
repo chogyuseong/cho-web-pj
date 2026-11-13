@@ -93,6 +93,9 @@ app.include_router(outcomes_router)
 from .festivals import router as festivals_router
 
 app.include_router(festivals_router)
+from .user_feedback import router as user_feedback_router
+
+app.include_router(user_feedback_router)
 
 
 @app.get("/healthz", include_in_schema=False)
@@ -853,7 +856,12 @@ def chat(kind: Literal["place", "plan"], id: str, data: ChatInput, request: Requ
 @app.get("/")
 def home():
     # 파일 변경 시 URL도 바꿔 이전 maps.js와 새 app.js의 혼합 로딩을 방지한다.
-    return HTMLResponse(versioned_page("index.html"), headers={"Cache-Control": "no-store"})
+    from .user_feedback import home_page
+
+    # DATEMATE_FEEDBACK_ENABLED 를 끄면 헤더의 피드백 탭을 뺀다.
+    return HTMLResponse(
+        home_page(versioned_page("index.html")), headers={"Cache-Control": "no-store"}
+    )
 
 
 @app.get("/favicon.ico", include_in_schema=False)

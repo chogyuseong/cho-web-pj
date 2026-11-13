@@ -193,6 +193,8 @@ def normalize(c):
         patch.pop('date_category',None);patch.pop('date_subcategory',None)
     for key in c.explicit_fields:
         patch.pop(key,None)
+    # 예산 무관을 고르면 글의 금액으로 예산을 바꾸지 않는다(어차피 쓰지 않는 값이다).
+    if c.budget_unlimited:patch.pop('budget',None)
     # 대분류와 소분류는 함께 바뀌어야 한다. 하나만 직접 고른 경우 글의 분류를 적용하지 않는다.
     if ('date_category' in patch)!=('date_subcategory' in patch):
         patch.pop('date_category',None);patch.pop('date_subcategory',None)

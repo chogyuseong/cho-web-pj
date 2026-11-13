@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex, nofollow"><title>피드백 관리 · 데이트메이트</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/readability.css">
+<link rel="stylesheet" href="/static/feedback.css">
+<link rel="stylesheet" href="/static/line.css">
+<script src="/static/feedback-admin.js" defer></script>
+</head>
+<body class="feedback-page">
+<main id="main-content" tabindex="-1" class="feedback-main feedback-admin">
+<h1>피드백 관리</h1>
+<p class="feedback-lead">관리자 키는 이 탭의 메모리에만 있어요. 탭을 닫거나 [잠그기]를 누르면 사라져요.</p>
+<form id="admin-login" class="feedback-form admin-login">
+<label for="admin-key">관리자 키</label>
+<input id="admin-key" name="key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+<button type="submit" class="primary" id="admin-open">목록 열기</button>
+</form>
+<p id="admin-status" class="feedback-status" role="status" aria-live="polite"></p>
+<p id="admin-error" class="feedback-error" role="alert"></p>
+<section id="admin-list" class="admin-list" aria-labelledby="admin-list-title" hidden>
+<div class="admin-toolbar"><h2 id="admin-list-title" tabindex="-1">받은 글</h2><p id="admin-summary"></p><button type="button" class="secondary" id="admin-reload">새로 고침</button><button type="button" class="secondary" id="admin-lock">잠그기</button></div>
+<ol id="admin-entries" class="admin-entries"></ol>
+<nav class="admin-pages" aria-label="페이지"><button type="button" class="secondary" id="admin-prev">이전</button><span id="admin-page"></span><button type="button" class="secondary" id="admin-next">다음</button></nav>
+</section>
+</main>
+</body></html>

@@ -42,6 +42,8 @@ def maintain():
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'provider:%' AND bucket<?",(int(time.time()//3600)-2,))
         db.execute("DELETE FROM request_budgets WHERE (scope LIKE 'http:%' OR scope LIKE 'chat:%' OR scope LIKE 'ip:%') AND bucket<?",(int(time.time()//60)-2,))
         db.execute('DELETE FROM provider_metrics WHERE hour<?',(int(time.time()//3600)-24*30,))
+        # Feedback limits use day buckets (app/user_feedback.py); the stored entries are not touched.
+        db.execute("DELETE FROM request_budgets WHERE scope LIKE 'feedback:%' AND bucket<?",(int(time.time()//86400)-1,))
     retention()
     directory=os.getenv('DATEMATE_BACKUP_DIR','')
     if directory and not postgres_enabled():

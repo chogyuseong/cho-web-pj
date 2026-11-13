@@ -14,9 +14,11 @@ def relaxation_steps(c):
     if c.mode=='real' and not c.allow_estimates:specifications.append(('운영·이동 정보가 부족한 장소도 추정을 표시해 비교',{'allow_estimates':True}))
     if c.trust_mode!='balanced':specifications.append(('공식 운영자료 우선에서 지역 검색으로 확인한 후보까지 확대',{'trust_mode':'balanced'}))
     if 'themes' not in required:
+        from .taxonomy import classification_strict
         specifications += [('한 유형 집중에서 여러 유형 조합까지 확대',{'theme_mode':'mix'}),
-            ('선택한 테마 외의 활동 유형까지 확대',{'themes':[]}),
-            ('선택한 데이트 분류 외의 활동까지 확대',{'date_category':'','date_subcategory':''})]
+            ('선택한 테마 외의 활동 유형까지 확대',{'themes':[]})]
+        # 화면이 대신 넣은 분류는 원래 후보를 거르지 않으므로 '분류 확대' 단계가 없다.
+        if classification_strict(c):specifications.append(('선택한 데이트 분류 외의 활동까지 확대',{'date_category':'','date_subcategory':''}))
         from .request_intent import intent,INTENTS
         negative=' '.join(INTENTS[k][1][0]+' 제외' for k in intent(c)['excluded'])
         specifications.append(('자유 입력의 활동 선호를 넓혀 검색 (제외 요청 유지)',{'request':negative,'course_query':''}))
@@ -32,7 +34,7 @@ def relaxation_steps(c):
         numbers=[]
         if 'max_leg' not in required:numbers.append((f'구간 이동 제한 {c.max_leg}분 → {min(180,c.max_leg+15*level)}분',{'max_leg':min(180,c.max_leg+15*level)}))
         if c.max_walk is not None and 'max_walk' not in required:numbers.append((f'총 도보 제한 {c.max_walk}분 → {min(600,c.max_walk+30*level)}분',{'max_walk':min(600,c.max_walk+30*level)}))
-        if 'budget' not in required:
+        if 'budget' not in required and not c.budget_unlimited:
             budget=min(10000000,c.budget+max(10000*level,ceil(c.budget*(.1,.25,.5)[level-1]/1000)*1000))
             numbers.append((f'예산 {c.budget:,}원 → {budget:,}원 범위로 비교',{'budget':budget}))
         if 'end' not in required:

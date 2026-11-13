@@ -165,7 +165,7 @@ def headers(response, request, request_id):
     response.headers['Content-Security-Policy'] = content_security_policy(local_http(request))
     if production() and request.url.scheme == 'https':
         response.headers['Strict-Transport-Security'] = 'max-age=31536000'
-    if (request.url.path.startswith('/api/') or request.url.path in ('/', '/shared')
+    if (request.url.path.startswith('/api/') or request.url.path in ('/', '/shared', '/feedback', '/feedback/admin')
             or 'set-cookie' in response.headers or response.status_code >= 400):
         response.headers['Cache-Control'] = 'no-store'
         response.headers['Referrer-Policy'] = 'no-referrer'

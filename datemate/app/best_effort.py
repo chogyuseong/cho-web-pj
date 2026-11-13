@@ -12,14 +12,16 @@ def annotate(plan,c):
     from .planner import minutes
     changes=[]
     def add(key,message,penalty,state='unmet'):changes.append(dict(condition=key,label=CONDITION_LABELS[key],state=state,message=message,penalty=round(penalty,3)))
-    selected=plan['places'];wanted=set(c.themes);classified=set(classification_themes(c))
+    from .taxonomy import filtering_themes,indoor_weather
+    # 화면이 대신 넣은 데이트 분류는 우선순위로만 쓰므로 차이(감점)로 세지 않는다.
+    selected=plan['places'];wanted=set(c.themes);classified=set(filtering_themes(c))
     for p in selected:
         themes=set(p.get('themes') or [p['category']])
         if wanted and not themes.intersection(wanted):add('themes',p['name']+' — 요청한 '+', '.join(c.themes)+' 테마 대신 '+p['category']+' 장소예요.',3)
         if classified and not themes.intersection(classified):add('date_subcategory',p['name']+' — 선택한 ‘'+c.date_subcategory+'’에 해당하는 활동 유형과 달라요.',3)
-        indoor=c.setting=='indoor' or c.date_subcategory in ('비 오는 날','눈 오는 날')
+        weather=indoor_weather(c)
+        indoor=c.setting=='indoor' or weather
         if indoor and p['setting']!='indoor':
-            weather=c.date_subcategory in ('비 오는 날','눈 오는 날')
             prefix=p['name']+' — '+('‘'+c.date_subcategory+'’에는 실내 장소를 찾지만, ' if weather else '실내만 원하셨지만, ')
             unknown=p['setting'] is None
             add('weather' if weather else 'setting',prefix+('이 장소의 실내 여부는 확인되지 않았어요.' if unknown else '이 장소는 야외예요.'),3,'unknown' if unknown else 'unmet')
@@ -34,7 +36,7 @@ def annotate(plan,c):
     if excess>0:add('end',f"종료 {plan['finish']} — 요청 {c.end}보다 {excess}분 늦음",excess/30)
     if c.max_walk is not None and plan['walking']>c.max_walk:
         excess=plan['walking']-c.max_walk;add('max_walk',f"총 도보 {plan['walking']}분 — 요청보다 {excess}분 초과",excess/15)
-    if plan['total'][1]>c.budget:
+    if not c.budget_unlimited and plan['total'][1]>c.budget:
         excess=plan['total'][1]-c.budget;add('budget',f'확인·추정 비용 상한이 예산보다 {excess:,}원 초과 (미확인 비용 별도)',excess/max(10000,c.budget))
     if len(selected)!=c.count:add('count',f'요청 {c.count}곳 → 제안 {len(selected)}곳',4*abs(c.count-len(selected)))
     if c.theme_mode=='focus' and len({p['category'] for p in selected})>1:add('theme_mode','한 유형 집중 대신 여러 장소 유형으로 구성',2)

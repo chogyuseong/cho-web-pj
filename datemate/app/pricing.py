@@ -100,12 +100,15 @@ def apply_prices(plan,lookups):
     total=[sum(r['amount'][i] for r in plan['costs'] if r['amount'] is not None) for i in (0,1)]
     known=[sum(r['amount'][i] for r in plan['costs'] if r['amount'] is not None and r['status']=='confirmed') for i in (0,1)]
     budget=plan['conditions']['budget']
-    plan.update(total=total,confirmed=known,estimated=[total[i]-known[i] for i in (0,1)],remaining=[budget-total[1],budget-total[0]],
+    # 예산 무관: 예산 대비 차액을 만들지 않고 예산 초과로 표시하지도 않는다.
+    unlimited=bool(plan['conditions'].get('budget_unlimited'))
+    over=not unlimited and total[1]>budget
+    plan.update(total=total,confirmed=known,estimated=[total[i]-known[i] for i in (0,1)],remaining=None if unlimited else [budget-total[1],budget-total[0]],
         pricing_checked_at=datetime.now(timezone.utc).isoformat())
-    if total[1]>budget:plan.update(best_effort=True,status='예산을 넘는 대안 · 비용 확인 필요')
+    if over:plan.update(best_effort=True,status='예산을 넘는 대안 · 비용 확인 필요')
     from .condition_audit import audit_plan
     plan=audit_plan(plan)
-    if total[1]<=budget and plan['status'].startswith('예산을 넘는'):
+    if not over and plan['status'].startswith('예산을 넘는'):
         if not any(d['state']=='unmet' for d in plan['deviations']):plan['best_effort']=False
         plan['status']='조건에 가까운 대안 · 차이 확인 필요'
         plan=audit_plan(plan)

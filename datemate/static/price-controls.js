@@ -10,6 +10,7 @@ function mountPriceControls() {
   const preview = node('p', '코스를 추천받으면 인원·예산 입력에 따라 예상 비용을 바로 비교할 수 있어요.', 'hint price-input-preview');
   form.elements.budget.closest('label').after(preview);
   for (const name of ['people', 'budget']) form.elements[name].addEventListener('input', () => updatePricePreview(selected));
+  form.elements.budget_unlimited?.addEventListener('change', () => updatePricePreview(selected));
 }
 
 function updatePricePreview(plan) {
@@ -30,7 +31,9 @@ function updatePricePreview(plan) {
     totals[0] += cost.unit[0] * factor;
     totals[1] += cost.unit[1] * factor;
   });
-  preview.textContent = '현재 코스 ' + people + '명 기준 ' + range(totals) + (partial ? ' (일부 비용 별도)' : '') + ' · 입력 예산 ' + won(budget) + ' · 상한 대비 ' + won(budget - totals[1]) + ' / 단가 조회는 추천·재검색 시 갱신';
+  // 예산 무관이면 예산 금액과 비교하지 않는다.
+  const budgetPart = form.elements.budget_unlimited?.checked ? ' · 예산 무관' : ' · 입력 예산 ' + won(budget) + ' · 상한 대비 ' + won(budget - totals[1]);
+  preview.textContent = '현재 코스 ' + people + '명 기준 ' + range(totals) + (partial ? ' (일부 비용 별도)' : '') + budgetPart + ' / 단가 조회는 추천·재검색 시 갱신';
 }
 
 function priceRefreshControl(plan) {

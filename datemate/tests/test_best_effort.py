@@ -43,7 +43,7 @@ def test_avoid_is_kept_in_approximate_results():
     assert all('오설록' not in p['name'] and '다원' not in p['name'] for plan in result['plans'] for p in plan['places'])
 
 def test_weather_mismatch_and_missing_data_are_distinct():
-    c=conditions(themes=[],count=2,date_category='날씨별',date_subcategory='비 오는 날')
+    c=conditions(themes=[],count=2,date_category='날씨별',date_subcategory='비 오는 날',explicit_fields=['date_subcategory'])
     selected=[dict(p) for p in places('real')[:2]]
     selected[0]['setting']='outdoor';selected[1]['setting']=None
     plan,error=evaluate(selected,c,soft=True)

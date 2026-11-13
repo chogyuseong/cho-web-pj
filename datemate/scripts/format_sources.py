@@ -28,6 +28,7 @@ PYTHON = [
     "app/plan_jobs.py",
     "app/database.py",
     "app/store.py",
+    "app/user_feedback.py",
     "app/migrations",
     "scripts/operations_report.py",
     "scripts/operations_check.py",
@@ -47,6 +48,8 @@ JAVASCRIPT = [
     "reviews.js",
     "execution-summary.js",
     "planning-outcomes.js",
+    "feedback.js",
+    "feedback-admin.js",
 ]
 
 

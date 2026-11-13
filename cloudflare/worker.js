@@ -1,17 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
 import {
   validPublicOrigin, validDatabaseUrl, internalProbePath, edgeRateLimitKey, staticAssetPath,
+  optionalContainerEnv,
 } from "./validation.mjs";
 
 const PORT = 8080;
 const IDLE_MS = 10 * 60 * 1000;
-const OPTIONAL_ENV = [
-  "GMS_KEY", "GMS_BASE_URL", "GMS_MODEL", "EMBEDDING_MODE", "EMBEDDING_MODEL",
-  "NAVER_SEARCH_CLIENT_ID", "NAVER_SEARCH_CLIENT_SECRET", "NAVER_MAPS_KEY_ID",
-  "NAVER_MAPS_KEY", "NAVER_MAPS_JS_KEY_ID",
-  "MAP_TILE_URL", "MAP_TILE_ATTRIBUTION", "WIKI_CONTACT", "PHOTO_VISUAL_CHECK",
-  "TOUR_API_KEY",
-];
 
 export class DatemateContainer extends DurableObject {
   starting;
@@ -57,9 +51,7 @@ export class DatemateContainer extends DurableObject {
         FORWARDED_ALLOW_IPS: "*",
         DATABASE_URL: this.env.DATABASE_URL,
       };
-      for (const key of OPTIONAL_ENV) {
-        if (this.env[key] !== undefined) env[key] = this.env[key];
-      }
+      Object.assign(env, optionalContainerEnv(this.env));
       container.start({ image: container.images.base, instance: "standard-1", enableInternet: true, env });
     }
     await container.setInactivityTimeout(IDLE_MS);

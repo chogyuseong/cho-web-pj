@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>피드백 · 데이트메이트</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/selle.css">
+<link rel="stylesheet" href="/static/calm.css">
+<link rel="stylesheet" href="/static/editorial.css">
+<link rel="stylesheet" href="/static/readability.css">
+<link rel="stylesheet" href="/static/clarity.css">
+<link rel="stylesheet" href="/static/feedback.css">
+<link rel="stylesheet" href="/static/line.css">
+<script src="/static/feedback.js" defer></script>
+</head>
+<body class="feedback-page">
+<a class="skip-to-content" href="#main-content">본문으로 바로가기</a>
+<header><a class="brand" href="/"><span class="brand-icon" aria-hidden="true"></span><span class="brand-name">데이트메이트<small class="brand-tagline">당신의 시간과 피로를 위해</small></span></a><nav aria-label="주요 메뉴"><a href="/#planner-section">코스 만들기</a><a href="/#explore-section">장소 둘러보기</a><a href="/#curation">테마별 추천</a><a href="/feedback" aria-current="page">피드백</a></nav></header>
+<main id="main-content" tabindex="-1" class="feedback-main">
+<h1>피드백</h1>
+<p class="feedback-lead">지금은 테스트 기간이에요. 쓰면서 불편했던 점이나 바라는 점을 알려 주세요. 보내 주신 글은 관리자만 읽어요.</p>
+<form id="feedback-form" class="feedback-form" novalidate>
+<label for="feedback-message">불편했던 점 · 바라는 점 <span class="feedback-required">(필수, 5~1000자)</span></label>
+<textarea id="feedback-message" name="message" rows="7" maxlength="1000" required aria-describedby="feedback-count" placeholder="예: 결과 화면에서 지도 버튼을 찾기 어려웠어요."></textarea>
+<p id="feedback-count" class="feedback-count">남은 글자 1000자</p>
+<label for="feedback-screen">어느 화면에서였나요? <span class="feedback-optional">(선택)</span></label>
+<select id="feedback-screen" name="screen"><option value="">고르지 않음</option><option value="home">홈</option><option value="conditions">조건 입력</option><option value="results">추천 결과</option><option value="explore">장소 둘러보기</option><option value="other">기타</option></select>
+<label for="feedback-contact">답장받을 연락처 <span class="feedback-optional">(선택, 100자 이내)</span></label>
+<input id="feedback-contact" name="contact" type="text" maxlength="100" autocomplete="email" aria-describedby="feedback-contact-note" placeholder="이메일 등">
+<p id="feedback-contact-note" class="feedback-note">답변이 필요할 때만 적어 주세요. 연락처는 관리자만 봐요.</p>
+<div class="feedback-trap" aria-hidden="true"><label for="feedback-website">이 칸은 비워 두세요</label><input id="feedback-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+<div class="feedback-auto"><h2>함께 보내는 것</h2><ul><li>화면 폭: <span id="feedback-width">확인 중</span></li><li>브라우저 종류(예: Chrome, 모바일 여부. 버전은 보내지 않아요)</li></ul><p>코스 내용과 위치는 보내지 않아요. 브라우저 연결 정보(세션)와 접속 IP 는 글과 함께 저장하지 않고, IP 는 너무 자주 보내는 것을 막는 데에만 써요.</p></div>
+<button type="submit" id="feedback-submit" class="primary">보내기</button>
+<p id="feedback-status" class="feedback-status" role="status" aria-live="polite"></p>
+<p id="feedback-error" class="feedback-error" role="alert"></p>
+</form>
+<p class="feedback-back"><a href="/">홈으로 돌아가기</a></p>
+</main>
+</body></html>

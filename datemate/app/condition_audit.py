@@ -1,7 +1,7 @@
 """추천 경로와 무관하게 원래 입력의 모든 조건을 결과와 대조한다."""
 import re
 from .models import Conditions
-from .taxonomy import classification_themes
+from .taxonomy import classification_themes,classification_strict,indoor_weather
 
 def audit_plan(plan,c=None):
     c=c or Conditions.model_validate(plan['conditions'])
@@ -12,7 +12,11 @@ def audit_plan(plan,c=None):
     def test(key,label,ok,yes,no):add(key,label,'met' if ok else 'unmet',yes if ok else no)
     from .request_intent import intent,matches,INTENTS
     parsed=intent(c)
-    plan['request_interpretation']=dict(intents=[INTENTS[k][1][0] for k in parsed['intents']],excluded=[INTENTS[k][1][0] for k in parsed['excluded']],applied=parsed['patch'],warnings=parsed.get('warnings',[]))
+    applied,warnings=parsed['patch'],parsed.get('warnings',[])
+    if c.budget_unlimited:
+        # 예산 무관이면 글의 금액은 적용하지 않았다(request_intent.normalize). 금액 반영 안내도 싣지 않는다.
+        applied={k:v for k,v in applied.items() if k!='budget'};warnings=[w for w in warnings if '전체 예산' not in w]
+    plan['request_interpretation']=dict(intents=[INTENTS[k][1][0] for k in parsed['intents']],excluded=[INTENTS[k][1][0] for k in parsed['excluded']],applied=applied,warnings=warnings)
     for key in parsed['intents']:
         matched=[p['name'] for p in venues if matches(p,key)]
         if parsed['exclusive']:
@@ -47,10 +51,14 @@ def audit_plan(plan,c=None):
     test('end','종료 시간',excess<=0,'종료 '+plan['finish']+' — 요청한 '+c.end+' 이내예요.',f"종료 {plan['finish']} — 요청한 {c.end}보다 {excess}분 늦어요.")
     add('people','인원','unknown' if real and c.people>=10 else 'met',f'{c.people}명을 비용 계산에 반영했어요.'+(' 단체 방문이므로 장소별 단체 입장 가능 여부는 확인이 필요해요.' if real and c.people>=10 else ''))
     over=plan['total'][1]-c.budget
-    if over>0:add('budget','예산','unmet',f'확인·추정 비용 상한 {plan["total"][1]:,}원이 예산 {c.budget:,}원보다 {over:,}원 많아요.')
     cost_unknown=any(row['amount'] is None for row in plan['costs']) or any('주차' in u or '통행료' in u for u in plan['unknown'])
-    if cost_unknown:add('budget','예산','unknown',f'알려진 비용은 {plan["total"][0]:,}~{plan["total"][1]:,}원이지만, 미확인 입장료·교통비 등은 빠져 있어 예산 {c.budget:,}원 충족을 보장할 수 없어요.')
-    elif over<=0:add('budget','예산','estimated' if any(r['status']=='estimated' for r in plan['costs']) else 'met',f'계산한 비용 상한 {plan["total"][1]:,}원은 예산 {c.budget:,}원 이내예요.')
+    if c.budget_unlimited:
+        # 예산 무관: 충족·미충족·확인 필요로 세지 않는다. 계산한 비용만 알려 준다.
+        add('budget','예산 무관','info',f'예산 무관으로 골랐어요. 계산한 비용은 {plan["total"][0]:,}~{plan["total"][1]:,}원이에요.'+(' 미확인 입장료·교통비 등은 빠져 있어요.' if cost_unknown else ''))
+    else:
+        if over>0:add('budget','예산','unmet',f'확인·추정 비용 상한 {plan["total"][1]:,}원이 예산 {c.budget:,}원보다 {over:,}원 많아요.')
+        if cost_unknown:add('budget','예산','unknown',f'알려진 비용은 {plan["total"][0]:,}~{plan["total"][1]:,}원이지만, 미확인 입장료·교통비 등은 빠져 있어 예산 {c.budget:,}원 충족을 보장할 수 없어요.')
+        elif over<=0:add('budget','예산','estimated' if any(r['status']=='estimated' for r in plan['costs']) else 'met',f'계산한 비용 상한 {plan["total"][1]:,}원은 예산 {c.budget:,}원 이내예요.')
     assumptions=[r for r in plan['costs'] if r.get('price_kind')=='planning_assumption']
     references=[r for r in plan['costs'] if r.get('price_kind')=='web_reference']
     if assumptions:add('price_data','가격 근거','info',f'{len(assumptions)}곳은 검색에서 실제 단가를 확보하지 못해 사용자가 허용한 계획용 범위를 사용했어요. 실제 청구 가격이 아니에요.')
@@ -71,10 +79,13 @@ def audit_plan(plan,c=None):
         from .quality import is_meal
         wrong=[p for p in venues if not (c.include_meal and is_meal(p)) and not set(p.get('themes') or [p['category']]).intersection(wanted)]
         selected=c.date_subcategory if key=='date_subcategory' else ', '.join(wanted)
-        test(key,label,not wrong,'‘'+selected+'’에 해당하는 장소 유형으로 구성했어요.','‘'+selected+'’ 조건에 해당하지 않는 장소가 있어요: '+names(wrong))
+        if key=='date_subcategory' and not classification_strict(c):
+            # 화면이 대신 넣은 분류는 우선순위일 뿐이라 미충족으로 세지 않는다. 다른 종류로 채웠으면 중립 문장 한 줄로 알린다.
+            add(key,label,'info','‘'+selected+'’에 맞는 장소를 먼저 넣었어요.'+(' 맞는 장소가 부족해 '+names(wrong)+'도 함께 넣었어요.' if wrong else ''))
+        else:test(key,label,not wrong,'‘'+selected+'’에 해당하는 장소 유형으로 구성했어요.','‘'+selected+'’ 조건에 해당하지 않는 장소가 있어요: '+names(wrong))
         if key=='date_subcategory' and c.date_category=='계절별':add('season','계절 분위기','unknown','계절별 장소 유형은 반영하지만 개화·단풍·계절 행사 상태는 확인하지 못했어요.')
     if c.date_category=='날씨별' and c.date_subcategory:
-        if c.date_subcategory in ('비 오는 날','눈 오는 날'):
+        if indoor_weather(c):
             for p in venues:
                 state='unknown' if p['setting'] is None else 'met' if p['setting']=='indoor' else 'unmet'
                 add('weather','날씨',state,p['name']+' — ‘'+c.date_subcategory+'’에는 실내 장소를 찾지만, '+('실내 여부를 확인하지 못했어요.' if state=='unknown' else '야외 장소라 조건에 맞지 않아요.' if state=='unmet' else '실내 장소로 조건에 맞아요.'))
@@ -123,7 +134,8 @@ def audit_plan(plan,c=None):
         residual=c.request
         for pattern,key,label,actual,multiplier in [(r'(\d+)\s*명','people','인원',c.people,1),(r'(\d+)\s*(?:곳|군데)','count','방문 장소 수',c.count,1),(r'(\d+)\s*만\s*원','budget','예산',c.budget,10000)]:
             match=re.search(pattern,residual)
-            if match and int(match[1])*multiplier!=actual:add(key,label,'unmet',f'자유 요청의 {label} 값과 폼 조건이 달라요. 자유 요청: {match[0]} / 적용값: {actual}')
+            # 예산 무관이면 글의 금액을 폼 예산과 대조하지 않는다(금액 낱말은 아래 잔여 판정에서만 지운다).
+            if match and int(match[1])*multiplier!=actual and not (key=='budget' and c.budget_unlimited):add(key,label,'unmet',f'자유 요청의 {label} 값과 폼 조건이 달라요. 자유 요청: {match[0]} / 적용값: {actual}')
             residual=re.sub(pattern,' ',residual)
         words=['서울에서','서울','박물관','전시','미술','카페','커피','식사','산책','풍경','공방','도자기','휴식','힐링','게임','놀이','운동','레저','데이트','코스','보고','가고','싶어요','싶어','추천','해주세요','해줘','정도','둘이서','명이서','함께','에서','하고','그리고']
         from .request_intent import REQUEST_WORDS

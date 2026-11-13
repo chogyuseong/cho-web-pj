@@ -123,6 +123,26 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select,
 }
 .conditions :is(input,textarea)::placeholder,dialog input::placeholder { color:var(--muted); }
 #origin-location input,#home-location input { background:var(--platform); }
+/* 조건 화면 ‘데이트할 지역’ 칸은 바로 검색하는 입력칸이다. */
+#origin-location .origin-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; }
+#origin-location .origin-search>label { margin:0; min-width:0; }
+#origin-location .origin-search input { background:#fff; min-height:44px; }
+#origin-location .origin-search-button { min-height:44px; min-width:64px; margin:0; }
+.origin-search-status:empty { display:none; }
+.origin-search-results { list-style:none; margin:8px 0; padding:0; border:1px solid var(--line); border-radius:10px; background:#fff; max-height:320px; overflow-y:auto; }
+.origin-search-option { display:flex; flex-direction:column; gap:2px; min-height:44px; box-sizing:border-box; padding:10px 12px; border-bottom:1px solid var(--line); border-left:4px solid transparent; cursor:pointer; font-size:16px; color:var(--ink); overflow-wrap:anywhere; }
+.origin-search-option:last-child { border-bottom:0; }
+.origin-search-option .hint { font-size:14px; margin:0; }
+.origin-search-option:hover,.origin-search-option[aria-selected=true] { background:var(--platform); border-left-color:var(--hong); }
+.origin-search-option[aria-disabled=true] { cursor:not-allowed; color:var(--muted); }
+.origin-search-option[aria-disabled=true]:hover,.origin-search-option[aria-disabled=true][aria-selected=true] { border-left-color:var(--line); }
+.location-choice { margin:8px 0; }
+.location-choice-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.location-choice-actions button { min-height:44px; }
+/* 칩을 누른 결과 안내. 다른 날·시간대로 맞춘 경우는 경고 바탕으로 눈에 띄게. */
+.choice-note { font-size:16px; color:var(--ink); margin:8px 0; }
+.choice-note:empty { display:none; }
+.choice-note.is-adjusted { background:var(--warn-bg); border-left:4px solid var(--ink); padding:8px 12px; font-weight:600; }
 
 /* ---------- 경고 · 안내 ---------- */
 .warning,main .warning,.condition-differences,.evidence-check {
@@ -169,7 +189,12 @@ body > header {
 header .brand-name .brand-tagline { color:var(--muted); font-family:var(--font-body); font-weight:500; font-size:14px; }
 header nav .nav,header nav a { color:var(--muted); background:none; border-radius:0; font-weight:600; }
 header nav .nav:hover,header nav a:hover { color:var(--ink); background:none; }
-header nav .nav.active { color:var(--ink); background:none; border-bottom:3px solid var(--hong); }
+header nav .nav.active,header nav a[aria-current=page] { color:var(--ink); background:none; border-bottom:3px solid var(--hong); }
+/* 메뉴 4개(코스 만들기·장소 둘러보기·테마별 추천·피드백)가 좁은 화면에서도 한 줄로, 낱말 중간에서 끊기지 않게. */
+@media(max-width:480px) {
+  header nav { gap:4px; }
+  header nav a,header nav button.nav { padding:6px 4px; white-space:nowrap; }
+}
 .mode-badge { display:none!important; }
 .skip-to-content { background:#fff; color:var(--ink); border:2px solid var(--ink); border-radius:10px; }
 
@@ -250,12 +275,13 @@ body:not(.show-date-plan) .hero-photo {
   overflow:visible;
 }
 .curation-card:hover { background:transparent; box-shadow:none; }
-.curation-card:hover .curation-area { text-decoration:underline; text-underline-offset:4px; }
+.curation-card:hover .curation-mood { text-decoration:underline; text-underline-offset:4px; }
 .curation-card::before { content:''; grid-row:1 / span 2; width:22px; height:22px; margin:3px 0 0 5px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
-.curation-area { grid-column:2; font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
-.curation-mood { grid-column:2; font-size:14px; color:var(--muted); line-height:1.6; }
+/* 테마가 제목, 동네 이름은 보조 정보(사용자 피드백: 무슨 테마인지 먼저 보여야 함). */
+.curation-mood { grid-column:2; font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; color:var(--ink); }
+.curation-area { grid-column:2; font-size:14px; color:var(--muted); line-height:1.6; }
 .curation-copy { grid-column:2; margin-top:4px; font-size:16px; line-height:1.6; color:var(--ink); }
-.curation-card[aria-pressed=true] .curation-area { color:var(--hong); text-decoration:underline; text-underline-offset:4px; }
+.curation-card[aria-pressed=true] .curation-mood { color:var(--hong); text-decoration:underline; text-underline-offset:4px; }
 .data-banner { margin:32px 0 0; padding:0; background:none!important; color:var(--ink); border-radius:0; display:block; }
 .data-banner h2 { font-size:19px!important; margin:0 0 8px; color:var(--ink)!important; }
 .data-points { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 24px; color:var(--ink); font-size:16px; }

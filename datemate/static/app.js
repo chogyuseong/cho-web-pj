@@ -57,6 +57,13 @@ function totalBefore(plan) {
   if (plan.parent && Array.isArray(delta.cost) && Array.isArray(plan.total)) return [plan.total[1] - delta.cost[1], plan.total[0] - delta.cost[0]];
   return null;
 }
+// 예산 무관으로 만든 코스. 서버가 이 필드를 싣지 않은 예전 코스는 기존처럼 예산과 비교해 보여 준다.
+const budgetUnlimited = plan => plan?.conditions?.budget_unlimited === true;
+// 장소 종류 이름. 식당(meal)은 '식사', 그 밖의 카페·미식은 '카페'로 나눠 부른다(코스 카드의 구성 이름과 같은 기준, 서버 option_diversity.place_group).
+function placeKind(place) {
+  if (place.meal || String(place.id || '').startsWith('food:')) return '식사';
+  return place.category === '카페·미식' ? '카페' : place.category;
+}
 const node = (tag, text, cls) => {
   const n = document.createElement(tag);
   if (text !== undefined) n.textContent = text;
@@ -295,6 +302,8 @@ function values() {
     end: f.get('end'),
     people: number('people'),
     budget: number('budget'),
+    // 예산 무관이면 서버가 budget 숫자를 쓰지 않는다.
+    budget_unlimited: f.has('budget_unlimited'),
     transport: f.get('transport'),
     count: number('count'),
     themes: f.getAll('themes'),

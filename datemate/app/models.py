@@ -62,6 +62,8 @@ class Conditions(BaseModel):
     end: str = Field(default='19:00', pattern=r'^([01]\d|2[0-3]):[0-5]\d$')
     people: int = Field(default=2, ge=1, le=20)
     budget: int = Field(default=100000, ge=0, le=10000000)
+    # '예산 무관': budget 숫자를 조건·감점·필수 조건·완화에 쓰지 않는다. 코스의 remaining은 null, 조건 확인은 '예산 무관'(info).
+    budget_unlimited: bool = False
     transport: TransportMode = 'walk'
     # 코스를 만든 뒤 구간마다 바꾼 수단. 새 추천에서는 항상 비운다(recommendation_service.generate).
     leg_modes: list[LegMode] = Field(default_factory=list, max_length=6)

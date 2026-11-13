@@ -2,6 +2,11 @@ import json
 from .config import ROOT
 
 def places(mode='demo',visit_date=None):
+    from .perf_trace import span
+    with span('catalog.places'):
+        return _places(mode,visit_date)
+
+def _places(mode,visit_date):
     path = ROOT / 'data' / f'{mode}_places.json'
     rows = json.loads(path.read_text(encoding='utf-8')) if path.exists() else []
     if mode=='real':

@@ -16,6 +16,7 @@ from contextvars import ContextVar, copy_context
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from fastapi import APIRouter, Request, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from .models import Conditions
 
 router = APIRouter()
@@ -33,10 +34,13 @@ def _read(db, key):
 
 
 def _write(db, key, job):
+    """작업 상태를 저장하고 저장한 내용의 크기(문자 수)를 돌려준다."""
+    payload = json.dumps(job, ensure_ascii=False)
     db.execute(
         "INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires",
-        ("plan-job:" + key, json.dumps(job, ensure_ascii=False), time.time() + 3600),
+        ("plan-job:" + key, payload, time.time() + 3600),
     )
+    return len(payload)
 
 
 def _alive(job):
@@ -60,7 +64,7 @@ def _persist(key):
         if previous and previous["status"] in ("cancelled", "failed", "complete"):
             _jobs[key].update(previous)
             return
-        _write(db, key, job)
+        return _write(db, key, job)
 
 
 _current = ContextVar("recommendation_progress", default=None)
@@ -87,6 +91,9 @@ def forget_owner(owner):
 
 
 def report(stage, message, preview=None):
+    from .perf_trace import stage as traced_stage
+
+    traced_stage(stage)
     check_current()
     key = _current.get()
     if key:
@@ -127,10 +134,23 @@ def _run(key, data, owner):
                 )
     finally:
         _current.reset(token)
+        saved = None
         with _lock:
             if key in _jobs:
                 _jobs[key]["finished"] = time.monotonic()
-                _persist(key)
+                saving = time.perf_counter()
+                size = _persist(key)
+                saved = (_jobs[key]["status"], (time.perf_counter() - saving) * 1000, size)
+        # 기록은 잠금 밖에서, 실패해도 작업 상태 저장과 무관하게 넘어간다. 크기는 저장할 때 만든 내용을 다시 쓴다.
+        if saved:
+            try:
+                logging.getLogger(__name__).info(
+                    "recommendation_job_saved id=%s status=%s persist_ms=%.1f stored_chars=%s",
+                    key,
+                    *saved,
+                )
+            except Exception:
+                pass
 
 
 @router.post("/api/plan-jobs", status_code=202)
@@ -205,7 +225,35 @@ def start(data: Conditions, request: Request):
     return {"id": key}
 
 
+# 긴 폴링: 화면이 마지막으로 본 단계를 보내면, 이 인스턴스에서 도는 작업의 단계·상태가 바뀔 때까지 최대 이만큼 기다렸다 답한다.
+# 기다리는 동안 DB를 읽지 않고 스레드도 잡지 않는다(메모리의 작업 상태만 0.1초마다 확인).
+MAX_WAIT_SECONDS = 8.0
+WAIT_STEP_SECONDS = 0.1
+
+
+def _changed(key, owner, stage):
+    job = _jobs.get(key)
+    # 다른 인스턴스의 작업이거나 주인이 아니면 기다리지 않는다(아래 일반 조회가 404·저장 상태를 답함).
+    return (
+        not job or job["owner"] != owner or job["status"] != "running" or job.get("stage") != stage
+    )
+
+
+async def _wait_for_change(key, owner, stage, seconds, request):
+    deadline = time.monotonic() + min(max(seconds, 0.0), MAX_WAIT_SECONDS)
+    while time.monotonic() < deadline and not _changed(key, owner, stage):
+        if await request.is_disconnected():
+            return
+        await asyncio.sleep(WAIT_STEP_SECONDS)
+
+
 @router.get("/api/plan-jobs/{key}")
+async def poll_route(key: str, request: Request, wait: float = 0, stage: str | None = None):
+    if wait > 0 and stage is not None:
+        await _wait_for_change(key, request.state.owner, stage[:40], wait, request)
+    return await run_in_threadpool(poll, key, request)
+
+
 def poll(key: str, request: Request):
     with _lock:
         job = store.cached("plan-job:" + key) or _jobs.get(key)

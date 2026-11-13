@@ -46,6 +46,9 @@ def isolated(monkeypatch):
     cache = {}
     monkeypatch.setattr(intent_discovery.store, 'cached', lambda key: cache.get(key))
     monkeypatch.setattr(intent_discovery.store, 'cache', lambda key, value, ttl: cache.__setitem__(key, value))
+    # 한 번에 읽고 쓰는 저장 함수(store.cached_many·cache_many)도 같은 임시 저장소를 쓰게 한다.
+    monkeypatch.setattr(intent_discovery.store, 'cached_many', lambda keys: {k: cache[k] for k in keys if k in cache})
+    monkeypatch.setattr(intent_discovery.store, 'cache_many', lambda entries: [cache.__setitem__(k, v) for k, v, _ in entries])
     monkeypatch.setattr(intent_discovery, 'search_enabled', lambda: True)
     monkeypatch.setattr('app.restaurants.restaurants', lambda: [])
     calls = []

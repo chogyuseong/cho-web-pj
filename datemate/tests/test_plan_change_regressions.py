@@ -38,6 +38,9 @@ def test_generic_sports_category_with_specific_business_name(monkeypatch):
     cache={}
     monkeypatch.setattr(store,'cached',lambda key:cache.get(key))
     monkeypatch.setattr(store,'cache',lambda key,value,ttl:cache.__setitem__(key,value))
+    # 한 번에 읽고 쓰는 저장 함수도 같은 임시 저장소를 쓰게 한다(실제 DB에 테스트 장소가 남지 않게).
+    monkeypatch.setattr(store,'cached_many',lambda keys:{k:cache[k] for k in keys if k in cache})
+    monkeypatch.setattr(store,'cache_many',lambda entries:[cache.__setitem__(k,v) for k,v,_ in entries])
     c=Conditions(mode='real',visit_date='2026-11-01',request='배드민턴',origin={'name':'종로구','lat':37.575,'lon':126.985})
     monkeypatch.setattr('app.intent_discovery.search_enabled',lambda:True)
     monkeypatch.setattr('app.intent_discovery.local_lookup',lambda *args:([

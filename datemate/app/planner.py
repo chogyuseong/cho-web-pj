@@ -235,7 +235,9 @@ def recommend(c,evidence=None):
     from .request_intent import normalize,plan_penalty
     c=normalize(c)
     from .condition_audit import audit_plan
-    result=recommend_strict(c,evidence)
+    from .perf_trace import span
+    with span('planner.strict'):
+        result=recommend_strict(c,evidence)
     # Activity and meal composition are scored during beam search; retry them too if unmet.
     checked=[audit_plan(p,c) for p in result['plans']]
     result['plans']=[p for p in checked if not any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in p['condition_checks'])]
@@ -245,7 +247,8 @@ def recommend(c,evidence=None):
         if not any(priority(p,evidence) for p in result['plans']):
             from .best_effort import suggest
             out={}
-            sourced=suggest(c,evidence,out,stage='best_effort_sourced')
+            with span('planner.best_effort_sourced'):
+                sourced=suggest(c,evidence,out,stage='best_effort_sourced')
             if sourced and priority(sourced[0],evidence) and (not result['plans'] or plan_penalty(sourced[0],c)<=plan_penalty(result['plans'][0],c)):
                 return with_selection(dict(plans=[audit_plan(p,c) for p in sourced],status='best_effort',
                             reasons=['네이버 상위 글에 등장하는 장소를 우선 포함한 대안입니다. 입력 조건과의 차이를 확인하세요.']),out,result,c)
@@ -254,7 +257,8 @@ def recommend(c,evidence=None):
         return result
     from .search_relaxation import search_progressively
     out={}
-    alternatives=search_progressively(c,evidence,out)
+    with span('planner.relaxation'):
+        alternatives=search_progressively(c,evidence,out)
     if not alternatives:return result
     return with_selection(dict(plans=[audit_plan(p,c) for p in alternatives],status='best_effort',reasons=['모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다.'],
         suggestions=['각 코스에 표시된 차이를 보고 조건을 수정하거나 장소를 교체해 주세요.'],strict_failure=result.get('status'),

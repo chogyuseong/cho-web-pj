@@ -19,13 +19,16 @@ class ClosingConnection(sqlite3.Connection):
 
 
 def connect():
+    # 추천 작업 안에서만 with 블록 시간을 잰다(perf_trace). 그 밖에서는 연결을 그대로 돌려준다.
+    from .perf_trace import timed_connection
+
     if postgres_enabled():
         from .database import PostgresConnection
 
-        return PostgresConnection()
+        return timed_connection(PostgresConnection())
     db = sqlite3.connect(RUNTIME / "datemate.sqlite", timeout=20, factory=ClosingConnection)
     db.row_factory = sqlite3.Row
-    return db
+    return timed_connection(db)
 
 
 def init():
@@ -130,6 +133,42 @@ def reserve_budget(limits, bucket):
     return True
 
 
+def reserve_budget_up_to(limits, bucket, wanted):
+    """reserve_budget 을 wanted 번 차례로 부른 것과 같은 결과를 한 번의 쓰기로 낸다. 허락된 횟수를 돌려준다.
+
+    차례로 부르면 모든 범위가 한도 아래인 동안만 하나씩 늘므로, 허락되는 수는 범위마다 남은 수의 최솟값이다.
+    """
+    if wanted <= 0:
+        return 0
+    with connect() as db:
+        db.execute("BEGIN IMMEDIATE")
+        granted = wanted
+        for scope, limit in limits:
+            row = db.execute(
+                "SELECT calls FROM request_budgets WHERE scope=? AND bucket=?", (scope, bucket)
+            ).fetchone()
+            granted = min(granted, max(0, limit - (row[0] if row else 0)))
+        if granted:
+            for scope, limit in limits:
+                db.execute(
+                    "INSERT INTO request_budgets VALUES(?,?,?) ON CONFLICT(scope,bucket) DO UPDATE SET calls=request_budgets.calls+excluded.calls",
+                    (scope, bucket, granted),
+                )
+    return granted
+
+
+def release_budget(limits, bucket, unused):
+    """reserve_budget_up_to 로 잡았지만 쓰지 않은 횟수를 돌려준다."""
+    if unused <= 0:
+        return
+    with connect() as db:
+        for scope, limit in limits:
+            db.execute(
+                "UPDATE request_budgets SET calls=calls-? WHERE scope=? AND bucket=? AND calls>=?",
+                (unused, scope, bucket, unused),
+            )
+
+
 def aggregate_key(ids):
     # 시간과 예산은 집계 키에서 제외하고 방문 순서만 보존한다.
     return hashlib.sha256(json.dumps(ids, ensure_ascii=False).encode()).hexdigest()
@@ -184,6 +223,39 @@ def cached(key):
             "SELECT payload FROM cache WHERE key=? AND expires>?", (key, time.time())
         ).fetchone()
     return json.loads(row[0]) if row else None
+
+
+def cached_many(keys):
+    """cached() 를 여러 키에 한 번의 연결로. 만료되지 않은 키만 {키: 값} 으로 돌려준다."""
+    keys = list(dict.fromkeys(keys))
+    found = {}
+    if not keys:
+        return found
+    with connect() as db:
+        for start in range(0, len(keys), 200):
+            chunk = keys[start : start + 200]
+            rows = db.execute(
+                "SELECT key,payload FROM cache WHERE expires>? AND key IN ("
+                + ",".join("?" * len(chunk))
+                + ")",
+                (time.time(), *chunk),
+            ).fetchall()
+            found.update((row[0], json.loads(row[1])) for row in rows)
+    return found
+
+
+def cache_many(entries):
+    """cache() 를 여러 (키, 값, ttl) 에 한 번의 쓰기로. 같은 키가 여러 번이면 마지막 값이 남는다."""
+    rows = {}
+    for key, value, ttl in entries:
+        rows[key] = (key, json.dumps(value, ensure_ascii=False), time.time() + ttl)
+    if not rows:
+        return
+    with connect() as db:
+        db.executemany(
+            "INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires",
+            list(rows.values()),
+        )
 
 
 def cache(key, value, ttl=86400):

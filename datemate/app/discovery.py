@@ -5,6 +5,7 @@ import os
 import re
 from urllib.parse import quote
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import ContextVar
 from .request_usage import context_map
 from datetime import datetime,timezone
 import httpx
@@ -45,11 +46,15 @@ def extract(posts):
         return valid,'available'
     except Exception:return [],'extraction_unavailable'
 
+LOCAL_SEARCH_URL='https://naverapihub.apigw.ntruss.com/search/v1/local'
+# 여러 건을 한꺼번에 찾는 쪽(intent_discovery.lookup_all)이 권한 없음 표시를 이미 한 번 확인했으면 True.
+permission_checked=ContextVar('local_permission_checked',default=False)
+
 def local_lookup(name,area,sort='random'):
     """sort: 'random'(정확도순, 기본) 또는 'comment'(카페·블로그 리뷰 수순)."""
-    if store.cached('discovery-local-permission'):return [],'permission_required'
+    if not permission_checked.get() and store.cached('discovery-local-permission'):return [],'permission_required'
     try:
-        r=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=area+' '+name,display=5,sort=sort if sort in ('random','comment') else 'random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.getenv('NAVER_SEARCH_CLIENT_ID',''),'X-NCP-APIGW-API-KEY':os.getenv('NAVER_SEARCH_CLIENT_SECRET','')},timeout=6)
+        r=observed_http(httpx.get,LOCAL_SEARCH_URL,params=dict(query=area+' '+name,display=5,sort=sort if sort in ('random','comment') else 'random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.getenv('NAVER_SEARCH_CLIENT_ID',''),'X-NCP-APIGW-API-KEY':os.getenv('NAVER_SEARCH_CLIENT_SECRET','')},timeout=6)
         if r.status_code in (401,403):
             store.cache('discovery-local-permission',True,60)
             return [],'permission_required'

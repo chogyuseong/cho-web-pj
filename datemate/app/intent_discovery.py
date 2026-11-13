@@ -95,8 +95,17 @@ def lookup_all(queries):
         # 맛집은 후기(카페·블로그 리뷰) 수 순으로, 나머지는 기본 정렬로 찾는다.
         return local_lookup(term,area,sort='comment') if term=='맛집' else local_lookup(term,area)
     if not queries:return []
-    with ThreadPoolExecutor(max_workers=min(MAX_PARALLEL_LOOKUPS,len(queries))) as pool:
-        return context_map(pool,one,queries)
+    from .discovery import permission_checked
+    # 권한 없음 표시(401·403 뒤 60초)는 묶음마다 한 번만 확인한다. 묶음 안에서 처음 401 을 받으면 각 검색이 그대로 권한 없음으로 끝난다.
+    if store.cached('discovery-local-permission'):return [([],'permission_required') for _ in queries]
+    from .discovery import LOCAL_SEARCH_URL
+    from .telemetry import prepaid
+    token=permission_checked.set(True)
+    try:
+        # 묶음의 제공자 예산은 한 번에 잡는다(동시 4건이 예산 확인 잠금에서 줄 서지 않게).
+        with prepaid(LOCAL_SEARCH_URL,len(queries)),ThreadPoolExecutor(max_workers=min(MAX_PARALLEL_LOOKUPS,len(queries))) as pool:
+            return context_map(pool,one,queries)
+    finally:permission_checked.reset(token)
 
 
 # 기본 검색 한 번에 쓰는 지역 검색 상한(되돌아가기 검색 포함).
@@ -129,8 +138,10 @@ def discover_requested_places(c):
     keys=intent(c)['intents']
     if c.mode!='real' or not search_enabled():return dict(status='not_available',resolved=0)
     supplement=False;supply=None;existing={}
+    from .perf_trace import span
     if not keys:
-        keys,supply,existing=supply_gaps(c)
+        with span('intent_discovery.supply_gaps'):
+            keys,supply,existing=supply_gaps(c)
         if not keys:return dict(status='not_needed',resolved=0,searched_kinds=[],lookups=0,supply=supply)
         supplement=True
     name=place_area(c)
@@ -139,18 +150,22 @@ def discover_requested_places(c):
     center=(c.area_center or c.origin).model_dump()
     fingerprint=hashlib.sha256(str([area,center,c.neighborhood_radius_km,keys,'default' if supplement else 'requested']).encode()).hexdigest()
     cachekey='intent-local-v6:'+fingerprint
-    cached=store.cached(cachekey)
-    # 캐시된 결과의 lookups 는 처음 검색했을 때의 건수다. 이번에는 외부 호출이 없다.
-    if cached:return dict(cached,cache_hit=True)
-    count=0;statuses=[];resolved_ids=set()
-    variations={'cafe':['카페','로스터리','디저트 카페'],'culture':['전시','미술관','갤러리'],
-                'walk':['공원','산책','정원'],'workshop':['공방','도자기 공방','체험 공방']}
     def kind_key(kind):
         return 'intent-local-v6-kind:'+hashlib.sha256(str([area,center,c.neighborhood_radius_km,kind]).encode()).hexdigest()
+    # 결과 캐시와 종류별 '방금 검색함' 표시를 한 번의 DB 조회로 읽는다(운영 DB 왕복을 줄임).
+    known=store.cached_many([cachekey]+([kind_key(k) for k in keys] if supplement else []))
+    cached=known.get(cachekey)
+    # 캐시된 결과의 lookups 는 처음 검색했을 때의 건수다. 이번에는 외부 호출이 없다.
+    if cached:
+        from .perf_trace import cache_hit as traced_hit
+        traced_hit('intent_local');return dict(cached,cache_hit=True)
+    count=0;statuses=[];resolved_ids=set();found_rows={}
+    variations={'cafe':['카페','로스터리','디저트 카페'],'culture':['전시','미술관','갤러리'],
+                'walk':['공원','산책','정원'],'workshop':['공방','도자기 공방','체험 공방']}
     def full(a):return (c.region+' '+a).strip()
     if supplement:
         # 같은 추천 안에서 다시 불려도(조건 완화 재검색) 방금 찾은 종류는 또 검색하지 않아 지역 검색이 8건을 넘지 않는다.
-        keys=[k for k in keys if not store.cached(kind_key(k))]
+        keys=[k for k in keys if not known.get(kind_key(k))]
         if not keys:return dict(status='recently_searched',resolved=0,query_area=area,coverage_supplement=True,searched_kinds=[],lookups=0,supply=supply)
         queries=[(key,term,full(area)) for key in keys for term in DEFAULT_SEARCHES[key]][:MAX_DEFAULT_LOOKUPS]
     else:queries=[(key,term,full(area)) for key in keys[:4] for term in (sports.BY_KEY[key].terms if key in SPORT_KEYS else variations.get(key,[INTENTS[key][1][0]]))]
@@ -207,12 +222,14 @@ def discover_requested_places(c):
             if nearby(row,c):
                 reachable[actual]+=1
                 reachable_ids.setdefault('meal' if meal else label,set()).add(pid)
-            # Preserve richer blog evidence for a previously resolved venue.
-            if not store.cached('discovered-place:'+pid):store.cache('discovered-place:'+pid,row,604800)
+            # 저장은 검색이 모두 끝난 뒤 한 번에 한다(아래). 이 함수 안에서는 찾은 장소를 다시 읽지 않는다.
+            found_rows[pid]=row
             count+=1
-    found=lookup_all(queries)
-    for (key,_,_),(items,status) in zip(queries,found):
-        statuses.append(status);absorb(key,items)
+    with span('intent_discovery.lookups'):
+        found=lookup_all(queries)
+    with span('intent_discovery.absorb'):
+        for (key,_,_),(items,status) in zip(queries,found):
+            statuses.append(status);absorb(key,items)
     fallback=[];fallback_found=[]
     if supplement:
         from .quality import meal_due
@@ -229,9 +246,11 @@ def discover_requested_places(c):
             if answered and all(s!='available' for s in answered):continue
             if stats[kind]['received']==0 and coarse:fallback.append((kind,DEFAULT_SEARCHES[kind][0],full(coarse)))
             else:fallback.append((kind,FALLBACK_TERMS[kind],full(area)))
-        fallback_found=lookup_all(fallback)
-        for (key,_,_),(items,status) in zip(fallback,fallback_found):
-            statuses.append(status);absorb(key,items)
+        with span('intent_discovery.fallback_lookups'):
+            fallback_found=lookup_all(fallback)
+        with span('intent_discovery.absorb'):
+            for (key,_,_),(items,status) in zip(fallback,fallback_found):
+                statuses.append(status);absorb(key,items)
     meal_supply=None
     if supplement and 'meal' in keys:
         total=have('meal')
@@ -242,12 +261,16 @@ def discover_requested_places(c):
                 fallback_queries=[dict(kind=k,term=t,area=a) for k,t,a in fallback],supply=supply,
                 kind_stats={k:dict(v) for k,v in stats.items()},adopted=dict(adopted),adopted_reachable=dict(reachable),meal_supply=meal_supply,
                 permission_required='permission_required' in statuses,search_unavailable=bool(statuses) and all(s=='unavailable' for s in statuses))
-    store.cache(cachekey,result,900 if count else 30)
+    # Preserve richer blog evidence for a previously resolved venue: 이미 저장된 장소는 덮어쓰지 않는다.
+    saved=store.cached_many('discovered-place:'+pid for pid in found_rows)
+    writes=[('discovered-place:'+pid,row,604800) for pid,row in found_rows.items() if not saved.get('discovered-place:'+pid)]
+    writes.append((cachekey,result,900 if count else 30))
     if supplement:
         for kind in keys:
             # 검색이 응답했으면(결과 0건 포함) 15분, 실패했으면 30초 뒤 다시 찾을 수 있다.
             ok=any(s=='available' for (k,_,_),(_,s) in zip(queries+fallback,found+fallback_found) if k==kind)
-            store.cache(kind_key(kind),True,900 if ok else 30)
+            writes.append((kind_key(kind),True,900 if ok else 30))
+    store.cache_many(writes)
     return result
 
 

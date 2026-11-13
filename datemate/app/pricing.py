@@ -3,6 +3,8 @@ from .service_time import today
 import copy
 import os
 from collections import Counter
+from contextlib import contextmanager
+from contextvars import ContextVar
 import re
 from urllib.parse import unquote,urlsplit
 from datetime import datetime,timezone,date
@@ -53,8 +55,26 @@ def extract_quote(place,item):
 def usable(cached):
     return bool(cached) and not (cached['status']=='key_missing' and search_enabled())
 
-def lookup_price(place,force=False,writes=None):
-    """writes 에 리스트를 넘기면 캐시 저장을 바로 하지 않고 (키, 값, ttl)로 모아 둔다(price_plans 가 한 번에 저장)."""
+def search_client():
+    """가격 검색 묶음(price_plans 한 번)이 함께 쓰는 HTTP 클라이언트.
+
+    전에는 검색마다 httpx.get 이 클라이언트를 새로 만들어 TLS 설정을 다시 읽고 TCP·TLS 연결을 새로 맺었다.
+    묶음 안에서 연결을 다시 쓰면 둘째 차례부터 연결 왕복(TCP 1번·TLS 1번)과 새 연결의 느린 시작이 빠진다.
+    보내는 요청(주소·검색어·헤더·시간 제한)은 같다. 쿠키는 받지도 보내지도 않는다(호출마다 새 클라이언트였던 때와 같음).
+    연결 수는 제한하지 않는다: 동시 실행은 전처럼 price_plans 의 3건과 telemetry 의 전체 슬롯이 정한다(풀 대기가 생기지 않게).
+    """
+    import http.cookiejar
+    client=httpx.Client(limits=httpx.Limits(max_connections=None,max_keepalive_connections=3,keepalive_expiry=30))
+    client.cookies.jar.set_policy(http.cookiejar.DefaultCookiePolicy(allowed_domains=[]))
+    return client
+
+# price_plans 가 묶음 동안 걸어 두는 클라이언트. 작업 스레드에는 context_map 이 문맥째 넘긴다.
+_batch_client=ContextVar('price_search_client',default=None)
+
+def lookup_price(place,force=False,writes=None,client=None):
+    """writes 에 리스트를 넘기면 캐시 저장을 바로 하지 않고 (키, 값, ttl)로 모아 둔다(price_plans 가 한 번에 저장).
+    client(또는 price_plans 묶음의 클라이언트)가 있으면 그 연결을 다시 쓰고, 없으면 전처럼 httpx.get 으로 한 번 보낸다."""
+    client=client if client is not None else _batch_client.get()
     key='price-search-v2:'+place['id']
     if not force:
         cached=store.cached(key)
@@ -66,7 +86,7 @@ def lookup_price(place,force=False,writes=None):
             search_name=' '.join(keys) if len(keys)>=2 else price_name(place)
             if len(keys)<2 and ' ' in search_name:search_name='"'+search_name+'"'
             query=search_name+' '+('메뉴 가격' if place['category']=='카페·미식' else '입장료')
-            response=observed_http(httpx.get,BLOG_SEARCH_URL,params=dict(query=query,display=30,start=1,sort='sim',format='json'),
+            response=observed_http(client.get if client is not None else httpx.get,BLOG_SEARCH_URL,params=dict(query=query,display=30,start=1,sort='sim',format='json'),
                 headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=7)
             response.raise_for_status();quotes=[];seen=set()
             for item in response.json().get('items',[]):
@@ -123,24 +143,42 @@ def apply_prices(plan,lookups):
         plan=audit_plan(plan)
     return plan
 
-def price_plans(plans,force=False,stats=None):
-    """stats 에 dict 를 넘기면 조회 구성(대상 장소 수, 캐시 적중, 새로 조회한 장소 id, 결과 상태별 수)을 채운다(진단용)."""
+_stats=ContextVar('price_stats',default=None)
+
+@contextmanager
+def collecting_stats():
+    """이 안에서 부르는 price_plans 의 조회 구성(대상 장소 수, 캐시 적중, 새로 조회한 장소 id, 결과 상태별 수)을 dict 로 모은다.
+    진단용이다(recommendation_service 가 개수만 timing.counts 에 남김)."""
+    box={}
+    token=_stats.set(box)
+    try:yield box
+    finally:_stats.reset(token)
+
+def price_plans(plans,force=False):
     from .perf_trace import span
     needed={p['id']:p for plan in plans if plan['conditions']['mode']=='real' for p in plan['places'] if p['price'] is None}
     # 캐시는 한 번에 읽고(force 가 아니면) 새로 찾은 가격은 끝난 뒤 한 번에 저장한다. 조회 대상·동시 3건·캐시 시간은 그대로.
     with span('price.cache_read'):
         known={} if force or not needed else store.cached_many('price-search-v2:'+pid for pid in needed)
     writes=[]
+    misses=sum(not usable(known.get('price-search-v2:'+pid)) for pid in needed) if search_enabled() else 0
+    # 새로 찾을 가격이 있을 때만 묶음 클라이언트를 만든다(모두 캐시면 TLS 설정을 읽지 않음).
+    client=search_client() if misses else None
     def one(p):
         cached=known.get('price-search-v2:'+p['id'])
         if usable(cached):cache_hit('price');return cached
         return lookup_price(p,True,writes)
-    misses=sum(not usable(known.get('price-search-v2:'+pid)) for pid in needed) if search_enabled() else 0
     # 새로 찾을 가격 검색의 제공자 예산은 한 번에 잡는다(호출마다 잡으면 운영 DB의 쓰기 잠금에서 줄을 선다).
-    with span('price.lookups'),prepaid(BLOG_SEARCH_URL,misses),ThreadPoolExecutor(max_workers=3) as executor:
-        data=dict(zip(needed,context_map(executor,one,needed.values())))
+    token=_batch_client.set(client)
+    try:
+        with span('price.lookups'),prepaid(BLOG_SEARCH_URL,misses),ThreadPoolExecutor(max_workers=3) as executor:
+            data=dict(zip(needed,context_map(executor,one,needed.values())))
+    finally:
+        _batch_client.reset(token)
+        if client is not None:client.close()
     with span('price.cache_write'):
         store.cache_many(writes)
+    stats=_stats.get()
     if stats is not None:
         looked={key.removeprefix('price-search-v2:') for key,_,_ in writes}
         stats.update(places=len(needed),cached=len(needed)-len(looked),looked_up=looked,

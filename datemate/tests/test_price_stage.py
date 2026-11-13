@@ -1,9 +1,14 @@
 """가격 확인 단계의 측정 장치와 대기 시간 줄이기(2026-11-14 둘째 작업). 외부 호출 없음."""
 import json
+import threading
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from types import SimpleNamespace
 
 import httpx
+import pytest
 
 from app import perf_trace
 from app.perf_trace import recording, stage
@@ -77,6 +82,102 @@ def test_pricing_counts_failure_never_breaks_the_recommendation(caplog):
     with caplog.at_level(logging.WARNING), recording():
         _count_pricing([(('a',), 'x', 'y')], [dict(places=None)], {}, {})
     assert 'pricing_counts_failed' in caplog.text
+
+
+@pytest.fixture
+def local_server():
+    """연결 재사용을 보는 로컬 HTTP/1.1 서버(keep-alive). 받은 요청의 경로·헤더를 남긴다."""
+    seen = []
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = 'HTTP/1.1'
+
+        def do_GET(self):
+            seen.append(dict(path=self.path, headers=dict(self.headers)))
+            body = json.dumps(dict(items=[])).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(body)))
+            self.send_header('Set-Cookie', 'gateway=1; Path=/')
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        yield SimpleNamespace(url=f'http://127.0.0.1:{server.server_port}/search/v1/blog', seen=seen)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_connection_probe_counts_new_and_reused_connections(local_server):
+    from app.pricing import search_client
+    with recording() as trace, measure():
+        stage('가격 확인')
+        with search_client() as client:
+            for _ in range(3):
+                observed_http(client.get, local_server.url, params=dict(query='q'))
+        # 호출마다 새 클라이언트(httpx.get)는 연결을 알 수 없어 세지 않는다.
+        observed_http(httpx.get, local_server.url, params=dict(query='q'))
+        summary = trace.summary()
+    row = next(r for r in summary['external']['by_kind'] if r['provider'] == '127.0.0.1')
+    assert row['count'] == 4 and row['connection_observed'] == 3 and row['new_connections'] == 1
+    price = summary['external_by_stage']['가격 확인']
+    assert price['connection_observed'] == 3 and price['new_connections'] == 1
+    # 쿠키는 받아 두지도 다시 보내지도 않는다(호출마다 새 클라이언트였던 때와 같음).
+    assert not any('Cookie' in r['headers'] for r in local_server.seen)
+
+
+def test_shared_client_sends_the_same_request_as_httpx_get(monkeypatch):
+    """가격 검색 요청(주소·검색어·헤더·시간 제한)은 묶음 클라이언트로 보내도 httpx.get 과 같다."""
+    from app import pricing
+    from test_leisure_results import fixture_plan
+    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test-id')
+    monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'test-secret')
+    sent = []
+
+    def handle(self, request):
+        sent.append((request.method, str(request.url), sorted(request.headers.items()), request.extensions.get('timeout')))
+        return httpx.Response(200, json=dict(items=[]), request=request)
+
+    monkeypatch.setattr(httpx.HTTPTransport, 'handle_request', handle)
+    place = fixture_plan()['places'][0]
+    pricing.lookup_price(place, force=True, writes=[])
+    with pricing.search_client() as client:
+        pricing.lookup_price(place, force=True, writes=[], client=client)
+    assert len(sent) == 2 and sent[0] == sent[1]
+
+
+def test_price_plans_uses_one_client_per_batch_and_closes_it(monkeypatch):
+    from app import pricing
+    from test_leisure_results import fixture_plan
+    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test-id')
+    monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'test-secret')
+    made, calls = [], []
+
+    def client():
+        def handler(request):
+            calls.append(request.url.params['query'])
+            return httpx.Response(200, json=dict(items=[]))
+        c = httpx.Client(transport=httpx.MockTransport(handler))
+        made.append(c)
+        return c
+
+    monkeypatch.setattr(pricing, 'search_client', client)
+    plan = fixture_plan()
+    plan['conditions'].update(mode='real')
+    for i, p in enumerate(plan['places']):
+        p.update(id=f'price-stage-{uuid.uuid4().hex}-{i}', price=None)
+    priced = pricing.price_plans([plan])
+    assert len(made) == 1 and made[0].is_closed and len(calls) == len(plan['places'])
+    assert all(r['price_lookup_status'] == 'not_found' for r in priced[0]['costs'] if r.get('price_kind'))
+    # 모두 캐시에 있으면 클라이언트를 만들지 않는다.
+    pricing.price_plans([plan])
+    assert len(made) == 1
 
 
 def test_fixed_input_recommendation_reports_the_price_stage(naver):

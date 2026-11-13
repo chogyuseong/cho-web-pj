@@ -68,19 +68,20 @@ def _take_prepaid(provider):
         return True
 
 
-def _traced(provider,kind,started,attempted,failed):
-    """추천 안이면 호출 종류별 기다린 시간을 남긴다(검색어·URL 경로는 남기지 않음)."""
+def _traced(provider,kind,started,attempted,failed,connection=None):
+    """추천 안이면 호출 종류별 기다린 시간을 남긴다(검색어·URL 경로는 남기지 않음).
+    connection: httpx.Client 로 보낸 호출이면 (새 연결을 맺었는지, 연결에 쓴 ms)."""
     from .perf_trace import current as trace
     t=trace()
     if t:
         end=t.now();stage=t.stage
         t.add_call(provider,kind or 'other',stage,end-(time.perf_counter()-started)*1000,end,
-                   'rejected' if not attempted else 'failed' if failed else 'ok')
+                   'rejected' if not attempted else 'failed' if failed else 'ok',connection)
 
 
 @contextmanager
 def operation(provider,kind=None):
-    start=time.perf_counter();failed=True;attempted=False;sent=None
+    start=time.perf_counter();failed=True;attempted=False;sent=None;state={}
     from .request_usage import current
     usage=current();charged=False
     if not _slots.acquire(blocking=False):
@@ -91,14 +92,15 @@ def operation(provider,kind=None):
         if not _take_prepaid(provider) and not store.reserve_budget(provider_limits(provider),int(time.time()//3600)):
             raise httpx.PoolTimeout('Provider hourly request budget reached')
         attempted=True;sent=time.perf_counter()
-        state={'failed':False}
+        state['failed']=False
         yield state
         failed=state['failed']
     finally:
         if charged and not attempted:usage.undo(provider)
         _slots.release()
         # 기다린 시간은 실제 요청 구간만 센다(요청 한도 확인·지표 기록의 DB 시간은 db 로 따로 셈).
-        _traced(provider,kind,sent or start,attempted,failed)
+        probe=state.get('probe')
+        _traced(provider,kind,sent or start,attempted,failed,probe.result() if probe else None)
         elapsed=round((time.perf_counter()-start)*1000)
         if not attempted:
             logging.getLogger(__name__).info('provider_budget_rejected provider=%s',provider)
@@ -128,8 +130,9 @@ def write_metrics(rows):
 
 
 def observed_http(call,url,**kwargs):
-    from .perf_trace import call_kind
+    from .perf_trace import call_kind,connection_probe
     with operation(urlsplit(url).hostname or 'unknown',call_kind(url)) as state:
+        state['probe']=connection_probe(getattr(call,'__self__',None),kwargs)
         response=call(url,**kwargs)
         state['failed']=response.status_code>=400
         return response
@@ -137,8 +140,9 @@ def observed_http(call,url,**kwargs):
 
 @contextmanager
 def observed_stream(client,method,url,**kwargs):
-    from .perf_trace import call_kind
+    from .perf_trace import call_kind,connection_probe
     with operation(urlsplit(url).hostname or 'unknown',call_kind(url)) as state:
+        state['probe']=connection_probe(client,kwargs)
         with client.stream(method,url,**kwargs) as response:
             state['failed']=response.status_code>=400
             yield response

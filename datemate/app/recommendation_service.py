@@ -310,10 +310,8 @@ REFILL_PLANS = 2
 REFILL_PRICE_LOOKUPS = 6
 
 
-def _refill(data, kept, reserve, stats=None):
-    """experience 모드: 필수 조건으로 빠진 자리를 예비 후보 최대 2개로 다시 검증해 채운다.
-
-    stats(dict)를 주면 가격 조회 구성을 채운다(price_plans 의 stats, 진단용)."""
+def _refill(data, kept, reserve):
+    """experience 모드: 필수 조건으로 빠진 자리를 예비 후보 최대 2개로 다시 검증해 채운다."""
     from .option_diversity import refill_candidates
     from .pricing import price_plans
     from .preferences import filter_required
@@ -347,7 +345,7 @@ def _refill(data, kept, reserve, stats=None):
             return []
     if route_calls:
         _verify_car_routes(data, chosen)
-    return filter_required(price_plans(chosen, stats=stats))
+    return filter_required(price_plans(chosen))
 
 
 def _finish(data, result, owner):
@@ -364,10 +362,11 @@ def _finish(data, result, owner):
         "코스 후보를 찾았어요. 가격과 필수 조건을 마지막으로 확인해요",
         preview=[[p["name"] for p in plan["places"]] for plan in result["plans"]],
     )
+    from .pricing import collecting_stats
+
     before_pricing = _shape(result["plans"])
-    price_stats = {}
-    with span("price.price_plans"):
-        result["plans"] = price_plans(result["plans"], stats=price_stats)
+    with span("price.price_plans"), collecting_stats() as price_stats:
+        result["plans"] = price_plans(result["plans"])
     from .preferences import filter_required, hard_blocks
 
     blocked = [p for p in result["plans"] if hard_blocks(p)]
@@ -377,8 +376,8 @@ def _finish(data, result, owner):
     refilled = []
     refill_stats = {}
     if experience and dropped and reserve:
-        with span("price.refill"):
-            refilled = _refill(data, result["plans"], reserve, refill_stats)
+        with span("price.refill"), collecting_stats() as refill_stats:
+            refilled = _refill(data, result["plans"], reserve)
         result["plans"] += refilled
     if blocked and not result["plans"]:
         result.update(

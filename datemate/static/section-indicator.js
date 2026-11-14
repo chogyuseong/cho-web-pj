@@ -59,7 +59,7 @@
       return;
     }
     // 축제·부가 정보 구역은 상세(h2) 밖에 있으므로 위쪽 h2를 상위 이름으로 붙이지 않는다.
-    const own = active?.closest('#festival-section,#plan-extras');
+    const own = active?.closest('#festival-section,#popup-course,#plan-extras');
     const context = section && section !== active && (!own || own.contains(section)) ? headingText(section) : '';
     parent.textContent = context;
     parent.hidden = !context;

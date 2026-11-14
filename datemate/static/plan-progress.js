@@ -121,10 +121,14 @@ async function resumePlanSearch(){
   beginPlanSearch();setTab(false);showPlannerPage(true);
   // 새 추천 때처럼 축제는 코스 검색과 나란히 조회한다. 조건이 남아 있지 않으면 받은 코스의 조건으로 조회한다.
   const festival=PlanSearch.festival();
+  // 팝업 글 구역도 같은 조건(지역·방문일)으로 다시 그린다. 이 조건에는 출발지가 없어 거리 없이 받은 순서로 보인다.
+  const popups=typeof PopupCourse==='undefined'?null:PopupCourse;
   try{if(festival)FestivalPanel.restore(festival);}catch{}
+  try{if(festival&&popups)popups.restore(festival);}catch{}
   try{
     const result=await PlanSearch.wait(id);plans=result.plans;selected=plans[0]||null;
     try{if(!festival&&selected)FestivalPanel.restore(selected.conditions);}catch{}
+    try{if(!festival&&selected&&popups)popups.restore(selected.conditions);}catch{}
     renderResults(result);renderDetail();document.querySelector('#progress').textContent=`검색 복원 완료 · ${plans.length}개 일정`+PlanPreview.summary();
   }catch(error){showSearchFailure(error);}
   finally{submit.disabled=false;document.querySelector('#progress').classList.remove('is-searching');document.querySelector('#results').setAttribute('aria-busy','false');}

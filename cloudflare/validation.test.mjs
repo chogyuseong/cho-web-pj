@@ -89,6 +89,17 @@ test("optional container env skips missing values and carries the feedback setti
   }
 });
 
+test("optional container env carries the popup switch and its limits", () => {
+  const env = optionalContainerEnv({
+    DATEMATE_POPUPS_ENABLED: 0, DATEMATE_IP_POPUP_SEARCHES_PER_MINUTE: 3,
+    DATEMATE_IP_POPUP_SEARCHES_PER_HOUR: undefined,
+  });
+  assert.deepEqual(env, { DATEMATE_POPUPS_ENABLED: "0", DATEMATE_IP_POPUP_SEARCHES_PER_MINUTE: "3" });
+  assert.equal(internalProbePath("/api/popups"), false);
+  assert.equal(staticAssetPath("/api/popups"), false);
+  assert.equal(staticAssetPath("/static/popups.js"), true);
+});
+
 test("feedback paths are neither blocked as probes nor counted as static files", () => {
   for (const path of ["/feedback", "/feedback/admin", "/api/feedback", "/api/feedback/admin/entries"]) {
     assert.equal(internalProbePath(path), false, path);

@@ -348,6 +348,8 @@ async function init() {
     }
     form.elements.region.value = statusData.region;
     mountDateCategories(statusData.date_categories);
+    // 팝업 둘러보기 전환은 서버 스위치(DATEMATE_POPUPS_ENABLED)가 켜져 있을 때만 그린다.
+    if (typeof PopupView !== 'undefined') PopupView.mount(statusData.popups_enabled === true);
     const id = new URLSearchParams(location.search).get('plan');
     if (id) {
       selected = await api('/plans/' + encodeURIComponent(id));
@@ -360,6 +362,10 @@ async function init() {
       // 저장된 코스를 링크로 열 때도 그 코스의 지역·방문일 축제를 함께 보여 준다.
       try {
         FestivalPanel.restore(selected.conditions);
+      } catch {}
+      // 팝업 글 구역도 같은 지역·방문일로 따로 조회한다(팝업 거점 선택은 되살리지 않음).
+      try {
+        if (typeof PopupCourse !== 'undefined') PopupCourse.restore(selected.conditions);
       } catch {}
       showPlannerPage(true);
     }
@@ -452,6 +458,10 @@ form.addEventListener('submit', async e => {
     // 축제는 코스와 병렬로 조회한다. 실패해도 코스 흐름에 전파하지 않는다.
     try {
       FestivalPanel.load(data);
+    } catch {}
+    // 팝업 글도 코스와 따로 조회한다. 코스 결과 표시를 기다리게 하지 않고, 실패해도 코스 흐름에 전파하지 않는다.
+    try {
+      if (typeof PopupCourse !== 'undefined') PopupCourse.load(data);
     } catch {}
     const result = await createPlanWithProgress(data, FestivalPanel.contextOf(data));
     plans = result.plans;

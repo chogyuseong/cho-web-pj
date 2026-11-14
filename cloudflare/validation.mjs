@@ -2,6 +2,8 @@
 // passed as undefined), so the app falls back to its own defaults.
 // FEEDBACK_ADMIN_KEY (Secret) turns on the feedback admin view; DATEMATE_FEEDBACK_ENABLED
 // ("0" to switch off) hides the feedback tab and its write API.
+// DATEMATE_POPUPS_ENABLED ("0" to switch off) hides the popup browse switch and turns
+// /api/popups into 404; the two DATEMATE_IP_POPUP_SEARCHES_* values tune its own limits.
 export const OPTIONAL_CONTAINER_ENV = Object.freeze([
   "GMS_KEY", "GMS_BASE_URL", "GMS_MODEL", "EMBEDDING_MODE", "EMBEDDING_MODEL",
   "NAVER_SEARCH_CLIENT_ID", "NAVER_SEARCH_CLIENT_SECRET", "NAVER_MAPS_KEY_ID",
@@ -9,6 +11,8 @@ export const OPTIONAL_CONTAINER_ENV = Object.freeze([
   "MAP_TILE_URL", "MAP_TILE_ATTRIBUTION", "WIKI_CONTACT", "PHOTO_VISUAL_CHECK",
   "TOUR_API_KEY",
   "FEEDBACK_ADMIN_KEY", "DATEMATE_FEEDBACK_ENABLED",
+  "DATEMATE_POPUPS_ENABLED", "DATEMATE_IP_POPUP_SEARCHES_PER_MINUTE",
+  "DATEMATE_IP_POPUP_SEARCHES_PER_HOUR",
 ]);
 
 export function optionalContainerEnv(source) {

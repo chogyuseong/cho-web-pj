@@ -74,7 +74,10 @@ function mapLegend(plan){
   if(styles.has('short'))parts.push('짧은 점선은 '+[...styles.get('short')].join('·'));
   if(styles.has('long'))parts.push('긴 점선은 '+[...styles.get('long')].join('·'));
   const dashed=styles.has('short')||styles.has('long');
-  return node('p','선 모양: '+parts.join(' · ')+(dashed?'. 점선은 직선 연결이며 실제 경로가 아니에요.':'.'),'hint map-legend');
+  const legend=node('p','선 모양: '+parts.join(' · ')+(dashed?'. 점선은 직선 연결이며 실제 경로가 아니에요.':'.'),'hint map-legend');
+  // 팝업 표시 설명은 지도에 팝업 표시가 있을 때만 보인다(popupMapNote 가 켜고 끈다).
+  if(typeof PopupCourse!=='undefined'){const popups=node('span',' 네모 ‘팝업’은 팝업 글에서 읽은 주변 장소예요(코스·이동선에 넣지 않음). 점선 네모 ‘팝업 일대’는 동네 기준점이라 위치가 대략이에요.','map-legend-popups');popups.hidden=!popupMapItems().length;legend.append(popups);}
+  return legend;
 }
 
 /* 방문일 축제는 코스 지점과 구분되는 표시로 겹쳐 보여준다. 좌표가 있는 축제만, 코스에는 넣지 않는다. */
@@ -91,27 +94,54 @@ function festivalMapNote(note,items){
   note.textContent=items.length?`노란 ‘축제’ 표시: 방문일 축제 ${items.length}곳 (코스에는 포함되지 않아요)${chosen?' · 진한 표시가 고른 축제예요':''}`:'';
 }
 
+/* 팝업 글에서 읽은 거점은 축제와 별도의 표시 층이다. 데이터는 코스 결과 팝업 구역의 거점 묶음(PopupCourse.mapItems)과 같은 배열이고,
+   위치가 확인된 거점마다 표시 하나(같은 거점의 여러 글은 정보창 목록). 코스 역(원)·축제(노란 알약)와 다른 네모 모양이며,
+   동네 기준점은 점선 네모 + ‘일대’ 글자로 건물과 구분한다. 이동선에 잇지 않고 지도 범위 계산에도 넣지 않는다(중심·확대를 바꾸지 않음). */
+function popupMapItems(){return typeof PopupCourse==='undefined'?[]:PopupCourse.mapItems;}
+// 네이버 마커 HTML 은 고정 문자열만 쓴다. 거점 이름·글 제목은 title 과 정보창의 텍스트 노드로만 전달한다.
+const POPUP_MARKER_HTML={building:'<span class="route-marker popup-marker">팝업</span>',area:'<span class="route-marker popup-marker popup-marker-area">팝업 일대</span>'};
+function popupMarkerNode(group){const area=group.hub.level==='area_anchor';return node('span',area?'팝업 일대':'팝업','route-marker popup-marker'+(area?' popup-marker-area':''));}
+function popupMapTitle(group){return '팝업 글 장소 · '+PopupCourse.label(group.hub)+' · 검색된 글 '+group.posts.length+'건';}
+function popupMapInfo(group){
+  const hub=group.hub,box=node('div',undefined,'popup-map-info'),list=node('ul',undefined,'popup-map-posts'),shown=group.posts.slice(0,3);
+  box.append(node('strong',PopupCourse.label(hub)),node('p',PopupCourse.levelText(hub)),node('p','코스에 포함되지 않은 주변 후보예요. 기간과 장소는 원문에서 확인해 주세요.','hint'),node('p',`검색된 글 ${group.posts.length}건 · 네이버 블로그`));
+  for(const post of shown){const item=node('li');item.append(link((post.title||'(제목 없음)')+' ↗',post.url));list.append(item);}
+  box.append(list);
+  if(group.posts.length>shown.length)box.append(node('p',`외 ${group.posts.length-shown.length}건 · 아래 팝업 글 구역에서 모두 볼 수 있어요`,'hint'));
+  return box;
+}
+function popupMapNote(note,items){
+  note.hidden=!items.length;
+  note.textContent=items.length?`네모 ‘팝업’ 표시: 팝업 글에서 읽은 장소 ${items.length}곳 (코스에 포함되지 않은 주변 후보예요 · 위치를 확인하지 못한 글은 지도에 없어요)`:'';
+  const legend=note.closest('.plan-map-card')?.querySelector('.map-legend-popups');if(legend)legend.hidden=!items.length;
+}
+
 function drawPlanMap(plan){
-  let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[];
+  let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[],popupMarkers=[];
   const wrap=node('section',undefined,'plan-map');
   const clearFestivals=()=>{festivalMarkers.forEach(marker=>marker.setMap?marker.setMap(null):marker.remove?.());festivalMarkers=[];};
-  wrap.updateFestivals=()=>{};
-  wrap.disposeMap=()=>{disposed=true;clearFestivals();resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;};
+  // 팝업 표시는 표시마다 정리 함수(마커·이벤트·정보창)를 둔다. 코스·축제 표시는 건드리지 않는다.
+  // 네이버 인증 실패 뒤에는 SDK 마커의 setMap 이 오류를 낼 수 있어(실측), 팝업 정리가 대체 지도 전환을 막지 않게 하나씩 감싼다.
+  const clearPopups=()=>{popupMarkers.forEach(clear=>{try{clear();}catch{}});popupMarkers=[];};
+  wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
+  wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
   canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
   const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
   caption.setAttribute('role','status');
   const festivalNote=node('p','','hint map-festival-note');festivalNote.hidden=true;
-  wrap.append(canvas,caption,festivalNote);
+  const popupNote=node('p','','hint map-popup-note');popupNote.hidden=true;
+  wrap.append(canvas,caption,festivalNote,popupNote);
   wrap.showMapFallback=()=>fallback('네이버 지도 인증에 실패했습니다. Dynamic Map 권한과 등록 웹 주소를 확인해 주세요.');
   requestAnimationFrame(()=>render());
   async function render(force=false){
     if(!wrap.isConnected)return;
     clearFestivals();wrap.updateFestivals=()=>{};
+    clearPopups();wrap.updatePopups=()=>{};
     resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
-    wrap.replaceChildren(canvas,caption,festivalNote);
+    wrap.replaceChildren(canvas,caption,festivalNote,popupNote);
     try{
       await loadNaverMaps(statusData.map_js_key,force);
       if(window.naverMapAuthFailed)throw Error('지도 인증 실패');
@@ -153,6 +183,20 @@ function drawPlanMap(plan){
         festivalMapNote(festivalNote,items);
       };
       wrap.updateFestivals();
+      wrap.updatePopups=()=>{
+        if(disposed||!canvas.isConnected)return;
+        clearPopups();const items=popupMapItems();
+        for(const group of items){
+          const area=group.hub.level==='area_anchor',position=new naver.maps.LatLng(group.hub.lat,group.hub.lon);
+          const marker=new naver.maps.Marker({map,position,title:popupMapTitle(group),zIndex:120,
+            icon:{content:POPUP_MARKER_HTML[area?'area':'building'],anchor:new naver.maps.Point(area?36:22,14)}});
+          const info=new naver.maps.InfoWindow({content:popupMapInfo(group)});
+          const listener=naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
+          popupMarkers.push(()=>{info.close?.();if(listener)naver.maps.Event.removeListener?.(listener);marker.setMap(null);});
+        }
+        popupMapNote(popupNote,items);
+      };
+      wrap.updatePopups();
       caption.textContent=actual===points.length-1
         ?'네이버 지도 · 자동차 실제 도로 경로 (조회 시점 기준)'
         :'네이버 지도 · 점선은 방문 순서의 직선 연결이며 실제 이동 경로가 아닙니다.';
@@ -195,6 +239,7 @@ function drawPlanMap(plan){
   function fallback(message){
     if(disposed||!wrap.isConnected)return;
     clearFestivals();wrap.updateFestivals=()=>{};festivalNote.hidden=true;
+    clearPopups();wrap.updatePopups=()=>{};popupMapNote(popupNote,[]);
     resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;
     const notice=node('div',undefined,'map-reconnect');
     notice.setAttribute('role','status');
@@ -206,7 +251,7 @@ function drawPlanMap(plan){
     if(window.L){
       const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
-      wrap.prepend(mapCanvas,mapCaption,festivalNote);
+      wrap.prepend(mapCanvas,mapCaption,festivalNote,popupNote);
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
       if(!points.length)return;
       try{
@@ -233,6 +278,18 @@ function drawPlanMap(plan){
           festivalMapNote(festivalNote,items);
         };
         wrap.updateFestivals();
+        wrap.updatePopups=()=>{
+          if(disposed||!mapCanvas.isConnected)return;
+          clearPopups();const items=popupMapItems();
+          for(const group of items){
+            const icon=L.divIcon({className:'popup-divicon',html:popupMarkerNode(group),iconSize:null});
+            const marker=L.marker([group.hub.lat,group.hub.lon],{icon,title:popupMapTitle(group),keyboard:true,zIndexOffset:-100}).addTo(map);
+            marker.bindPopup(popupMapInfo(group));
+            popupMarkers.push(()=>{marker.closePopup();marker.unbindPopup();marker.off();marker.remove();});
+          }
+          popupMapNote(popupNote,items);
+        };
+        wrap.updatePopups();
         const fit=()=>{if(!disposed&&mapCanvas.isConnected){map.invalidateSize();map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35],maxZoom:16});}};
         requestAnimationFrame(fit);
         if(window.ResizeObserver){resizeObserver=new ResizeObserver(fit);resizeObserver.observe(mapCanvas);}

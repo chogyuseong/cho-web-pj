@@ -276,14 +276,32 @@ def _judge(module, hubs, r, points):
     )
 
 
+def _v1():
+    """새 표본을 보기 전에 커밋한 규칙 v1(bc9fc3a 의 app/popups.py)을 runtime/popup_stage1/v1/popups_v1.py 로 꺼내 둔 것.
+    없으면 None(지금 규칙이 곧 v1)."""
+    path = OUT / "v1" / "popups_v1.py"
+    if not path.exists():
+        return None
+    spec = importlib.util.spec_from_file_location("app.popups_v1", path)
+    module = importlib.util.module_from_spec(spec)
+    module.__package__ = "app"
+    spec.loader.exec_module(module)
+    return module
+
+
 def analyze():
     v0 = _v0()
+    v1 = _v1()
     rows = load_posts()
-    pts = {"v0": _points(v0, HUBS_V0), "v1": _points(popups, HUBS)}
+    # (이름, 규칙 모듈, 사전). v1 이 따로 있으면 지금 규칙은 새 표본을 본 뒤의 사후 조정이다.
+    versions = [("v0", v0, HUBS_V0), ("v1", v1 or popups, HUBS)]
+    if v1:
+        versions.append(("v1.1", popups, HUBS))
+    pts = {name: _points(module, hubs) for name, module, hubs in versions}
     for r in rows:
         r["popup"] = popups.has_popup(r["title"] + " " + r["description"])
-        r["v0"] = _judge(v0, HUBS_V0, r, pts["v0"])
-        r["v1"] = _judge(popups, HUBS, r, pts["v1"])
+        for name, module, hubs in versions:
+            r[name] = _judge(module, hubs, r, pts[name])
     table = []
     for region in REGIONS:
         raw = _load(f"search-blog-{region}.json")
@@ -301,7 +319,7 @@ def analyze():
             popup=_ratio(d, len(group)),
             dates=sorted({str(r["source_date"]) for r in group}),
         )
-        for v in ("v0", "v1"):
+        for v, _, _ in versions:
             j = [r[v] for r in pop]
             row[v] = dict(
                 period=_ratio(sum(x["period_status"] == "period" for x in j), d),
@@ -328,10 +346,16 @@ def analyze():
         ]
         cand.sort(key=lambda r: hashlib.sha1(popups.canonical_url(r["url"]).encode()).hexdigest())
         review.extend(cand[:REVIEW_PER_REGION])
-    changed = [r for r in rows if r["popup"] and r["v0"]["summary"] != r["v1"]["summary"]]
+    last = versions[-1][0]
+    changed = [
+        r for r in rows if r["popup"] and len({r[name]["summary"] for name, _, _ in versions}) > 1
+    ]
+    print(
+        "비교:", " / ".join(name for name, _, _ in versions), "· 변경 글은 마지막 열", last, "기준"
+    )
     OUT.mkdir(parents=True, exist_ok=True)
     summary = dict(
-        rules=[getattr(v0, "RULES_VERSION", "?"), popups.RULES_VERSION],
+        rules={name: getattr(module, "RULES_VERSION", "?") for name, module, _ in versions},
         hubs_version=HUBS_VERSION,
         today=TODAY.isoformat(),
         table=table,
@@ -348,8 +372,7 @@ def analyze():
     )
     for row in table:
         print(json.dumps(_jsonable(row), ensure_ascii=False))
-    print(json.dumps(_jsonable(pts), ensure_ascii=False))
-    print(f"검토 {len(review)}건, v0≠v1 {len(changed)}건 → {OUT}")
+    print(f"검토 {len(review)}건, 규칙마다 결과가 다른 글 {len(changed)}건 → {OUT}")
     return 0
 
 

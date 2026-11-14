@@ -532,7 +532,7 @@ def test_v1_spacing_variants_and_new_aliases():
 def test_hub_dictionary_v1_keeps_v0_and_has_verifiable_entries():
     v1 = {h["id"]: h for h in HUBS}
     assert len(v1) == len(HUBS) == 35
-    assert HUBS_VERSION == "hubs-v1-2026-11-14" and popups.RULES_VERSION == "popups-rules-v1"
+    assert HUBS_VERSION == "hubs-v1.1-2026-11-14" and popups.RULES_VERSION == "popups-rules-v1.1"
     for h in HUBS:
         assert h["verify"] and h["local_query"] and h["district"]
         assert "lat" not in h and "lon" not in h
@@ -560,3 +560,33 @@ def test_v1_local_search_prefers_the_building_over_a_tenant_shop():
         [local("롯데백화점 전주점", "전북특별자치도 전주시 완산구 온고을로 2", 127.115, 35.832)],
     )
     assert ok["status"] == "verified"
+
+
+# ---------------------------------------------------------------- v1.1 사후 조정: 새 표본(2페이지)에서 본 v1 오인식
+
+
+def test_v1_1_last_month_mention_is_a_past_place():
+    # 대구 표본: 인천점 팝업 글의 '지난 10월 신세계백화점 대구 점'을 이번 장소로 읽던 것.
+    got = hubs_v1(
+        "이번 롯데백화점 인천점 팝업스토어 는 지난 10월 신세계백화점 대구 점과 11월 신세계백화점 강남점에 이어 진행",
+        "대구",
+    )
+    assert got["status"] == "none" and got["hub_id"] is None
+    assert set(got["past_ids"]) == {"daegu-shinsegae", "seoul-shinsegae-gangnam"}
+
+
+def test_v1_1_hubs_from_several_regions_are_not_forced_to_the_searched_one():
+    # 부산 표본: 잠실 방문 글에 나열된 '롯데백화점 부산 본점', 대구 표본: 더현대 서울 글의 '대구 더현대에서도 … 운영된 적이'.
+    listed = hubs_v1(
+        "피크민 in 잠실 방문 후기 롯데몰 청량리점, 롯데몰 잠실점, 롯데백화점 부산 본점 총 3곳",
+        "부산",
+    )
+    assert listed["status"] == "multiple" and listed["mixed_regions"] is True
+    seoul = hubs_v1(
+        "더현대 서울 치이카와 클리닉 팝업 예약방법 대구 더현대에서도 나가노마켓이 운영된 적이",
+        "대구",
+    )
+    assert seoul["status"] == "multiple" and seoul["hub_id"] is None
+    # 부산 해시태그 '# 부산 롯데백화점본점'은 서울 '롯데백화점 본점'이 아니다(사전 v1.1 별칭).
+    busan = hubs_v1("무기와라 팝업스토어 (롯데백화점 부산 본점) # 부산 롯데백화점본점", "부산")
+    assert (busan["status"], busan["hub_id"]) == ("single", "busan-lotte-main")

@@ -25,7 +25,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 from .regions import normalize_region
 
-RULES_VERSION = "popups-rules-v1"
+# v1.1: 새 표본(2페이지)을 본 뒤 고친 사후 조정(거점: '지난 N월', 여러 시·도 거점이 함께 나온 글). 수치는 보고서에 따로 적는다.
+RULES_VERSION = "popups-rules-v1.1"
 
 # ---------------------------------------------------------------- 텍스트
 
@@ -471,11 +472,14 @@ def _alias_pattern(alias):
 
 # v1: 지난 장소·비교로 언급한 거점은 이번 행사 장소로 보지 않는다.
 # 예: "지난번 신세계백화점 센텀시티에 이어 이번에는 …", "더현대 서울 이랑은 차원이 다르게 …".
-_PAST_BEFORE = re.compile(r"(?:지난\s?번|저번|지난해|작년|예전|이전)\s*(?:에는|엔|의)?\s*$")
+# v1.1(사후 조정): "지난 10월 신세계백화점 대구 점과 …에 이어" 처럼 '지난 N월'도 지난 장소로 본다.
+_PAST_BEFORE = re.compile(
+    r"(?:지난\s?번|저번|지난해|작년|예전|이전|지난\s?\d{1,2}\s?월)\s*(?:에는|엔|의)?\s*$"
+)
 _COMPARE_AFTER = re.compile(
     r"^\s*(?:에\s?이어|보다|(?:이)?랑은|(?:이)?랑\s?비교|[와과]\s?비교|[와과]\s?달리|[와과]는\s?달리|에\s?비해)"
 )
-PAST_WINDOW = 8
+PAST_WINDOW = 12
 
 
 def mention_context(text, span):
@@ -545,6 +549,11 @@ def hub_match(text, hubs, region):
 
 def _hub_verdict(ids, by_id, region):
     same = [i for i in ids if by_id[i]["region"] == region]
+    other = [i for i in ids if by_id[i]["region"] != region]
+    if len(same) == 1 and other:
+        # v1.1(사후 조정): 검색 지역 거점과 다른 지역 거점을 함께 적은 글(여러 지점 순회, 다른 지역 행사 글에 덧붙인 언급)은
+        # 어느 쪽이 이번 행사 장소인지 요약만으로 알 수 없어 단일 장소로 정하지 않는다(다른 지역 글로 빼지도 않음).
+        return dict(status="multiple", hub_id=None, ids=ids, mixed_regions=True)
     if len(same) == 1:
         return dict(status="single", hub_id=same[0], ids=ids)
     if len(same) > 1:

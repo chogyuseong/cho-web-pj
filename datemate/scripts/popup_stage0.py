@@ -24,7 +24,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app import popups  # noqa: E402
-from app.popup_hubs import HUBS_V0, HUBS_VERSION  # noqa: E402
+from app.popup_hubs import HUBS_V0  # noqa: E402
+from app.popup_hubs import HUBS_V0_VERSION as HUBS_VERSION  # noqa: E402
+
+# 1단계에서 app/popups.py 가 규칙 v1 로 바뀌었다. 0단계 공식 수치(규칙 v0)를 다시 내려면 커밋 f8ebdf4 에서 실행한다.
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = Path(os.getenv("DATEMATE_POPUP_STAGE0_DIR") or ROOT / "runtime" / "popup_stage0")

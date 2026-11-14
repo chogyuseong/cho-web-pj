@@ -1,12 +1,19 @@
-"""팝업 후보 판정용 순수 함수 (0단계: 실측·검증 전용, 라우터·운영 화면 어디에도 연결하지 않음).
+"""팝업 후보 판정용 순수 함수. 1단계(1a)부터 app/popup_api.py 가 운영 경로에서 쓴다.
 
 입력은 검색 API 가 돌려준 제목·요약·URL·출처 날짜뿐이다. 원문을 읽었다고 가정하지 않는다.
 - normalize_text: 태그·엔티티를 텍스트로
 - extract_period: 날짜 후보 → 달력 검사 → 행사 기간 문맥 → 연도·범위 불확실성 → 근거 보존
 - visit_status: 7절 방문일 상태 표
 - match_hubs: 8절 거점 매칭(긴 별칭 우선, 여러 거점이면 단일 장소로 강제하지 않음)
-- classify_roundup / event_name: 9절 모아 보기 분류와 행사명 식별
-- dedupe_by_url / group_posts: 9절 묶기(보수적, 재현 가능)
+- classify_roundup: 9절 모아 보기 분류
+- event_name / group_posts: 행사명 식별과 묶기. 0단계 측정용으로 남겨 두며, 운영 경로(API·화면)에서는 쓰지 않는다
+  (1단계 확정 사항: 출처 하나 = 항목 하나).
+
+규칙 v1(2026-11-14, 0단계 보고 8절 후보 중 사용자가 고른 것):
+- 기간: 괄호 없는 요일("25일 수요일~"), "11월6일에서 11월19일까지", 두 자리 연도 "26년 11월 13일",
+  팝업 문맥이 없는 '오픈'·매장 개점일은 행사 기간으로 쓰지 않음.
+- 거점: 별칭 안 띄어쓰기 허용("롯데백화점 부산 본점"), "지난번 …에 이어"·"… 이랑은" 같은 지난·비교 문맥의 거점은 단일 매칭에서 뺌,
+  지역 검색(좌표 확인)에서 건물 거점은 백화점·쇼핑시설 업종 항목을 먼저 봄.
 """
 
 import hashlib
@@ -16,7 +23,9 @@ import re
 from datetime import date
 from urllib.parse import urlsplit, urlunsplit
 
-RULES_VERSION = "popups-rules-v0"
+from .regions import normalize_region
+
+RULES_VERSION = "popups-rules-v1"
 
 # ---------------------------------------------------------------- 텍스트
 
@@ -34,7 +43,8 @@ def has_popup(text):
 
 # ---------------------------------------------------------------- 날짜
 
-_DOW = r"(?:\s*\(\s*[월화수목금토일](?:요일)?\s*\))?"
+# 날짜 뒤 요일: 괄호 안("(수)", "(수요일)") 또는 v1 부터 괄호 없이 "수요일".
+_DOW = r"(?:\s*\(\s*[월화수목금토일](?:요일)?\s*\)|\s*[월화수목금토일]요일)?"
 _UNIT_AFTER = re.compile(
     r"\s*(?:배|%|퍼센트|만|천|원|억|kg|g|km|m|cm|mm|ml|l|인치|점|년|대|시간|분|초|세|살|명|개|층|위|호|번|회|차|박|평|v)",
     re.I,
@@ -44,9 +54,13 @@ _P_YMD = re.compile(
     r"(?<![\w.])(20\d{2})\s*(?:[./-]|년)\s*(\d{1,2})\s*(?:[./-]|월)\s*(\d{1,2})(?!\d)(?:\s*일)?\.?"
 )
 _P_YYMD = re.compile(r"(?<![\w.])'?([2-3]\d)\.(\d{1,2})\.(\d{1,2})(?![\d])\.?")
+# v1: 두 자리 연도 "26년 11월 13일". 네 자리 연도의 뒤 두 자리("2026년")는 앞 글자가 숫자라 걸리지 않는다.
+_P_YYKMD = re.compile(r"(?<![\w.])'?([2-3]\d)\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일")
 _P_KMD = re.compile(r"(?<![\w.])(\d{1,2})\s*월\s*(\d{1,2})\s*일")
 _P_MD = re.compile(r"(?<![\w.])(\d{1,2})\s*[./]\s*(\d{1,2})(?!\d)(?!\.\d)\.?")
 _CONNECT = re.compile(r"\s*(?:~|∼|～|〜|-|–|—|부터)\s*")
+# v1: "11월6일에서 11월19일까지". '에서' 는 뒤 날짜에 '까지'가 붙을 때만 범위 연결로 본다.
+_CONNECT_FROM = re.compile(r"\s*에서\s*")
 _DAY_ONLY = re.compile(r"(\d{1,2})(?!\d)(?!\s*[./]\s*\d)\s*일?")
 _UNTIL = re.compile(r"\s*(?:일\s*)?까지")
 _START_WORD = re.compile(r"\s*(?:부터|오픈|OPEN|open|Open|개막|시작|그랜드\s*오픈)")
@@ -61,6 +75,7 @@ EVENT_WORDS = (
     "개최",
     "열리",
     "열린",
+    "열려",
     "일정",
     "전시",
     "행사",
@@ -84,7 +99,10 @@ OTHER_WORDS = (
     "결제",
     "입고",
     "방송",
+    "개점",
 )
+# v1: '오픈'만 보고 시작일로 읽은 날짜는 팝업 문맥이 있을 때만 쓴다. 매장 개점을 알리는 낱말이 가까이 있으면 쓰지 않는다.
+STORE_OPENING_WORDS = ("매장", "개점", "플래그십", "호점", "아울렛")
 CONTEXT_BEFORE = 25
 CONTEXT_AFTER = 15
 MAX_SPAN_DAYS = 400
@@ -109,6 +127,7 @@ def _mentions(text):
     for kind, pattern in (
         ("ymd", _P_YMD),
         ("yymd", _P_YYMD),
+        ("yymd", _P_YYKMD),
         ("kmd", _P_KMD),
         ("md", _P_MD),
     ):
@@ -187,9 +206,22 @@ def date_candidates(text):
         after = _skip_dow(text, m["end"])
         conn = _CONNECT.match(text, after)
         cand = None
-        if conn:
+        nxt = mentions[i + 1] if i + 1 < len(mentions) else None
+        via = _CONNECT_FROM.match(text, after)
+        if via and nxt and nxt["start"] == via.end():
+            # "…에서 …까지": 뒤 날짜에 '까지'가 붙어야 범위로 본다("성수에서" 같은 장소 '에서'와 구분).
+            e_end = _skip_dow(text, nxt["end"])
+            u = _UNTIL.match(text, e_end)
+            if u:
+                used.add(i + 1)
+                cand = dict(
+                    type="range",
+                    s=(m["year"], m["month"], m["day"]),
+                    e=(nxt["year"], nxt["month"], nxt["day"]),
+                    span=(m["start"], u.end()),
+                )
+        if cand is None and conn:
             j = conn.end()
-            nxt = mentions[i + 1] if i + 1 < len(mentions) else None
             if nxt and nxt["start"] == j:
                 used.add(i + 1)
                 e_end = _skip_dow(text, nxt["end"])
@@ -242,11 +274,13 @@ def date_candidates(text):
                     span=(m["start"], until.end()),
                 )
             elif _START_WORD.match(text, after):
+                word = _START_WORD.match(text, after).group(0).strip().casefold()
                 cand = dict(
                     type="start_only",
                     s=(m["year"], m["month"], m["day"]),
                     e=None,
                     span=(m["start"], m["end"]),
+                    by_open_word=word.endswith("오픈") or word == "open",
                 )
             elif m["kind"] == "md" and after == m["end"]:
                 # 연도도 '일'도 요일도 없는 단독 M.D 는 버전·번호일 수 있어 날짜로 보지 않는다.
@@ -272,6 +306,13 @@ def date_candidates(text):
                 # 연도 없는 범위: 시작 > 종료면 연말·연초를 넘는 것으로만 본다(연도는 여전히 모름).
                 cand["crosses_year"] = (em, ed) < (sm, sd)
         label, word = _context(text, *cand["span"])
+        if cand.get("by_open_word"):
+            s, e = cand["span"]
+            window = text[max(0, s - CONTEXT_BEFORE) : min(len(text), e + CONTEXT_AFTER)]
+            store = next((w for w in STORE_OPENING_WORDS if w in window), None)
+            if store or "팝업" not in window:
+                # 매장 개점일("[대전 이케아] 11월 19일 오픈!")은 팝업 기간이 아니다.
+                label, word = "other", store or "오픈(팝업 문맥 없음)"
         cand.update(
             context=label,
             context_word=word,
@@ -418,15 +459,40 @@ _REGION_PREFIX = ("서울", "부산", "대구", "대전", "인천", "광주", "�
 
 
 def _alias_pattern(alias):
-    parts = [re.escape(p) for p in alias.split()]
+    """별칭의 띄어쓴 자리는 공백 0개 이상. v1: 공백 제외 4글자 이상인 별칭은 글자 사이 공백 한 칸도 허용
+    ("롯데백화점 부산본점" ↔ "롯데백화점 부산 본점", "신세계백화점 대구점" ↔ "신세계백화점 대구 점")."""
+    words = alias.split()
+    if len("".join(words)) >= 4:
+        parts = [r"\s?".join(re.escape(ch) for ch in word) for word in words]
+    else:
+        parts = [re.escape(word) for word in words]
     return re.compile(r"\s*".join(parts), re.I)
+
+
+# v1: 지난 장소·비교로 언급한 거점은 이번 행사 장소로 보지 않는다.
+# 예: "지난번 신세계백화점 센텀시티에 이어 이번에는 …", "더현대 서울 이랑은 차원이 다르게 …".
+_PAST_BEFORE = re.compile(r"(?:지난\s?번|저번|지난해|작년|예전|이전)\s*(?:에는|엔|의)?\s*$")
+_COMPARE_AFTER = re.compile(
+    r"^\s*(?:에\s?이어|보다|(?:이)?랑은|(?:이)?랑\s?비교|[와과]\s?비교|[와과]\s?달리|[와과]는\s?달리|에\s?비해)"
+)
+PAST_WINDOW = 8
+
+
+def mention_context(text, span):
+    """거점 언급의 문맥: 'past'(지난 장소·비교 대상) 또는 'current'."""
+    s, e = span
+    if _PAST_BEFORE.search(text[max(0, s - PAST_WINDOW) : s]):
+        return "past"
+    if _COMPARE_AFTER.match(text[e : e + 12]):
+        return "past"
+    return "current"
 
 
 def match_hubs(text, hubs):
     """글에 나온 거점들. 긴 별칭을 먼저 잡고 겹치는 짧은 별칭은 버린다.
 
     짧은 별칭(공백 제외 3글자 이하)은 앞 글자가 한글이면(지역명 바로 뒤는 허용) 매칭하지 않는다.
-    반환: [dict(id, alias, span)] 글 안의 위치 순.
+    반환: [dict(id, alias, span, context)] 글 안의 위치 순. context 는 mention_context.
     """
     text = normalize_text(text)
     rows = []
@@ -447,13 +513,20 @@ def match_hubs(text, hubs):
             if any(text.startswith(word, e) for word in hub["not_followed_by"]):
                 continue
             taken.append((s, e))
-            found.append(dict(id=hub["id"], alias=m.group(0), span=(s, e)))
+            found.append(
+                dict(
+                    id=hub["id"],
+                    alias=m.group(0),
+                    span=(s, e),
+                    context=mention_context(text, (s, e)),
+                )
+            )
     found.sort(key=lambda r: r["span"])
     return found
 
 
 def hub_match(text, hubs, region):
-    """검색 지역 기준 판정.
+    """검색 지역 기준 판정. 지난 장소·비교로만 언급한 거점(v1)은 세지 않는다(past_ids 에 따로 남김).
 
     - single: 같은 지역 거점이 정확히 하나 → 그 거점
     - multiple: 같은 지역 거점이 둘 이상 → 단일 장소로 강제하지 않음
@@ -461,7 +534,16 @@ def hub_match(text, hubs, region):
     - none: 없음
     """
     by_id = {h["id"]: h for h in hubs}
-    ids = list(dict.fromkeys(m["id"] for m in match_hubs(text, hubs)))
+    mentions = match_hubs(text, hubs)
+    current = [m["id"] for m in mentions if m["context"] == "current"]
+    ids = list(dict.fromkeys(current))
+    past = [i for i in dict.fromkeys(m["id"] for m in mentions) if i not in ids]
+    result = _hub_verdict(ids, by_id, region)
+    result["past_ids"] = past
+    return result
+
+
+def _hub_verdict(ids, by_id, region):
     same = [i for i in ids if by_id[i]["region"] == region]
     if len(same) == 1:
         return dict(status="single", hub_id=same[0], ids=ids)
@@ -503,10 +585,16 @@ def verify_local_result(hub, items):
                 address=address,
                 lat=point[0],
                 lon=point[1],
+                shopping=any(w in str(item.get("category") or "") for w in SHOPPING_CATEGORY_WORDS),
             )
         )
     if not passed:
         return dict(status="unverified", reason="no_matching_result", point=None, candidates=0)
+    # v1: 건물 거점은 입점 매장 항목보다 건물 자체(백화점·쇼핑시설 업종) 항목을 먼저 본다.
+    if hub["kind"] == "building" and any(p["shopping"] for p in passed):
+        passed = [p for p in passed if p["shopping"]]
+    for p in passed:
+        p.pop("shopping")
     first = passed[0]
     if any(distance_km(first, other) > 0.3 for other in passed[1:]):
         return dict(
@@ -519,16 +607,12 @@ def verify_local_result(hub, items):
     return dict(status="verified", level=level, point=first, candidates=len(passed))
 
 
-_REGION_WORDS = {
-    "서울": ("서울", "서울특별시", "서울시"),
-    "부산": ("부산", "부산광역시", "부산시"),
-    "대구": ("대구", "대구광역시", "대구시"),
-    "대전": ("대전", "대전광역시", "대전시"),
-}
+SHOPPING_CATEGORY_WORDS = ("백화점", "쇼핑몰", "쇼핑센터", "복합쇼핑", "쇼핑복합", "아울렛")
 
 
 def _region_word(word, region):
-    return word in _REGION_WORDS.get(region, (region,))
+    """주소 첫 낱말이 그 시·도인지(app/regions.py 의 17개 시·도 별칭표)."""
+    return normalize_region(word) == region
 
 
 def local_point(item):

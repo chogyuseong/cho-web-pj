@@ -1,11 +1,11 @@
-"""0단계 팝업 순수 함수(app/popups.py)와 거점 사전 v0 의 단위 테스트. 외부 호출 없음."""
+"""팝업 순수 함수(app/popups.py, 규칙 v1)와 거점 사전 v0·v1 의 단위 테스트. 외부 호출 없음."""
 
 from datetime import date
 
 import pytest
 
 from app import popups
-from app.popup_hubs import HUBS_V0
+from app.popup_hubs import HUBS, HUBS_V0, HUBS_VERSION
 
 V = date(2026, 11, 20)
 
@@ -437,3 +437,126 @@ def test_grouping_is_reproducible_regardless_of_input_order():
     again = popups.group_posts(list(reversed(rows)))
     assert first == again
     assert len({c["id"] for c in first}) == len(first)
+
+
+# ---------------------------------------------------------------- 규칙 v1: 0단계 오인식 사례 회귀 테스트
+# 문장은 0단계 보고(docs/popup-stage0-2026-11-14.md) 4-1 검토 표·5절 사례의 제목·요약을 줄인 것이다.
+
+
+def test_v1_weekday_without_parentheses_keeps_the_range():
+    # 서울 #1: 괄호 없는 요일 때문에 '종료일만·연도 미상'으로 읽던 것.
+    p = period("헬로키티 팝업", "팝업 기간 2026년 11월 25일 수요일~12월 27일 일요일")["period"]
+    assert (p["kind"], p["start"], p["end"], p["year_known"]) == (
+        "range",
+        date(2026, 11, 25),
+        date(2026, 12, 27),
+        True,
+    )
+
+
+def test_v1_from_until_with_eseo():
+    # 대구 #54: '에서 … 까지'를 연결로 몰라 놓치던 것.
+    found = period(
+        "더현대 대구 팝업",
+        "해피메타몽 팝업스토어 에 다녀왔어요 11월6일에서 11월19일까지 열려있어요",
+    )
+    assert found["status"] == "period"
+    assert (found["period"]["start_md"], found["period"]["end_md"]) == ((11, 6), (11, 19))
+    # '까지'가 없으면 장소의 '에서'일 수 있어 범위로 잇지 않는다.
+    loose = popups.date_candidates("팝업 기간 11월 6일에서 11월 9일 사이")
+    assert all(c["type"] != "range" for c in loose)
+
+
+def test_v1_two_digit_year_with_korean_units():
+    # 강원 #61: '26년 11월 13일(금)~11월 26일(목)'의 연도를 못 읽던 것.
+    p = period(
+        "부산 센텀 팝업 총정리", "팝업 지하 1층! 26년 11월 13일(금)~11월 26일(목) 양배추 떡볶이"
+    )["period"]
+    assert (p["start"], p["end"]) == (date(2026, 11, 13), date(2026, 11, 26))
+    # 네 자리 연도의 뒤 두 자리를 두 자리 연도로 다시 읽지 않는다.
+    assert period("팝업 기간 2026년 11월 13일부터 20일까지")["period"]["start"] == date(
+        2026, 11, 13
+    )
+
+
+def test_v1_store_opening_day_is_not_a_popup_start():
+    # 대구 #44: 매장 개점일을 팝업 시작일로 읽던 것.
+    assert (
+        period("[대전 이케아] 11월 19일 오픈! 현대프리미엄아울렛 대전점 이케아 방문")["status"]
+        == "none"
+    )
+    assert (
+        period("무신사 뷰티 성수 오픈", "매장명 무신사 뷰티 성수 개점일 2026년 11월 11일")["status"]
+        == "none"
+    )
+    # 팝업 문맥의 오픈은 그대로 시작일.
+    assert period("팝업스토어 2026.11.14 오픈")["period"]["start"] == date(2026, 11, 14)
+
+
+def hubs_v1(text, region):
+    return popups.hub_match(text, HUBS, region)
+
+
+def test_v1_past_place_is_not_the_event_place():
+    # 부산 #25: '지난번 … 에 이어' 장소에 매칭하고, 띄어쓰기가 다른 이번 장소는 놓치던 것.
+    got = hubs_v1(
+        "나가노마켓 팝업 지난번 신세계백화점 센텀시티에 이어 이번에는 롯데백화점 부산 본점에서 진행",
+        "부산",
+    )
+    assert (got["status"], got["hub_id"]) == ("single", "busan-lotte-main")
+    assert got["past_ids"] == ["busan-shinsegae-centum"]
+
+
+def test_v1_comparison_mention_moves_post_out_of_the_searched_region():
+    # 서울 #19: 더현대 대구 후기를 비교로 언급한 '더현대 서울'에 매칭하던 것 → 다른 지역 글로 분리.
+    got = hubs_v1(
+        "더현대 대구 크리스마스 ／ 더현대 서울 이랑은 차원이 다르게 볼품이 없구나", "서울"
+    )
+    assert got["status"] == "other_region" and got["ids"] == ["daegu-thehyundai"]
+
+
+def test_v1_spacing_variants_and_new_aliases():
+    ids = [m["id"] for m in popups.match_hubs("서면롯데백화점 팝업", HUBS)]
+    assert ids == ["busan-lotte-main"]
+    assert [m["id"] for m in popups.match_hubs("신세계백화점 대구 점 팝업", HUBS)] == [
+        "daegu-shinsegae"
+    ]
+    assert [m["id"] for m in popups.match_hubs("전주 롯데백화점 위드썸 팝업", HUBS)] == [
+        "jeonbuk-lotte-jeonju"
+    ]
+    # 지점을 특정할 수 없는 표기는 여전히 매칭하지 않는다.
+    for text in ("센텀시티 팝업", "롯데백화점 팝업", "대구 롯데백화점 팝업", "더현대 팝업"):
+        assert popups.match_hubs(text, HUBS) == [], text
+
+
+def test_hub_dictionary_v1_keeps_v0_and_has_verifiable_entries():
+    v1 = {h["id"]: h for h in HUBS}
+    assert len(v1) == len(HUBS) == 35
+    assert HUBS_VERSION == "hubs-v1-2026-11-14" and popups.RULES_VERSION == "popups-rules-v1"
+    for h in HUBS:
+        assert h["verify"] and h["local_query"] and h["district"]
+        assert "lat" not in h and "lon" not in h
+    assert all(set(v1[h["id"]]["aliases"]) >= set(h["aliases"]) for h in HUBS_V0)
+
+
+def test_v1_local_search_prefers_the_building_over_a_tenant_shop():
+    hub = next(h for h in HUBS if h["id"] == "daegu-shinsegae")
+    items = [
+        dict(
+            local("유니클로 신세계 대구점", "대구광역시 동구 효신로 88", 128.6290, 35.8820),
+            category="패션,의류>캐주얼",
+        ),
+        dict(
+            local("신세계백화점 대구점", "대구광역시 동구 동부로 149", 128.6280, 35.8771),
+            category="쇼핑,유통>백화점",
+        ),
+    ]
+    got = popups.verify_local_result(hub, items)
+    # v0 은 두 항목이 300m 넘게 떨어져 모호로 판정했다.
+    assert got["status"] == "verified" and got["point"]["name"] == "신세계백화점 대구점"
+    jeonju = next(h for h in HUBS if h["id"] == "jeonbuk-lotte-jeonju")
+    ok = popups.verify_local_result(
+        jeonju,
+        [local("롯데백화점 전주점", "전북특별자치도 전주시 완산구 온고을로 2", 127.115, 35.832)],
+    )
+    assert ok["status"] == "verified"

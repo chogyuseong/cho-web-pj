@@ -99,10 +99,64 @@
 .popup-fact.is-unconfirmed::before { border:2px dashed var(--muted); }
 .popup-fact.is-unconfirmed dd { color:var(--muted); }
 
+/* ---------- 코스 결과의 팝업 글 구역 (1b) ----------
+   코스는 실선 홍 노선, 팝업 글은 노선에 연결되지 않은 주변 후보다. 구역 위쪽 경계를 점선으로 두고
+   "코스에 넣지 않은 주변 후보예요"를 글자로 함께 적는다(선 모양만으로 알리지 않음). 코스 이동선·지도에는 잇지 않는다. */
+.popup-course {
+  margin-top:24px;
+  padding:20px 0 8px;
+  border-top:3px dashed var(--ink);
+  background:var(--paper);
+  min-width:0;
+  scroll-margin-top:100px;
+}
+.popup-course .section-heading h3 { margin:0; color:var(--ink); }
+.popup-course-about { font-size:14px; margin:8px 0 0; }
+.popup-course-demo { margin:12px 0 0; padding:8px 12px; background:var(--platform); color:var(--ink); font-size:14px; }
+.popup-course .popup-list>h4 { font-size:17px; line-height:1.5; margin:0 0 12px; color:var(--ink); }
+.popup-course .popup-items { grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); }
+
+/* 거리·종류 줄: 거리는 데이트메이트가 계산한 값이라 읽은 정보 칸 안에 둔다. 종류 줄은 확인/미확인이 아니라 원을 그리지 않는다. */
+.popup-fact.popup-kind::before { display:none; }
+
+/* 항목 맨 아래 행동 줄: 거점 기준 주변 코스 버튼과 그 옆 상태 글자 */
+.popup-reading:not(:last-child) { border-radius:0; }
+.popup-action {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px 12px;
+  padding:12px 16px 14px;
+  border-top:1px solid var(--line);
+}
+.popup-action button { min-height:44px; max-width:100%; white-space:normal; text-align:left; }
+.popup-action-note { margin:0; min-width:0; flex:1 1 12em; font-size:14px; line-height:1.6; color:var(--ink); }
+.popup-post-chosen { border-left:4px solid var(--hong); }
+.popup-unknown { margin-top:16px; }
+.popup-unknown .popup-unknown-toggle { min-height:44px; max-width:100%; white-space:normal; text-align:left; }
+.popup-unknown-list .popup-list { margin-top:12px; }
+
+/* 팝업 거점으로 다시 추천한 뒤의 안내. 축제 안내(청색 실선)와 다르게 점선 + 제목 글자로 구분한다. */
+.popup-origin-note {
+  display:grid;
+  gap:6px;
+  margin:12px 0;
+  padding:14px 16px;
+  background:var(--platform);
+  border-left:6px dashed var(--hong);
+  color:var(--ink);
+  font-size:16px;
+  overflow-wrap:anywhere;
+}
+.popup-origin-note[hidden] { display:none; }
+.popup-origin-note .popup-origin-title { font-size:17px; color:var(--ink); }
+.popup-origin-note button { justify-self:start; min-height:44px; max-width:100%; white-space:normal; text-align:left; }
+
 @media(max-width:420px) {
   .popup-quote { padding:14px 12px 10px; }
   .popup-reading { padding:10px 12px 12px; }
   .popup-fact { grid-template-columns:minmax(0,1fr); padding-left:22px; }
+  .popup-action { padding:10px 12px 12px; }
 }
 @media(forced-colors:active) {
   .popup-fact::before { forced-color-adjust:none; }

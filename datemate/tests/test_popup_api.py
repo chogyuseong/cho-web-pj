@@ -166,6 +166,8 @@ def test_posts_are_source_items_with_reading_kept_apart(fake):
         and seongsu["period"]["status"] == "unknown"
     )
     assert seongsu["place"]["level"] == "area_anchor" and seongsu["place"]["anchor"] == "성수역"
+    # 주변 코스 버튼이 출발지 이름에 쓰는 시·군·구(1b).
+    assert olgi["place"]["district"] == "영등포구" and seongsu["place"]["district"] == "성동구"
     unknown = posts["https://blog.naver.com/a/8"]
     assert unknown["place"] == dict(hub_id=None, level="unverified", reason="not_found")
     assert "lat" not in unknown["place"]

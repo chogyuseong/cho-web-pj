@@ -363,6 +363,10 @@ async function init() {
       try {
         FestivalPanel.restore(selected.conditions);
       } catch {}
+      // 팝업 글 구역도 같은 지역·방문일로 따로 조회한다(팝업 거점 선택은 되살리지 않음).
+      try {
+        if (typeof PopupCourse !== 'undefined') PopupCourse.restore(selected.conditions);
+      } catch {}
       showPlannerPage(true);
     }
     if (location.hash === '#explore-section') {
@@ -454,6 +458,10 @@ form.addEventListener('submit', async e => {
     // 축제는 코스와 병렬로 조회한다. 실패해도 코스 흐름에 전파하지 않는다.
     try {
       FestivalPanel.load(data);
+    } catch {}
+    // 팝업 글도 코스와 따로 조회한다. 코스 결과 표시를 기다리게 하지 않고, 실패해도 코스 흐름에 전파하지 않는다.
+    try {
+      if (typeof PopupCourse !== 'undefined') PopupCourse.load(data);
     } catch {}
     const result = await createPlanWithProgress(data, FestivalPanel.contextOf(data));
     plans = result.plans;

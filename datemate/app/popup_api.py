@@ -301,6 +301,8 @@ def place_view(hub, verdicts):
         kind=h["kind"],
         anchor=h["anchor"],
         region=h["region"],
+        # 1b 주변 코스 버튼이 출발지 이름 앞부분(시·도 시·군·구)을 만들 때 쓴다. 기존 지역 검색은 이 부분에서 동네를 읽는다.
+        district=h["district"],
     )
     v = verdicts.get(h["id"])
     if v is None:

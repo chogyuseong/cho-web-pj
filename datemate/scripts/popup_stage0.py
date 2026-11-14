@@ -47,9 +47,17 @@ REVIEW_PER_REGION = 20
 # ---------------------------------------------------------------- 호출
 
 
+def _env(name):
+    """docker --env-file 은 따옴표를 그대로 넘긴다. .env 처럼 바깥 따옴표 한 쌍만 벗긴다."""
+    value = os.getenv(name, "").strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        value = value[1:-1].strip()
+    return value
+
+
 def _headers():
-    cid = os.getenv("NAVER_SEARCH_CLIENT_ID", "").strip()
-    secret = os.getenv("NAVER_SEARCH_CLIENT_SECRET", "").strip()
+    cid = _env("NAVER_SEARCH_CLIENT_ID")
+    secret = _env("NAVER_SEARCH_CLIENT_SECRET")
     if not cid or not secret:
         return None
     return {"X-NCP-APIGW-API-KEY-ID": cid, "X-NCP-APIGW-API-KEY": secret}

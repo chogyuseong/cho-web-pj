@@ -348,6 +348,8 @@ async function init() {
     }
     form.elements.region.value = statusData.region;
     mountDateCategories(statusData.date_categories);
+    // 팝업 둘러보기 전환은 서버 스위치(DATEMATE_POPUPS_ENABLED)가 켜져 있을 때만 그린다.
+    if (typeof PopupView !== 'undefined') PopupView.mount(statusData.popups_enabled === true);
     const id = new URLSearchParams(location.search).get('plan');
     if (id) {
       selected = await api('/plans/' + encodeURIComponent(id));

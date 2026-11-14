@@ -50,6 +50,7 @@ JAVASCRIPT = [
     "planning-outcomes.js",
     "feedback.js",
     "feedback-admin.js",
+    "popups.js",
 ]
 
 

@@ -96,6 +96,9 @@ app.include_router(festivals_router)
 from .user_feedback import router as user_feedback_router
 
 app.include_router(user_feedback_router)
+from .popup_api import router as popup_router
+
+app.include_router(popup_router)
 
 
 @app.get("/healthz", include_in_schema=False)
@@ -352,6 +355,8 @@ def status():
 
 
 def _status():
+    from .popup_api import enabled as popups_enabled
+
     counts = {}
     for mode in ("demo", "real"):
         a, b = collections(mode)
@@ -368,6 +373,8 @@ def _status():
         geocoding_available=bool(os.getenv("NAVER_MAPS_KEY_ID") and os.getenv("NAVER_MAPS_KEY")),
         map_tile_url=os.getenv("MAP_TILE_URL", "https://tile.openstreetmap.org/{z}/{x}/{y}.png"),
         map_tile_attribution=os.getenv("MAP_TILE_ATTRIBUTION", "© OpenStreetMap contributors"),
+        # DATEMATE_POPUPS_ENABLED=0 이면 화면이 팝업 전환을 그리지 않는다(API 는 404).
+        popups_enabled=popups_enabled(),
     )
 
 

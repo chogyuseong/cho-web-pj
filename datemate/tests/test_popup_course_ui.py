@@ -62,6 +62,16 @@ COURSE = payload(
 CONDITIONS = dict(mode="real", region="서울", visit_date="2026-11-20", origin=SEONGSU)
 
 
+def near(i):
+    """성수에서 북쪽으로 1km 남짓씩 떨어진 건물 거점. 3 과 4 는 같은 좌표(거리 동률)."""
+    return WORLD | dict(
+        hub_id=f"seoul-test-{i}",
+        name=f"건물 거점 {i}",
+        lat=37.5446 + 0.01 * (min(i, 3) + 1),
+        lon=127.0559,
+    )
+
+
 class Api:
     """방문일(visit_date)로 응답을 고른다. hold 에 든 방문일은 응답하지 않고 route 를 남겨 둔다."""
 
@@ -99,11 +109,22 @@ def titles(page, scope="#popup-course-results>.popup-list"):
     return page.locator(f"{scope} .popup-title").all_inner_texts()
 
 
-def distances(page):
+def hubs(page):
+    """보이는 거점 묶음 머리: 이름·거리·글 수."""
     return page.evaluate(
-        "[...document.querySelectorAll('#popup-course-results>.popup-list .popup-post')]"
-        ".map(c=>c.querySelector('.popup-distance dd')?.textContent??null)"
+        "[...document.querySelectorAll('#popup-course-results .popup-hub')].map(h=>({"
+        "name:h.querySelector('.popup-hub-name').textContent,"
+        "distance:h.querySelector('.popup-hub-head .popup-distance dd')?.textContent??null,"
+        "count:h.querySelector('.popup-hub-count').textContent}))"
     )
+
+
+def distances(page):
+    return [hub["distance"] for hub in hubs(page)]
+
+
+def hub(page, text):
+    return page.locator("#popup-course-results .popup-hub").filter(has_text=text)
 
 
 def plan_jobs(page):
@@ -179,38 +200,58 @@ def test_located_posts_by_distance_unknown_folded_and_states(audit_page):
         "document.querySelector('#festival-section').nextElementSibling.id==='popup-course'"
         "&&document.querySelector('#popup-course').nextElementSibling.id==='plan-extras'"
     )
-    # 기본 목록은 위치가 확인된 글만, 출발지에서 가까운 순. 같은 거점(같은 거리)은 글 ID 순.
-    assert titles(page) == [
-        "성수 팝업 총정리",  # popup-post:…06
-        "성수 디저트 팝업",  # popup-post:…0b
-        "성수 짱구 팝업",  # popup-post:…0c
-        "롯데월드몰 팝업",
-        "더현대 서울 올기 팝업",
+    # 기본 목록은 위치가 확인된 글을 거점별로 묶은 것. 묶음은 출발지에서 가까운 순이고,
+    # 장소·거리·글 수는 묶음 머리에 한 번만 적는다("검색된 글 N건", 인기 지표가 아님).
+    assert hubs(page) == [
+        dict(
+            name="성수 일대(대략)",
+            distance="출발지에서 직선거리 1km 이내 · 성수 일대 기준",
+            count="검색된 글 3건",
+        ),
+        dict(name="롯데월드몰", distance="출발지에서 직선거리 약 5.4km", count="검색된 글 1건"),
+        dict(name="더현대 서울", distance="출발지에서 직선거리 약 11km", count="검색된 글 1건"),
     ]
-    shown = distances(page)
-    assert shown[:3] == ["출발지에서 직선거리 1km 이내 · 성수 일대 기준"] * 3
-    assert shown[3].startswith("출발지에서 직선거리 약 ") and shown[3].endswith("km")
-    assert shown[4] == "출발지에서 직선거리 약 11km"
+    assert hub(page, "성수 일대").locator(".popup-hub-head .popup-place dd").inner_text() == (
+        "동네 기준점 성수역 · 대략 위치"
+    )
+    assert hub(page, "롯데월드몰").locator(".popup-hub-head .popup-place dd").inner_text() == (
+        "건물 위치 확인 · 층·입구는 원문 확인"
+    )
+    # 묶음마다 처음 1건 + 더 보기. 묶음 안은 기간이 확인된 글(오픈 예정) 먼저.
+    assert titles(page) == ["성수 디저트 팝업", "롯데월드몰 팝업", "더현대 서울 올기 팝업"]
     heading = page.locator("#popup-course-results>.popup-list>h4").inner_text()
-    assert heading == "위치를 확인한 글 5건 · 출발지에서 가까운 순(직선거리)"
+    assert heading == "위치를 확인한 글 5건 · 장소 3곳 · 출발지에서 가까운 순(직선거리)"
     notes = page.locator("#popup-course-results>.popup-note").all_inner_texts()
     assert notes == [
         "오늘(2026.11.14) 기준 종료로 확인된 글 1건은 숨겼어요.",
         "다른 시·도 장소로 읽힌 글 2건은 뺐어요.",
     ]
-    cards = page.locator("#popup-course-results>.popup-list .popup-post")
-    # 버튼 문구는 거점 종류로 나뉘고, 기간 미확인·오픈 예정은 버튼 바로 옆에 글자로 적는다.
-    upcoming = cards.nth(1).locator(".popup-action")
-    assert upcoming.locator("button").inner_text() == "이 일대 주변 코스 추천받기"
-    assert "오픈 예정" in upcoming.locator(".popup-action-note").inner_text()
-    assert "기간 미확인" in cards.nth(2).locator(".popup-action-note").inner_text()
-    ongoing = cards.nth(3).locator(".popup-action")
+    # 버튼은 묶음마다 하나. 문구는 거점 종류로 나뉘고, 글마다 다른 기간 상태는 버튼 옆에 글 수로 적는다.
+    seongsu = hub(page, "성수 일대")
+    assert seongsu.get_by_role("button", name="이 일대 주변 코스 추천받기").count() == 1
+    assert seongsu.locator(".popup-hub-head .popup-action-note").inner_text() == (
+        "오픈 예정 1건 · 기간 미확인 2건 · 방문일에 열리는지 글마다 원문에서 확인해 주세요."
+    )
+    ongoing = hub(page, "롯데월드몰").locator(".popup-action")
     assert ongoing.locator("button").inner_text() == "이 장소 주변 코스 추천받기"
     assert ongoing.locator(".popup-action-note").count() == 0
-    assert cards.nth(0).locator(".popup-kind dd").inner_text() == "여러 팝업을 모아 소개한 글"
-    # 원문 인용(제목·요약·링크)과 읽은 정보(거리 포함)가 다른 칸이다.
-    assert cards.nth(4).locator(".popup-quote .popup-distance").count() == 0
-    assert cards.nth(4).locator(".popup-reading .popup-distance").count() == 1
+    # 글 항목에는 그 글에만 해당하는 것만: 장소·거리·버튼을 글마다 되풀이하지 않는다.
+    posts = page.locator("#popup-course-results .popup-hub .popup-post")
+    assert posts.count() == 3
+    assert "오픈 예정" in posts.nth(0).locator(".popup-period dd").inner_text()
+    # 원문 인용(제목·요약·링크)과 읽은 정보가 다른 칸이다.
+    assert posts.nth(0).locator(".popup-quote .popup-period").count() == 0
+    assert posts.nth(0).locator(".popup-reading .popup-period").count() == 1
+    # 그다음은 글 ID 순(…06 총정리 → …0c 짱구).
+    seongsu.get_by_role("button", name="이 장소의 글 2건 더 보기").click()
+    assert titles(page, "#popup-course-results .popup-hub[data-hub-id='seoul-area-seongsu']") == [
+        "성수 디저트 팝업",
+        "성수 팝업 총정리",
+        "성수 짱구 팝업",
+    ]
+    assert posts.count() == 5
+    assert posts.locator(".popup-place, .popup-distance, button").count() == 0
+    assert posts.nth(1).locator(".popup-kind dd").inner_text() == "여러 팝업을 모아 소개한 글"
     # 위치 미확인 글은 접혀 있고, 펼치면 거리 없이 이유 한 줄만 있다.
     toggle = page.locator(".popup-unknown-toggle")
     assert toggle.inner_text() == "위치를 확인하지 못한 글 2건 보기"
@@ -230,21 +271,29 @@ def test_located_posts_by_distance_unknown_folded_and_states(audit_page):
     toggle.click()
     assert page.locator("#popup-course-unknown").is_hidden()
 
-    # 출발지가 없으면(이어받은 검색·데모) 거리 없이 받은 순서. 데모는 그렇다고 알린다.
+    # 출발지가 없으면(이어받은 검색·데모) 거리 없이 거점이 처음 나온 순서. 데모는 그렇다고 알린다.
     load(page, mode="demo", origin=dict(name="데모 출발점", lat=37.575, lon=126.985))
-    assert titles(page)[:3] == ["더현대 서울 올기 팝업", "성수 짱구 팝업", "성수 디저트 팝업"]
-    assert distances(page) == [None] * 5
+    assert [h["name"] for h in hubs(page)] == ["더현대 서울", "성수 일대(대략)", "롯데월드몰"]
+    assert distances(page) == [None] * 3
     assert "받은 순서" in page.locator("#popup-course-results>.popup-list>h4").inner_text()
     assert page.locator("#popup-course-demo").is_visible()
 
-    # 첫 6건 + 더 보기.
-    many = [post(20 + i, title=f"성수 팝업 {i}", place=AREA) for i in range(8)]
+    # 첫 화면은 묶음 3곳 + "다른 장소 N곳 더 보기". 같은 거리의 두 거점은 거점 ID 순.
+    many = [post(20 + i, title=f"성수 팝업 {i}", place=AREA) for i in range(5)] + [
+        # 받은 순서는 4 가 3 보다 먼저다(거점 ID 동률 규칙이 실제로 순서를 정하는지 보려고).
+        post(40 + i, title=f"건물 팝업 {i}", place=near(i))
+        for i in (0, 1, 2, 4, 3)
+    ]
     api.by_day["2026-11-21"] = (200, payload(posts=many))
     load(page, visit_date="2026-11-21")
     assert page.locator("#popup-course-demo").is_hidden()
-    assert page.locator("#popup-course-results .popup-post").count() == 6
-    page.locator("#popup-course-results .popup-more").click()
-    assert page.locator("#popup-course-results .popup-post").count() == 8
+    assert [h["name"] for h in hubs(page)] == ["성수 일대(대략)", "건물 거점 0", "건물 거점 1"]
+    assert page.locator("#popup-course-results .popup-hub .popup-post").count() == 3
+    page.get_by_role("button", name="다른 장소 3곳 더 보기").click()
+    # 거점 3·4 는 같은 좌표라 거점 ID 순(seoul-test-3 → seoul-test-4).
+    assert [h["name"] for h in hubs(page)][3:] == ["건물 거점 2", "건물 거점 3", "건물 거점 4"]
+    page.get_by_role("button", name="이 장소의 글 4건 더 보기").click()
+    assert page.locator("#popup-course-results .popup-hub .popup-post").count() == 10
     assert page.locator(".popup-unknown-toggle").count() == 0
 
     # 위치 확인 0건(미확인은 있음) / 글 0건 / 일부 좌표 실패 / 전체 실패 / 키 없음 / 429 를 다르게 보인다.
@@ -336,7 +385,7 @@ def test_late_success_error_and_loading_end_are_ignored(audit_page):
         status=200, content_type="application/json", body=json.dumps(COURSE)
     )
     idle(page)
-    assert len(titles(page)) == 5
+    assert [h["name"] for h in hubs(page)] == ["성수 일대(대략)", "롯데월드몰", "더현대 서울"]
 
 
 def test_popup_button_changes_only_the_origin_and_reverts(audit_page):
@@ -348,14 +397,13 @@ def test_popup_button_changes_only_the_origin_and_reverts(audit_page):
     original = first[-1]
     assert api.requests[-1] == dict(region="서울", visit_date="2026-10-24")
     submitted = plan_jobs(page)
-    cards = page.locator("#popup-course-results>.popup-list .popup-post")
     # 코스를 찾는 중에는 막고 안내한다.
     page.evaluate("document.querySelector('#submit-plan').disabled=true")
-    cards.filter(has_text="더현대 서울 올기 팝업").get_by_role("button").click()
+    hub(page, "더현대 서울 올기 팝업").get_by_role("button").click()
     assert page.locator("#toast").inner_text() == "코스를 찾는 중이에요. 끝난 뒤 다시 눌러 주세요."
     page.evaluate("document.querySelector('#submit-plan').disabled=false")
     assert submitted == []
-    cards.filter(has_text="더현대 서울 올기 팝업").get_by_role(
+    hub(page, "더현대 서울 올기 팝업").get_by_role(
         "button", name="이 장소 주변 코스 추천받기", exact=True
     ).click()
     sent = submitted_after(page, submitted, 1)
@@ -368,14 +416,18 @@ def test_popup_button_changes_only_the_origin_and_reverts(audit_page):
     assert note.is_visible() and "‘더현대 서울’ 주변 기준 코스" in note.inner_text()
     assert "가상 장소 데모 대신 실제 장소로" in note.inner_text()
     assert page.locator("#festival-origin-note").is_hidden()
-    # 다시 그린 구역: 고른 거점 글은 출발 기준이라 거리·버튼 대신 안내, 다른 글은 새 출발지 기준 거리.
+    # 다시 그린 구역: 고른 거점 묶음은 출발 기준이라 거리·버튼 대신 안내, 다른 묶음은 새 출발지 기준 거리.
     idle(page)
-    chosen = cards.filter(has_text="더현대 서울 올기 팝업")
+    chosen = hub(page, "더현대 서울 올기 팝업")
     assert "지금 코스는 ‘더현대 서울’ 주변에서 출발해요." in chosen.inner_text()
     assert chosen.locator("button").count() == 0 and chosen.locator(".popup-distance").count() == 0
     assert titles(page)[0] == "더현대 서울 올기 팝업"
+    assert distances(page)[1:] == [
+        "출발지에서 직선거리 약 11km · 성수 일대 기준",
+        "출발지에서 직선거리 약 15km",
+    ]
     # 다른 거점(동네)으로 바꿔 골라도 되돌릴 출발지는 처음 것.
-    cards.filter(has_text="성수 짱구 팝업").get_by_role(
+    hub(page, "성수 일대(대략)").get_by_role(
         "button", name="이 일대 주변 코스 추천받기", exact=True
     ).click()
     sent = submitted_after(page, submitted, 2)
@@ -403,11 +455,7 @@ def test_festival_and_popup_choices_do_not_tangle(audit_page):
     submitted = plan_jobs(page)
     festival_note = page.locator("#festival-origin-note")
     popup_note = page.locator("#popup-origin-note")
-    popup_button = (
-        page.locator("#popup-course-results>.popup-list .popup-post")
-        .filter(has_text="더현대 서울 올기 팝업")
-        .get_by_role("button")
-    )
+    popup_button = hub(page, "더현대 서울 올기 팝업").get_by_role("button")
     # 축제를 고른 뒤 팝업 버튼: 축제 기준이 풀리고 팝업 안내만 남는다.
     page.locator("#festival-results .festival-card").nth(0).get_by_role(
         "button", name="이 축제 주변 코스 추천받기", exact=True
@@ -550,18 +598,20 @@ def test_four_widths_long_names_touch_targets_and_keyboard(audit_page):
     Api(page, default=payload(posts=rows))
     generate(page)
     page.wait_for_selector("#popup-course .popup-post")
-    page.locator("#popup-course-results .popup-more").click()
-    page.locator(".popup-unknown-toggle").click()
+
+    def expand():
+        while page.locator("#popup-course-results .popup-hub-more").count():
+            page.locator("#popup-course-results .popup-hub-more").first.click()
+        page.locator(".popup-unknown-toggle").click()
+
+    expand()
     assert page.locator("#popup-course .popup-post").count() == 9
     # 고른 거점 안내도 긴 이름으로 본다(요청은 503 으로 끝냄).
     plan_jobs(page)
-    page.locator("#popup-course .popup-post").filter(has_text="에비뉴엘").first.get_by_role(
-        "button"
-    ).click()
+    hub(page, "에비뉴엘").get_by_role("button").click()
     page.wait_for_function('!document.querySelector("#submit-plan").disabled')
     idle(page)
-    page.locator("#popup-course-results .popup-more").click()
-    page.locator(".popup-unknown-toggle").click()
+    expand()
     assert page.locator("#popup-origin-note").is_visible()
     for width in (320, 390, 768, 1440):
         page.set_viewport_size({"width": width, "height": 900})
@@ -571,13 +621,13 @@ def test_four_widths_long_names_touch_targets_and_keyboard(audit_page):
             """() => {
               const area=[document.querySelector('#popup-course'),document.querySelector('#popup-origin-note')];
               const all=s=>area.flatMap(a=>[...a.querySelectorAll(s)]).filter(e=>e.getClientRects().length);
-              const small=all('p,dt,dd,h3,h4,a,button,strong,span').filter(e=>e.textContent.trim()&&parseFloat(getComputedStyle(e).fontSize)<14)
+              const small=all('p,dt,dd,h3,h4,h5,h6,a,button,strong,span').filter(e=>e.textContent.trim()&&parseFloat(getComputedStyle(e).fontSize)<14)
                 .map(e=>e.className+':'+getComputedStyle(e).fontSize);
               const short=all('button,.popup-source-link').filter(e=>e.getBoundingClientRect().height<44).map(e=>e.textContent.trim());
-              const clipped=all('.popup-title,.popup-fact dd,.popup-meta,.popup-action-note,.popup-origin-title,button')
+              const clipped=all('.popup-title,.popup-summary,.popup-hub-name,.popup-fact dd,.popup-meta,.popup-action-note,.popup-origin-title,button')
                 .filter(e=>e.scrollWidth>e.clientWidth+1||getComputedStyle(e).textOverflow==='ellipsis'||getComputedStyle(e).webkitLineClamp!=='none')
                 .map(e=>e.textContent.slice(0,20));
-              const outside=all('.popup-post,.popup-origin-note button').filter(e=>{const r=e.getBoundingClientRect();return r.left<0||r.right>innerWidth;}).length;
+              const outside=all('.popup-hub,.popup-post,.popup-origin-note button').filter(e=>{const r=e.getBoundingClientRect();return r.left<0||r.right>innerWidth;}).length;
               return {small,short,clipped,outside};
             }"""
         )

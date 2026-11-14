@@ -136,6 +136,69 @@
 .popup-unknown .popup-unknown-toggle { min-height:44px; max-width:100%; white-space:normal; text-align:left; }
 .popup-unknown-list .popup-list { margin-top:12px; }
 
+/* ---------- 거점별 묶음 (1c) ----------
+   묶음 머리(읽은 장소·위치 등급·거리·글 수·버튼)는 한 번만, 그 아래 글은 하나씩 독립 항목이다.
+   머리는 읽은 정보 칸과 같은 회색 바탕 + 점선 경계로 원문 인용과 나눈다. 묶음 안 글은 테두리 대신 구분선으로 이어 높이를 줄인다(요약은 줄 수를 자르지 않음). */
+.popup-hub-items { display:grid; grid-template-columns:minmax(0,1fr); gap:20px; }
+.popup-hub { min-width:0; border:1px solid var(--line); border-radius:10px; background:var(--paper); overflow-wrap:anywhere; word-break:keep-all; }
+.popup-hub-chosen { border-left:4px solid var(--hong); }
+.popup-hub-head { padding:10px 16px 2px; background:var(--platform); border-bottom:1px dashed var(--line); border-radius:10px 10px 0 0; }
+.popup-hub-head .popup-reading-title { margin:0; }
+.popup-hub-title { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 10px; margin:0 0 4px; min-width:0; }
+.popup-hub-name { margin:0; min-width:0; font-family:var(--font-body); font-size:18px; font-weight:800; line-height:1.45; color:var(--ink); }
+.popup-hub-count { margin:0; font-size:14px; color:var(--muted); }
+.popup-hub-head .popup-facts { gap:2px; }
+.popup-hub-head .popup-action { padding:6px 0 8px; border-top:0; }
+.popup-hub-posts { display:grid; grid-template-columns:minmax(0,1fr); }
+@media(min-width:1000px) {
+  .popup-hub-posts { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+.popup-hub .popup-post { border:0; border-radius:0; border-top:1px solid var(--line); background:none; }
+.popup-hub .popup-post:first-child { border-top:0; }
+@media(min-width:1000px) {
+  .popup-hub .popup-post:nth-child(2) { border-top:0; }
+  .popup-hub .popup-post:nth-child(even) { border-left:1px solid var(--line); }
+}
+.popup-hub .popup-quote { padding:12px 16px 4px; }
+.popup-hub .popup-title { font-size:16px; margin:0 0 4px; }
+.popup-hub .popup-summary { margin:0 0 2px; }
+/* 묶음 안 글의 읽은 정보(기간 줄)는 같은 칸 안에서 회색 바탕 없이 점선 위 경계로만 나눈다. */
+.popup-hub .popup-reading { margin:0 16px 0; padding:8px 0 12px; background:none; border-radius:0; }
+.popup-hub .popup-reading-title { font-size:14px; }
+.popup-hub .popup-hub-more { margin:0 16px 14px; min-height:44px; max-width:calc(100% - 32px); white-space:normal; text-align:left; }
+.popup-hubs .popup-hubs-more { min-height:44px; max-width:100%; white-space:normal; text-align:left; }
+
+/* ---------- 코스 지도의 팝업 표시 (1c) ----------
+   코스 역 = 홍 원(번호), 축제 = 노란 알약(‘축제’), 팝업 = 흰 바탕 청색 네모(‘팝업’). 동네 기준점은 점선 네모 + ‘팝업 일대’ 글자(색만으로 구분하지 않음).
+   새 색 없이 기존 --cheong·--paper 를 쓴다. */
+.route-marker.popup-marker {
+  width:auto;
+  min-width:0;
+  height:28px;
+  padding:0 8px;
+  border-radius:2px;
+  background:var(--paper);
+  background-image:none;
+  color:var(--cheong);
+  border:3px solid var(--cheong);
+  font-size:13px;
+  font-weight:800;
+  line-height:22px;
+  white-space:nowrap;
+}
+.route-marker.popup-marker-area { border-style:dashed; }
+/* Leaflet 대체 지도: 표시 가운데가 거점 좌표에 오게 한다. */
+.leaflet-marker-icon.popup-divicon { width:0; height:0; background:none; border:0; }
+.popup-divicon .popup-marker { position:absolute; left:0; top:0; transform:translate(-50%,-50%); }
+.popup-divicon:focus-visible .popup-marker { outline:3px solid var(--ink); outline-offset:2px; }
+/* 모바일 지도(높이 290px)보다 정보창이 길어지지 않게 높이를 두고 안에서 스크롤한다(내용은 자르지 않음). */
+.popup-map-info { max-width:260px; max-height:220px; overflow-y:auto; padding:10px 12px; font-size:14px; line-height:1.6; color:var(--ink); overflow-wrap:anywhere; }
+.popup-map-info p { margin:4px 0; }
+.popup-map-posts { margin:6px 0; padding-left:18px; }
+.popup-map-posts li { margin:2px 0; }
+.popup-map-posts a { color:var(--cheong); }
+.map-popup-note { color:var(--ink); }
+
 /* 팝업 거점으로 다시 추천한 뒤의 안내. 축제 안내(청색 실선)와 다르게 점선 + 제목 글자로 구분한다. */
 .popup-origin-note {
   display:grid;
@@ -157,6 +220,12 @@
   .popup-reading { padding:10px 12px 12px; }
   .popup-fact { grid-template-columns:minmax(0,1fr); padding-left:22px; }
   .popup-action { padding:10px 12px 12px; }
+  .popup-hub-head { padding:10px 12px 2px; }
+  /* 묶음 안 읽은 정보 줄은 좁은 화면에서도 이름표(위치·거리·기간)와 내용을 한 줄에 두어 높이를 줄인다. */
+  .popup-hub .popup-fact { grid-template-columns:3em minmax(0,1fr); }
+  .popup-hub .popup-quote { padding:10px 12px 2px; }
+  .popup-hub .popup-reading { margin:0 12px; }
+  .popup-hub .popup-hub-more { margin:0 12px 12px; max-width:calc(100% - 24px); }
 }
 @media(forced-colors:active) {
   .popup-fact::before { forced-color-adjust:none; }

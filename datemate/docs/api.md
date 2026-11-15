@@ -10,7 +10,7 @@ Base URL: `http://127.0.0.1:8000/api`. JSON. 정확한 검증 스키마는 `/ope
 | GET /places/{id} | mode | 장소 상세, 없는 정보 null |
 | GET /places/{id}/media | mode=real/demo | 검수 사진·저작자·라이선스 및 공개 대표 이미지 조회용 QID. 가상 장소 사진 제외 |
 | GET /places/{id}/blogs | mode=real/demo | 네이버 블로그 검색 제목·요약·블로그명·작성일·원문 링크. 자체 후기와 구분 |
-| POST /conditions/parse | text | patch, warnings, unparsed. 자동 적용 후 UI에서 확인 |
+| POST /conditions/parse | text, people, explicit_people, ignore(뺀 항목 id) | patch, warnings, unparsed(입력 글 그대로, 예전 호환), understood(이해한 항목: id·field·value·label·evidence·source='rule'·estimated·note), ignored(뺀 항목), not_understood(반영하지 못한 조각: text·reason·message). 화면 ‘이렇게 이해했어요’에서 확인·제외. 추천 요청의 request_ignore 로 같은 항목을 서버도 뺀다. 입력 글은 저장·로그하지 않음 |
 | POST /plans | Conditions | plans 최대3, reasons, suggestions, search_note. 방문일이 지났거나 오늘 종료 시각이 지났으면(한국 시각) 422와 안내 문구(POST /plan-jobs 도 같음) |
 | GET /plans/{id} | 없음 | 저장된 일정; UUID 링크 공유용 |
 | POST /plans/{id}/alternatives | index, locked | 전체 재검증된 대안 최대8 |

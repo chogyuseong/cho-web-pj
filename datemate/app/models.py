@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Annotated, Literal
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_serializer, model_validator, field_validator
 from .taxonomy import DATE_CATEGORIES
 from .service_time import today
 from .regions import normalize_region, region_from_address
@@ -11,6 +11,8 @@ THEMES = ['레저·활동', '카페·미식', '휴식·힐링', '문화·예술'
 PlaceId = Annotated[str, StringConstraints(max_length=150)]
 AvoidWord = Annotated[str, StringConstraints(max_length=30)]
 ThemeName = Annotated[str, StringConstraints(max_length=20)]
+# 자유 입력 해석 항목 id('조건 종류:값', app/request_intent.py).
+RequestItemId = Annotated[str, StringConstraints(max_length=60, pattern=r'^[a-z_]+:\S.{0,50}$')]
 
 class Point(BaseModel):
     name: str = Field(min_length=1, max_length=200)
@@ -82,7 +84,17 @@ class Conditions(BaseModel):
     mbti: str = Field(default='', pattern=r'^([IE][NS][FT][JP])?$')
     use_mbti: bool = False
     request: str = Field(default='', max_length=4000)
+    # 자유 입력 해석에서 사용자가 화면(이렇게 이해했어요)에서 뺀 항목 id. 서버도 같은 글을 다시 해석할 때 이 항목을 빼고 쓴다.
+    request_ignore: list[RequestItemId] = Field(default_factory=list, max_length=40)
     locked: dict[int, PlaceId] = Field(default_factory=dict, max_length=5)
+
+    @model_serializer(mode='wrap')
+    def _omit_empty_request_ignore(self, handler):
+        # 비어 있으면 저장·비교되는 조건 모양을 예전과 같게 둔다(저장된 코스·고정 비교 자료와 같은 키).
+        data = handler(self)
+        if isinstance(data, dict) and not self.request_ignore:
+            data.pop('request_ignore', None)
+        return data
 
     @field_validator('region')
     @classmethod

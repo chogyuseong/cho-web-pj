@@ -9,7 +9,9 @@
 뺀 항목은 ignored 로 돌려준다. 나중에 다른 출처(source='ai') 항목을 더할 때도 같은 구조와 _assemble 을 쓴다.
 """
 import re
+from bisect import bisect_left,bisect_right
 from decimal import Decimal
+from itertools import accumulate
 from functools import lru_cache
 from .sports import SPORTS,BY_KEY as SPORT_BY_KEY,OUTDOOR_KEYS
 
@@ -191,16 +193,22 @@ def _stem(token):
 
 class _Reader:
     def __init__(self,text):
-        self.text=text;self.spans=[];self.items=[];self.notes=[];self.held=[]
+        self.text=text;self.spans=[];self.items=[];self.notes=[];self.held=[];self.held_keys=set()
+        self._spaces=[i for i,ch in enumerate(text) if ch.isspace()];self._fragments={}
 
     def cover(self,start,end):
         if end>start:self.spans.append((start,end))
 
     def fragment(self,start,end):
+        # 공백 위치를 한 번만 모아 이분 탐색하고, 같은 낱말 조각은 한 번만 자른다.
+        # 글자를 한 자씩 거슬러 보면 띄어쓰기 없는 긴 입력에서 일치마다 전체 글을 훑어 제곱 시간이 된다.
         t=self.text
-        while start>0 and not t[start-1].isspace():start-=1
-        while end<len(t) and not t[end].isspace():end+=1
-        return t[start:end].strip(' ,.!?~·')
+        i=bisect_left(self._spaces,start)
+        start=self._spaces[i-1]+1 if i else 0
+        j=bisect_left(self._spaces,end)
+        end=self._spaces[j] if j<len(self._spaces) else len(t)
+        if (start,end) not in self._fragments:self._fragments[start,end]=t[start:end].strip(' ,.!?~·')
+        return self._fragments[start,end]
 
     def add(self,id,field,value,label,spans,estimated=False,note='',**extra):
         spans=[s for s in spans if s and s[1]>s[0]]
@@ -217,13 +225,29 @@ class _Reader:
         """알아들었지만 적용하지 않은 조각(조건부 날씨·우선순위 충돌·금액 여러 개)."""
         self.cover(start,end)
         text=self.fragment(start,end)
-        if not any(h['text']==text and h['reason']==reason for h in self.held):
+        # 이미 담은 조각은 집합으로 확인한다(목록을 매번 훑으면 금액·충돌이 많은 입력에서 제곱 시간이 된다).
+        if (text,reason) not in self.held_keys:
+            self.held_keys.add((text,reason))
             self.held.append(dict(text=text,reason=reason,message=message.format(text=text,eun=_josa(text,'은','는'))))
 
     def first(self,field):return next((i for i in self.items if i['field']==field),None)
 
 
 def _span(m):return (m.start(),m.end())
+
+
+def _overlapping(spans):
+    """(start,end) 가 spans 중 하나와 겹치는지 답하는 함수. 구간을 합쳐 정렬해 두고 이분 탐색한다.
+    조각마다 모든 구간을 다시 보면 같은 말이 반복되는 긴 입력에서 제곱 시간이 된다."""
+    merged=[]
+    for s,e in sorted(spans):
+        if merged and s<=merged[-1][1]:merged[-1][1]=max(merged[-1][1],e)
+        else:merged.append([s,e])
+    starts=[s for s,_ in merged]
+    def test(start,end):
+        i=bisect_left(starts,end)-1
+        return i>=0 and merged[i][1]>start
+    return test
 
 
 def _unknown(text,spans):
@@ -245,8 +269,9 @@ def _unknown(text,spans):
             piece=text[group[content[0]].start():group[last].end()]
             out.append(dict(text=piece,reason='unknown',message=f'‘{piece}’{_josa(piece,"은","는")} 아직 반영하지 못했어요.'))
         group.clear()
+    used=_overlapping(spans)
     for index,t in enumerate(tokens):
-        covered=any(t.start()<e and s<t.end() for s,e in spans)
+        covered=used(t.start(),t.end())
         if index and BOUNDARY.search(text[tokens[index-1].end():t.start()]):flush()
         if covered:flush();continue
         group.append(t)
@@ -257,17 +282,17 @@ def _unknown(text,spans):
 @lru_cache(maxsize=512)
 def _extract(text):
     r=_Reader(text)
-    inside=lambda m,spans:any(m.start()<e and s<m.end() for s,e in spans)
     # 걷는 양 줄이기는 산책 낱말보다 먼저 본다.
     walk_less=[_span(m) for m in WALK_LESS.finditer(text)]
     for m in WALK_NEGATABLE.finditer(text):
         end=_negation_end(text,m.start(),m.end())
         if end is not None:walk_less.append((m.start(),end))
+    inside_walk_less=_overlapping(walk_less)
     active=[]
     for key in INTENTS:
         positive=[];negative=[]
         for m in _intent_matches(key,text):
-            if key=='walk' and inside(m,walk_less):negative.append(_span(m));continue
+            if key=='walk' and inside_walk_less(m.start(),m.end()):negative.append(_span(m));continue
             end=_negation_end(text,m.start(),m.end())
             if end is None:positive.append(_span(m))
             else:negative.append((m.start(),end))
@@ -412,9 +437,11 @@ def _extract(text):
     if m and int(m[1])<=600:r.add(f'max_walk:{int(m[1])}','max_walk',int(m[1]),f'총 도보 {int(m[1])}분 이내',[_span(m)])
     # '투어·위주·만'은 활동 낱말 바로 뒤에 붙을 때만 한 종류 집중이다('실내 위주로 카페'·'고기 위주로 먹고'의 '위주'는 활동이 아니다).
     if len(active)==1:
-        evidence=[span for item in r.items if item['id']=='activity:'+active[0] for span in _intent_spans(active[0],text)]
+        evidence=sorted(span for item in r.items if item['id']=='activity:'+active[0] for span in _intent_spans(active[0],text))
+        # 시작이 m 앞인 활동 낱말 중 가장 멀리 끝나는 곳(reach)이 m 의 3자 안이면 바로 뒤에 붙은 말이다. 이분 탐색으로 찾는다.
+        starts=[s for s,_ in evidence];reach=list(accumulate((e for _,e in evidence),max))
         focus=[m for m in re.finditer(r'투어|위주|만\s*(?:가|갈|돌|보고|보고싶|추천|원해)|만$',text)
-               if any(s<=m.start() and m.start()-e<=3 for s,e in evidence)]
+               if (i:=bisect_right(starts,m.start())-1)>=0 and m.start()-reach[i]<=3]
         if focus:r.add('theme_mode:focus','theme_mode','focus',intent_label(active[0])+'만 (한 종류 집중)',[_span(focus[0])])
     unparsed=r.held+_unknown(text,r.spans)
     return dict(items=r.items,notes=r.notes,unparsed=unparsed)

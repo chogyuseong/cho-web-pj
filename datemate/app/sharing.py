@@ -107,4 +107,6 @@ def vote_shared(data: SharedVote, request: Request, authorization: str | None = 
 @router.get('/shared', include_in_schema=False)
 def shared_page():
     # 홈과 같이 js·css 주소에 내용 해시를 붙여, 배포 직후 이전 festivals.js 가 캐시에서 섞여 쓰이지 않게 한다.
-    return HTMLResponse(versioned_page('shared.html'), headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer'})
+    # 개인 공유 링크 화면은 검색에 나오지 않게 한다. robots.txt 로 막으면 로봇이 이 noindex 를 읽지 못하므로 막지 않는다.
+    return HTMLResponse(versioned_page('shared.html'), headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer',
+                                                               'X-Robots-Tag':'noindex, nofollow'})

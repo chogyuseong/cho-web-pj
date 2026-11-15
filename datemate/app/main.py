@@ -99,6 +99,9 @@ app.include_router(user_feedback_router)
 from .popup_api import router as popup_router
 
 app.include_router(popup_router)
+from .search_robots import router as search_robots_router
+
+app.include_router(search_robots_router)
 
 
 @app.get("/healthz", include_in_schema=False)

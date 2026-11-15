@@ -29,6 +29,7 @@ PYTHON = [
     "app/database.py",
     "app/store.py",
     "app/user_feedback.py",
+    "app/search_robots.py",
     "app/migrations",
     "scripts/operations_report.py",
     "scripts/operations_check.py",

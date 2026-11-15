@@ -286,6 +286,9 @@ def test_leaflet_info_window_clears_the_zoom_buttons_at_narrow_widths(audit_page
         "document.querySelectorAll('.plan-map .popup-divicon').length===3", timeout=20000
     )
     for width in (390, 320):
+        # 지도 움직임(첫 맞춤·자동 이동)이 끝난 뒤 폭을 바꾼다. 움직이는 중에 지도를 지우면 Leaflet 이 _leaflet_pos 오류를 낸다(테스트 순서 문제).
+        page.wait_for_function("!courseMaps.at(-1)._animatingZoom")
+        page.wait_for_timeout(700)
         page.set_viewport_size({"width": width, "height": 844})
         # 좁은 화면에서는 지도가 코스 카드 뒤(#plan-map-slot)로 옮겨 다시 그려진다.
         page.wait_for_function(

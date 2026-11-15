@@ -215,9 +215,25 @@
   white-space:normal;
   cursor:pointer;
 }
-.plan-map .map-popup-hub:focus-visible { outline-offset:0; }
-.plan-map .map-popup-hub::after { content:'▾' / ''; flex:0 0 auto; color:var(--muted); }
-.plan-map .map-popup-hub[aria-expanded=true]::after { content:'▴' / ''; color:var(--ink); }
+.plan-map .map-popup-hub:focus-visible,.plan-map .map-popup-more:focus-visible { outline-offset:0; }
+.plan-map .map-popup-hub::after,.plan-map .map-popup-more::after { content:'▾' / ''; flex:0 0 auto; color:var(--muted); }
+.plan-map .map-popup-hub[aria-expanded=true]::after,.plan-map .map-popup-more[aria-expanded=true]::after { content:'▴' / ''; color:var(--ink); }
+/* 접힌 장소 단추와 펼침 단추(「장소 n곳 더 보기」·「장소 목록 접기」). 펼침 단추는 장소 단추와 같은 보조 버튼 크기에 네모 글자 없이 글자만. */
+.plan-map .map-popup-hub[hidden] { display:none; }
+.plan-map .map-popup-more {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  max-width:100%;
+  padding:6px 14px;
+  border-radius:999px;
+  font-size:15px;
+  line-height:1.45;
+  text-align:left;
+  white-space:normal;
+  cursor:pointer;
+}
 .map-popup-badge {
   flex:0 0 auto;
   padding:0 6px;
@@ -252,6 +268,20 @@
 .popup-map-posts li { margin:0; }
 .popup-map-posts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; line-height:1.5; color:var(--cheong); }
 .plan-map .map-popup-close { margin-top:6px; min-height:44px; }
+/* 「이 장소 글 n건 모두 보기」: 코스 결과 ‘팝업스토어 글’ 구역의 그 거점 묶음으로 간다(보조 버튼). */
+.plan-map .popup-map-goto { margin:2px 0 4px; min-height:44px; max-width:100%; white-space:normal; text-align:left; }
+
+/* 데스크톱 2단 구성의 오른쪽 지도 패널(.plan-map-card, 자체 스크롤). 장소 단추와 정보 칸이 지도 아래로 길어져 칸을 내려 보면 지도가 위로 밀려
+   안 보였다. 지도 칸만 패널 스크롤 영역 위쪽에 붙여 두고, 포커스·scrollIntoView 가 지도 밑으로 숨기지 않게 패널에 지도 높이만큼 scroll-padding 을 준다
+   (지도 높이는 calm.css 의 .plan-map-card .naver-plan-map 과 같은 값 + 간격 12px). 붙는 자리는 패널 안쪽 여백(calm.css 의 20px) 안쪽이라 그 여백 사이로
+   지나가는 글이 비쳐 보이므로 top 을 여백만큼 올려 패널 위 끝에 붙인다. .plan-map 의 overflow:hidden 은 스크롤 상자라 sticky 를 막으므로 같은 잘라내기인 clip 으로 바꾼다
+   (clip 을 모르는 브라우저는 hidden 그대로라 예전처럼 밀려 올라갈 뿐이다). 높이 600px 미만 화면에서는 지도(최소 240px)가 패널의 절반 넘게 가리므로 붙이지 않는다.
+   모바일 1단(#plan-map-slot 안의 지도)은 바꾸지 않는다. */
+@media(min-width:801px) and (min-height:600px) {
+  .plan-map-rail .plan-map-card { scroll-padding-top:calc(clamp(240px,40dvh,440px) + 12px); }
+  .plan-map-rail .plan-map { overflow:hidden; overflow:clip; }
+  .plan-map-rail .plan-map .naver-plan-map { position:sticky; top:-20px; z-index:1; }
+}
 
 /* 팝업 거점으로 다시 추천한 뒤의 안내. 축제 안내(청색 실선)와 다르게 점선 + 제목 글자로 구분한다. */
 .popup-origin-note {

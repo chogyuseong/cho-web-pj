@@ -324,10 +324,8 @@ EXPANDED = "[...document.querySelectorAll('.plan-map .map-popup-hub')].map(c=>c.
 
 
 def narrow(page, width):
-    """폭을 바꾸고 좁은 화면 자리(#plan-map-slot)에 다시 그려진 지도가 멈출 때까지 기다린다."""
-    # 지도 움직임이 끝난 뒤 폭을 바꾼다. 움직이는 중에 지도를 지우면 Leaflet 이 _leaflet_pos 오류를 낸다(테스트 순서 문제).
-    page.wait_for_function("!courseMaps.at(-1)._animatingZoom")
-    page.wait_for_timeout(700)
+    """폭을 바꾸고 좁은 화면 자리(#plan-map-slot)에 다시 그려진 지도가 멈출 때까지 기다린다.
+    지도가 움직이는 중에 폭을 바꿔도 된다(지우기 전에 확대 애니메이션을 마침, test_leaflet_dispose_during_zoom.py)."""
     page.set_viewport_size({"width": width, "height": 844})
     page.wait_for_function(
         "document.querySelector('#plan-map-slot .plan-map .popup-divicon')", timeout=20000
@@ -555,6 +553,271 @@ def test_naver_hub_buttons_and_markers_open_the_panel_below_the_map(audit_page):
     assert chips.count() == 0
 
 
+def many_hubs(count):
+    """거점 count 곳(건물·동네 기준점을 번갈아), 거점마다 글 2건. 받은 순서(데모 코스는 출발지 기준이 없음)가 거점 순서다."""
+    posts = []
+    for i in range(count):
+        base = AREA if i % 2 else BUILDING
+        place = base | dict(
+            hub_id=f"seoul-many-{i}",
+            name=f"거점{i} " + ("일대" if i % 2 else "백화점"),
+            lat=37.53 + i * 0.004,
+            lon=126.95 + i * 0.006,
+        )
+        posts += [post(i * 10 + j, title=f"거점{i} 글 {j}", place=place) for j in (1, 2)]
+    return payload("ready", posts)
+
+
+VISIBLE = "[...document.querySelectorAll('.plan-map .map-popup-hub')].map(c=>!c.hidden&&c.getBoundingClientRect().height>0)"
+MORE = """()=>{const b=document.querySelector('.plan-map .map-popup-more');return b&&{text:b.textContent,expanded:b.getAttribute('aria-expanded'),
+  controls:b.getAttribute('aria-controls'),list:document.querySelector('.plan-map .map-popup-hubs').id,h:b.getBoundingClientRect().height,
+  font:parseFloat(getComputedStyle(b).fontSize),last:b===b.parentElement.lastElementChild}}"""
+
+
+def test_many_hub_buttons_fold_behind_a_more_button(audit_page):
+    """거점이 많으면 앞의 3곳만 보이고 「장소 n곳 더 보기」(aria-expanded)로 펼치고 다시 접는다(Leaflet, 390px·320px).
+    접힌 거점을 지도 표시로 열면 목록이 펼쳐져 그 단추가 보이고, 열린 거점이 숨는 쪽이면 접을 때 칸을 닫는다."""
+    page, base, errors = audit_page
+    route_festivals(page)
+    Api(page, default=many_hubs(8))
+    page.evaluate(LEAFLET_CAPTURE)
+    generate(page)
+    page.wait_for_function(
+        "document.querySelectorAll('.plan-map .popup-divicon').length===8", timeout=20000
+    )
+    for width in (390, 320):
+        narrow(page, width)
+        # 폭마다 같은 데이터를 다시 적용해 처음(접힌) 상태에서 본다.
+        page.evaluate("PopupCourse.setMapItems(PopupCourse.mapItems)")
+        chips = page.locator(".plan-map .map-popup-hub")
+        more = page.locator(".plan-map .map-popup-more")
+        # 지도에는 8곳 모두, 단추는 8개 중 앞의 3개만 보인다(순서는 거점 순서 그대로).
+        assert page.locator(".plan-map .popup-divicon").count() == 8
+        assert chips.evaluate_all("cs=>cs.map(c=>c.textContent)") == [
+            f"{'팝업 일대' if i % 2 else '팝업'}거점{i} {'일대(대략)' if i % 2 else '백화점'} · 글 2건"
+            for i in range(8)
+        ]
+        assert page.evaluate(VISIBLE) == [True] * 3 + [False] * 5, width
+        state = page.evaluate(MORE)
+        assert state["text"] == "장소 5곳 더 보기" and state["expanded"] == "false", state
+        assert state["controls"] == state["list"] and state["last"], state
+        assert state["h"] >= 44 and state["font"] >= 14, state
+        # 펼치면 모두 보이고 포커스는 새로 보인 첫 장소(넷째) 단추로 간다. 모든 단추가 44px 이상, 가려지지 않음.
+        more.click()
+        assert page.evaluate(VISIBLE) == [True] * 8, width
+        assert page.evaluate(MORE)["text"] == "장소 목록 접기"
+        assert more.get_attribute("aria-expanded") == "true"
+        assert page.evaluate("document.activeElement===document.querySelectorAll('.plan-map .map-popup-hub')[3]")
+        for i, chip in enumerate(page.evaluate(HUB_BUTTONS)):
+            assert chip["w"] >= 44 and chip["h"] >= 44 and chip["top"] and chip["font"] >= 14, (width, i, chip)
+        # 다시 접기(키보드 Enter). 포커스는 펼침 단추에 남는다.
+        more.focus()
+        page.keyboard.press("Enter")
+        assert page.evaluate(VISIBLE) == [True] * 3 + [False] * 5
+        assert more.get_attribute("aria-expanded") == "false"
+        assert page.evaluate("document.activeElement.classList.contains('map-popup-more')")
+        # 접힌 거점(일곱째)을 지도 표시로 열면 목록이 펼쳐지고 그 단추가 열림 상태로 보인다.
+        page.locator(".plan-map .popup-divicon").nth(6).dispatch_event("click")
+        assert page.evaluate(VISIBLE) == [True] * 8, width
+        assert page.evaluate(EXPANDED) == ["false"] * 6 + ["true", "false"]
+        assert more.get_attribute("aria-expanded") == "true"
+        assert page.locator(".plan-map .map-popup-panel").is_visible()
+        box = page.evaluate(PANEL_BOX)
+        assert box["name"] == "거점6 백화점" and box["body"] >= (220 if width == 390 else 200), box
+        assert not box["scrolls"] and not box["wide"] and box["page"] and box["font"] >= 14, box
+        # 열린 거점이 숨는 쪽인데 접으면 칸도 닫는다(열린 칸의 단추가 화면에 없는 상태를 만들지 않음).
+        more.click()
+        assert page.evaluate(EXPANDED) == ["false"] * 8
+        assert page.locator(".plan-map .map-popup-panel").is_hidden()
+        # 보이는 거점(둘째)이 열린 채로 접고 펴는 것은 칸에 영향이 없다.
+        chips.nth(1).click()
+        more.click()
+        more.click()
+        assert page.evaluate(EXPANDED) == ["false", "true"] + ["false"] * 6
+        assert page.locator(".plan-map .map-popup-panel").is_visible()
+        assert page.evaluate("document.documentElement.scrollWidth<=innerWidth"), width
+    # 지도 정리(disposeMap)와 함께 펼침 단추도 사라진다.
+    page.evaluate("document.querySelector('.plan-map').disposeMap()")
+    assert page.locator(".plan-map .map-popup-more").count() == 0
+    assert page.locator(".plan-map .map-popup-hub").count() == 0
+
+
+def test_hub_buttons_fold_only_above_four_hubs_on_both_maps(audit_page):
+    """4곳 이하면 펼침 단추가 없고 모두 보인다. 5곳이면 3곳 + 「장소 2곳 더 보기」. 네이버 지도(가짜 SDK)에서도 접힌 거점의 표시를 누르면 펼쳐진다.
+    대체 지도로 바뀌어도(인증 실패) 펼침 단추는 한 벌만, 접힌 상태로 다시 시작한다."""
+    page, base, errors = audit_page
+    route_festivals(page)
+    Api(page, default=many_hubs(4))
+    page.evaluate(NAVER_STUB)
+    generate(page)
+    page.wait_for_function(f"{POPUPS}.length===4", timeout=20000)
+    assert page.evaluate(VISIBLE) == [True] * 4
+    assert page.locator(".plan-map .map-popup-more").count() == 0
+    page.evaluate(
+        "items=>{const groups=PopupCourse.groups(items.posts,null);PopupCourse.setMapItems(groups)}",
+        many_hubs(5),
+    )
+    page.wait_for_function(f"{POPUPS}.length===5")
+    assert page.evaluate(VISIBLE) == [True] * 3 + [False] * 2
+    assert page.evaluate(MORE)["text"] == "장소 2곳 더 보기"
+    # 다섯째 거점의 네이버 표시를 누르면 펼쳐지고 그 단추가 열림 상태.
+    page.evaluate(
+        "()=>window.__naverListeners.find(l=>!l.removed&&l.target.options?.title?.includes('거점4 백화점')).fn()"
+    )
+    assert page.evaluate(VISIBLE) == [True] * 5
+    assert page.evaluate(EXPANDED) == ["false"] * 4 + ["true"]
+    assert page.evaluate(MORE)["expanded"] == "true"
+    # 인증 실패로 Leaflet 으로 바뀌면 칸은 닫히고 목록은 다시 접힌 상태(한 벌).
+    page.evaluate("document.querySelectorAll('.plan-map').forEach(w=>w.showMapFallback())")
+    page.wait_for_function("document.querySelectorAll('.plan-map .popup-divicon').length===5")
+    assert page.locator(".map-popup-more").count() == 1
+    assert page.evaluate(VISIBLE) == [True] * 3 + [False] * 2
+    assert page.locator(".plan-map .map-popup-panel").is_hidden()
+    page.evaluate(
+        "items=>PopupCourse.setMapItems(PopupCourse.groups(items.posts,null))", many_hubs(4)
+    )
+    assert page.locator(".plan-map .map-popup-more").count() == 0
+    assert page.evaluate(VISIBLE) == [True] * 4
+
+
+REVEALED = """id=>{const b=[...document.querySelectorAll('#popup-course .popup-hub')].find(b=>b.dataset.hubId===id),r=b.getBoundingClientRect(),
+  header=parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop)||0;
+  return {posts:b.querySelectorAll('.popup-post').length,more:b.querySelectorAll('.popup-hub-more').length,
+    focus:document.activeElement===b.querySelector('.popup-hub-name'),name:b.querySelector('.popup-hub-name').textContent,
+    top:Math.round(r.top),header:Math.round(header),inView:r.top>=header-2&&r.top<innerHeight/2,
+    hubsMore:document.querySelectorAll('#popup-course .popup-hubs-more').length}}"""
+
+
+def test_panel_rest_line_names_the_section_and_jumps_to_the_hub_group(audit_page):
+    """정보 칸의 "외 n건"은 위치("아래")를 말하지 않고 ‘팝업스토어 글’ 구역 이름으로 부르며, 「이 장소 글 n건 모두 보기」는
+    그 구역의 같은 거점 묶음을 펼쳐(다른 장소·이 장소의 글 더 보기) 그곳으로 스크롤하고 거점 이름에 포커스를 둔다. 데스크톱 2단·390px 모두."""
+    page, base, errors = audit_page
+    route_festivals(page)
+    data = many_hubs(5)
+    # 다섯째 거점(구역에서는 「다른 장소 2곳 더 보기」 뒤, 지도 아래에서는 접힌 쪽)에 글을 3건 더 둔다(모두 5건).
+    fifth = data["posts"][-1]["place"]
+    data["posts"] += [post(100 + j, title=f"거점4 더 {j}", place=fifth) for j in range(3)]
+    Api(page, default=data)
+    page.evaluate(LEAFLET_CAPTURE)
+    generate(page)
+    page.wait_for_function(
+        "document.querySelectorAll('.plan-map .popup-divicon').length===5", timeout=20000
+    )
+    assert page.evaluate("document.getElementById('popup-course-title').textContent").endswith(
+        "팝업스토어 글"
+    )
+    for width in (1440, 390):
+        if width == 390:
+            narrow(page, width)
+        # 구역을 처음 상태로 다시 그린다(앞 폭에서 펼친 묶음을 되돌림).
+        page.evaluate("d=>PopupCourse.render(d,selected.conditions)", data)
+        page.wait_for_function("document.querySelectorAll('.plan-map .map-popup-hub').length===5")
+        assert page.evaluate("document.querySelectorAll('#popup-course .popup-hub').length") == 3
+        # 글이 2건뿐인 거점은 "외 n건"·단추가 없다.
+        page.locator(".plan-map .map-popup-hub").nth(0).click()
+        assert page.locator(".plan-map .map-popup-panel .popup-map-goto").count() == 0
+        # 접힌 다섯째 거점을 지도 표시로 연다.
+        page.locator(".plan-map .popup-divicon").nth(4).dispatch_event("click")
+        panel = page.locator(".plan-map .map-popup-panel")
+        text = panel.inner_text()
+        assert "외 2건은 ‘팝업스토어 글’ 구역에서 볼 수 있어요." in text, text
+        assert "아래" not in text, text
+        goto = panel.locator(".popup-map-goto")
+        assert goto.inner_text() == "이 장소 글 5건 모두 보기"
+        h = goto.evaluate("b=>[b.getBoundingClientRect().height,parseFloat(getComputedStyle(b).fontSize)]")
+        assert h[0] >= 44 and h[1] >= 14, h
+        # 키보드로 누른다.
+        goto.focus()
+        page.keyboard.press("Enter")
+        state = page.evaluate(REVEALED, "seoul-many-4")
+        assert state["posts"] == 5 and state["more"] == 0, (width, state)
+        assert state["hubsMore"] == 0 and state["focus"] and state["name"] == "거점4 백화점", (width, state)
+        # 문서 스크롤은 부드럽게 움직인다(selle.css scroll-behavior:smooth). 고정 머리글 아래 화면 위쪽 절반에 멈춘다.
+        page.wait_for_function(f"id=>({REVEALED})(id).inView", arg="seoul-many-4")
+        assert page.evaluate("document.querySelectorAll('#popup-course .popup-hub').length") == 5
+        assert page.evaluate("document.documentElement.scrollWidth<=innerWidth"), width
+        # 이미 펼친 묶음으로 다시 가도(더 보기 단추가 없어도) 같은 곳으로 간다.
+        page.evaluate("window.scrollTo({top:0,behavior:'instant'})")
+        page.locator(".plan-map .popup-divicon").nth(4).dispatch_event("click")
+        panel.locator(".popup-map-goto").click()
+        page.wait_for_function(f"id=>({REVEALED})(id).inView", arg="seoul-many-4")
+        state = page.evaluate(REVEALED, "seoul-many-4")
+        assert state["posts"] == 5 and state["focus"], (width, state)
+    # 구역이 숨으면(스위치 꺼짐 404 등) 단추를 두지 않고 문구만 남는다.
+    page.evaluate("document.getElementById('popup-course').hidden=true")
+    page.locator(".plan-map .popup-divicon").nth(4).dispatch_event("click")
+    page.locator(".plan-map .map-popup-hub").nth(0).click()
+    page.locator(".plan-map .map-popup-hub").nth(4).click()
+    assert page.locator(".plan-map .map-popup-panel .popup-map-goto").count() == 0
+    assert "외 2건은 ‘팝업스토어 글’ 구역에서" in page.locator(".plan-map .map-popup-panel").inner_text()
+
+
+# 오른쪽 지도 패널(.plan-map-card, 자체 스크롤) 안에서 지도와 열린 정보 칸이 각각 몇 px 보이는지. 고정된 지도에 가려진 칸 부분은 보이지 않은 것으로 센다.
+RAIL_VIEW = """()=>{const card=document.querySelector('.plan-map-rail .plan-map-card'),map=card.querySelector('.naver-plan-map'),
+  panel=card.querySelector('.map-popup-panel'),c=card.getBoundingClientRect(),m=map.getBoundingClientRect(),p=panel.getBoundingClientRect();
+  const sticky=getComputedStyle(map).position==='sticky',top=Math.max(c.top,sticky?m.bottom:c.top);
+  return {sticky,card:Math.round(c.height),map:Math.round(m.height),scrollTop:Math.round(card.scrollTop),
+    mapVisible:Math.round(Math.max(0,Math.min(m.bottom,c.bottom)-Math.max(m.top,c.top))),
+    panelVisible:Math.round(Math.max(0,Math.min(p.bottom,c.bottom)-Math.max(p.top,top)))}}"""
+# 패널 안 요소가 고정 지도 밑에 숨지 않았는지(패널 안에서 보이는 자리, 지도 아래).
+UNDER_MAP = """sel=>{const card=document.querySelector('.plan-map-rail .plan-map-card'),m=card.querySelector('.naver-plan-map').getBoundingClientRect(),
+  c=card.getBoundingClientRect(),r=document.querySelector(sel).getBoundingClientRect();return r.top>=m.bottom-1&&r.bottom<=c.bottom+1}"""
+
+
+def test_desktop_rail_keeps_the_map_in_view_while_reading_the_panel(audit_page):
+    """데스크톱 2단(오른쪽 지도 패널)에서 장소 단추·정보 칸을 내려 봐도 지도가 패널 위쪽에 남는다(Leaflet). 1440×900·1280×720 에서 지도 전체와
+    칸 일부가 함께 보이고, 높이가 낮은 화면(1280×560)에서는 지도를 붙이지 않아 지도가 패널을 가리지 않는다. 키보드 포커스가 지도 밑에 숨지 않는다.
+    모바일 1단(390px)의 지도는 붙지 않고 카드도 따로 스크롤하지 않는다."""
+    page, base, errors = audit_page
+    route_festivals(page)
+    Api(page, default=MAP)
+    page.evaluate(LEAFLET_CAPTURE)
+    generate(page)
+    page.wait_for_function(
+        "document.querySelectorAll('.plan-map-rail .plan-map .popup-divicon').length===3", timeout=20000
+    )
+    chips = page.locator(".plan-map .map-popup-hub")
+    for width, height, least in ((1440, 900, 380), (1280, 720, 260)):
+        page.set_viewport_size({"width": width, "height": height})
+        page.wait_for_timeout(300)
+        page.evaluate("document.querySelector('#plan-map-rail').scrollIntoView({block:'start',behavior:'instant'})")
+        if chips.nth(0).get_attribute("aria-expanded") != "true":
+            chips.nth(0).click()
+        # 칸 머리가 지도 바로 아래에 오게 패널을 내린다(scrollIntoView 가 패널의 scroll-padding 을 따름).
+        page.evaluate("document.querySelector('.plan-map .map-popup-panel').scrollIntoView({block:'start',behavior:'instant'})")
+        view = page.evaluate(RAIL_VIEW)
+        assert view["sticky"] and view["scrollTop"] > 0, (width, view)
+        assert view["mapVisible"] == view["map"] and view["map"] >= 240, (width, view)
+        assert view["panelVisible"] >= least, (width, view)
+        # 지도가 패널의 절반 넘게 가리지 않는다.
+        assert view["map"] <= view["card"] / 2, (width, view)
+        # 패널을 끝까지 내린 뒤 Shift+Tab 으로 위쪽 단추에 가도 지도 밑에 숨지 않는다.
+        page.evaluate("()=>{const c=document.querySelector('.plan-map-rail .plan-map-card');c.scrollTop=c.scrollHeight;}")
+        page.locator(".plan-map .map-popup-panel a").first.focus()
+        page.keyboard.press("Shift+Tab")
+        assert page.evaluate("document.activeElement===document.querySelectorAll('.plan-map .map-popup-hub')[2]")
+        assert page.evaluate(UNDER_MAP, ".plan-map .map-popup-hub:nth-child(3)"), width
+        # 지도 표시를 눌러 연 칸도 지도 밑이 아닌 곳으로 들어온다.
+        page.evaluate("()=>{const c=document.querySelector('.plan-map-rail .plan-map-card');c.scrollTop=c.scrollHeight;}")
+        page.locator(".plan-map .popup-divicon").nth(1).dispatch_event("click")
+        page.wait_for_timeout(100)
+        assert page.evaluate(UNDER_MAP, ".plan-map .map-popup-panel strong"), width
+        assert page.evaluate("document.documentElement.scrollWidth<=innerWidth"), width
+        chips.nth(0).click()
+    # 낮은 화면: 붙이지 않는다(예전 동작).
+    page.set_viewport_size({"width": 1280, "height": 560})
+    page.wait_for_timeout(300)
+    page.evaluate("document.querySelector('.plan-map .map-popup-panel').scrollIntoView({block:'start',behavior:'instant'})")
+    view = page.evaluate(RAIL_VIEW)
+    assert not view["sticky"] and view["panelVisible"] > 0, view
+    # 모바일 1단: 지도는 붙지 않고 카드는 따로 스크롤하지 않는다.
+    narrow(page, 390)
+    assert page.evaluate(
+        """()=>{const card=document.querySelector('#plan-map-slot .plan-map-card'),map=card.querySelector('.naver-plan-map');
+          return getComputedStyle(map).position!=='sticky'&&getComputedStyle(card).overflowY==='visible'&&card.scrollHeight<=card.clientHeight+1}"""
+    )
+
+
 def test_hub_buttons_cause_no_csp_violation_or_console_error():
     """CSP 를 끄지 않은 브라우저(테스트 기본: 네이버 키 없음 → Leaflet)에서 장소 단추·지도 표시·정보 칸·닫기를 써도
     CSP 위반·콘솔 오류·페이지 오류가 없다(인라인 스크립트·인라인 이벤트 처리기를 쓰지 않음). 외부 요청은 막거나 가짜로 답한다."""
@@ -608,6 +871,15 @@ def test_hub_buttons_cause_no_csp_violation_or_console_error():
             page.locator(".plan-map .map-popup-close").click()
             page.locator(".plan-map .popup-divicon").nth(0).dispatch_event("click")
             poll(page, "!document.querySelector('.plan-map .map-popup-panel').hidden")
+            # 「이 장소 글 n건 모두 보기」(팝업 글 구역으로 이동)와 거점이 많을 때의 펼침 단추.
+            page.locator(".plan-map .popup-map-goto").click()
+            poll(page, "document.activeElement?.classList.contains('popup-hub-name')")
+            page.evaluate(
+                "()=>{const m=PopupCourse.mapItems;PopupCourse.setMapItems([...m,...m.map(g=>({...g,hub:{...g.hub,hub_id:g.hub.hub_id+'-2'}}))]);}"
+            )
+            page.locator(".plan-map .map-popup-more").click()
+            poll(page, "document.querySelectorAll('.plan-map .map-popup-hub:not([hidden])').length === 6")
+            page.locator(".plan-map .map-popup-more").click()
             page.wait_for_timeout(500)
             violations = page.evaluate("() => window.__csp || []")
             browser.close()

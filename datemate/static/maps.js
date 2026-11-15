@@ -107,29 +107,60 @@ function popupMapInfo(group){
   box.append(node('strong',PopupCourse.label(hub)),node('p',PopupCourse.levelText(hub)),node('p','코스에 포함되지 않은 주변 후보예요. 기간과 장소는 원문에서 확인해 주세요.','hint'),node('p',`검색된 글 ${group.posts.length}건 · 네이버 블로그`));
   for(const post of shown){const item=node('li');item.append(link((post.title||'(제목 없음)')+' ↗',post.url));list.append(item);}
   box.append(list);
-  if(group.posts.length>shown.length)box.append(node('p',`외 ${group.posts.length-shown.length}건 · 아래 팝업 글 구역에서 모두 볼 수 있어요`,'hint'));
+  // 나머지 글은 코스 결과의 ‘팝업스토어 글’ 구역(제목 "…에서 찾은 팝업스토어 글")에 있다. 구역이 지도 아래(모바일)일 수도 왼쪽(데스크톱 2단)일 수도 있어
+  // 위치를 말하지 않고 구역 이름으로 부르며, 그 거점 묶음으로 바로 가는 단추를 둔다(묶음이 접혀 있으면 펼침, popups.js 의 PopupCourse.revealHub).
+  if(group.posts.length>shown.length){
+    box.append(node('p',`외 ${group.posts.length-shown.length}건은 ‘팝업스토어 글’ 구역에서 볼 수 있어요.`,'hint'));
+    if(PopupCourse.canReveal(hub.hub_id))box.append(button(`${hub.level==='area_anchor'?'이 일대':'이 장소'} 글 ${group.posts.length}건 모두 보기`,()=>PopupCourse.revealHub(hub.hub_id),'secondary popup-map-goto'));
+  }
   return box;
 }
 /* 지도 아래의 팝업 장소 단추 목록과 정보 칸. 지도 위 팝업 표시는 코스 표시 아래 층이라 출발지와 같은 자리면 대부분 가려지고(확대 단계마다 달라짐),
    지도 폭(약 250~320px) 안의 정보창은 확대·축소 단추를 비키면 본문이 90~160px 로 좁아진다. 그래서 거점마다 44px 이상의 단추를 지도 아래에 두고,
    단추나 지도 표시를 누르면 지도 아래 칸(지도 폭 그대로, 안쪽 스크롤 없음)에 같은 내용(popupMapInfo)을 연다. 한 번에 거점 하나만 연다.
    단추는 aria-expanded·aria-controls 로 열림을 알린다. 지도 표시를 누르면 칸이 화면에 보이게만 스크롤하고 포커스는 옮기지 않는다.
-   장소 이름은 텍스트 노드로만 넣는다. */
+   장소 이름은 텍스트 노드로만 넣는다.
+   거점이 많으면 처음에는 앞의 POPUP_HUBS_FIRST 곳만 보이고(순서는 그대로) 「장소 n곳 더 보기」(aria-expanded)로 펼치고 「장소 목록 접기」로 다시 접는다.
+   숨길 거점이 1곳뿐이면 단추 하나를 펼침 단추 하나로 바꾸는 셈이라 접지 않는다(POPUP_HUBS_FIRST+1 곳까지는 펼침 단추 없이 모두 보임).
+   그래서 접힌 목록은 거점 수와 관계없이 최대 4줄이다. 접힌 거점을 지도 표시로 열면 목록을 펼쳐 그 단추가 보이게 하고,
+   열린 거점이 숨는 쪽이면 접을 때 칸을 닫는다(열린 칸의 단추가 화면에 없는 상태를 만들지 않음). */
+const POPUP_HUBS_FIRST=3;
 let popupPanelCount=0;
 function popupHubList(){
   const list=node('div',undefined,'map-popup-hubs'),panel=node('div',undefined,'map-popup-panel');
   list.setAttribute('role','group');list.setAttribute('aria-label','지도에 표시한 팝업 장소');list.hidden=true;
-  panel.id='map-popup-panel-'+(++popupPanelCount);panel.hidden=true;
-  let groups=[],open=-1;
+  const id=++popupPanelCount;list.id='map-popup-hubs-'+id;panel.id='map-popup-panel-'+id;panel.hidden=true;
+  let groups=[],open=-1,folded=false;
   const chips=()=>[...list.querySelectorAll('.map-popup-hub')];
+  const more=button('',()=>fold(!folded,true),'secondary map-popup-more');
+  more.setAttribute('aria-controls',list.id);
+  const fold=(value,focus=false)=>{
+    const foldable=groups.length>POPUP_HUBS_FIRST+1;
+    folded=value&&foldable;
+    chips().forEach((chip,i)=>{chip.hidden=folded&&i>=POPUP_HUBS_FIRST;});
+    more.setAttribute('aria-expanded',String(!folded));
+    more.textContent=folded?`장소 ${groups.length-POPUP_HUBS_FIRST}곳 더 보기`:'장소 목록 접기';
+    if(folded&&open>=POPUP_HUBS_FIRST)show(-1);
+    // 펼치면 키보드 사용자가 새로 보인 첫 장소에서 이어 가게 한다(펼침 단추는 목록 끝이라 Tab 으로는 앞쪽에 못 감).
+    else if(!folded&&focus)chips()[POPUP_HUBS_FIRST]?.focus();
+  };
   const show=(index,reveal=false)=>{
     open=groups[index]?index:-1;
+    if(folded&&open>=POPUP_HUBS_FIRST)fold(false);
     chips().forEach((chip,i)=>chip.setAttribute('aria-expanded',String(i===open)));
     panel.replaceChildren();panel.hidden=open<0;
     if(open<0)return;
     const at=open;
     panel.append(popupMapInfo(groups[at]),button('정보 닫기',()=>{show(-1);chips()[at]?.focus();},'secondary map-popup-close'));
-    if(reveal)panel.scrollIntoView({block:'nearest'});
+    if(reveal)revealPanel();
+  };
+  // 데스크톱 오른쪽 패널(자체 스크롤, 지도가 위쪽에 붙음)에서는 패널만 움직여 칸 머리를 붙은 지도 바로 아래(scroll-padding-top)에 둔다.
+  // 칸이 보이는 자리보다 길면 'nearest' 가 칸 아래쪽을 맞춰 머리가 지도 밑에 숨고, 'start' 는 패널 밖 문서까지 움직이기 때문이다. 모바일은 그대로 'nearest'.
+  const revealPanel=()=>{
+    const card=panel.closest('.plan-map-rail .plan-map-card');
+    if(!card){panel.scrollIntoView({block:'nearest'});return;}
+    const pad=parseFloat(getComputedStyle(card).scrollPaddingTop)||0,top=panel.getBoundingClientRect().top-card.getBoundingClientRect().top;
+    if(top<pad||panel.getBoundingClientRect().bottom>card.getBoundingClientRect().bottom)card.scrollTop+=top-pad;
   };
   // 정보 칸 안(글 링크·닫기)에서 Esc 를 누르면 닫고 그 장소 단추로 돌아간다.
   panel.addEventListener('keydown',event=>{if(event.key==='Escape'&&open>=0){const at=open;show(-1);chips()[at]?.focus();}});
@@ -140,7 +171,8 @@ function popupHubList(){
       chip.append(node('span',area?'팝업 일대':'팝업','map-popup-badge'+(area?' is-area':'')),node('span',`${PopupCourse.label(group.hub)} · 글 ${group.posts.length}건`,'map-popup-hub-name'));
       chip.setAttribute('aria-expanded','false');chip.setAttribute('aria-controls',panel.id);list.append(chip);
     });
-    show(-1);
+    if(items.length>POPUP_HUBS_FIRST+1)list.append(more);
+    show(-1);fold(true);
   };
   return {list,panel,show,set};
 }
@@ -161,7 +193,12 @@ function drawPlanMap(plan){
   const popupHubs=popupHubList();
   const clearPopups=()=>{popupMarkers.forEach(clear=>quietly(clear));popupMarkers=[];popupHubs.set([]);};
   // 지도 자체(코스 표시·이동선·식당 표시는 지도와 함께 사라짐)를 지운다. 같은 이유로 remove·destroy 도 감싼다.
-  const dropMap=()=>{resizeObserver?.disconnect();const map=activeMap;activeMap=null;quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
+  // Leaflet(1.9.4)은 애니메이션 확대의 끝맺음을 transitionend 와 함께 setTimeout(_onZoomTransitionEnd,250) 으로도 예약하는데, remove() 는 이 예약을 지우지 않고
+  // _mapPane 만 지운다. 확대 중(빠른 폭 변경·코스 탭 전환으로 다시 그릴 때)에 지우면 250ms 뒤 그 끝맺음이 지워진 _mapPane 의 _leaflet_pos 를 읽다 페이지 오류가 난다.
+  // 지우기 전에 진행 중인 확대를 Leaflet 자신의 끝맺음으로 마쳐 두면(_animatingZoom=false) 예약된 끝맺음은 아무것도 하지 않는다.
+  const dropMap=()=>{resizeObserver?.disconnect();const map=activeMap;activeMap=null;
+    if(window.L&&map instanceof L.Map&&map._animatingZoom)map._onZoomTransitionEnd();
+    quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
   wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
   wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();dropMap();};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');

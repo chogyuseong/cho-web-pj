@@ -526,12 +526,15 @@ const PopupCourse = {
     block.append(head, posts);
     const rest = group.posts.length - this.postsPerHub;
     if (rest > 0) {
-      const more = button(`이 장소의 글 ${rest}건 더 보기`, () => {
+      const more = button(`이 장소의 글 ${rest}건 더 보기`, () => block.showAll(true), 'secondary popup-more popup-hub-more');
+      // 코스 지도 정보 칸에서 이 묶음으로 올 때(revealHub)도 같은 펼치기를 쓴다(그때는 포커스를 거점 이름에 둠).
+      block.showAll = focus => {
+        if (!more.isConnected) return;
         more.remove();
         render(group.posts.slice(this.postsPerHub));
         // 키보드 사용자가 새로 열린 첫 글에서 이어 읽게 한다.
-        posts.children[this.postsPerHub]?.querySelector('.popup-source-link')?.focus();
-      }, 'secondary popup-more popup-hub-more');
+        if (focus) posts.children[this.postsPerHub]?.querySelector('.popup-source-link')?.focus();
+      };
       block.append(more);
     }
     return block;
@@ -546,14 +549,40 @@ const PopupCourse = {
     block.append(items);
     const rest = groups.length - this.firstHubs;
     if (rest > 0) {
-      const more = button(`다른 장소 ${rest}곳 더 보기`, () => {
+      const more = button(`다른 장소 ${rest}곳 더 보기`, () => block.showAll(true), 'secondary popup-more popup-hubs-more');
+      block.showAll = focus => {
+        if (!more.isConnected) return;
         more.remove();
         render(groups.slice(this.firstHubs));
-        items.children[this.firstHubs]?.querySelector('button,.popup-source-link')?.focus();
-      }, 'secondary popup-more popup-hubs-more');
+        if (focus) items.children[this.firstHubs]?.querySelector('button,.popup-source-link')?.focus();
+      };
       block.append(more);
     }
     return block;
+  },
+  // 코스 지도 아래 정보 칸의 「이 장소 글 n건 모두 보기」. 지금 세대의 거점이고 구역에 거점 묶음 목록이 있을 때만 단추를 둔다.
+  canReveal(hubId) {
+    const section = document.getElementById('popup-course');
+    return Boolean(section && !section.hidden && section.querySelector('.popup-hubs') && this.mapItems.some(group => group.hub.hub_id === hubId));
+  },
+  // 그 거점 묶음이 접혀 있으면 펼치고(「다른 장소 n곳 더 보기」·「이 장소의 글 n건 더 보기」), 묶음으로 스크롤해 거점 이름에 포커스를 둔다.
+  revealHub(hubId) {
+    if (!this.canReveal(hubId)) return false;
+    const list = document.querySelector('#popup-course .popup-hubs'),
+      find = () => [...list.querySelectorAll('.popup-hub')].find(block => block.dataset.hubId === String(hubId));
+    if (!find()) list.showAll?.(false);
+    const block = find();
+    if (!block) return false;
+    block.showAll?.(false);
+    const name = block.querySelector('.popup-hub-name');
+    name.tabIndex = -1;
+    block.scrollIntoView({
+      block: 'start'
+    });
+    name.focus({
+      preventScroll: true
+    });
+    return true;
   },
   // 위치 미확인 글: 거리·버튼 없이 이유 한 줄. 장소 줄은 글마다 다르므로 남긴다.
   unknownCard(post, data) {

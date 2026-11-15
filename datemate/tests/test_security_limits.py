@@ -500,10 +500,58 @@ def test_amount_regex_is_linear_and_still_parses_amounts():
     started = time.monotonic()
     interpret('1,' * 4000 + '원' + uuid.uuid4().hex)
     interpret('1,1' * 3000 + uuid.uuid4().hex)
-    assert time.monotonic() - started < 0.2
+    # Safety net for a runaway only; growth is checked by the ratio test below. Both calls
+    # take about 35 ms in the local Docker image, and slow CI runners were measured at about
+    # 5x local (46 ms locally took 220 ms on CI), so 1 s leaves room for a ~28x slower
+    # moment. The amount regex without its look-behind takes 1.6 s on '1,1' * 3000 alone
+    # locally, so a reintroduced backtracking regex still fails here on a fast machine.
+    assert time.monotonic() - started < 1
     assert interpret('예산 5만원')['patch']['budget'] == 50000
     assert interpret('예산 30,000원')['patch']['budget'] == 30000
     assert interpret('1.5만원 정도')['patch']['budget'] == 15000
+
+
+@pytest.mark.parametrize('unit', [
+    '조용하고 비 와도 괜찮은 곳 ',  # a repeated plain sentence (was quadratic in the unparsed-phrase scan)
+    '카페공원사진',  # no spaces: every match used to walk back over the whole text for its phrase
+    '걷기 싫어 산책 공원 카페 투어 ',  # walking negation and 'focus' words checked against every span
+    '1원 ',  # many amounts, each held as a separate phrase
+    '1,1',  # the digit/comma run the amount regex once backtracked on
+])
+def test_request_interpretation_grows_linearly(unit):
+    """Interpreting a 4x longer text must take about 4x as long, not 16x.
+
+    Comparing two sizes on the same runner cancels out how fast the runner is, so this
+    holds on slow CI machines where an absolute limit does not. The smaller text is the
+    longest free-text request a form accepts (4000 characters, app/models.py).
+    """
+    from app.request_intent import _extract
+    extract = _extract.__wrapped__  # bypass the lru_cache so every call does the work
+    small = (unit * 4000)[:4000]
+    large = (unit * 16000)[:16000]
+
+    def best_ratio():
+        # CPU time, not wall time: a CPU-quota container (docker --cpus=0.5) pauses a run that
+        # outlasts its quota slice, which made only the larger text look slower (ratios up to
+        # 9 for linear code), and other processes on a shared runner are not counted either.
+        # Interleave the sizes and keep each one's fastest run, so a slow moment hits both
+        # sizes or neither instead of inflating one of them.
+        best = {small: float('inf'), large: float('inf')}
+        for _ in range(5):
+            for text in (small, large):
+                started = time.process_time()
+                extract(text)
+                best[text] = min(best[text], time.process_time() - started)
+        return best[large] / best[small]
+
+    # Linear work gives about 4; the quadratic versions measured 10 to 16. Up to three
+    # tries absorb a one-off noisy measurement without letting a quadratic version through.
+    ratios = []
+    for _ in range(3):
+        ratios.append(best_ratio())
+        if ratios[-1] < 6:
+            break
+    assert ratios[-1] < 6, ratios
 
 
 def test_http_client_loggers_do_not_log_request_urls():

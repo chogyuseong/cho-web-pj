@@ -195,8 +195,11 @@ def test_popup_browse_states_and_reading_kept_apart_from_the_quote(audit_page):
     status = page.locator("#popup-status").inner_text()
     assert "오늘(2026.11.14) 기준" in status and "네이버 블로그 검색 결과" in status
     # 일반 글과 모아 보기 글이 나뉘고, 종료·다른 지역으로 뺀 수를 알린다.
+    # 안내 줄의 전체 수(4건)와 목록 제목의 수가 같은 기준(보여 주는 글)으로 맞는다: 4 = 일반 3 + 모아 보기 1.
+    # 운영에서 안내 줄 43건 · 목록 제목 "검색된 팝업 글 42건"으로 보이던 1건 차이(모아 보기 글 1건)의 회귀 검사.
+    assert status.endswith("팝업 글 4건 (일반 글 3건 · 여러 팝업을 모아 소개한 글 1건)")
     lists = page.locator(".popup-list h3").all_inner_texts()
-    assert lists == ["검색된 팝업 글 3건", "여러 팝업을 모아 소개한 글 1건"]
+    assert lists == ["일반 팝업 글 3건", "여러 팝업을 모아 소개한 글 1건"]
     notes = page.locator(".popup-note").all_inner_texts()
     assert any("종료로 확인된 글 1건" in n for n in notes) and any("다른 시·도" in n for n in notes)
     assert "출처: 네이버 블로그 검색 결과" in page.locator(".popup-attribution").inner_text()
@@ -236,6 +239,9 @@ def test_popup_browse_states_and_reading_kept_apart_from_the_quote(audit_page):
     search(page, "부분")
     page.wait_for_selector(".popup-state-partial")
     assert page.locator(".popup-post").count() == 1
+    # 모아 보기 글이 없으면 안내 줄의 수와 목록 제목의 수가 그대로 같다.
+    assert page.locator("#popup-status").inner_text().endswith("팝업 글 1건")
+    assert page.locator(".popup-list h3").all_inner_texts() == ["검색된 팝업 글 1건"]
     search(page, "없음")
     page.wait_for_selector(".popup-state-empty")
     assert "보여 드릴 팝업 글이 없어요" in page.locator("#popup-status").inner_text()

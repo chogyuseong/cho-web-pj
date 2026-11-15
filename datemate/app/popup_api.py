@@ -315,7 +315,10 @@ def place_view(hub, verdicts):
 
 
 def judge(raw, region, visit):
-    """원본 글 → 보여 줄 글과 뺀 글 수. 거점 좌표는 아직 붙이지 않는다."""
+    """원본 글 → 보여 줄 글과 뺀 글 수. 거점 좌표는 아직 붙이지 않는다.
+
+    '팝업'이 없는 글과 팝업 행사 증거가 모자란 글(popups.popup_evidence, 규칙 v2)은 함께 not_popup 으로 센다.
+    """
     shown, counts = [], Counter()
     for p in raw:
         text = p["title"] + " \n " + p["description"]
@@ -327,6 +330,15 @@ def judge(raw, region, visit):
             counts["other_region"] += 1
             continue
         extraction = popups.extract_period(p["title"], p["description"])
+        evidence = popups.popup_evidence(
+            p["title"],
+            p["description"],
+            has_period=extraction["status"] != "none",
+            has_hub=hub["status"] in ("single", "multiple"),
+        )
+        if not evidence["show"]:
+            counts["not_popup"] += 1
+            continue
         status = popups.post_status(extraction, visit)
         if status["status"] == "ended":
             counts["ended"] += 1
@@ -427,6 +439,7 @@ def find_popups(region, q, visit, basis):
                     if result["status"] != "ok":
                         return unavailable(region, q, visit, basis, result["reason"])
                     raw = dict(posts=result["posts"], fetched_at=result["fetched_at"])
+                    # 캐시 수명은 '팝업' 글자만 본다(증거 판정은 요청마다 judge 에서).
                     has_popup = any(
                         popups.has_popup(p["title"] + " " + p["description"]) for p in raw["posts"]
                     )

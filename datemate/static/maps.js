@@ -107,7 +107,12 @@ function popupMapInfo(group){
   box.append(node('strong',PopupCourse.label(hub)),node('p',PopupCourse.levelText(hub)),node('p','코스에 포함되지 않은 주변 후보예요. 기간과 장소는 원문에서 확인해 주세요.','hint'),node('p',`검색된 글 ${group.posts.length}건 · 네이버 블로그`));
   for(const post of shown){const item=node('li');item.append(link((post.title||'(제목 없음)')+' ↗',post.url));list.append(item);}
   box.append(list);
-  if(group.posts.length>shown.length)box.append(node('p',`외 ${group.posts.length-shown.length}건 · 아래 팝업 글 구역에서 모두 볼 수 있어요`,'hint'));
+  // 나머지 글은 코스 결과의 ‘팝업스토어 글’ 구역(제목 "…에서 찾은 팝업스토어 글")에 있다. 구역이 지도 아래(모바일)일 수도 왼쪽(데스크톱 2단)일 수도 있어
+  // 위치를 말하지 않고 구역 이름으로 부르며, 그 거점 묶음으로 바로 가는 단추를 둔다(묶음이 접혀 있으면 펼침, popups.js 의 PopupCourse.revealHub).
+  if(group.posts.length>shown.length){
+    box.append(node('p',`외 ${group.posts.length-shown.length}건은 ‘팝업스토어 글’ 구역에서 볼 수 있어요.`,'hint'));
+    if(PopupCourse.canReveal(hub.hub_id))box.append(button(`${hub.level==='area_anchor'?'이 일대':'이 장소'} 글 ${group.posts.length}건 모두 보기`,()=>PopupCourse.revealHub(hub.hub_id),'secondary popup-map-goto'));
+  }
   return box;
 }
 /* 지도 아래의 팝업 장소 단추 목록과 정보 칸. 지도 위 팝업 표시는 코스 표시 아래 층이라 출발지와 같은 자리면 대부분 가려지고(확대 단계마다 달라짐),

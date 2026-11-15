@@ -268,6 +268,8 @@
 .popup-map-posts li { margin:0; }
 .popup-map-posts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; line-height:1.5; color:var(--cheong); }
 .plan-map .map-popup-close { margin-top:6px; min-height:44px; }
+/* 「이 장소 글 n건 모두 보기」: 코스 결과 ‘팝업스토어 글’ 구역의 그 거점 묶음으로 간다(보조 버튼). */
+.plan-map .popup-map-goto { margin:2px 0 4px; min-height:44px; max-width:100%; white-space:normal; text-align:left; }
 
 /* 팝업 거점으로 다시 추천한 뒤의 안내. 축제 안내(청색 실선)와 다르게 점선 + 제목 글자로 구분한다. */
 .popup-origin-note {

@@ -160,7 +160,8 @@ function drawPlanMap(plan){
       points.forEach((point,i)=>{
         const label=i===0?'출발':i>plan.places.length?'귀가':String(i);
         // 장소명은 HTML에 삽입하지 않고 텍스트·title로만 전달한다.
-        const marker=new naver.maps.Marker({map,position:coord(point),title:label+' · '+point.name,
+        // 쌓임 순서: 팝업 표시(120) < 코스 표시(130) < 축제 표시(150·고른 축제 300). 팝업 동네 기준점이 출발지와 같은 자리여도 출발·번호 표시가 위에 보이고 눌린다.
+        const marker=new naver.maps.Marker({map,position:coord(point),title:label+' · '+point.name,zIndex:130,
           icon:{content:'<span class="route-marker '+(i===0?'route-start':'')+'">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
         bounds.extend(coord(point));
       });
@@ -262,6 +263,8 @@ function drawPlanMap(plan){
       if(!points.length)return;
       try{
         const map=L.map(mapCanvas,{scrollWheelZoom:true}).setView([points[0].lat,points[0].lon],14);activeMap=map;
+        // 팝업 표시는 코스 원·이동선·축제 원(overlayPane 400)보다 아래 층(popups.css 의 390)에 둔다. 같은 자리여도 출발·번호 원이 위에 보인다.
+        map.createPane('popupHubs');
         const layer=L.tileLayer(statusData?.map_tile_url||'https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:statusData?.map_tile_attribution||'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
         layer.on('tileerror',()=>mapCaption.textContent='지도 배경을 불러오지 못했어요. 장소 링크와 아래 개략도를 이용해 주세요.');
         const coordinates=points.map(point=>[point.lat,point.lon]);
@@ -289,7 +292,7 @@ function drawPlanMap(plan){
           clearPopups();const items=popupMapItems();
           for(const group of items){
             const icon=L.divIcon({className:'popup-divicon',html:popupMarkerNode(group),iconSize:null});
-            const marker=L.marker([group.hub.lat,group.hub.lon],{icon,title:popupMapTitle(group),keyboard:true,zIndexOffset:-100}).addTo(map);
+            const marker=L.marker([group.hub.lat,group.hub.lon],{icon,title:popupMapTitle(group),keyboard:true,zIndexOffset:-100,pane:'popupHubs'}).addTo(map);
             // 너비 맞춤은 Leaflet 의 클릭(정보창 열기)보다 먼저 등록해 열기 전에 끝낸다.
             const content=popupMapInfo(group);marker.on('click',()=>fitPopupMapInfo(content,mapCanvas,POPUP_INFO_ROOM.leaflet.reserved));
             marker.bindPopup(content,{autoPanPaddingTopLeft:L.point(POPUP_INFO_ROOM.leaflet.left,10)});

@@ -191,6 +191,8 @@
 .leaflet-marker-icon.popup-divicon { width:0; height:0; background:none; border:0; }
 .popup-divicon .popup-marker { position:absolute; left:0; top:0; transform:translate(-50%,-50%); }
 .popup-divicon:focus-visible .popup-marker { outline:3px solid var(--ink); outline-offset:2px; }
+/* 팝업 표시 층(maps.js 의 popupHubs)은 코스 원·이동선·축제 원이 있는 overlayPane(400) 바로 아래, 배경 지도(200) 위. 좌표는 옮기지 않는다. */
+.leaflet-pane.leaflet-popupHubs-pane { z-index:390; }
 /* 모바일 지도(높이 290px)보다 정보창이 길어지지 않게 높이를 두고 안에서 스크롤한다(내용은 자르지 않음). */
 .popup-map-info { max-width:260px; max-height:220px; overflow-y:auto; padding:10px 12px; font-size:14px; line-height:1.6; color:var(--ink); overflow-wrap:anywhere; }
 .popup-map-info p { margin:4px 0; }

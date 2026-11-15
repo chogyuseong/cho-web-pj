@@ -193,7 +193,12 @@ function drawPlanMap(plan){
   const popupHubs=popupHubList();
   const clearPopups=()=>{popupMarkers.forEach(clear=>quietly(clear));popupMarkers=[];popupHubs.set([]);};
   // 지도 자체(코스 표시·이동선·식당 표시는 지도와 함께 사라짐)를 지운다. 같은 이유로 remove·destroy 도 감싼다.
-  const dropMap=()=>{resizeObserver?.disconnect();const map=activeMap;activeMap=null;quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
+  // Leaflet(1.9.4)은 애니메이션 확대의 끝맺음을 transitionend 와 함께 setTimeout(_onZoomTransitionEnd,250) 으로도 예약하는데, remove() 는 이 예약을 지우지 않고
+  // _mapPane 만 지운다. 확대 중(빠른 폭 변경·코스 탭 전환으로 다시 그릴 때)에 지우면 250ms 뒤 그 끝맺음이 지워진 _mapPane 의 _leaflet_pos 를 읽다 페이지 오류가 난다.
+  // 지우기 전에 진행 중인 확대를 Leaflet 자신의 끝맺음으로 마쳐 두면(_animatingZoom=false) 예약된 끝맺음은 아무것도 하지 않는다.
+  const dropMap=()=>{resizeObserver?.disconnect();const map=activeMap;activeMap=null;
+    if(window.L&&map instanceof L.Map&&map._animatingZoom)map._onZoomTransitionEnd();
+    quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
   wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
   wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();dropMap();};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');

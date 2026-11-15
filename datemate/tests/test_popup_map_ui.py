@@ -324,10 +324,8 @@ EXPANDED = "[...document.querySelectorAll('.plan-map .map-popup-hub')].map(c=>c.
 
 
 def narrow(page, width):
-    """폭을 바꾸고 좁은 화면 자리(#plan-map-slot)에 다시 그려진 지도가 멈출 때까지 기다린다."""
-    # 지도 움직임이 끝난 뒤 폭을 바꾼다. 움직이는 중에 지도를 지우면 Leaflet 이 _leaflet_pos 오류를 낸다(테스트 순서 문제).
-    page.wait_for_function("!courseMaps.at(-1)._animatingZoom")
-    page.wait_for_timeout(700)
+    """폭을 바꾸고 좁은 화면 자리(#plan-map-slot)에 다시 그려진 지도가 멈출 때까지 기다린다.
+    지도가 움직이는 중에 폭을 바꿔도 된다(지우기 전에 확대 애니메이션을 마침, test_leaflet_dispose_during_zoom.py)."""
     page.set_viewport_size({"width": width, "height": 844})
     page.wait_for_function(
         "document.querySelector('#plan-map-slot .plan-map .popup-divicon')", timeout=20000

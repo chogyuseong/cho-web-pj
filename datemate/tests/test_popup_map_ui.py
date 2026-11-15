@@ -780,6 +780,8 @@ def test_desktop_rail_keeps_the_map_in_view_while_reading_the_panel(audit_page):
     for width, height, least in ((1440, 900, 380), (1280, 720, 260)):
         page.set_viewport_size({"width": width, "height": height})
         page.wait_for_timeout(300)
+        # 네이버 지도 SDK 가 지도 요소에 직접 넣는 style="position:relative" 를 흉내 낸다(운영에서 이 때문에 지도가 붙지 않았다).
+        page.evaluate("document.querySelector('.plan-map-rail .naver-plan-map').style.position='relative'")
         page.evaluate("document.querySelector('#plan-map-rail').scrollIntoView({block:'start',behavior:'instant'})")
         if chips.nth(0).get_attribute("aria-expanded") != "true":
             chips.nth(0).click()

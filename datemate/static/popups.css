@@ -280,7 +280,8 @@
 @media(min-width:801px) and (min-height:600px) {
   .plan-map-rail .plan-map-card { scroll-padding-top:calc(clamp(240px,40dvh,440px) + 12px); }
   .plan-map-rail .plan-map { overflow:hidden; overflow:clip; }
-  .plan-map-rail .plan-map .naver-plan-map { position:sticky; top:-20px; z-index:1; }
+  /* 네이버 지도 SDK 는 지도 요소에 style="position:relative" 를 직접 넣으므로 !important 가 없으면 운영(네이버 지도)에서는 붙지 않는다. */
+  .plan-map-rail .plan-map .naver-plan-map { position:sticky!important; top:-20px; z-index:1; }
 }
 
 /* 팝업 거점으로 다시 추천한 뒤의 안내. 축제 안내(청색 실선)와 다르게 점선 + 제목 글자로 구분한다. */

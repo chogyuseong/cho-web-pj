@@ -118,6 +118,8 @@
 열여섯 번째 배포로 올라간 것 (main 병합 d2c8c7c, 브랜치 feat/google-site-verification): 구글 서치 콘솔 소유권 확인 태그
   · datemate/static/index.html 의 <head> 에 <meta name="google-site-verification"> 한 줄(65a38ca). 서치 콘솔 속성은 URL 접두어 방식(https://datemate.guseong-family.workers.dev/).
     이 태그를 지우면 소유권 확인이 풀립니다. 배포 뒤 서치 콘솔에서 「확인」을 누르는 것은 사용자 몫입니다.
+CI 실패 기록 2 (2026-11-15, 04af430): test (postgres) 만 다시 실패(나머지 4개 통과). 같은 커밋을 로컬 Docker(postgres:17-bookworm)에서 전체 실행하니 1086개 통과·5개 건너뜀으로 재현되지 않았습니다.
+  · 두 번 모두 postgres 작업에서만 났고 sqlite 작업은 통과했습니다. 실패한 테스트 이름은 여전히 모릅니다(로그는 로그인 필요). 원인을 찾으려면 Actions 로그의 테스트 이름이 필요합니다.
 CI 실패 기록 (2026-11-15, 854d3d8): GitHub Actions 의 test (postgres) 만 pytest 단계에서 실패했고 나머지 4개는 통과했습니다. 실패한 테스트 이름은 모릅니다(로그는 로그인 필요).
   · 로컬 Docker(postgres:17-bookworm 17.11·17.12)에서 같은 커밋으로 PostgreSQL 전체 15회(매번 1009 통과·5 건너뜀), 바뀐 테스트 5개 파일 45회 이상(CPU 0.5~무제한, 인터넷 차단 포함)을 돌렸지만 재현되지 않아 코드는 고치지 않았습니다.
   · 타이밍에 취약해 보이는 곳(고치지 않음): tests/test_leaflet_dispose_during_zoom.py 의 animatingAtDispose 단언(확대 애니메이션 250ms 안에 정리가 일어나야 성립, 로컬 여유 약 180ms),

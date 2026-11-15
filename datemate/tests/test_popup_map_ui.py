@@ -265,3 +265,76 @@ def test_leaflet_popup_layer_lifecycle_view_and_failures(audit_page):
     assert page.evaluate(view) == before
     assert page.locator(".plan-map .map-popup-note").is_hidden()
     assert page.locator(".map-legend-popups").is_hidden()
+
+
+LEAFLET_CAPTURE = """()=>{statusData.map_js_key=null;window.courseMaps=[];const create=L.map;
+  L.map=function(...args){const map=create(...args);window.courseMaps.push(map);return map;};}"""
+# 정보창(바깥 틀·본문 글자)과 지도 왼쪽 위 확대·축소 단추의 화면 위치.
+LEAFLET_INFO_BOX = """()=>{const map=document.querySelector('.plan-map .leaflet-container'),r=e=>e.getBoundingClientRect();
+  const a=r(map),z=r(map.querySelector('.leaflet-control-zoom')),p=r(map.querySelector('.leaflet-popup-content-wrapper')),t=r(map.querySelector('.leaflet-popup-content .popup-map-info'));
+  return {mapLeft:a.left,mapRight:a.right,zoomRight:z.right,zoomBottom:z.bottom,popLeft:p.left,popRight:p.right,popTop:p.top,textLeft:t.left,textRight:t.right}}"""
+
+
+def test_leaflet_info_window_clears_the_zoom_buttons_at_narrow_widths(audit_page):
+    """정보창 왼쪽 글자가 확대·축소 단추에 가리던 문제(운영 390px)의 회귀 검사. 거점을 지도 왼쪽 끝에 두고 정보창을 연다."""
+    page, base, errors = audit_page
+    route_festivals(page)
+    Api(page, default=MAP)
+    page.evaluate(LEAFLET_CAPTURE)
+    generate(page)
+    page.wait_for_function(
+        "document.querySelectorAll('.plan-map .popup-divicon').length===3", timeout=20000
+    )
+    for width in (390, 320):
+        page.set_viewport_size({"width": width, "height": 844})
+        # 좁은 화면에서는 지도가 코스 카드 뒤(#plan-map-slot)로 옮겨 다시 그려진다.
+        page.wait_for_function(
+            "document.querySelector('#plan-map-slot .plan-map .popup-divicon')", timeout=20000
+        )
+        page.wait_for_timeout(400)
+        page.wait_for_function("!courseMaps.at(-1)._animatingZoom")
+        page.evaluate("courseMaps.at(-1).closePopup()")
+        page.evaluate(
+            """()=>{const m=courseMaps.at(-1),s=m.getSize(),p=m.containerPointToLatLng([4,Math.round(s.y*0.75)]);
+              const g=PopupCourse.mapItems.find(g=>g.hub.level==='area_anchor');
+              PopupCourse.setMapItems([{...g,hub:{...g.hub,lat:p.lat,lon:p.lng}}]);}"""
+        )
+        # 앞서 연 정보창은 Leaflet 이 200ms 동안 흐려지며 닫힌 뒤 지운다.
+        page.wait_for_timeout(300)
+        page.locator(".plan-map .popup-divicon").first.dispatch_event("click")
+        page.locator(".plan-map .leaflet-popup-content .popup-map-info").wait_for()
+        # 자동 이동(패닝)이 끝날 때까지 기다린다.
+        page.wait_for_timeout(700)
+        box = page.evaluate(LEAFLET_INFO_BOX)
+        # 정보창 전체가 단추 오른쪽에서 시작하고 지도 오른쪽 끝을 넘지 않는다(글자가 단추 밑에 깔리지 않음).
+        assert box["popLeft"] >= box["zoomRight"], (width, box)
+        assert box["popRight"] <= box["mapRight"], (width, box)
+        assert box["textLeft"] >= box["zoomRight"] and box["textRight"] <= box["mapRight"], (width, box)
+        assert page.evaluate("document.documentElement.scrollWidth<=innerWidth"), width
+
+
+def test_naver_info_window_keeps_room_for_the_zoom_buttons(audit_page):
+    """네이버 지도(가짜 SDK): 정보창 자동 이동 여백이 왼쪽 위 확대·축소 단추 너비보다 넓고, 정보창 너비가 그 여백을 뺀 지도 너비 안에 든다.
+    실제 SDK 의 자동 이동 동작은 이 테스트가 확인하지 않는다(외부 요청을 막음)."""
+    page, base, errors = audit_page
+    route_festivals(page)
+    Api(page, default=MAP)
+    page.evaluate(NAVER_STUB)
+    page.evaluate(
+        """()=>{const Info=naver.maps.InfoWindow;window.__infoOptions=[];
+          naver.maps.InfoWindow=function(options){Info.call(this,options);window.__infoOptions.push(options);};}"""
+    )
+    generate(page)
+    # 좁은 화면에서는 지도가 코스 카드 뒤로 옮겨 다시 그려진다.
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.wait_for_function("document.querySelector('#plan-map-slot .plan-map')")
+    page.wait_for_function(f"{POPUPS}.length===3", timeout=20000)
+    result = page.evaluate(
+        """()=>{const l=window.__naverListeners.find(l=>!l.removed&&l.target.options?.title?.includes('성수 일대'));l.fn();
+          const c=window.__opened.at(-1),o=window.__infoOptions.find(o=>o.content===c),canvas=document.querySelector('.plan-map .naver-plan-map');
+          return {padX:o.autoPanPadding?.x,padY:o.autoPanPadding?.y,disabled:!!o.disableAutoPan,map:canvas.clientWidth,max:parseFloat(c.style.maxWidth)}}"""
+    )
+    # 네이버 큰 확대·축소 단추(왼쪽 위, 기본 위치)의 오른쪽 끝보다 넓은 여백.
+    assert result["padX"] >= 56 and result["padY"] >= 20 and not result["disabled"], result
+    # 정보창(본문 칸 + 안쪽 여백 24px + 테두리 2px)과 양쪽 여백이 지도 너비 안에 든다.
+    assert result["max"] + 24 + 2 + 2 * result["padX"] <= result["map"], result

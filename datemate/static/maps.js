@@ -110,6 +110,12 @@ function popupMapInfo(group){
   if(group.posts.length>shown.length)box.append(node('p',`외 ${group.posts.length-shown.length}건 · 아래 팝업 글 구역에서 모두 볼 수 있어요`,'hint'));
   return box;
 }
+/* 정보창이 지도 왼쪽 위 확대·축소 단추 밑에 깔리지 않게 한다(390px 에서 왼쪽 글자가 가렸음). 자동 이동(패닝) 여백을 단추 오른쪽 끝보다 넓게 두고,
+   정보창을 열 때마다 그 여백과 정보창 틀을 뺀 지도 너비 안으로 본문 너비를 줄인다(최대 260px 그대로).
+   max-width 는 본문 칸 너비라 본문 안쪽 여백(.popup-map-info 좌우 12px)도 뺀다.
+   Leaflet: 단추 10+34px → 왼쪽 여백 54, 틀(본문 여백 20+24·테두리)과 오른쪽 여백 5. 네이버: 큰 단추(기본, 왼쪽 위)라 양쪽 여백 56(좌우 같은 값만 받음), 테두리 1px×2. */
+const POPUP_INFO_ROOM={leaflet:{left:54,reserved:24+54+46+5},naver:{pad:56,reserved:24+56*2+2}};
+function fitPopupMapInfo(box,canvas,reserved){const width=Math.min(260,canvas.clientWidth-reserved);if(width>0)box.style.maxWidth=width+'px';}
 function popupMapNote(note,items){
   note.hidden=!items.length;
   note.textContent=items.length?`네모 ‘팝업’ 표시: 팝업 글에서 읽은 장소 ${items.length}곳 (코스에 포함되지 않은 주변 후보예요 · 위치를 확인하지 못한 글은 지도에 없어요)`:'';
@@ -190,8 +196,8 @@ function drawPlanMap(plan){
           const area=group.hub.level==='area_anchor',position=new naver.maps.LatLng(group.hub.lat,group.hub.lon);
           const marker=new naver.maps.Marker({map,position,title:popupMapTitle(group),zIndex:120,
             icon:{content:POPUP_MARKER_HTML[area?'area':'building'],anchor:new naver.maps.Point(area?36:22,14)}});
-          const info=new naver.maps.InfoWindow({content:popupMapInfo(group)});
-          const listener=naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
+          const content=popupMapInfo(group),info=new naver.maps.InfoWindow({content,autoPanPadding:new naver.maps.Point(POPUP_INFO_ROOM.naver.pad,20)});
+          const listener=naver.maps.Event.addListener(marker,'click',()=>{fitPopupMapInfo(content,canvas,POPUP_INFO_ROOM.naver.reserved);info.open(map,marker);});
           popupMarkers.push(()=>{info.close?.();if(listener)naver.maps.Event.removeListener?.(listener);marker.setMap(null);});
         }
         popupMapNote(popupNote,items);
@@ -284,7 +290,9 @@ function drawPlanMap(plan){
           for(const group of items){
             const icon=L.divIcon({className:'popup-divicon',html:popupMarkerNode(group),iconSize:null});
             const marker=L.marker([group.hub.lat,group.hub.lon],{icon,title:popupMapTitle(group),keyboard:true,zIndexOffset:-100}).addTo(map);
-            marker.bindPopup(popupMapInfo(group));
+            // 너비 맞춤은 Leaflet 의 클릭(정보창 열기)보다 먼저 등록해 열기 전에 끝낸다.
+            const content=popupMapInfo(group);marker.on('click',()=>fitPopupMapInfo(content,mapCanvas,POPUP_INFO_ROOM.leaflet.reserved));
+            marker.bindPopup(content,{autoPanPaddingTopLeft:L.point(POPUP_INFO_ROOM.leaflet.left,10)});
             popupMarkers.push(()=>{marker.closePopup();marker.unbindPopup();marker.off();marker.remove();});
           }
           popupMapNote(popupNote,items);

@@ -125,12 +125,16 @@ function popupMapNote(note,items){
 function drawPlanMap(plan){
   let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[],popupMarkers=[];
   const wrap=node('section',undefined,'plan-map');
-  const clearFestivals=()=>{festivalMarkers.forEach(marker=>marker.setMap?marker.setMap(null):marker.remove?.());festivalMarkers=[];};
+  // 네이버 인증 실패 알림이 표시를 올린 뒤에 오면 SDK 의 setMap(null) 이 SDK 내부 오류(capitalize)를 낸다(실제 SDK·로컬 주소 401 에서 확인).
+  // 정리 하나가 실패해도 나머지 정리, 대체 지도 그리기, 지도 정리(disposeMap)가 이어지게 정리 동작을 하나씩 감싼다.
+  const quietly=clear=>{try{clear();}catch{}};
+  const clearFestivals=()=>{festivalMarkers.forEach(marker=>quietly(()=>marker.setMap?marker.setMap(null):marker.remove?.()));festivalMarkers=[];};
   // 팝업 표시는 표시마다 정리 함수(마커·이벤트·정보창)를 둔다. 코스·축제 표시는 건드리지 않는다.
-  // 네이버 인증 실패 뒤에는 SDK 마커의 setMap 이 오류를 낼 수 있어(실측), 팝업 정리가 대체 지도 전환을 막지 않게 하나씩 감싼다.
-  const clearPopups=()=>{popupMarkers.forEach(clear=>{try{clear();}catch{}});popupMarkers=[];};
+  const clearPopups=()=>{popupMarkers.forEach(clear=>quietly(clear));popupMarkers=[];};
+  // 지도 자체(코스 표시·이동선·식당 표시는 지도와 함께 사라짐)를 지운다. 같은 이유로 remove·destroy 도 감싼다.
+  const dropMap=()=>{resizeObserver?.disconnect();const map=activeMap;activeMap=null;quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
   wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
-  wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;};
+  wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();dropMap();};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
   canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
   const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
@@ -144,7 +148,7 @@ function drawPlanMap(plan){
     if(!wrap.isConnected)return;
     clearFestivals();wrap.updateFestivals=()=>{};
     clearPopups();wrap.updatePopups=()=>{};
-    resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;
+    dropMap();
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
     wrap.replaceChildren(canvas,caption,festivalNote,popupNote);
@@ -247,7 +251,7 @@ function drawPlanMap(plan){
     if(disposed||!wrap.isConnected)return;
     clearFestivals();wrap.updateFestivals=()=>{};festivalNote.hidden=true;
     clearPopups();wrap.updatePopups=()=>{};popupMapNote(popupNote,[]);
-    resizeObserver?.disconnect();activeMap?.remove?.();activeMap?.destroy?.();activeMap=null;
+    dropMap();
     const notice=node('div',undefined,'map-reconnect');
     notice.setAttribute('role','status');
     notice.append(node('strong','네이버 지도 연결이 잠시 끊겼어요'),node('p',message,'hint'),

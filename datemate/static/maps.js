@@ -95,10 +95,10 @@ function festivalMapNote(note,items){
 }
 
 /* 팝업 글에서 읽은 거점은 축제와 별도의 표시 층이다. 데이터는 코스 결과 팝업 구역의 거점 묶음(PopupCourse.mapItems)과 같은 배열이고,
-   위치가 확인된 거점마다 표시 하나(같은 거점의 여러 글은 정보창 목록). 코스 역(원)·축제(노란 알약)와 다른 네모 모양이며,
+   위치가 확인된 거점마다 표시 하나와 지도 아래 단추 하나(같은 거점의 여러 글은 지도 아래 정보 칸의 목록). 코스 역(원)·축제(노란 알약)와 다른 네모 모양이며,
    동네 기준점은 점선 네모 + ‘일대’ 글자로 건물과 구분한다. 이동선에 잇지 않고 지도 범위 계산에도 넣지 않는다(중심·확대를 바꾸지 않음). */
 function popupMapItems(){return typeof PopupCourse==='undefined'?[]:PopupCourse.mapItems;}
-// 네이버 마커 HTML 은 고정 문자열만 쓴다. 거점 이름·글 제목은 title 과 정보창의 텍스트 노드로만 전달한다.
+// 네이버 마커 HTML 은 고정 문자열만 쓴다. 거점 이름·글 제목은 title 과 지도 아래 단추·정보 칸의 텍스트 노드로만 전달한다.
 const POPUP_MARKER_HTML={building:'<span class="route-marker popup-marker">팝업</span>',area:'<span class="route-marker popup-marker popup-marker-area">팝업 일대</span>'};
 function popupMarkerNode(group){const area=group.hub.level==='area_anchor';return node('span',area?'팝업 일대':'팝업','route-marker popup-marker'+(area?' popup-marker-area':''));}
 function popupMapTitle(group){return '팝업 글 장소 · '+PopupCourse.label(group.hub)+' · 검색된 글 '+group.posts.length+'건';}
@@ -110,15 +110,43 @@ function popupMapInfo(group){
   if(group.posts.length>shown.length)box.append(node('p',`외 ${group.posts.length-shown.length}건 · 아래 팝업 글 구역에서 모두 볼 수 있어요`,'hint'));
   return box;
 }
-/* 정보창이 지도 왼쪽 위 확대·축소 단추 밑에 깔리지 않게 한다(390px 에서 왼쪽 글자가 가렸음). 자동 이동(패닝) 여백을 단추 오른쪽 끝보다 넓게 두고,
-   정보창을 열 때마다 그 여백과 정보창 틀을 뺀 지도 너비 안으로 본문 너비를 줄인다(최대 260px 그대로).
-   max-width 는 본문 칸 너비라 본문 안쪽 여백(.popup-map-info 좌우 12px)도 뺀다.
-   Leaflet: 단추 10+34px → 왼쪽 여백 54, 틀(본문 여백 20+24·테두리)과 오른쪽 여백 5. 네이버: 큰 단추(기본, 왼쪽 위)라 양쪽 여백 56(좌우 같은 값만 받음), 테두리 1px×2. */
-const POPUP_INFO_ROOM={leaflet:{left:54,reserved:24+54+46+5},naver:{pad:56,reserved:24+56*2+2}};
-function fitPopupMapInfo(box,canvas,reserved){const width=Math.min(260,canvas.clientWidth-reserved);if(width>0)box.style.maxWidth=width+'px';}
+/* 지도 아래의 팝업 장소 단추 목록과 정보 칸. 지도 위 팝업 표시는 코스 표시 아래 층이라 출발지와 같은 자리면 대부분 가려지고(확대 단계마다 달라짐),
+   지도 폭(약 250~320px) 안의 정보창은 확대·축소 단추를 비키면 본문이 90~160px 로 좁아진다. 그래서 거점마다 44px 이상의 단추를 지도 아래에 두고,
+   단추나 지도 표시를 누르면 지도 아래 칸(지도 폭 그대로, 안쪽 스크롤 없음)에 같은 내용(popupMapInfo)을 연다. 한 번에 거점 하나만 연다.
+   단추는 aria-expanded·aria-controls 로 열림을 알린다. 지도 표시를 누르면 칸이 화면에 보이게만 스크롤하고 포커스는 옮기지 않는다.
+   장소 이름은 텍스트 노드로만 넣는다. */
+let popupPanelCount=0;
+function popupHubList(){
+  const list=node('div',undefined,'map-popup-hubs'),panel=node('div',undefined,'map-popup-panel');
+  list.setAttribute('role','group');list.setAttribute('aria-label','지도에 표시한 팝업 장소');list.hidden=true;
+  panel.id='map-popup-panel-'+(++popupPanelCount);panel.hidden=true;
+  let groups=[],open=-1;
+  const chips=()=>[...list.querySelectorAll('.map-popup-hub')];
+  const show=(index,reveal=false)=>{
+    open=groups[index]?index:-1;
+    chips().forEach((chip,i)=>chip.setAttribute('aria-expanded',String(i===open)));
+    panel.replaceChildren();panel.hidden=open<0;
+    if(open<0)return;
+    const at=open;
+    panel.append(popupMapInfo(groups[at]),button('정보 닫기',()=>{show(-1);chips()[at]?.focus();},'secondary map-popup-close'));
+    if(reveal)panel.scrollIntoView({block:'nearest'});
+  };
+  // 정보 칸 안(글 링크·닫기)에서 Esc 를 누르면 닫고 그 장소 단추로 돌아간다.
+  panel.addEventListener('keydown',event=>{if(event.key==='Escape'&&open>=0){const at=open;show(-1);chips()[at]?.focus();}});
+  const set=items=>{
+    groups=items;list.replaceChildren();list.hidden=!items.length;
+    items.forEach((group,index)=>{
+      const area=group.hub.level==='area_anchor',chip=button('',()=>show(open===index?-1:index),'secondary map-popup-hub');
+      chip.append(node('span',area?'팝업 일대':'팝업','map-popup-badge'+(area?' is-area':'')),node('span',`${PopupCourse.label(group.hub)} · 글 ${group.posts.length}건`,'map-popup-hub-name'));
+      chip.setAttribute('aria-expanded','false');chip.setAttribute('aria-controls',panel.id);list.append(chip);
+    });
+    show(-1);
+  };
+  return {list,panel,show,set};
+}
 function popupMapNote(note,items){
   note.hidden=!items.length;
-  note.textContent=items.length?`네모 ‘팝업’ 표시: 팝업 글에서 읽은 장소 ${items.length}곳 (코스에 포함되지 않은 주변 후보예요 · 위치를 확인하지 못한 글은 지도에 없어요)`:'';
+  note.textContent=items.length?`네모 ‘팝업’ 표시: 팝업 글에서 읽은 장소 ${items.length}곳 (코스에 포함되지 않은 주변 후보예요 · 위치를 확인하지 못한 글은 지도에 없어요). 아래 장소나 지도 표시를 누르면 글 목록이 열려요.`:'';
   const legend=note.closest('.plan-map-card')?.querySelector('.map-legend-popups');if(legend)legend.hidden=!items.length;
 }
 
@@ -129,8 +157,9 @@ function drawPlanMap(plan){
   // 정리 하나가 실패해도 나머지 정리, 대체 지도 그리기, 지도 정리(disposeMap)가 이어지게 정리 동작을 하나씩 감싼다.
   const quietly=clear=>{try{clear();}catch{}};
   const clearFestivals=()=>{festivalMarkers.forEach(marker=>quietly(()=>marker.setMap?marker.setMap(null):marker.remove?.()));festivalMarkers=[];};
-  // 팝업 표시는 표시마다 정리 함수(마커·이벤트·정보창)를 둔다. 코스·축제 표시는 건드리지 않는다.
-  const clearPopups=()=>{popupMarkers.forEach(clear=>quietly(clear));popupMarkers=[];};
+  // 팝업 표시는 표시마다 정리 함수(마커·이벤트)를 두고, 지도 아래 장소 단추·정보 칸도 함께 비운다. 코스·축제 표시는 건드리지 않는다.
+  const popupHubs=popupHubList();
+  const clearPopups=()=>{popupMarkers.forEach(clear=>quietly(clear));popupMarkers=[];popupHubs.set([]);};
   // 지도 자체(코스 표시·이동선·식당 표시는 지도와 함께 사라짐)를 지운다. 같은 이유로 remove·destroy 도 감싼다.
   const dropMap=()=>{resizeObserver?.disconnect();const map=activeMap;activeMap=null;quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
   wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
@@ -141,7 +170,7 @@ function drawPlanMap(plan){
   caption.setAttribute('role','status');
   const festivalNote=node('p','','hint map-festival-note');festivalNote.hidden=true;
   const popupNote=node('p','','hint map-popup-note');popupNote.hidden=true;
-  wrap.append(canvas,caption,festivalNote,popupNote);
+  wrap.append(canvas,caption,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
   wrap.showMapFallback=()=>fallback('네이버 지도 인증에 실패했습니다. Dynamic Map 권한과 등록 웹 주소를 확인해 주세요.');
   requestAnimationFrame(()=>render());
   async function render(force=false){
@@ -151,7 +180,7 @@ function drawPlanMap(plan){
     dropMap();
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
-    wrap.replaceChildren(canvas,caption,festivalNote,popupNote);
+    wrap.replaceChildren(canvas,caption,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
     try{
       await loadNaverMaps(statusData.map_js_key,force);
       if(window.naverMapAuthFailed)throw Error('지도 인증 실패');
@@ -197,15 +226,15 @@ function drawPlanMap(plan){
       wrap.updatePopups=()=>{
         if(disposed||!canvas.isConnected)return;
         clearPopups();const items=popupMapItems();
-        for(const group of items){
+        items.forEach((group,index)=>{
           const area=group.hub.level==='area_anchor',position=new naver.maps.LatLng(group.hub.lat,group.hub.lon);
           const marker=new naver.maps.Marker({map,position,title:popupMapTitle(group),zIndex:120,
             icon:{content:POPUP_MARKER_HTML[area?'area':'building'],anchor:new naver.maps.Point(area?36:22,14)}});
-          const content=popupMapInfo(group),info=new naver.maps.InfoWindow({content,autoPanPadding:new naver.maps.Point(POPUP_INFO_ROOM.naver.pad,20)});
-          const listener=naver.maps.Event.addListener(marker,'click',()=>{fitPopupMapInfo(content,canvas,POPUP_INFO_ROOM.naver.reserved);info.open(map,marker);});
-          popupMarkers.push(()=>{info.close?.();if(listener)naver.maps.Event.removeListener?.(listener);marker.setMap(null);});
-        }
-        popupMapNote(popupNote,items);
+          // 지도 안 정보창 대신 지도 아래 정보 칸을 연다(지도 폭이 좁아 정보창 본문이 160px 남짓이었음).
+          const listener=naver.maps.Event.addListener(marker,'click',()=>popupHubs.show(index,true));
+          popupMarkers.push(()=>{if(listener)naver.maps.Event.removeListener?.(listener);marker.setMap(null);});
+        });
+        popupHubs.set(items);popupMapNote(popupNote,items);
       };
       wrap.updatePopups();
       caption.textContent=actual===points.length-1
@@ -262,7 +291,7 @@ function drawPlanMap(plan){
     if(window.L){
       const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
-      wrap.prepend(mapCanvas,mapCaption,festivalNote,popupNote);
+      wrap.prepend(mapCanvas,mapCaption,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
       if(!points.length)return;
       try{
@@ -294,15 +323,15 @@ function drawPlanMap(plan){
         wrap.updatePopups=()=>{
           if(disposed||!mapCanvas.isConnected)return;
           clearPopups();const items=popupMapItems();
-          for(const group of items){
+          items.forEach((group,index)=>{
             const icon=L.divIcon({className:'popup-divicon',html:popupMarkerNode(group),iconSize:null});
             const marker=L.marker([group.hub.lat,group.hub.lon],{icon,title:popupMapTitle(group),keyboard:true,zIndexOffset:-100,pane:'popupHubs'}).addTo(map);
-            // 너비 맞춤은 Leaflet 의 클릭(정보창 열기)보다 먼저 등록해 열기 전에 끝낸다.
-            const content=popupMapInfo(group);marker.on('click',()=>fitPopupMapInfo(content,mapCanvas,POPUP_INFO_ROOM.leaflet.reserved));
-            marker.bindPopup(content,{autoPanPaddingTopLeft:L.point(POPUP_INFO_ROOM.leaflet.left,10)});
-            popupMarkers.push(()=>{marker.closePopup();marker.unbindPopup();marker.off();marker.remove();});
-          }
-          popupMapNote(popupNote,items);
+            // 클릭·키보드(Enter) 모두 지도 아래 정보 칸을 연다(지도 안 정보창을 쓰지 않음). Leaflet 은 Enter 를 bindPopup 에서만 처리하므로 직접 받는다.
+            marker.on('click',()=>popupHubs.show(index,true));
+            marker.on('keypress',event=>{if(event.originalEvent?.key==='Enter')popupHubs.show(index,true);});
+            popupMarkers.push(()=>{marker.off();marker.remove();});
+          });
+          popupHubs.set(items);popupMapNote(popupNote,items);
         };
         wrap.updatePopups();
         const fit=()=>{if(!disposed&&mapCanvas.isConnected){map.invalidateSize();map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35],maxZoom:16});}};

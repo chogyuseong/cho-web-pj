@@ -33,6 +33,9 @@ def test_fallback_and_dispose_survive_sdk_errors_after_auth_failure(audit_page):
     )
     page.wait_for_function("document.querySelectorAll('.plan-map .festival-circle').length===2")
     assert page.locator(".plan-map .popup-divicon").count() == 3
+    # 지도 아래 장소 단추는 대체 지도 기준 한 벌만 남는다.
+    assert page.locator(".map-popup-hubs").count() == 1
+    assert page.locator(".plan-map .map-popup-hub").count() == 3
     assert page.locator(".plan-map .map-reconnect").count() == 1
     assert page.locator(".plan-map .leaflet-overlay-pane path.route-leg").count() >= 1
 
@@ -57,4 +60,7 @@ def test_fallback_and_dispose_survive_sdk_errors_after_auth_failure(audit_page):
     page.wait_for_function("document.querySelectorAll('.plan-map').length===1")
     page.wait_for_function(f"n=>{made}>=n+2+3", arg=before)
     assert page.locator(".plan-map .fallback-plan-map").count() == 0
+    # 정리가 멈추지 않았으므로 장소 단추도 새 지도의 것 한 벌뿐이다.
+    assert page.locator(".map-popup-hubs").count() == 1
+    assert page.locator(".plan-map .map-popup-hub").count() == 3
     # 페이지 오류가 없어야 한다(audit_page 가 끝에서 확인).

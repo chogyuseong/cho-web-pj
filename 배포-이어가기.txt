@@ -77,7 +77,32 @@
   PostgreSQL 17 은 878개 통과·1개 실패·5개 건너뜀이었고, 실패 1개(테스트가 행을 순서로 읽던 것)를 고친 뒤 그 파일만 다시 돌려 통과.
   PostgreSQL 전체는 로컬에서 다시 돌리지 않았고, 푸시 뒤 GitHub Actions(ef29e15)에서 SQLite·PostgreSQL·컨테이너 점검이 모두 통과했습니다.
   Windows·Edge 로는 돌리지 않았습니다(이 컴퓨터는 가상환경 DLL 이 정책에 막힘).
-미배포 코드는 없습니다.
+미배포 코드 ① (2026-11-15, main 병합 e2fc633, 브랜치 feat/popup-evidence-score, 커밋 8ff8f5c): 팝업 글 판정 증거 점수제 (RULES_VERSION popups-rules-v2)
+  · 왜: 판정이 「"팝업" in 글」뿐이라 팝업스토어가 아닌 글이 나왔습니다. 사용자가 본 사례는 KFC 친구 초대·추천코드 글(본문에 "메인 팝업을 통해 즉시 지급" 한 번).
+  · 무엇(popups.popup_evidence, popup_api.judge): 제목의 행사 표현(팝업스토어·팝업 매장·팝업 행사·"팝업이 열린"·"N월 팝업" 등) 4점, 제목의 단독 '팝업' 2점,
+    요약의 행사 표현 2점, 요약의 단독 '팝업' 1점, 기간이 읽히면 +1, 같은 지역 거점이면 +1, 추천코드·친구초대·회원가입·앱 설치 낱말이 있으면 −2. 2점 이상만 보여 줍니다.
+    화면 요소를 뜻하는 표현(메인 팝업, 팝업 창, 팝업 광고, "팝업이 뜨", 팝업북·팝업 텐트 등)은 증거로 세지 않습니다. 쿠폰·할인·증정은 감점하지 않습니다.
+    빠진 글은 기존 not_popup 으로 세고 응답 필드는 그대로라 프런트는 바꾸지 않았습니다.
+  · 측정: 0·1단계에 받아 둔 실제 응답 500건(datemate/runtime, Git 에 없음)에서 보여 주는 글 376→356, not_popup 61→81. 새로 빠진 20건은 작업자가 제목·요약만 보고
+    맞게 뺀 글 약 10·애매 약 5·잘못 뺀 글 1(부산 민음사 팝업 방문기)로 봤습니다(원문은 열지 않음). 이 표본을 보며 규칙을 조정했으므로 새 표본에서의 수치는 아닙니다.
+    표본에는 KFC 유형이 없어 제외 표현·감점은 합성 사례 31건(진짜 17건 모두 통과, 오탐 14건 모두 제외)으로만 확인됐습니다.
+  · 알아둘 것: 요약에 '팝업' 한 마디만 있고 기간·거점이 안 읽히는 진짜 방문기는 빠집니다(거점 사전에 없는 강원·전북에서 더 생길 수 있음).
+    제목에 '팝업스토어'가 든 세일 공지·입점 문의 글은 계속 통과합니다. 규칙 버전이 캐시 키에 있어 배포 직후 검색 캐시(1시간)와 거점 좌표 캐시(7일)를 다시 채웁니다.
+  · 검사(Docker, SQLite): 전체 1062개 통과·1개 건너뜀. PostgreSQL 은 DB 변경이 없어 로컬에서 돌리지 않았습니다.
+미배포 코드 ② (2026-11-15, main 병합 4b4cc51, 브랜치 feat/plain-request-rules, 커밋 1a1611c·4d5b5cb·aed0dc5): 평소 말 조건 해석 1단계(LLM 없음)
+  · 해석기(app/request_intent.py interpret(text, ignore)): 기존 결과에 items(이해한 항목: id·field·value·label·evidence·source='rule'·estimated·note), ignored, unparsed
+    (reason: unknown/conflict/conditional/amount)를 더했습니다. 조용함·실내(비 와도)·걷기 적게·사진·가성비·기념일 등의 표현과 부정문 꼬리를 넓혔습니다.
+    POST /api/conditions/parse 는 입력 ignore, 응답 understood·ignored·not_understood 를 더했고, Conditions.request_ignore 로 뺀 항목을 추천 요청에 싣습니다. DB 스키마 변경 없음.
+  · 화면(static/request-understanding.js): 「이렇게 이해했어요」 칩(누르면 빼고 다시 누르면 넣음), 「‘○○’은 아직 반영하지 못했어요」, 자주 쓰는 조건 칩 6개
+    (조용한 곳·비 와도 OK·걷기 적게·사진 잘 나오는 곳·가성비·기념일), 숨겨져 있던 해석 버튼을 「이렇게 이해했는지 확인하기」로 꺼냈습니다.
+  · 한계: 장소 자료의 atmosphere 가 전부 비어 있어 "조용함"은 priority=talk(카페·휴식 유형 우선)로 근사한 추정이고 화면에 「추정」으로 밝힙니다.
+    "실내만"은 실내 여부가 비어 있는 실제 장소를 빼므로 후보가 크게 줄 수 있습니다. "분위기 좋은"·거리·시간대·주차 등은 반영하지 못함으로 알립니다.
+  · 평가(합성 175문장, 문장 전체 일치): 개발용 125문장 72%→100%, 새 문장 30개는 처음 볼 때 63%(보강 뒤 90%), 2차 새 문장 20개는 처음 볼 때 50%(보강 뒤 85%).
+    처음 보는 문장 기준 실력은 29/50(58%)입니다. 실제 사용자 문장으로는 재지 못했습니다. 테스트 하한: dev 0.95, fresh 0.80, fresh2 0.75.
+  · 남긴 것: planner 가 request 원문 단어를 장소 이름과 대조하는 부분과 condition_audit 의 "자유 요청" 항목은 request_ignore 와 연결하지 않았습니다.
+    "걷기 적게" 칩의 기준 id 가 transport:transit 이라 "지하철로"만 써도 켜져 보입니다. "술 빼기" 칩에 「추정」이 붙는 것이 맞는지 확인이 필요합니다(둘 다 다음 단계에서 점검).
+  · 검사(Docker, SQLite): 전체 1045개 통과·1개 건너뜀(①과 합친 상태로는 로컬에서 돌리지 않았고 CI 에 맡김). PostgreSQL 은 로컬에서 돌리지 않았습니다.
+  · 진행 중(브랜치 feat/request-ai-assist, 미병합): 규칙이 못 알아들은 표현만 Cloudflare Workers AI 로 해석하는 2단계와 과금 방지 장치.
 열여덟 번째 배포로 올라간 것 (main 병합 8578324, 브랜치 feat/robots-sitemap, 커밋 34b0708): robots.txt 와 sitemap.xml
   · 새 모듈 app/search_robots.py. /robots.txt 는 「User-agent: * / Disallow: /api/ / Sitemap: <공개 주소>/sitemap.xml」, /sitemap.xml 은 첫 화면(/) 한 줄(lastmod 없음).
     절대 주소는 DATEMATE_PUBLIC_ORIGIN 에서만 얻고 Host 머리글은 쓰지 않습니다. 이 값이 없으면(로컬) Sitemap 줄이 빠지고 /sitemap.xml 은 404. Cache-Control: public, max-age=3600.

@@ -277,12 +277,14 @@ const PopupView = {
       results.append(box);
       return;
     }
-    status.textContent = `${scope} 팝업 글 ${posts.length}건`;
-    if (data.status === 'partial') results.append(node('p', data.message || '일부 장소의 위치를 확인하지 못해 위치 미확인으로 표시했어요.', 'popup-state popup-state-partial'));
-    for (const line of this.notes(data)) results.append(node('p', line, 'hint popup-note'));
+    // 안내 줄과 목록 제목은 같은 기준(보여 주는 글 = posts)으로 센다. 모아 보기 글은 따로 모으므로, 있으면 안내 줄에 나눈 수를 함께 적어
+    // 안내 줄의 전체 수 = 일반 글 목록 수 + 모아 보기 목록 수가 화면에서 바로 맞게 한다.
     const general = posts.filter(post => !post.roundup),
       roundups = posts.filter(post => post.roundup);
-    if (general.length) results.append(this.list(`검색된 팝업 글 ${general.length}건`, general, data));
+    status.textContent = `${scope} 팝업 글 ${posts.length}건` + (roundups.length ? ` (일반 글 ${general.length}건 · 여러 팝업을 모아 소개한 글 ${roundups.length}건)` : '');
+    if (data.status === 'partial') results.append(node('p', data.message || '일부 장소의 위치를 확인하지 못해 위치 미확인으로 표시했어요.', 'popup-state popup-state-partial'));
+    for (const line of this.notes(data)) results.append(node('p', line, 'hint popup-note'));
+    if (general.length) results.append(this.list(`${roundups.length ? '일반 팝업 글' : '검색된 팝업 글'} ${general.length}건`, general, data));
     if (roundups.length) results.append(this.list(`여러 팝업을 모아 소개한 글 ${roundups.length}건`, roundups, data));
     results.append(node('p', `출처: ${data.attribution || '네이버 블로그 검색 결과'} · 순위나 인기순이 아니에요.`, 'hint popup-attribution'));
   }

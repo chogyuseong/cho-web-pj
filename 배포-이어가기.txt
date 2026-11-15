@@ -72,7 +72,14 @@
   PostgreSQL 17 은 878개 통과·1개 실패·5개 건너뜀이었고, 실패 1개(테스트가 행을 순서로 읽던 것)를 고친 뒤 그 파일만 다시 돌려 통과.
   PostgreSQL 전체는 로컬에서 다시 돌리지 않았고, 푸시 뒤 GitHub Actions(ef29e15)에서 SQLite·PostgreSQL·컨테이너 점검이 모두 통과했습니다.
   Windows·Edge 로는 돌리지 않았습니다(이 컴퓨터는 가상환경 DLL 이 정책에 막힘).
-미배포 코드는 없습니다.
+미배포 코드 (2026-11-15, 브랜치 feat/robots-sitemap, 커밋 34b0708): robots.txt 와 sitemap.xml
+  · 새 모듈 app/search_robots.py. /robots.txt 는 「User-agent: * / Disallow: /api/ / Sitemap: <공개 주소>/sitemap.xml」, /sitemap.xml 은 첫 화면(/) 한 줄(lastmod 없음).
+    절대 주소는 DATEMATE_PUBLIC_ORIGIN 에서만 얻고 Host 머리글은 쓰지 않습니다. 이 값이 없으면(로컬) Sitemap 줄이 빠지고 /sitemap.xml 은 404. Cache-Control: public, max-age=3600.
+  · /shared(공유 링크 화면)에 X-Robots-Tag: noindex, nofollow 머리글과 robots 메타를 붙였습니다. /shared 와 /feedback/admin 은 robots.txt 로 막지 않았습니다
+    (막으면 로봇이 noindex 를 읽지 못하고, 관리자 주소를 robots.txt 에 적으면 위치를 알려 주게 됨). 피드백 폼은 사이트맵에 넣지 않았습니다.
+  · 검사(Docker, chromium, SQLite): 전체 1017개 통과·1개 건너뜀, format_sources --check 통과, npm run test:security 11개 통과. PostgreSQL 은 DB 변경이 없어 로컬에서 돌리지 않았습니다.
+    Worker 가 두 경로를 컨테이너로 넘기는지는 코드로만 확인했습니다. HEAD 요청은 405(기존 페이지와 같음).
+  · 배포 뒤 서치 콘솔 Sitemaps 메뉴에 sitemap.xml 을 제출하는 것은 사용자 몫입니다.
 열일곱 번째 배포로 올라간 것 (main 병합 60df16d, 브랜치 fix/pinned-map-naver-inline-position): 데스크톱 지도 고정이 실제 네이버 지도에서 안 되던 것 수정
   · popups.css 의 .plan-map-rail .plan-map .naver-plan-map 을 position:sticky!important 로 바꿨습니다(네이버 SDK 의 인라인 position:relative 를 이기기 위해).
   · tests/test_popup_map_ui.py 의 데스크톱 고정 테스트가 지도 요소에 인라인 position:relative 를 넣고 검사합니다. 그 파일과 test_imported_design_ui.py 13개 통과(Docker, SQLite), 전체는 돌리지 않았습니다.

@@ -20,7 +20,7 @@ from . import store
 from .catalog import places, get_place
 from .config import ROOT, REGION, production, public_origin, validate_runtime
 from . import web_security
-from .models import Conditions, ReviewInput, ChatInput, THEMES, TransportMode
+from .models import Conditions, ReviewInput, ChatInput, THEMES, TransportMode, RequestItemId
 from .planner import replacements
 from .indexing import collections, embedding_mode, search_places
 from .rag import ask
@@ -478,6 +478,8 @@ class ParseInput(BaseModel):
     text: str = Field(max_length=4000)
     people: int = Field(default=2, ge=1, le=20)
     explicit_people: bool = False
+    # 화면에서 뺀 해석 항목 id(app/request_intent.py 의 items[].id).
+    ignore: list[RequestItemId] = Field(default_factory=list, max_length=40)
 
 
 def refresh_allowed(kind, owner, message):
@@ -535,7 +537,8 @@ def place_menu(
 def parse(data: ParseInput):
     from .request_intent import interpret, resolved_patch
 
-    parsed = interpret(data.text)
+    # 입력 글은 해석에만 쓰고 저장하거나 로그로 남기지 않는다.
+    parsed = interpret(data.text, tuple(sorted(set(data.ignore))))
     patch = dict(resolved_patch(parsed, data.people, data.explicit_people))
     warnings = [
         "입력 글에서 확인한 활동·인원·예산·이동수단을 적용했어요. 폼에서 확인하고 수정할 수 있어요.",
@@ -544,7 +547,15 @@ def parse(data: ParseInput):
     if parsed["excluded"]:
         warnings.append("제외 요청은 코스 추천 시 장소 유형과 대조해 적용해요.")
     warnings.extend(parsed["warnings"])
-    return dict(patch=patch, warnings=warnings, unparsed=data.text)
+    # unparsed 는 예전처럼 입력 글 그대로다(호환). 반영하지 못한 조각은 not_understood 에 나눠 담는다.
+    return dict(
+        patch=patch,
+        warnings=warnings,
+        unparsed=data.text,
+        understood=parsed["items"],
+        ignored=parsed["ignored"],
+        not_understood=parsed["unparsed"],
+    )
 
 
 @app.post("/api/plans")

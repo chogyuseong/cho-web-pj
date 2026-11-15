@@ -75,9 +75,9 @@ def enrich(plan):
     plan['decision_summary']['source_matched_places']=sum(f['blog_match'] for f in facts)
     plan['decision_summary']['unknown_prices']=sum(r.get('amount') is None for r in plan.get('costs',[]))
     plan['decision_summary']['assumed_prices']=sum(r.get('price_kind')=='planning_assumption' for r in plan.get('costs',[]))
-    from .request_intent import interpret,matches,INTENTS
+    from .request_intent import interpret,matches,INTENTS,ignored_ids
     c=plan.get('conditions') or {}
-    parsed=interpret((c.get('request') or '')+' '+(c.get('course_query') or ''))
+    parsed=interpret((c.get('request') or '')+' '+(c.get('course_query') or ''),ignored_ids(c))
     counts=[];reasons=[]
     for key in parsed['intents']:
         n=sum(matches(p,key) for p in plan['places'])

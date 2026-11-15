@@ -322,6 +322,9 @@ function values() {
     request: f.get('request'),
     locked: {}
   };
+  // ‘이렇게 이해했어요’에서 뺀 조건. 서버가 같은 글을 다시 해석할 때도 빼고 쓴다.
+  const ignored = typeof RequestUnderstanding === 'undefined' || !String(data.request || '').trim() ? [] : RequestUnderstanding.requestIgnore();
+  if (ignored.length) data.request_ignore = ignored;
   data.include_meal = f.has('include_meal');
   data.transition_buffer_minutes = Number(f.get('transition_buffer_minutes') || 0);
   data.neighborhood_radius_km = Number(f.get('neighborhood_radius_km') || 2.5);
@@ -380,41 +383,125 @@ async function init() {
   }
 }
 let parsedRequest = '';
+let pendingRequest = null;
+// 자유 입력 해석이 폼에 넣은 값: 이름 → {before, after}. 해석에서 그 조건이 빠지면(칩으로 빼거나 글을 고침)
+// 사용자가 그사이 직접 바꾸지 않았을 때만 넣기 전 값으로 되돌린다.
+const requestApplied = new Map();
+// 해석이 '피할 활동'에 더한 낱말. 직접 적은 낱말은 건드리지 않는다.
+const requestAvoid = new Set();
+const requestUnderstanding = () => typeof RequestUnderstanding === 'undefined' ? null : RequestUnderstanding;
+
+function requestFieldValue(key) {
+  if (key === 'themes') return [...document.querySelectorAll('[name=themes]:checked')].map(c => c.value).join('|');
+  if (key === 'date') return form.elements.date_category.value + '|' + (form.elements.date_subcategory?.value || '');
+  const input = form.elements[key];
+  if (!input) return null;
+  return input.type === 'checkbox' ? String(input.checked) : String(input.value);
+}
+
+function setRequestField(key, value) {
+  if (key === 'themes') {
+    const chosen = value ? value.split('|') : [];
+    document.querySelectorAll('[name=themes]').forEach(c => c.checked = chosen.includes(c.value));
+  } else if (key === 'date') {
+    const [category, subcategory] = value.split('|');
+    setDateClassification(category, subcategory);
+  } else if (form.elements[key].type === 'checkbox') form.elements[key].checked = value === 'true';
+  else form.elements[key].value = value;
+}
+
+function requestEdited(key) {
+  if (key === 'date') return ['date_category', 'date_subcategory', 'themes'].some(name => FormState.edited.has(name));
+  return FormState.edited.has(key);
+}
+
+function applyRequestPatch(patch) {
+  const wanted = new Map();
+  for (const [key, value] of Object.entries(patch)) {
+    if (key === 'avoid' || key === 'date_category') continue;
+    if (key === 'date_subcategory') {
+      if (!requestEdited('date')) wanted.set('date', patch.date_category + '|' + value);
+      continue;
+    }
+    if (FormState.edited.has(key) || requestFieldValue(key) === null) continue;
+    if (key === 'themes') {
+      if (!FormState.edited.has('date_subcategory') && !wanted.has('date')) wanted.set('date', '콘셉트별|');
+      wanted.set('themes', value.join('|'));
+    } else wanted.set(key, form.elements[key].type === 'checkbox' ? String(Boolean(value)) : String(value));
+  }
+  for (const [key, record] of [...requestApplied]) {
+    if (wanted.has(key)) continue;
+    if (!requestEdited(key) && requestFieldValue(key) === record.after) setRequestField(key, record.before);
+    requestApplied.delete(key);
+  }
+  for (const [key, value] of wanted) {
+    const before = requestApplied.get(key)?.before ?? requestFieldValue(key);
+    setRequestField(key, value);
+    requestApplied.set(key, {
+      before,
+      after: requestFieldValue(key)
+    });
+  }
+  // 글에서 찾은 제외 단어는 직접 적은 '피할 활동'에 더한다. 해석에서 빠진 낱말은 해석이 더한 것만 뺀다.
+  const words = patch.avoid || [];
+  const typed = form.elements.avoid.value.split(',').map(x => x.trim()).filter(Boolean);
+  const current = typed.filter(word => !requestAvoid.has(word) || words.includes(word));
+  for (const word of [...requestAvoid])
+    if (!words.includes(word)) requestAvoid.delete(word);
+  for (const word of words)
+    if (!current.includes(word)) {
+      current.push(word);
+      requestAvoid.add(word);
+    }
+  if (current.length !== typed.length || current.some((word, i) => word !== typed[i])) form.elements.avoid.value = current.slice(0, 30).join(', ');
+}
 async function applyRequest() {
   const text = form.elements.request.value.trim();
   const people = Number(form.elements.people.value);
-  const signature = JSON.stringify([text, people, FormState.edited.has('people')]);
-  if (!text || signature === parsedRequest) return;
-  const result = await api('/conditions/parse', {
-    text,
-    people,
-    explicit_people: FormState.edited.has('people')
-  });
-  for (const [key, value] of Object.entries(result.patch)) {
-    if (key === 'avoid') {
-      // 글에서 찾은 제외 단어는 직접 적은 '피할 활동'에 더한다.
-      const current = form.elements.avoid.value.split(',').map(x => x.trim()).filter(Boolean);
-      form.elements.avoid.value = [...new Set([...current, ...value])].slice(0, 30).join(', ');
-      continue;
-    }
-    if (key === 'date_category') continue;
-    if (key === 'date_subcategory') {
-      if (!FormState.edited.has('date_subcategory') && !FormState.edited.has('date_category') && !FormState.edited.has('themes')) setDateClassification(result.patch.date_category, value);
-      continue;
-    }
-    if (FormState.edited.has(key)) continue;
-    if (key === 'themes') {
-      if (!FormState.edited.has('date_subcategory')) setDateClassification('콘셉트별', '');
-      document.querySelectorAll('[name=themes]').forEach(c => c.checked = value.includes(c.value));
-    } else if (form.elements[key]) {
-      if (form.elements[key].type === 'checkbox') form.elements[key].checked = Boolean(value);
-      else form.elements[key].value = value;
-    }
+  const view = requestUnderstanding();
+  const ignore = view ? view.requestIgnore().sort() : [];
+  const signature = JSON.stringify([text, people, FormState.edited.has('people'), ignore]);
+  if (signature === parsedRequest) return;
+  if (pendingRequest?.signature === signature) return pendingRequest.promise;
+  if (!text) {
+    applyRequest.turn++;
+    applyRequestPatch({});
+    view?.clear();
+    parsedRequest = signature;
+    return;
   }
-  $('#parse-notice').textContent = result.warnings.join(' ') + ' 직접 수정한 조건은 유지해요.';
-  parsedRequest = JSON.stringify([text, Number(form.elements.people.value), FormState.edited.has('people')]);
+  const turn = ++applyRequest.turn;
+  const promise = (async () => {
+    const result = await api('/conditions/parse', {
+      text,
+      people,
+      explicit_people: FormState.edited.has('people'),
+      ignore
+    });
+    // 늦게 도착한 예전 글의 해석은 버린다(칸을 벗어날 때와 칩을 누를 때 두 번 부를 수 있다).
+    if (turn !== applyRequest.turn) return;
+    applyRequestPatch(result.patch);
+    if (view) {
+      view.prune(result);
+      view.render(result);
+    }
+    $('#parse-notice').textContent = result.warnings.join(' ') + ' 직접 수정한 조건은 유지해요.';
+    parsedRequest = JSON.stringify([text, Number(form.elements.people.value), FormState.edited.has('people'), view ? view.requestIgnore().sort() : []]);
+  })();
+  pendingRequest = {
+    signature,
+    promise
+  };
+  try {
+    await promise;
+  } finally {
+    if (pendingRequest?.promise === promise) pendingRequest = null;
+  }
 }
+applyRequest.turn = 0;
 $('#parse').onclick = () => applyRequest().then(() => toast('해석된 조건을 폼에서 확인하고 수정해 주세요.')).catch(e => toast(e.message));
+// 글을 다 쓰고 칸을 벗어나면 바로 해석해 ‘이렇게 이해했어요’를 보여 준다(입력 중에는 부르지 않는다).
+form.elements.request.addEventListener('change', () => applyRequest().catch(e => toast(e.message)));
 
 function beginPlanSearch() {
   plans = [];

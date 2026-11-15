@@ -302,7 +302,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   for(const [label,text] of [['카페','카페 투어'],['맛집','맛집 탐방'],['산책','산책'],['전시','전시 관람'],['체험','공방 체험']]){
     ideas.append(button(label,()=>{const input=form.elements.request;input.value=input.value.trim()?input.value.trim()+', '+text:text;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();},'secondary'));
   }
-  preference.append(ideas,request,document.getElementById('parse-notice'));
+  // 자주 쓰는 조건 칩은 입력칸 바로 위, ‘이렇게 이해했어요’는 해석 버튼 아래에 둔다(request-understanding.js).
+  preference.append(ideas,request);
+  const understanding=typeof RequestUnderstanding==='undefined'?[]:RequestUnderstanding.mount(preference,request);
+  const parse=document.getElementById('parse');parse.textContent='이렇게 이해했는지 확인하기';
+  preference.append(parse,...understanding,document.getElementById('parse-notice'));
   const optional=node('details',undefined,'simple-extra-options');optional.append(node('summary','식사·실내외·이동 세부 설정 (선택)'));
   const extras=node('div',undefined,'field-grid');
   extras.append(take('setting'));

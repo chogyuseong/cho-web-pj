@@ -152,7 +152,15 @@ function popupHubList(){
     if(open<0)return;
     const at=open;
     panel.append(popupMapInfo(groups[at]),button('정보 닫기',()=>{show(-1);chips()[at]?.focus();},'secondary map-popup-close'));
-    if(reveal)panel.scrollIntoView({block:'nearest'});
+    if(reveal)revealPanel();
+  };
+  // 데스크톱 오른쪽 패널(자체 스크롤, 지도가 위쪽에 붙음)에서는 패널만 움직여 칸 머리를 붙은 지도 바로 아래(scroll-padding-top)에 둔다.
+  // 칸이 보이는 자리보다 길면 'nearest' 가 칸 아래쪽을 맞춰 머리가 지도 밑에 숨고, 'start' 는 패널 밖 문서까지 움직이기 때문이다. 모바일은 그대로 'nearest'.
+  const revealPanel=()=>{
+    const card=panel.closest('.plan-map-rail .plan-map-card');
+    if(!card){panel.scrollIntoView({block:'nearest'});return;}
+    const pad=parseFloat(getComputedStyle(card).scrollPaddingTop)||0,top=panel.getBoundingClientRect().top-card.getBoundingClientRect().top;
+    if(top<pad||panel.getBoundingClientRect().bottom>card.getBoundingClientRect().bottom)card.scrollTop+=top-pad;
   };
   // 정보 칸 안(글 링크·닫기)에서 Esc 를 누르면 닫고 그 장소 단추로 돌아간다.
   panel.addEventListener('keydown',event=>{if(event.key==='Escape'&&open>=0){const at=open;show(-1);chips()[at]?.focus();}});

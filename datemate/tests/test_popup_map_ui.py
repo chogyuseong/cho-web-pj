@@ -754,6 +754,72 @@ def test_panel_rest_line_names_the_section_and_jumps_to_the_hub_group(audit_page
     assert "외 2건은 ‘팝업스토어 글’ 구역에서" in page.locator(".plan-map .map-popup-panel").inner_text()
 
 
+# 오른쪽 지도 패널(.plan-map-card, 자체 스크롤) 안에서 지도와 열린 정보 칸이 각각 몇 px 보이는지. 고정된 지도에 가려진 칸 부분은 보이지 않은 것으로 센다.
+RAIL_VIEW = """()=>{const card=document.querySelector('.plan-map-rail .plan-map-card'),map=card.querySelector('.naver-plan-map'),
+  panel=card.querySelector('.map-popup-panel'),c=card.getBoundingClientRect(),m=map.getBoundingClientRect(),p=panel.getBoundingClientRect();
+  const sticky=getComputedStyle(map).position==='sticky',top=Math.max(c.top,sticky?m.bottom:c.top);
+  return {sticky,card:Math.round(c.height),map:Math.round(m.height),scrollTop:Math.round(card.scrollTop),
+    mapVisible:Math.round(Math.max(0,Math.min(m.bottom,c.bottom)-Math.max(m.top,c.top))),
+    panelVisible:Math.round(Math.max(0,Math.min(p.bottom,c.bottom)-Math.max(p.top,top)))}}"""
+# 패널 안 요소가 고정 지도 밑에 숨지 않았는지(패널 안에서 보이는 자리, 지도 아래).
+UNDER_MAP = """sel=>{const card=document.querySelector('.plan-map-rail .plan-map-card'),m=card.querySelector('.naver-plan-map').getBoundingClientRect(),
+  c=card.getBoundingClientRect(),r=document.querySelector(sel).getBoundingClientRect();return r.top>=m.bottom-1&&r.bottom<=c.bottom+1}"""
+
+
+def test_desktop_rail_keeps_the_map_in_view_while_reading_the_panel(audit_page):
+    """데스크톱 2단(오른쪽 지도 패널)에서 장소 단추·정보 칸을 내려 봐도 지도가 패널 위쪽에 남는다(Leaflet). 1440×900·1280×720 에서 지도 전체와
+    칸 일부가 함께 보이고, 높이가 낮은 화면(1280×560)에서는 지도를 붙이지 않아 지도가 패널을 가리지 않는다. 키보드 포커스가 지도 밑에 숨지 않는다.
+    모바일 1단(390px)의 지도는 붙지 않고 카드도 따로 스크롤하지 않는다."""
+    page, base, errors = audit_page
+    route_festivals(page)
+    Api(page, default=MAP)
+    page.evaluate(LEAFLET_CAPTURE)
+    generate(page)
+    page.wait_for_function(
+        "document.querySelectorAll('.plan-map-rail .plan-map .popup-divicon').length===3", timeout=20000
+    )
+    chips = page.locator(".plan-map .map-popup-hub")
+    for width, height, least in ((1440, 900, 380), (1280, 720, 260)):
+        page.set_viewport_size({"width": width, "height": height})
+        page.wait_for_timeout(300)
+        page.evaluate("document.querySelector('#plan-map-rail').scrollIntoView({block:'start',behavior:'instant'})")
+        if chips.nth(0).get_attribute("aria-expanded") != "true":
+            chips.nth(0).click()
+        # 칸 머리가 지도 바로 아래에 오게 패널을 내린다(scrollIntoView 가 패널의 scroll-padding 을 따름).
+        page.evaluate("document.querySelector('.plan-map .map-popup-panel').scrollIntoView({block:'start',behavior:'instant'})")
+        view = page.evaluate(RAIL_VIEW)
+        assert view["sticky"] and view["scrollTop"] > 0, (width, view)
+        assert view["mapVisible"] == view["map"] and view["map"] >= 240, (width, view)
+        assert view["panelVisible"] >= least, (width, view)
+        # 지도가 패널의 절반 넘게 가리지 않는다.
+        assert view["map"] <= view["card"] / 2, (width, view)
+        # 패널을 끝까지 내린 뒤 Shift+Tab 으로 위쪽 단추에 가도 지도 밑에 숨지 않는다.
+        page.evaluate("()=>{const c=document.querySelector('.plan-map-rail .plan-map-card');c.scrollTop=c.scrollHeight;}")
+        page.locator(".plan-map .map-popup-panel a").first.focus()
+        page.keyboard.press("Shift+Tab")
+        assert page.evaluate("document.activeElement===document.querySelectorAll('.plan-map .map-popup-hub')[2]")
+        assert page.evaluate(UNDER_MAP, ".plan-map .map-popup-hub:nth-child(3)"), width
+        # 지도 표시를 눌러 연 칸도 지도 밑이 아닌 곳으로 들어온다.
+        page.evaluate("()=>{const c=document.querySelector('.plan-map-rail .plan-map-card');c.scrollTop=c.scrollHeight;}")
+        page.locator(".plan-map .popup-divicon").nth(1).dispatch_event("click")
+        page.wait_for_timeout(100)
+        assert page.evaluate(UNDER_MAP, ".plan-map .map-popup-panel strong"), width
+        assert page.evaluate("document.documentElement.scrollWidth<=innerWidth"), width
+        chips.nth(0).click()
+    # 낮은 화면: 붙이지 않는다(예전 동작).
+    page.set_viewport_size({"width": 1280, "height": 560})
+    page.wait_for_timeout(300)
+    page.evaluate("document.querySelector('.plan-map .map-popup-panel').scrollIntoView({block:'start',behavior:'instant'})")
+    view = page.evaluate(RAIL_VIEW)
+    assert not view["sticky"] and view["panelVisible"] > 0, view
+    # 모바일 1단: 지도는 붙지 않고 카드는 따로 스크롤하지 않는다.
+    narrow(page, 390)
+    assert page.evaluate(
+        """()=>{const card=document.querySelector('#plan-map-slot .plan-map-card'),map=card.querySelector('.naver-plan-map');
+          return getComputedStyle(map).position!=='sticky'&&getComputedStyle(card).overflowY==='visible'&&card.scrollHeight<=card.clientHeight+1}"""
+    )
+
+
 def test_hub_buttons_cause_no_csp_violation_or_console_error():
     """CSP 를 끄지 않은 브라우저(테스트 기본: 네이버 키 없음 → Leaflet)에서 장소 단추·지도 표시·정보 칸·닫기를 써도
     CSP 위반·콘솔 오류·페이지 오류가 없다(인라인 스크립트·인라인 이벤트 처리기를 쓰지 않음). 외부 요청은 막거나 가짜로 답한다."""

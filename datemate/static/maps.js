@@ -114,16 +114,34 @@ function popupMapInfo(group){
    지도 폭(약 250~320px) 안의 정보창은 확대·축소 단추를 비키면 본문이 90~160px 로 좁아진다. 그래서 거점마다 44px 이상의 단추를 지도 아래에 두고,
    단추나 지도 표시를 누르면 지도 아래 칸(지도 폭 그대로, 안쪽 스크롤 없음)에 같은 내용(popupMapInfo)을 연다. 한 번에 거점 하나만 연다.
    단추는 aria-expanded·aria-controls 로 열림을 알린다. 지도 표시를 누르면 칸이 화면에 보이게만 스크롤하고 포커스는 옮기지 않는다.
-   장소 이름은 텍스트 노드로만 넣는다. */
+   장소 이름은 텍스트 노드로만 넣는다.
+   거점이 많으면 처음에는 앞의 POPUP_HUBS_FIRST 곳만 보이고(순서는 그대로) 「장소 n곳 더 보기」(aria-expanded)로 펼치고 「장소 목록 접기」로 다시 접는다.
+   숨길 거점이 1곳뿐이면 단추 하나를 펼침 단추 하나로 바꾸는 셈이라 접지 않는다(POPUP_HUBS_FIRST+1 곳까지는 펼침 단추 없이 모두 보임).
+   그래서 접힌 목록은 거점 수와 관계없이 최대 4줄이다. 접힌 거점을 지도 표시로 열면 목록을 펼쳐 그 단추가 보이게 하고,
+   열린 거점이 숨는 쪽이면 접을 때 칸을 닫는다(열린 칸의 단추가 화면에 없는 상태를 만들지 않음). */
+const POPUP_HUBS_FIRST=3;
 let popupPanelCount=0;
 function popupHubList(){
   const list=node('div',undefined,'map-popup-hubs'),panel=node('div',undefined,'map-popup-panel');
   list.setAttribute('role','group');list.setAttribute('aria-label','지도에 표시한 팝업 장소');list.hidden=true;
-  panel.id='map-popup-panel-'+(++popupPanelCount);panel.hidden=true;
-  let groups=[],open=-1;
+  const id=++popupPanelCount;list.id='map-popup-hubs-'+id;panel.id='map-popup-panel-'+id;panel.hidden=true;
+  let groups=[],open=-1,folded=false;
   const chips=()=>[...list.querySelectorAll('.map-popup-hub')];
+  const more=button('',()=>fold(!folded,true),'secondary map-popup-more');
+  more.setAttribute('aria-controls',list.id);
+  const fold=(value,focus=false)=>{
+    const foldable=groups.length>POPUP_HUBS_FIRST+1;
+    folded=value&&foldable;
+    chips().forEach((chip,i)=>{chip.hidden=folded&&i>=POPUP_HUBS_FIRST;});
+    more.setAttribute('aria-expanded',String(!folded));
+    more.textContent=folded?`장소 ${groups.length-POPUP_HUBS_FIRST}곳 더 보기`:'장소 목록 접기';
+    if(folded&&open>=POPUP_HUBS_FIRST)show(-1);
+    // 펼치면 키보드 사용자가 새로 보인 첫 장소에서 이어 가게 한다(펼침 단추는 목록 끝이라 Tab 으로는 앞쪽에 못 감).
+    else if(!folded&&focus)chips()[POPUP_HUBS_FIRST]?.focus();
+  };
   const show=(index,reveal=false)=>{
     open=groups[index]?index:-1;
+    if(folded&&open>=POPUP_HUBS_FIRST)fold(false);
     chips().forEach((chip,i)=>chip.setAttribute('aria-expanded',String(i===open)));
     panel.replaceChildren();panel.hidden=open<0;
     if(open<0)return;
@@ -140,7 +158,8 @@ function popupHubList(){
       chip.append(node('span',area?'팝업 일대':'팝업','map-popup-badge'+(area?' is-area':'')),node('span',`${PopupCourse.label(group.hub)} · 글 ${group.posts.length}건`,'map-popup-hub-name'));
       chip.setAttribute('aria-expanded','false');chip.setAttribute('aria-controls',panel.id);list.append(chip);
     });
-    show(-1);
+    if(items.length>POPUP_HUBS_FIRST+1)list.append(more);
+    show(-1);fold(true);
   };
   return {list,panel,show,set};
 }

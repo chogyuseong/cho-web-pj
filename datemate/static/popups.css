@@ -215,9 +215,25 @@
   white-space:normal;
   cursor:pointer;
 }
-.plan-map .map-popup-hub:focus-visible { outline-offset:0; }
-.plan-map .map-popup-hub::after { content:'▾' / ''; flex:0 0 auto; color:var(--muted); }
-.plan-map .map-popup-hub[aria-expanded=true]::after { content:'▴' / ''; color:var(--ink); }
+.plan-map .map-popup-hub:focus-visible,.plan-map .map-popup-more:focus-visible { outline-offset:0; }
+.plan-map .map-popup-hub::after,.plan-map .map-popup-more::after { content:'▾' / ''; flex:0 0 auto; color:var(--muted); }
+.plan-map .map-popup-hub[aria-expanded=true]::after,.plan-map .map-popup-more[aria-expanded=true]::after { content:'▴' / ''; color:var(--ink); }
+/* 접힌 장소 단추와 펼침 단추(「장소 n곳 더 보기」·「장소 목록 접기」). 펼침 단추는 장소 단추와 같은 보조 버튼 크기에 네모 글자 없이 글자만. */
+.plan-map .map-popup-hub[hidden] { display:none; }
+.plan-map .map-popup-more {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  max-width:100%;
+  padding:6px 14px;
+  border-radius:999px;
+  font-size:15px;
+  line-height:1.45;
+  text-align:left;
+  white-space:normal;
+  cursor:pointer;
+}
 .map-popup-badge {
   flex:0 0 auto;
   padding:0 6px;

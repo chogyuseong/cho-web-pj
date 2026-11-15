@@ -175,16 +175,37 @@ def test_posts_are_source_items_with_reading_kept_apart(fake):
     assert not {"name", "event_name", "cards", "group"} & set(olgi)
     assert posts["https://blog.naver.com/a/5"]["roundup"] is True
     # 종료로 확정된 글은 숨기고, 다른 지역 거점 글은 빼고, 수를 남긴다. 위험한 URL·중복 URL·팝업 아닌 글은 없다.
+    # 규칙 v2: 요약에 '팝업' 한 마디만 있고 기간·거점이 없는 /a/6 도 팝업 아닌 글로 센다('팝업' 없는 /a/7 과 함께).
     counts = data["counts"]
     assert counts["hidden_ended"] == 1 and counts["excluded_other_region"] == 1
-    assert counts["not_popup"] == 1 and counts["shown"] == 5 and counts["roundup"] == 1
+    assert counts["not_popup"] == 2 and counts["shown"] == 4 and counts["roundup"] == 1
     assert all(p["url"].startswith("https://blog.naver.com/a/") for p in data["posts"])
     # 결정적 정렬: 일반 글 중 거점을 읽은 글(최근 글 먼저) → 위치 미확인 글 → 모아 보기 글.
-    assert [p["url"].rsplit("/", 1)[-1] for p in data["posts"]] == ["2", "1", "6", "8", "5"]
-    assert len({p["id"] for p in data["posts"]}) == 5
+    assert [p["url"].rsplit("/", 1)[-1] for p in data["posts"]] == ["2", "1", "8", "5"]
+    assert len({p["id"] for p in data["posts"]}) == 4
     assert all(p["id"].startswith("popup-post:") for p in data["posts"])
     # 블로그 1 + 좌표 2(더현대 서울, 성수 일대).
     assert fake.count("blog") == 1 and fake.count("local") == 2
+
+
+def test_referral_post_with_a_screen_popup_is_not_shown(fake):
+    """사용자가 본 사례: 앱 추천코드 글의 '메인 팝업'(앱 화면)만으로 팝업 글이 되지 않는다(규칙 v2)."""
+    fake.blog = [
+        item(
+            "KFC 둠스데이 친구 초대 이벤트 참여 방법 및 <b>추천코드</b> Qa1vX 혜택 총정리",
+            "초대 보상 쿠폰은 추천 코드를 통한 회원가입이 발생할 때 메인 <b>팝업</b>을 통해 즉시 지급되지만",
+            "https://blog.naver.com/a/kfc",
+        ),
+        item(
+            "르비크 팝업스토어 쿠폰 증정",
+            "팝업스토어에서 구매하면 할인 쿠폰 증정",
+            "https://blog.naver.com/a/coupon",
+        ),
+    ]
+    data = get(TestClient(app)).json()
+    assert [p["url"] for p in data["posts"]] == ["https://blog.naver.com/a/coupon"]
+    assert data["counts"]["not_popup"] == 1 and data["counts"]["shown"] == 1
+    assert data["rules_version"] == "popups-rules-v2"
 
 
 def test_cache_is_reused_and_status_is_recomputed_for_each_visit_date(fake):

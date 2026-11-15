@@ -14,6 +14,13 @@
   팝업 문맥이 없는 '오픈'·매장 개점일은 행사 기간으로 쓰지 않음.
 - 거점: 별칭 안 띄어쓰기 허용("롯데백화점 부산 본점"), "지난번 …에 이어"·"… 이랑은" 같은 지난·비교 문맥의 거점은 단일 매칭에서 뺌,
   지역 검색(좌표 확인)에서 건물 거점은 백화점·쇼핑시설 업종 항목을 먼저 봄.
+
+규칙 v2(2026-11-15, 팝업스토어가 아닌 글이 섞이던 문제: 앱 추천코드 글의 "메인 팝업" 한 마디로 통과한 KFC 사례):
+- 팝업 행사 증거(popup_evidence): '팝업' 글자만으로 보여 주지 않고 증거 점수로 정한다. 제목의 행사 표현(팝업스토어·팝업샵·
+  팝업존·pop-up store·"팝업 열렸다"·"11월 팝업" 등) 4, 제목의 '팝업' 2, 요약의 행사 표현 2, 요약의 '팝업' 1, 기간 1,
+  같은 지역 거점 1, 앱 가입·초대 홍보 낱말(추천코드·친구 초대·회원가입 등) −2.
+  2점 이상만 보여 준다. 화면 요소·다른 물건의 '팝업'(메인 팝업, 팝업창, 팝업 차단, 팝업북, 팝업 텐트 등)은 증거로 세지 않는다.
+- 뺀 글은 '팝업'이 없는 글과 같이 not_popup 으로 센다. 제목·요약에 '팝업'이 없는 글의 처리(has_popup)는 그대로.
 """
 
 import hashlib
@@ -26,7 +33,8 @@ from urllib.parse import urlsplit, urlunsplit
 from .regions import normalize_region
 
 # v1.1: 새 표본(2페이지)을 본 뒤 고친 사후 조정(거점: '지난 N월', 여러 시·도 거점이 함께 나온 글). 수치는 보고서에 따로 적는다.
-RULES_VERSION = "popups-rules-v1.1"
+# v2: 팝업 행사 증거 점수(popup_evidence). 원본 검색 캐시 키에 들어가므로 올리면 이전 캐시를 쓰지 않는다.
+RULES_VERSION = "popups-rules-v2"
 
 # ---------------------------------------------------------------- 텍스트
 
@@ -39,7 +47,118 @@ def normalize_text(value):
 
 
 def has_popup(text):
+    """글자 '팝업'이 있는지만 본다(검색 결과의 첫 거름, 캐시 수명). 팝업 행사 글인지는 popup_evidence 가 정한다."""
     return "팝업" in str(text or "")
+
+
+# ---------------------------------------------------------------- 팝업 행사 증거(v2)
+
+# 행사를 뜻하는 표현(강한 증거). 띄어쓰기·영문 표기를 함께 본다.
+_EVENT_SUFFIX = r"(?:스토어|샵|숍|매장|행사|존|오픈|부스|마켓|전시|카페|공간)"
+POPUP_EVENT_TERMS = (
+    r"팝업\s*" + _EVENT_SUFFIX,
+    r"pop[\s-]?up\s*(?:store|shop)",
+    # 행사가 열린다는 서술("지하 1층 팝업 열렸다", "팝업 으로 열린", "11일부터 팝업 을 하는"). 0·1단계 표본에서
+    # 요약에 '팝업' 한 마디만 있던 진짜 팝업 글이 이 꼴이었다. '열리면'은 화면 창일 수 있어 넣지 않는다.
+    r"팝업\s*(?:이|을|으로|도|까지)?\s*(?:열렸|열린|열려|열리고|열리는|진행|운영|개최|하는|하고\s*있)",
+    # "부산 롯데백화점 11월 팝업": 달과 함께 쓴 팝업은 행사.
+    r"\d{1,2}\s*월\s*팝업",
+)
+# 화면 요소나 다른 물건을 뜻하는 '팝업'. 이 자리의 '팝업'은 증거로 세지 않는다(가린 뒤 나머지에서 찾음).
+# 예: "추천 코드로 가입하면 메인 팝업을 통해 쿠폰 지급"(앱 화면), "팝업창 차단 해제", "아이 팝업북".
+# 앞말로 거르는 꼴은 뒤에 행사 표현이 오면 거르지 않는다("안내 팝업스토어"는 행사).
+# '팝업 메뉴'·'팝업 안내'는 팝업스토어의 메뉴·안내로 흔히 쓰여 넣지 않는다.
+_NOT_SUFFIX = r"팝업(?!\s*" + _EVENT_SUFFIX + ")"
+POPUP_NOT_EVENT = (
+    r"(?:메인|레이어|앱|어플|알림|공지|안내|광고)\s*" + _NOT_SUFFIX,
+    # '창'은 '창원'(도시)이 뒤따르는 경우를 뺀다.
+    r"팝업\s*(?:창(?!원)|광고|차단|알림창|메시지|메세지|화면|닫기|해제|북|카드|텐트|캠퍼)",
+    # "팝업이 뜨면", "팝업으로 떠요": 화면에 뜨는 창.
+    r"팝업\s*(?:이|으로|가)?\s*(?:뜨(?!거)|떠(?!오)|떴|뜸)",
+)
+# 영문 단독 표기(POPUP, POP-UP)는 한글 '팝업' 단독과 같은 약한 증거.
+_BARE_EVENT = re.compile(r"팝업|pop[\s-]?up", re.I)
+# 앱 가입·초대 홍보 글의 낱말. '쿠폰'·'할인'·'증정'은 팝업스토어 글에도 흔해 넣지 않는다.
+POPUP_PROMO_WORDS = (
+    r"추천\s*코드",
+    r"추천인",
+    r"초대\s*코드",
+    r"친구\s*초대",
+    r"초대\s*보상",
+    r"회원\s*가입",
+    r"앱\s*(?:설치|다운)",
+    r"(?:레|리)퍼럴",
+)
+# 점수: 제목의 행사 표현은 그것만으로 충분하고(감점이 있어도), 요약에만 있는 '팝업' 한 마디는 기간·거점이 받쳐 줘야 한다.
+EVIDENCE_POINTS = dict(
+    title_term=4,
+    title_bare=2,
+    description_term=2,
+    description_bare=1,
+    period=1,
+    hub=1,
+)
+PROMO_PENALTY = 2
+SHOW_THRESHOLD = 2
+
+_NOT_EVENT = re.compile("|".join(POPUP_NOT_EVENT), re.I)
+_EVENT_TERM = re.compile("|".join(POPUP_EVENT_TERMS), re.I)
+_PROMO = re.compile("|".join(POPUP_PROMO_WORDS), re.I)
+
+
+def popup_mentions(text):
+    """(행사 표현, 단독 '팝업', 뺀 표현) 목록. 뺀 표현 자리를 공백으로 가린 뒤 나머지에서 찾는다."""
+    text = normalize_text(text)
+    excluded = [m.group(0) for m in _NOT_EVENT.finditer(text)]
+    masked = _NOT_EVENT.sub(lambda m: " " * len(m.group(0)), text)
+    terms = [m.group(0) for m in _EVENT_TERM.finditer(masked)]
+    rest = _EVENT_TERM.sub(lambda m: " " * len(m.group(0)), masked)
+    bare = [m.group(0) for m in _BARE_EVENT.finditer(rest)]
+    return terms, bare, excluded
+
+
+def popup_evidence(title, description, has_period, has_hub):
+    """팝업 행사 글인지 증거 점수로 판정. has_period·has_hub 는 extract_period·hub_match 결과(부르는 쪽이 계산).
+
+    반환: dict(show, score, evidence, penalties, excluded). evidence·penalties 는 사람이 읽는 근거 문자열.
+    """
+    t_terms, t_bare, t_excluded = popup_mentions(title)
+    d_terms, d_bare, d_excluded = popup_mentions(description)
+    points = EVIDENCE_POINTS
+    evidence = []
+    if t_terms:
+        word = ("title_term", t_terms[0])
+    elif t_bare:
+        word = ("title_bare", t_bare[0])
+    elif d_terms:
+        word = ("description_term", d_terms[0])
+    elif d_bare:
+        word = ("description_bare", d_bare[0])
+    else:
+        word = None
+    score = 0
+    if word:
+        score += points[word[0]]
+        evidence.append(f"{word[0]}:{word[1]}")
+    if has_period:
+        score += points["period"]
+        evidence.append("period")
+    if has_hub:
+        score += points["hub"]
+        evidence.append("hub")
+    text = normalize_text(title) + " " + normalize_text(description)
+    promo = sorted({re.sub(r"\s+", "", m.group(0)) for m in _PROMO.finditer(text)})
+    penalties = []
+    if promo:
+        score -= PROMO_PENALTY
+        penalties.append("promo:" + ",".join(promo))
+    return dict(
+        show=score >= SHOW_THRESHOLD,
+        score=score,
+        evidence=evidence,
+        penalties=penalties,
+        excluded=t_excluded + d_excluded,
+    )
 
 
 # ---------------------------------------------------------------- 날짜

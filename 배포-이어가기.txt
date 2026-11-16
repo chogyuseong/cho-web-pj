@@ -8,9 +8,20 @@
 ★ 지금 상태 (2026-11-16 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 d8404e1, Worker 버전 327c2a2b-cf1d-48be-bb50-0ef70c015c94 (스물일곱 번째 배포, 2026-11-16 16:30)
-  배포 전 GitHub Actions 5개 작업(test sqlite·postgres, container, security, python-audit)이 d8404e1 에서 모두 통과했습니다.
-  (그 전: 커밋 29dc32d, Worker 1b009a7f, 스물여섯 번째 배포, 2026-11-16 15:24 / 커밋 887fa71, Worker 6d56f91a, 스물다섯 번째 배포, 2026-11-16 14:45 / 커밋 a436e08, Worker a912c465, 스물네 번째 배포, 2026-11-16 14:12 / 커밋 2a4a4c9, Worker 4d1c98f5, 스물세 번째 배포, 2026-11-16 13:29 / 커밋 f0c5d33, Worker 352e7cb8, 스물두 번째 배포, 2026-11-16 11:35 / 커밋 8d050ea, Worker 2782e19e, 스물한 번째 배포, 2026-11-16 10:57 / 커밋 0d5bb55, Worker 37a5abd9, 스무 번째 배포, 2026-11-16 10:00 / 커밋 ca7a395, Worker a63f5037, 열아홉 번째 배포, 2026-11-15 22:38 / 커밋 8b23e21, Worker f3415f60, 열여덟 번째 배포, 2026-11-15 19:46 / 커밋 142d07c, Worker 90e2f8cb, 열일곱 번째 배포, 2026-11-15 18:53 / 커밋 fbbf323, Worker f0033d30, 열여섯 번째 배포, 2026-11-15 18:15 무렵 / 커밋 872810d, Worker 5729c685, 열다섯 번째 배포, 2026-11-15 15:02 / 커밋 ce2e798, Worker ab6e066f, 열네 번째 배포, 2026-11-15 13:05 / 커밋 a7fcb56, Worker 4e68d3e2, 열세 번째 배포, 2026-11-15 02:24 무렵)
+운영에 올라간 것: 커밋 6f1d838, Worker 버전 f8997bae-6fdf-4b8f-a163-6cfab62b148b (스물여덟 번째 배포, 2026-11-16 17:38)
+  배포 전 GitHub Actions 5개 작업(test sqlite·postgres, container, security, python-audit)이 6f1d838 에서 모두 통과했습니다.
+  (그 전: 커밋 d8404e1, Worker 327c2a2b, 스물일곱 번째 배포, 2026-11-16 16:30 / 커밋 29dc32d, Worker 1b009a7f, 스물여섯 번째 배포, 2026-11-16 15:24 / 커밋 887fa71, Worker 6d56f91a, 스물다섯 번째 배포, 2026-11-16 14:45 / 커밋 a436e08, Worker a912c465, 스물네 번째 배포, 2026-11-16 14:12 / 커밋 2a4a4c9, Worker 4d1c98f5, 스물세 번째 배포, 2026-11-16 13:29 / 커밋 f0c5d33, Worker 352e7cb8, 스물두 번째 배포, 2026-11-16 11:35 / 커밋 8d050ea, Worker 2782e19e, 스물한 번째 배포, 2026-11-16 10:57 / 커밋 0d5bb55, Worker 37a5abd9, 스무 번째 배포, 2026-11-16 10:00 / 커밋 ca7a395, Worker a63f5037, 열아홉 번째 배포, 2026-11-15 22:38 / 커밋 8b23e21, Worker f3415f60, 열여덟 번째 배포, 2026-11-15 19:46 / 커밋 142d07c, Worker 90e2f8cb, 열일곱 번째 배포, 2026-11-15 18:53 / 커밋 fbbf323, Worker f0033d30, 열여섯 번째 배포, 2026-11-15 18:15 무렵 / 커밋 872810d, Worker 5729c685, 열다섯 번째 배포, 2026-11-15 15:02 / 커밋 ce2e798, Worker ab6e066f, 열네 번째 배포, 2026-11-15 13:05 / 커밋 a7fcb56, Worker 4e68d3e2, 열세 번째 배포, 2026-11-15 02:24 무렵)
+스물여덟 번째 배포로 올라간 것 (main 병합 6f1d838, 커밋 7674797·bfd6da9): 서울시 공영주차장 실시간 남은 자리
+  · 무엇(app/seoul_parking_live.py, parking.attach_live, static/parking.js): 서울시가 운영하는 '(시)' 공영주차장(자료 122곳)에 서울 열린데이터광장 GetParkingInfo 의
+    현재 주차 대수를 주차장 코드로 맞춰 「실시간 남은 자리 약 n면 (now/total대 주차 중 · HH:MM 기준)」으로 보여 줍니다. 한 번 호출로 전부 받아 3분 캐시(실패 1분),
+    키가 없거나 호출이 실패하면 아무것도 붙이지 않습니다. 구 운영 주차장은 실시간 자료가 없습니다. 진단 live_candidates·live_attached.
+  · 운영 설정: Worker Secret SEOUL_OPEN_API_KEY 를 2026-11-16 17:02 에 등록했고(Secret 10개), worker 가 컨테이너로 넘깁니다.
+  · 운영 확인(21:10~, 배포 3시간 반 뒤, HTTP 요청): static/parking.js·line.css 에 새 코드(parking-live)가 있음. /api/status 첫 응답 11초(컨테이너 시작).
+    동대문역사문화공원역 출발 자동차 추천(반경 1km) 3안 모두 /parking 에 실시간이 붙음(live_attached 2·2·1): 동대문 공영주차장(시) 976/1,090대(21:21:23 기준, 남은 자리 114면),
+    DDP동측(양쪽) 관광버스전용 주차장(시) 7/16대. 컨테이너에서 openapi.seoul.go.kr:8088 호출이 되는 것이 이것으로 확인됐습니다.
+    성수역 출발 추천은 근처가 모두 구 운영 주차장이라 live_candidates 3·live_attached 0, 요금 줄은 스물일곱 번째 배포 때와 같음. 추천 2회 모두 20~22초에 완료.
+  · 보인 것: 관광버스 전용 주차장이 승용차 주차장 후보로 나오고 운영시간이 '방문일(화) 00:00~00:00'으로 보입니다(고치지 않음).
+  · 보지 못한 것: 브라우저 화면의 실시간 줄, 휴대폰, 만차(남은 자리 0)일 때의 모습.
 스물일곱 번째 배포로 올라간 것 (main 병합 d8404e1, 브랜치 feat/seoul-parking, 커밋 76d0348): 서울 공영주차장 요금
   · 자료: 서울 열린데이터광장 '서울시 공영주차장 안내 정보' CSV(2026-11-16 내려받음, 2,255행, 동기화 2026-04~11). 서울 Open API(openapi.seoul.go.kr)는
     이 컴퓨터 네트워크에서 80·443·8088 모두 연결이 안 돼(data.seoul.go.kr 은 됨) 파일로 받았습니다. 인증키는 datemate/.env 의 SEOUL_OPEN_API_KEY(운영 미등록).
@@ -983,6 +994,7 @@ Copy-Item .env.example .env
 - Worker Secret 9개 등록: PUBLIC_ORIGIN, DATABASE_URL(풀링을 거치지 않는 직접 연결 주소),
   NAVER_SEARCH_CLIENT_ID, NAVER_SEARCH_CLIENT_SECRET, NAVER_MAPS_KEY_ID, NAVER_MAPS_KEY,
   NAVER_MAPS_JS_KEY_ID, TOUR_API_KEY, FEEDBACK_ADMIN_KEY(2026-11-13 등록)
+  그리고 SEOUL_OPEN_API_KEY(2026-11-16 등록, 서울 공영주차장 실시간 대수)까지 지금은 10개입니다.
 - Windows PowerShell 에서 "스크립트를 실행할 수 없으므로 npx.ps1 …" 오류가 나면 npx 대신 npx.cmd 를 씁니다.
   secret put 은 값을 입력받아야 하므로 저장소 최상위 폴더로 이동한 일반 PowerShell 창에서 실행합니다.
 - 네이버 클라우드 콘솔의 Dynamic Map Web 서비스 URL에 공개 주소 등록

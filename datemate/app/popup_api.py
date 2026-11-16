@@ -10,7 +10,7 @@
 - 원본 검색 결과: 성공 1시간, 팝업 글 0건 10분, 실패는 캐시하지 않음. 키에 지역·정규화 검색어·조회 조건·규칙/사전 버전·방문 연월.
   블로그 검색어는 '2026년 11월 서울 성수 팝업스토어'처럼 방문 연·월을 앞에 붙인다(그 달의 일정 정리 글이 더 잘 나옴).
 - 거점 좌표 판정: 7일(기존 서비스의 최장 지역 검색 보관 기간과 같게). 판정에 필요한 최소값(상태·등급·좌표)만 남긴다.
-- 요청당 외부 호출: 블로그 1 + 좌표가 캐시에 없는 거점 최대 3. 재시도 없음. 시간 제한 10초. 모두 observed_http 를 거친다.
+- 요청당 외부 호출: 블로그 2(연·월 검색어 + 예전 검색어, 합쳐서 같은 글은 한 번) + 좌표가 캐시에 없는 거점 최대 3. 재시도 없음. 시간 제한 10초. 모두 observed_http 를 거친다.
 - 같은 캐시 키의 동시 호출은 키별 잠금으로 한 번만 부르고, 잠금은 짧게만 기다린다(image_search 와 같은 2.5초).
 - 외부 호출이 필요한 요청만 IP 대역별 전용 한도(분당 3회·시간당 30회)를 쓴다. 캐시로 답하는 요청은 한도를 쓰지 않는다.
 
@@ -98,6 +98,24 @@ def search_query(region, q, visit):
     if not q:
         return f"{month_words(visit)} {region} 팝업스토어"
     return f"{month_words(visit)} {region} {q}" + ("" if "팝업" in q else " 팝업스토어")
+
+
+def plain_query(region, q):
+    """연·월 없는 예전 검색어('{지역} [검색어] 팝업스토어'). 개별 팝업 방문기가 더 잘 나온다."""
+    if not q:
+        return f"{region} 팝업스토어"
+    return f"{region} {q}" + ("" if "팝업" in q else " 팝업스토어")
+
+
+def merge_posts(*lists):
+    """여러 검색 결과를 순서대로 합치고 같은 글(URL)은 한 번만 남긴다."""
+    seen, merged = set(), []
+    for posts in lists:
+        for post in posts:
+            if post["url"] not in seen:
+                seen.add(post["url"])
+                merged.append(post)
+    return merged
 
 
 def _hash(parts):
@@ -455,7 +473,13 @@ def find_popups(region, q, visit, basis):
                     result = fetch_blog(client, query)
                     if result["status"] != "ok":
                         return unavailable(region, q, visit, basis, result["reason"])
-                    raw = dict(posts=result["posts"], fetched_at=result["fetched_at"])
+                    # 연·월 검색은 이달 팝업을 모아 정리한 글이 대부분이라, 예전 검색어의 개별 방문기를 뒤에 더한다.
+                    # 두 번째 검색이 실패하면 첫 결과만 쓴다.
+                    extra = fetch_blog(client, plain_query(region, q))
+                    posts = merge_posts(
+                        result["posts"], extra["posts"] if extra["status"] == "ok" else []
+                    )
+                    raw = dict(posts=posts, fetched_at=result["fetched_at"])
                     # 캐시 수명은 '팝업' 글자만 본다(증거 판정은 요청마다 judge 에서).
                     has_popup = any(
                         popups.has_popup(p["title"] + " " + p["description"]) for p in raw["posts"]
@@ -474,6 +498,7 @@ def find_popups(region, q, visit, basis):
         status="ok",
         reason=None,
         query=query,
+        queries=[query, plain_query(region, q)],
         sort=SORT,
         display=DISPLAY,
         returned=len(raw["posts"]),

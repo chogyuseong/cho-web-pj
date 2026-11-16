@@ -29,6 +29,9 @@
   두 낱말 중 하나(거점 별칭·시·도 이름·일반 낱말 제외)가 제목에도 있음("올기 찹쌀떡 …" 글의 "#올기 팝업").
 - 팝업스토어를 만들거나 나르는 업체 글("팝업스토어 화물 운송", "팝업 제작·시공·인테리어·대행·렌탈", 견적) −4.
 - 제목이 다른 시·도 이름에 바로 '팝업'을 붙여 쓰고("부산 팝업스토어 7곳") 검색 시·도 이름은 없으면 다른 지역 글(other_region).
+
+규칙 v4(2026-11-16, v3 배포 뒤 운영 서울 응답에 남은 업체 글: "서울 팝업스토어 장소 대관…", "팝업스토어 간판 시공 | … 원상복구"):
+- 제목에 '팝업'과 팝업스토어 상대 업무 낱말(대관·간판·시공·원상복구·철거·렌탈·견적·운송·부스 제작 등)이 함께 있으면 업체 글 −4.
 """
 
 import hashlib
@@ -44,7 +47,8 @@ from .regions import normalize_region
 # v1.1: 새 표본(2페이지)을 본 뒤 고친 사후 조정(거점: '지난 N월', 여러 시·도 거점이 함께 나온 글). 수치는 보고서에 따로 적는다.
 # v2: 팝업 행사 증거 점수(popup_evidence). 원본 검색 캐시 키에 들어가므로 올리면 이전 캐시를 쓰지 않는다.
 # v3: 제목에 팝업이 없는 글의 주제 근거, 업체 글 감점, 제목의 다른 시·도 팝업.
-RULES_VERSION = "popups-rules-v3"
+# v4: 제목이 팝업스토어 상대 업무(대관·간판·시공·원상복구 등)를 말하는 업체 글 감점.
+RULES_VERSION = "popups-rules-v4"
 
 # ---------------------------------------------------------------- 텍스트
 
@@ -125,6 +129,11 @@ POPUP_VENDOR_WORDS = (
     r"팝업\s*" + _EVENT_SUFFIX + r"?\s*(?:설치|운영)\s*(?:업체|전문|대행)",
 )
 VENDOR_PENALTY = 4
+# v4: 제목이 팝업스토어를 상대로 하는 업무를 말하는 글("서울 팝업스토어 장소 대관", "팝업스토어 간판 시공 | … 원상복구").
+# '팝업'과 업무 낱말 사이에 다른 말이 끼어도 제목에 함께 있으면 업체 글로 본다. '제작'만으로는 보지 않는다(굿즈 제작 체험).
+POPUP_VENDOR_TITLE = re.compile(
+    r"대관|간판|시공|원상\s*복구|철거|인테리어\s*(?:업체|공사)|렌탈|견적|운송|화물|(?:부스|집기|가구)\s*제작|제작\s*업체|설치\s*업체"
+)
 
 _NOT_EVENT = re.compile("|".join(POPUP_NOT_EVENT), re.I)
 _EVENT_TERM = re.compile("|".join(POPUP_EVENT_TERMS), re.I)
@@ -252,6 +261,11 @@ def popup_evidence(title, description, has_period, has_hub):
         score -= PROMO_PENALTY
         penalties.append("promo:" + ",".join(promo))
     vendor = sorted({re.sub(r"\s+", "", m.group(0)) for m in _VENDOR.finditer(text)})
+    clean_title = normalize_text(title)
+    if not vendor and has_popup(clean_title):
+        vendor = sorted(
+            {re.sub(r"\s+", "", m.group(0)) for m in POPUP_VENDOR_TITLE.finditer(clean_title)}
+        )
     if vendor:
         score -= VENDOR_PENALTY
         penalties.append("vendor:" + ",".join(vendor))

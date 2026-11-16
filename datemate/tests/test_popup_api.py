@@ -185,8 +185,13 @@ def test_posts_are_source_items_with_reading_kept_apart(fake):
     assert [p["url"].rsplit("/", 1)[-1] for p in data["posts"]] == ["2", "1", "8", "5"]
     assert len({p["id"] for p in data["posts"]}) == 4
     assert all(p["id"].startswith("popup-post:") for p in data["posts"])
-    # 블로그 1 + 좌표 2(더현대 서울, 성수 일대).
-    assert fake.count("blog") == 1 and fake.count("local") == 2
+    # 블로그 2(연·월 검색어 + 예전 검색어, 같은 글은 한 번) + 좌표 2(더현대 서울, 성수 일대).
+    assert fake.count("blog") == 2 and fake.count("local") == 2
+    assert [q for k, q in fake.calls if k == "blog"] == [
+        "2026년 11월 서울 팝업스토어",
+        "서울 팝업스토어",
+    ]
+    assert data["sources"][0]["queries"] == ["2026년 11월 서울 팝업스토어", "서울 팝업스토어"]
 
 
 def test_referral_post_with_a_screen_popup_is_not_shown(fake):
@@ -206,7 +211,7 @@ def test_referral_post_with_a_screen_popup_is_not_shown(fake):
     data = get(TestClient(app)).json()
     assert [p["url"] for p in data["posts"]] == ["https://blog.naver.com/a/coupon"]
     assert data["counts"]["not_popup"] == 1 and data["counts"]["shown"] == 1
-    assert data["rules_version"] == "popups-rules-v3"
+    assert data["rules_version"] == "popups-rules-v4"
 
 
 def test_off_topic_vendor_and_other_region_title_posts_are_counted_apart(fake):
@@ -243,7 +248,7 @@ def test_cache_is_reused_and_status_is_recomputed_for_each_visit_date(fake):
     client = TestClient(app)
     first = get(client).json()
     again = get(client, visit_date="2026-11-17").json()
-    assert fake.count("blog") == 1 and fake.count("local") == 2
+    assert fake.count("blog") == 2 and fake.count("local") == 2
     assert again["sources"][0]["cached"] is True and again["basis"] == "visit_date"
     ids = lambda d: [p["id"] for p in d["posts"]]  # noqa: E731
     # 11-17 에는 올기(~11-16)가 종료라 숨는다. 같은 캐시라도 날짜마다 다시 판정한다.
@@ -252,14 +257,14 @@ def test_cache_is_reused_and_status_is_recomputed_for_each_visit_date(fake):
     # 다른 달의 방문일은 검색어의 연·월이 달라 새로 검색한다.
     earlier = get(client, visit_date="2026-10-19").json()
     assert earlier["sources"][0]["cached"] is False
-    assert ("blog", "2026년 10월 서울 팝업스토어") in fake.calls and fake.count("blog") == 2
+    assert ("blog", "2026년 10월 서울 팝업스토어") in fake.calls and fake.count("blog") == 4
     olgi = next(p for p in earlier["posts"] if p["url"].endswith("/a/1"))
     assert olgi["period"]["status"] == "upcoming"
     assert ids(get(client).json()) == ids(first)  # 같은 입력, 같은 순서
     # 검색어가 바뀌면 다른 캐시 키. 지역명이 앞에 붙어 있어도 같은 검색으로 본다.
     assert get(client, q="  성수​ ").json()["q"] == "성수"
     assert get(client, q="서울 성수").json()["sources"][0]["cached"] is True
-    assert fake.count("blog") == 3 and ("blog", "2026년 11월 서울 성수 팝업스토어") in fake.calls
+    assert fake.count("blog") == 6 and ("blog", "2026년 11월 서울 성수 팝업스토어") in fake.calls
 
 
 def test_invalid_inputs(fake):
@@ -297,7 +302,7 @@ def test_provider_failures_are_unavailable_and_not_cached(fake, error, reason):
     assert data["sources"][0]["reason"] == reason and data["sources"][0]["status"] == "failed"
     fake.blog_error = None
     assert get(client).json()["status"] == "ready"
-    assert fake.count("blog") == 2  # 실패는 캐시하지 않아 다음 요청이 다시 부른다
+    assert fake.count("blog") == 3  # 실패(1회)는 캐시하지 않아 다음 요청이 다시 부른다
 
 
 def test_empty_result_differs_from_failure_and_is_kept_briefly(fake, monkeypatch):
@@ -326,14 +331,14 @@ def test_external_calls_per_request_are_capped_and_point_failures_are_partial(fa
     ]
     client = TestClient(app)
     data = get(client).json()
-    assert fake.count("blog") == 1 and fake.count("local") == popup_api.MAX_POINT_LOOKUPS == 3
+    assert fake.count("blog") == 2 and fake.count("local") == popup_api.MAX_POINT_LOOKUPS == 3
     assert data["hub_checks"] == dict(requested=3, failed=0, skipped=2)
     reasons = sorted(p["place"]["reason"] for p in data["posts"])
     assert reasons.count("not_checked") == 2 and data["status"] == "ready"
     # 다음 요청은 캐시된 3곳은 다시 부르지 않고 남은 2곳만 확인한다. 실패는 partial 이고 캐시하지 않는다.
     fake.local_error = httpx.ConnectError("down")
     second = get(client).json()
-    assert fake.count("blog") == 1 and fake.count("local") == 5
+    assert fake.count("blog") == 2 and fake.count("local") == 5
     assert second["status"] == "partial" and second["hub_checks"]["failed"] == 2
     assert {p["place"]["reason"] for p in second["posts"]} >= {"lookup_failed", "verified"}
     fake.local_error = None
@@ -352,7 +357,7 @@ def test_same_search_at_once_calls_the_provider_once(fake):
         t.start()
     for t in threads:
         t.join()
-    assert fake.count("blog") == 1 and results == ["ready"] * 3
+    assert fake.count("blog") == 2 and results == ["ready"] * 3
 
 
 def test_new_searches_have_their_own_ip_limits(fake, monkeypatch):
@@ -372,7 +377,7 @@ def test_new_searches_have_their_own_ip_limits(fake, monkeypatch):
     with store.connect() as db:
         scopes = [r[0] for r in db.execute("SELECT scope FROM request_budgets").fetchall()]
     assert any(s.startswith("popups:hour:") for s in scopes)
-    assert fake.count("blog") == 2
+    assert fake.count("blog") == 4
 
 
 def test_route_is_registered_as_expensive():
@@ -388,3 +393,11 @@ def test_switch_off_hides_the_api_and_tells_the_page(fake, monkeypatch):
     monkeypatch.delenv("DATEMATE_POPUPS_ENABLED")
     main._status_cache.update(value=None, expires=0)
     assert client.get("/api/status").json()["popups_enabled"] is True
+
+
+def test_merge_posts_keeps_order_and_drops_repeats():
+    a = [dict(url="u1"), dict(url="u2")]
+    b = [dict(url="u2"), dict(url="u3")]
+    assert [p["url"] for p in popup_api.merge_posts(a, b)] == ["u1", "u2", "u3"]
+    assert popup_api.plain_query("서울", "") == "서울 팝업스토어"
+    assert popup_api.plain_query("서울", "성수") == "서울 성수 팝업스토어"

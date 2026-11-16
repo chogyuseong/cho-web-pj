@@ -1,7 +1,7 @@
-// 자동차로 도착하는 장소 근처 주차장(네이버 지역 검색). 일정·비용에는 넣지 않는다.
+// 자동차로 도착하는 장소 근처 주차장(네이버 지역 검색 + 공공데이터 요금·운영시간). 일정·비용에는 넣지 않는다.
 // 첫 주차장 패널이 화면에 보일 때 코스(plan id)마다 한 번만 요청하고, 일정 패널과 지도가 같은 응답을 쓴다.
 const parkingState = new Map();
-const PARKING_SOURCE_NOTE = '주차 시간·요금은 일정과 비용에 포함하지 않았어요. 출처: 네이버 지역 검색';
+const PARKING_SOURCE_NOTE = '주차 시간·요금은 일정과 비용에 포함하지 않았어요. 출처: 네이버 지역 검색 · 공공데이터포털 전국주차장정보표준데이터';
 
 function parkingEntry(planId) {
   if (!parkingState.has(planId)) parkingState.set(planId, {
@@ -48,14 +48,24 @@ function parkingSearchLink(place) {
 
 function parkingLotItem(lot) {
   const item = node('li', undefined, 'parking-lot'),
-    title = node('div', undefined, 'parking-lot-title');
+    title = node('div', undefined, 'parking-lot-title'),
+    info = lot.public;
   title.append(node('strong', lot.name));
-  if (lot.public_by_name) title.append(node('span', '공영(이름 기준)', 'tag parking-public'));
+  if (info?.kind) title.append(node('span', info.kind, 'tag parking-public'));
+  else if (lot.public_by_name) title.append(node('span', '공영(이름 기준)', 'tag parking-public'));
   item.append(title,
     node('p', `직선 ${Number(lot.distance_m).toLocaleString()}m · 걸어서 약 ${lot.walk_minutes}분(추정)`, 'parking-distance'),
-    node('p', lot.address || '주소는 지도에서 확인해 주세요.', 'parking-address'),
-    node('p', '요금·운영시간은 네이버 지도에서 바로 볼 수 있어요. 만차 여부는 알 수 없어요.', 'hint parking-unverified'),
-    placeMapLink('네이버 지도에서 요금·운영시간 보기 ↗', lot));
+    node('p', lot.address || '주소는 지도에서 확인해 주세요.', 'parking-address'));
+  // 공공데이터(전국주차장정보표준데이터)에서 찾은 요금·운영시간. 기준일 뒤로 바뀌었을 수 있다고 밝힌다.
+  if (info?.fee) item.append(node('p', '요금 ' + info.fee, 'parking-fee'));
+  if (info?.hours) item.append(node('p', info.hours, 'parking-hours'));
+  if (info) {
+    item.append(node('p', `공공데이터 기준일 ${info.as_of || '미상'} · 지금은 바뀌었을 수 있어요. 만차 여부는 알 수 없어요.`, 'hint parking-as-of'));
+    if (!info.fee || !info.hours) item.append(node('p', '빠진 정보는 네이버 지도에서 볼 수 있어요.', 'hint parking-unverified'));
+  } else {
+    item.append(node('p', '요금·운영시간은 네이버 지도에서 바로 볼 수 있어요. 만차 여부는 알 수 없어요.', 'hint parking-unverified'));
+  }
+  item.append(placeMapLink(info?.fee && info?.hours ? '네이버 지도에서 보기 ↗' : '네이버 지도에서 요금·운영시간 보기 ↗', lot));
   return item;
 }
 
@@ -121,7 +131,9 @@ function parkingPanel(plan, index) {
 // 지도 정보창: 이름·주소·지도 링크만, 모두 텍스트 노드로.
 function parkingMapInfo(lot) {
   const content = node('div', undefined, 'restaurant-map-info parking-map-info');
-  content.append(node('strong', 'P · ' + lot.name), node('p', lot.address || ''), placeMapLink('네이버 지도에서 보기 ↗', lot));
+  content.append(node('strong', 'P · ' + lot.name), node('p', lot.address || ''));
+  if (lot.public?.fee) content.append(node('p', '요금 ' + lot.public.fee));
+  content.append(placeMapLink('네이버 지도에서 보기 ↗', lot));
   return content;
 }
 

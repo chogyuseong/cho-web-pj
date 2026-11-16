@@ -19,7 +19,7 @@ from app.planner import evaluate
 ORIGIN = dict(name='서울 종로구 출발', lat=37.575, lon=126.985)
 LOT_FIELDS = {'id', 'name', 'category', 'address', 'lat', 'lon', 'distance_m', 'walk_minutes', 'public_by_name', 'public'}
 COLUMNS = ['id', 'name', 'kind', 'address', 'lat', 'lon', 'fee_kind', 'base_minutes', 'base_fee', 'extra_minutes', 'extra_fee',
-           'day_fee', 'days', 'weekday', 'saturday', 'holiday', 'as_of', 'provider']
+           'day_fee', 'days', 'weekday', 'saturday', 'holiday', 'as_of', 'provider', 'free_days', 'district']
 
 
 def unique_ip():
@@ -69,7 +69,8 @@ def public_rows(tmp_path, rows_):
 def public_row(name, lat, lon, **fields):
     row = dict(id='P-' + name, name=name, kind='공영', address='서울특별시 종로구 삼청동 1', lat=lat, lon=lon, fee_kind='유료',
                base_minutes=30, base_fee=500, extra_minutes=10, extra_fee=200, day_fee=None, days='평일+토요일+공휴일',
-               weekday=['09:00', '21:00'], saturday=['10:00', '18:00'], holiday=None, as_of='2026-04-16', provider='종로구')
+               weekday=['09:00', '21:00'], saturday=['10:00', '18:00'], holiday=None, as_of='2026-04-16', provider='종로구',
+               free_days=None, district='종로구')
     row.update(fields)
     return [row[c] for c in COLUMNS]
 
@@ -324,3 +325,63 @@ def test_build_script_reads_the_cp949_csv(tmp_path, monkeypatch):
     row = dict(zip(COLUMNS, payload['rows'][0]))
     assert row['name'] == '포석로공영주차장' and row['address'] == '경상북도 경주시 황남동 1' and row['day_fee'] == 10000
     assert row['weekday'] == ['10:00', '18:00'] and row['holiday'] is None and row['as_of'] == '2026-04-16'
+
+
+def test_seoul_lots_without_coordinates_match_naver_results_by_district_and_name(search, tmp_path):
+    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)
+    place = plan['places'][0]
+    public_rows(tmp_path, [
+        # 서울 파일의 노외 주차장: 좌표 없이 주소·이름만. 같은 이름의 부산 중구 주차장은 맞추지 않는다.
+        public_row('삼청동(건물) 공영주차장(구)', None, None, base_minutes=5, base_fee=250, extra_minutes=0, extra_fee=0,
+                   free_days='토요일·공휴일 무료', saturday=['00:00', '24:00'], address='서울특별시 종로구 삼청동 35', district='종로구'),
+        public_row('삼청동 공영주차장', None, None, address='부산광역시 중구 중앙동 1', district='중구'),
+    ])
+    search['answer'] = lambda term, area: ([item('삼청동 공영주차장', place['lat'] + 0.001, place['lon'],
+                                                  address='서울특별시 종로구 삼청로 1')], 'available')
+    result = parking.parking_near(plan)
+    lot = result['stops'][0]['lots'][0]
+    assert lot['name'] == '삼청동 공영주차장'
+    assert lot['public']['fee'] == '5분당 250원 · 토요일·공휴일 무료' and lot['public']['hours'] == '방문일(토) 24시간'
+    assert result['diagnostics']['public_matched_by_name'] == 1
+    # 좌표 없는 자료는 따로 지도·목록에 넣지 않는다.
+    assert len(result['stops'][0]['lots']) == 1
+
+
+def test_name_core_and_district():
+    assert public_parking.name_core('성수2가3동(건물) 공영주차장(구)') == public_parking.name_core('성수2가3동 공영주차장') == '성수2가3동'
+    assert public_parking.district('서울특별시 성동구 성수동2가 299-19') == '성동구'
+    assert public_parking.district('경상북도 경주시 황남동 1') == '경주시'
+
+
+def test_build_script_merges_the_seoul_file(tmp_path, monkeypatch):
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location('build_public_parking', Path(__file__).parents[1] / 'scripts' / 'build_public_parking.py')
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    national = ('주차장관리번호,주차장명,주차장구분,소재지도로명주소,소재지지번주소,운영요일,평일운영시작시각,평일운영종료시각,'
+                '토요일운영시작시각,토요일운영종료시각,공휴일운영시작시각,공휴일운영종료시각,요금정보,주차기본시간,주차기본요금,'
+                '추가단위시간,추가단위요금,1일주차권요금,위도,경도,데이터기준일자,제공기관명\n'
+                '1-1,종로 공영주차장,공영,서울특별시 종로구 종로 1,,평일,09:00,18:00,,,,,유료,30,1000,,,,37.57,126.98,2026-04-16,서울특별시 종로구\n')
+    seoul = ('주차장코드,주차장명,주소,주차장 종류명,유무료구분명,평일 운영 시작시각(HHMM),평일 운영 종료시각(HHMM),'
+             '주말 운영 시작시각(HHMM),주말 운영 종료시각(HHMM),공휴일 운영 시작시각(HHMM),공휴일 운영 종료시각(HHMM),'
+             '최종데이터 동기화 시간,토요일 유,무료 구분명,공휴일 유,무료 구분명,기본 주차 요금,기본 주차 시간(분 단위),'
+             '추가 단위 요금,추가 단위 시간(분 단위),일 최대 요금,위도,경도\n')
+    # '토요일 유,무료 구분명'처럼 쉼표가 든 열 이름은 따옴표로 감싼다.
+    seoul = seoul.replace('토요일 유,무료 구분명', '"토요일 유,무료 구분명"').replace('공휴일 유,무료 구분명', '"공휴일 유,무료 구분명"')
+    seoul += ('1,종로(건물) 공영주차장(구),종로구 종로 1,노외 주차장,유료,0000,2400,0000,2400,0000,2400,2026-11-02 17:11:12,무료,무료,250,5,0,0,,37.57,126.98\n'
+              '2,삼청동(건물) 공영주차장(구),종로구 삼청동 35,노외 주차장,유료,0900,1900,0900,1900,,,2026-11-02 17:11:12,무료,유료,250,5,0,0,,,\n')
+    a, b = tmp_path / 'n.csv', tmp_path / 's.csv'
+    a.write_bytes(national.encode('cp949'))
+    b.write_bytes(seoul.encode('cp949'))
+    out = tmp_path / 'out.json'
+    monkeypatch.setattr(build, 'OUT', out)
+    build.main(str(a), str(b))
+    payload = json.loads(out.read_text(encoding='utf-8'))
+    got = [dict(zip(payload['columns'], r)) for r in payload['rows']]
+    # 전국 자료의 같은 주차장(같은 이름 핵심, 50m 안)은 빠지고 서울 파일 두 곳만 남는다.
+    assert [r['name'] for r in got] == ['종로(건물) 공영주차장(구)', '삼청동(건물) 공영주차장(구)']
+    first, second = got
+    assert first['weekday'] == ['00:00', '24:00'] and first['free_days'] == '토요일·공휴일 무료' and first['as_of'] == '2026-11-02'
+    assert second['lat'] is None and second['district'] == '종로구' and second['free_days'] == '토요일 무료'
+    assert second['address'] == '서울특별시 종로구 삼청동 35' and second['days'] == '평일+토요일'

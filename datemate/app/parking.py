@@ -279,6 +279,7 @@ def parking_near(plan):
         public_near[target["index"]] = rows
     diagnostics["public_candidates"] = len(public_owner)
     diagnostics["public_matched"] = 0
+    diagnostics["public_matched_by_name"] = 0
     # 1) 네이버 결과마다 같은 공공데이터 주차장을 찾아 붙인다(쓴 행은 모든 장소에서 다시 쓰지 않음).
     owned, used = {}, set()
     for target in targets:
@@ -298,6 +299,14 @@ def parking_near(plan):
                     used.add(pub["id"])
                     diagnostics["public_matched"] += 1
                     break
+            if lot["public"] is None:
+                # 좌표가 없는 자료(서울 노외 주차장 등)는 같은 시·도·구 + 이름 핵심으로 맞춘다.
+                pub = public_parking.by_name(lot["name"], lot["address"])
+                if pub and pub["id"] not in used:
+                    lot["public"] = public_parking.details(pub, visit)
+                    used.add(pub["id"])
+                    diagnostics["public_matched"] += 1
+                    diagnostics["public_matched_by_name"] += 1
         owned[target["index"]] = own
     stops, statuses = [], []
     for target in targets:

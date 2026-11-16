@@ -519,6 +519,17 @@ def place_blog_results(id: str, mode: Literal["demo", "real"] = "real"):
     return place_blogs(p)
 
 
+@app.get("/api/places/{id}/review-facts")
+def place_review_facts(id: str, mode: Literal["demo", "real"] = "real"):
+    """블로그 후기 본문에서 읽은 영업시간·휴무(참고용, 추천 계산에는 쓰지 않음)."""
+    p = get_place(id, mode)
+    if p is None:
+        raise HTTPException(404, "장소를 찾을 수 없습니다.")
+    from .review_facts import review_facts
+
+    return review_facts(p)
+
+
 @app.get("/api/places/{id}/menu")
 def place_menu(
     id: str, request: Request, mode: Literal["demo", "real"] = "real", refresh: bool = False

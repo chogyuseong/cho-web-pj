@@ -171,7 +171,7 @@ def test_filters_dedupe_and_diagnostics(search):
     diagnostics = result['diagnostics']
     assert diagnostics['received'] == 8 * 2 + 2
     # 장소마다: 업종 아님 2(음식점·발렛), 다른 지역 1, 좌표 1, 800m 초과 1, 같은 이름·주소 1. 장소를 넘는 중복 1.
-    assert diagnostics['rejected'] == dict(not_parking=4, other_region=2, bad_coordinates=2, out_of_radius=2, duplicate=3)
+    assert diagnostics['rejected'] == dict(not_parking=4, bus_only=0, other_region=2, bad_coordinates=2, out_of_radius=2, duplicate=3)
     assert result['source_type'] == '네이버 지역 검색 · 공공데이터포털 전국주차장정보표준데이터' and '포함하지 않았어요' in result['note']
 
 
@@ -301,6 +301,57 @@ def test_fee_and_hours_text():
     assert public_parking.hours_text(lot, date(2026, 11, 21)) == '방문일(토) 09:00~18:00'
     assert public_parking.hours_text(lot, date(2026, 11, 22)) == '방문일(일) 운영하지 않아요(운영요일: 평일+토요일)'
     assert public_parking.hours_text(lot, None) is None
+
+
+def test_hours_with_the_same_start_and_end_are_unknown():
+    from datetime import date
+    # 서울 파일: 운영요일은 시각 칸이 있으면 넣으므로 '00:00 00:00' 도 운영일로 들어온다. 뜻(휴무·24시간·자료 없음)을 알 수 없어 줄을 비운다.
+    seoul = dict(days='평일+토요일+공휴일', weekday=['09:00', '19:00'], saturday=['09:00', '15:00'], holiday=['00:00', '00:00'])
+    assert public_parking.hours_text(seoul, date(2026, 11, 22)) is None
+    assert public_parking.hours_text(seoul, date(2026, 11, 17)) == '방문일(화) 09:00~19:00'
+    every = dict(days='평일+토요일+공휴일', weekday=['00:00', '00:00'], saturday=['00:00', '00:00'], holiday=['00:00', '00:00'])
+    assert public_parking.hours_text(every, date(2026, 11, 17)) is None
+    assert public_parking.hours_text(dict(every, weekday=['23:59', '23:59']), date(2026, 11, 17)) is None
+    # 전국 자료: '00:00 00:00' 인 요일은 운영요일에서 빠져 있어 지금처럼 '운영하지 않아요'로 보인다.
+    national = dict(days='평일+토요일', weekday=['08:00', '20:00'], saturday=['08:00', '20:00'], holiday=['00:00', '00:00'])
+    assert public_parking.hours_text(national, date(2026, 11, 22)) == '방문일(일) 운영하지 않아요(운영요일: 평일+토요일)'
+    assert public_parking.hours_text(dict(seoul, holiday=['00:00', '24:00']), date(2026, 11, 22)) == '방문일(일) 24시간'
+
+
+def test_bus_only_names():
+    for name in ['DDP동측(양쪽) 관광버스전용 주차장(시)', '훈련원공원 앞 관광버스 전용 주차장(시)', '낙산성곽 버스전용 주차장(구)',
+                 '정동진 바다부채길 주차장1(대형버스 전용)', '황매산 대형버스주차장', '송도해수욕장 버스주차장', '중앙로관광버스전용주차장']:
+        assert public_parking.bus_only(name), name
+    for name in ['동대문 공영주차장(시)', '시외버스터미널 공영주차장', '버스터미널주차장', '영산포버스터미널건너편주차장',
+                 '대흥천변 버스정류장 주차장', '수동면버스승강장주차장', '대형버스·승용차 주차장', None]:
+        assert not public_parking.bus_only(name), name
+
+
+def test_bus_only_lots_are_left_out(search, tmp_path):
+    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)
+    place = plan['places'][0]
+    lat, lon = place['lat'], place['lon']
+    public_rows(tmp_path, [
+        public_row('DDP동측(양쪽) 관광버스전용 주차장(시)', lat + 0.001, lon, fee_kind='무료', base_fee=0),
+        public_row('훈련원공원 앞 관광버스 전용 주차장(시)', lat + 0.003, lon, fee_kind='무료', base_fee=0),
+        public_row('동대문 공영주차장(시)', lat + 0.002, lon),
+        # 좌표 없는 버스 전용 행은 네이버 승용차 주차장에 이름으로도 붙이지 않는다.
+        public_row('삼청시장 관광버스전용 주차장(시)', None, None, fee_kind='무료', base_fee=0),
+    ])
+    search['answer'] = lambda term, area: ([
+        item('남산 관광버스주차장', lat + 0.0005, lon),
+        item('대형버스 전용 주차장', lat + 0.0007, lon),
+        item('삼청시장 주차장', lat + 0.0025, lon),
+        item('종로 시외버스터미널 주차장', lat + 0.004, lon),
+    ], 'available')
+    result = parking.parking_near(plan)
+    lots = result['stops'][0]['lots']
+    assert [lot['name'] for lot in lots] == ['동대문 공영주차장(시)', '삼청시장 주차장', '종로 시외버스터미널 주차장']
+    assert lots[1]['public'] is None
+    diagnostics = result['diagnostics']
+    # 장소당 검색 2건이 같은 결과를 받아 버스 전용 2곳씩, 같은 이름·주소 중복 2곳.
+    assert diagnostics['rejected']['bus_only'] == 4 and diagnostics['rejected']['duplicate'] == 2
+    assert diagnostics['public_bus_only'] == 2 and diagnostics['public_candidates'] == 1
 
 
 def test_build_script_reads_the_cp949_csv(tmp_path, monkeypatch):

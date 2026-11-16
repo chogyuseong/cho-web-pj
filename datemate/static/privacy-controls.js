@@ -1,6 +1,7 @@
 (() => {
   const section = document.createElement('section');
-  section.className = 'panel';
+  // privacy-controls: 인쇄할 때 숨긴다(style.css @media print).
+  section.className = 'panel privacy-controls';
   const title = document.createElement('h2');
   title.textContent = '내 데이터 관리';
   const description = document.createElement('p');

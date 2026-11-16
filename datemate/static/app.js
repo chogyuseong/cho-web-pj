@@ -338,7 +338,10 @@ function values() {
 }
 async function init() {
   try {
-    statusData = await api('/status');
+    // 잠든 서버가 켜지는 동안에는 다시 물으며 안내를 보여 준다(server-wake.js).
+    statusData = await ServerWake.load(timeout => api('/status', null, 'GET', {
+      timeout
+    }));
     $('#status').textContent = `전국 실제 장소 검색 · 서울 가상 장소 ${statusData.counts.demo.places}건 · 기존 장소 메타데이터 ${statusData.counts.real.places}건 / 색인 ${statusData.counts.real.indexed}건 · ${statusData.llm} · ${statusData.embedding==='demo'?'문자 해시 임베딩 데모 (의미 검색 아님)':'의미 임베딩 설정'} · 실제 운영정보 확인 필요`;
     for (const theme of statusData.themes) {
       const l = node('label'),
@@ -531,6 +534,11 @@ form.addEventListener('submit', async e => {
   if (submit.disabled) return;
   try {
     submit.disabled = true;
+    // 서버가 아직 켜지는 중이면 실패로 끝내지 않고 준비될 때까지 기다렸다가 이어 간다.
+    if (ServerWake.waiting) {
+      toast('서버를 준비하고 있어요. 준비되면 바로 코스를 찾을게요.');
+      await ServerWake.ready();
+    }
     await applyRequest();
     if (!form.reportValidity()) return;
     const data = values();

@@ -24,7 +24,8 @@ def lots_for(place):
         dict(id='parking:naver-b', name='한옥마을 주차장', category='교통,수송>주차장', address='서울특별시 종로구 북촌로 3',
              lat=place['lat'], lon=place['lon'] + 0.001, distance_m=90, walk_minutes=2, public_by_name=False,
              public=dict(fee='기본 30분 500원 · 추가 10분당 200원', hours='방문일(토) 10:00~18:00', kind='공영',
-                         as_of='2026-04-16', source='공공데이터포털 전국주차장정보표준데이터')),
+                         as_of='2026-04-16', source='공공데이터포털 전국주차장정보표준데이터',
+                         live=dict(now=713, total=1260, updated='2026-11-16 17:04:43'))),
     ]
 
 
@@ -76,7 +77,9 @@ def test_parking_panel_under_the_car_stop_map_and_walk_back(audit_page):
     other = second.inner_text()
     assert '공영(이름 기준)' not in other and second.locator('.parking-public').inner_text() == '공영'
     assert '요금 기본 30분 500원 · 추가 10분당 200원' in other and '방문일(토) 10:00~18:00' in other
-    assert '공공데이터 기준일 2026-04-16 · 지금은 바뀌었을 수 있어요. 만차 여부는 알 수 없어요.' in other
+    # 실시간 남은 자리가 있으면 '만차 여부는 알 수 없어요'를 빼고 남은 자리를 보인다.
+    assert '실시간 남은 자리 약 547면 (713/1,260대 주차 중 · 17:04 기준)' in other
+    assert '공공데이터 기준일 2026-04-16 · 지금은 바뀌었을 수 있어요.' in other and '만차 여부' not in other
     assert second.locator('.parking-unverified').count() == 0
     assert second.locator('a').inner_text() == '네이버 지도에서 보기 ↗'
     anchor = first.locator('a')

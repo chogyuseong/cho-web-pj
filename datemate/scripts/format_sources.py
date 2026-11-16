@@ -32,6 +32,7 @@ PYTHON = [
     "app/search_robots.py",
     "app/parking.py",
     "app/public_parking.py",
+    "app/seoul_parking_live.py",
     "app/review_facts.py",
     "app/migrations",
     "scripts/operations_report.py",

@@ -198,11 +198,14 @@ def same_lot(naver_name, lot, distance_m):
 
 
 def details(lot, visit):
-    """주차장 칸에 붙일 공공데이터 정보."""
-    return dict(
+    """주차장 칸에 붙일 공공데이터 정보. 서울 파일 행은 실시간 현황을 맞출 주차장 코드(_seoul_code)를 잠시 함께 싣는다(응답 전에 뺌)."""
+    info = dict(
         fee=fee_text(lot),
         hours=hours_text(lot, visit),
         kind=lot.get("kind") or None,
         as_of=lot.get("as_of") or None,
         source=SOURCE,
     )
+    if str(lot.get("id") or "").startswith("seoul-"):
+        info["_seoul_code"] = lot["id"][len("seoul-") :]
+    return info

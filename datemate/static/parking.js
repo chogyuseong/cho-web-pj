@@ -59,8 +59,15 @@ function parkingLotItem(lot) {
   // 공공데이터(전국주차장정보표준데이터)에서 찾은 요금·운영시간. 기준일 뒤로 바뀌었을 수 있다고 밝힌다.
   if (info?.fee) item.append(node('p', '요금 ' + info.fee, 'parking-fee'));
   if (info?.hours) item.append(node('p', info.hours, 'parking-hours'));
+  // 서울시 '(시)' 공영주차장의 실시간 주차 대수(서울 열린데이터광장, 몇 분 늦을 수 있음).
+  if (info?.live) {
+    const live = info.live,
+      left = Math.max(0, live.total - live.now),
+      time = (live.updated || '').slice(11, 16);
+    item.append(node('p', `실시간 남은 자리 약 ${left.toLocaleString()}면 (${live.now.toLocaleString()}/${live.total.toLocaleString()}대 주차 중${time ? ' · ' + time + ' 기준' : ''})`, 'parking-live'));
+  }
   if (info) {
-    item.append(node('p', `공공데이터 기준일 ${info.as_of || '미상'} · 지금은 바뀌었을 수 있어요. 만차 여부는 알 수 없어요.`, 'hint parking-as-of'));
+    item.append(node('p', `공공데이터 기준일 ${info.as_of || '미상'} · 지금은 바뀌었을 수 있어요.${info.live ? '' : ' 만차 여부는 알 수 없어요.'}`, 'hint parking-as-of'));
     if (!info.fee || !info.hours) item.append(node('p', '빠진 정보는 네이버 지도에서 볼 수 있어요.', 'hint parking-unverified'));
   } else {
     item.append(node('p', '요금·운영시간은 네이버 지도에서 바로 볼 수 있어요. 만차 여부는 알 수 없어요.', 'hint parking-unverified'));

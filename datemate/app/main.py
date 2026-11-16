@@ -631,6 +631,25 @@ def nearby_restaurants(id: str, request: Request, after_index: int = Query(defau
         raise HTTPException(422, str(exc))
 
 
+@app.get("/api/plans/{id}/parking")
+def nearby_parking(id: str, request: Request):
+    """자동차로 도착하는 장소 근처 주차장. 결과 화면에서만 부르며 계획은 바꾸지 않는다."""
+    _, plan = plan_row(id)
+    from .parking import parking_near
+
+    key = "parking-rate:" + request.state.owner
+    if store.cached(key):
+        raise HTTPException(429, "주차장 검색은 잠시 후 다시 시도해 주세요.")
+    web_security.require_ip(
+        "local-search",
+        "DATEMATE_IP_LOCAL_SEARCHES_PER_MINUTE",
+        30,
+        "주차장 검색은 잠시 후 다시 시도해 주세요.",
+    )
+    store.cache(key, True, 1)
+    return parking_near(plan)
+
+
 class ReplaceInput(BaseModel):
     index: int = Field(ge=0, le=4)
     locked: list[int] = Field(default_factory=list, max_length=5)

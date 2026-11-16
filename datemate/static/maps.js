@@ -183,7 +183,7 @@ function popupMapNote(note,items){
 }
 
 function drawPlanMap(plan){
-  let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[],popupMarkers=[];
+  let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[],popupMarkers=[],parkingMarkers=[];
   const wrap=node('section',undefined,'plan-map');
   // 네이버 인증 실패 알림이 표시를 올린 뒤에 오면 SDK 의 setMap(null) 이 SDK 내부 오류(capitalize)를 낸다(실제 SDK·로컬 주소 401 에서 확인).
   // 정리 하나가 실패해도 나머지 정리, 대체 지도 그리기, 지도 정리(disposeMap)가 이어지게 정리 동작을 하나씩 감싼다.
@@ -192,6 +192,15 @@ function drawPlanMap(plan){
   // 팝업 표시는 표시마다 정리 함수(마커·이벤트)를 두고, 지도 아래 장소 단추·정보 칸도 함께 비운다. 코스·축제 표시는 건드리지 않는다.
   const popupHubs=popupHubList();
   const clearPopups=()=>{popupMarkers.forEach(clear=>quietly(clear));popupMarkers=[];popupHubs.set([]);};
+  // 주차장 표시(P)는 일정의 주차장 패널이 받은 응답을 기다려 그린다. 지도는 요청을 시작하지 않는다.
+  const parkingNote=node('p','','hint map-parking-note');parkingNote.hidden=true;
+  const clearParking=()=>{parkingMarkers.forEach(clear=>quietly(clear));parkingMarkers=[];parkingMapNote(parkingNote,[]);};
+  // draw(lots)는 그린 표시마다 지우는 함수를 돌려준다. 다시 찾기로 응답이 또 오면 앞 표시를 지우고 다시 그린다.
+  const watchParking=draw=>{if(plan.conditions.mode!=='real'||!parkingStops(plan).length)return;
+    let drawn=[];const clearDrawn=()=>{drawn.forEach(clear=>quietly(clear));drawn=[];};
+    const stop=onParkingLoaded(plan,data=>{if(disposed||!data||!wrap.isConnected)return;
+      clearDrawn();const lots=parkingMapLots(data);drawn=draw(lots);parkingMapNote(parkingNote,lots);});
+    parkingMarkers.push(()=>{stop();clearDrawn();});};
   // 지도 자체(코스 표시·이동선·식당 표시는 지도와 함께 사라짐)를 지운다. 같은 이유로 remove·destroy 도 감싼다.
   // Leaflet(1.9.4)은 애니메이션 확대의 끝맺음을 transitionend 와 함께 setTimeout(_onZoomTransitionEnd,250) 으로도 예약하는데, remove() 는 이 예약을 지우지 않고
   // _mapPane 만 지운다. 확대 중(빠른 폭 변경·코스 탭 전환으로 다시 그릴 때)에 지우면 250ms 뒤 그 끝맺음이 지워진 _mapPane 의 _leaflet_pos 를 읽다 페이지 오류가 난다.
@@ -200,24 +209,25 @@ function drawPlanMap(plan){
     if(window.L&&map instanceof L.Map&&map._animatingZoom)map._onZoomTransitionEnd();
     quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
   wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
-  wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();dropMap();};
+  wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();clearParking();dropMap();};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
   canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
   const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
   caption.setAttribute('role','status');
   const festivalNote=node('p','','hint map-festival-note');festivalNote.hidden=true;
   const popupNote=node('p','','hint map-popup-note');popupNote.hidden=true;
-  wrap.append(canvas,caption,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+  wrap.append(canvas,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
   wrap.showMapFallback=()=>fallback('네이버 지도 인증에 실패했습니다. Dynamic Map 권한과 등록 웹 주소를 확인해 주세요.');
   requestAnimationFrame(()=>render());
   async function render(force=false){
     if(!wrap.isConnected)return;
     clearFestivals();wrap.updateFestivals=()=>{};
     clearPopups();wrap.updatePopups=()=>{};
+    clearParking();
     dropMap();
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
-    wrap.replaceChildren(canvas,caption,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+    wrap.replaceChildren(canvas,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
     try{
       await loadNaverMaps(statusData.map_js_key,force);
       if(window.naverMapAuthFailed)throw Error('지도 인증 실패');
@@ -305,6 +315,14 @@ function drawPlanMap(plan){
           if(count)map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
           caption.textContent=originalCaption+' 보라색 원: 각 코스 반경 500m · 주황색 번호: 식당 '+count+'곳 (일정 미포함, 맛: 지역 추천).';
         }).catch(()=>{caption.textContent=originalCaption+' 주변 식당 표시를 불러오지 못했어요.';});
+        // 쌓임 순서: 식당 < 주차장 P(110) < 팝업(120) < 코스(130) < 축제(150). 표시 글자는 고정 문자열, 이름은 title·정보창 텍스트로만.
+        watchParking(lots=>lots.map(lot=>{
+          const marker=new naver.maps.Marker({map,position:coord(lot),title:'주차장 · '+lot.name,zIndex:110,
+            icon:{content:'<span class="route-marker parking-marker">P</span>',anchor:new naver.maps.Point(16,16)}});
+          const info=new naver.maps.InfoWindow({content:parkingMapInfo(lot)});
+          const listener=naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
+          return ()=>{quietly(()=>info.close());if(listener)naver.maps.Event.removeListener?.(listener);marker.setMap(null);};
+        }));
       }
     }catch(error){if(wrap.isConnected){
       const reasons={'지도 인증 실패':'네이버 지도 인증에 실패했습니다. 등록 웹 주소와 Dynamic Map 권한을 확인해 주세요.',
@@ -317,6 +335,7 @@ function drawPlanMap(plan){
     if(disposed||!wrap.isConnected)return;
     clearFestivals();wrap.updateFestivals=()=>{};festivalNote.hidden=true;
     clearPopups();wrap.updatePopups=()=>{};popupMapNote(popupNote,[]);
+    clearParking();
     dropMap();
     const notice=node('div',undefined,'map-reconnect');
     notice.setAttribute('role','status');
@@ -328,7 +347,7 @@ function drawPlanMap(plan){
     if(window.L){
       const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
-      wrap.prepend(mapCanvas,mapCaption,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+      wrap.prepend(mapCanvas,mapCaption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
       if(!points.length)return;
       try{
@@ -371,6 +390,12 @@ function drawPlanMap(plan){
           popupHubs.set(items);popupMapNote(popupNote,items);
         };
         wrap.updatePopups();
+        watchParking(lots=>lots.map(lot=>{
+          const icon=L.divIcon({className:'parking-divicon',html:node('span','P','route-marker parking-marker'),iconSize:null});
+          const marker=L.marker([lot.lat,lot.lon],{icon,title:'주차장 · '+lot.name,keyboard:true}).addTo(map);
+          marker.bindPopup(parkingMapInfo(lot));
+          return ()=>{marker.off();marker.remove();};
+        }));
         const fit=()=>{if(!disposed&&mapCanvas.isConnected){map.invalidateSize();map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35],maxZoom:16});}};
         requestAnimationFrame(fit);
         if(window.ResizeObserver){resizeObserver=new ResizeObserver(fit);resizeObserver.observe(mapCanvas);}

@@ -47,7 +47,8 @@ function renderDetail() {
       buttons.children[1].disabled = true;
     }
     stop.append(body);
-    box.append(stop, mealSuggestionPanel(p, i));
+    // 자동차로 도착하는 장소는 바로 아래에 근처 주차장을 둔다(일정·비용에는 넣지 않음).
+    box.append(stop, parkingPanel(p, i), mealSuggestionPanel(p, i));
   });
   if (p.conditions.return_home && p.legs.length > p.places.length) {
     const r = p.legs.at(-1);

@@ -39,7 +39,11 @@ def parse(data):
     for row in rows:
         if not isinstance(row, dict) or str(row.get("PRK_STTS_YN")) != "1":
             continue
-        code, now, total = str(row.get("PKLT_CD") or "").strip(), number(row.get("NOW_PRK_VHCL_CNT")), number(row.get("TPKCT"))
+        code, now, total = (
+            str(row.get("PKLT_CD") or "").strip(),
+            number(row.get("NOW_PRK_VHCL_CNT")),
+            number(row.get("TPKCT")),
+        )
         if not code or now is None or not total or now < 0:
             continue
         updated = str(row.get("NOW_PRK_VHCL_UPDT_TM") or "").strip()

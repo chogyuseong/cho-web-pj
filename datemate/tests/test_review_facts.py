@@ -120,3 +120,18 @@ def test_prices_are_returned_even_without_hours_and_for_places_with_known_hours(
     assert result['status'] == 'available' and result['hours'] is None
     assert [(x['item'], x['amount']) for x in result['prices']] == [('맑은한돈곰탕', 12000), ('감자만두', 10000), ('들기름 칼국수', 12000)]
     assert result['prices'][0]['url'] == urls[0] and result['prices'][0]['posted_at'] == '2026-10-08'
+
+
+@pytest.mark.parametrize('text,closed', [
+    ('정기휴무 : 매주 월요일', '정기휴무 : 매주 월요일'),
+    ('휴무일 : 일요일', '휴무일 : 일요일'),
+    ('휴무 화', '휴무 화'),
+    ('매주 화요일 휴무', '화요일 휴무'),
+    ('연중무휴', '연중무휴'),
+    # '휴무일' 한 낱말(뒤에 요일이 없음)은 휴무 정보가 아니다.
+    ('휴무일 확인은 인스타그램에서', None),
+])
+def test_closed_day_phrases(text, closed):
+    body = '소소함박 황리단길점 영업시간 매일 11:00 - 21:00 ' + text
+    found = review_facts.read_post(body, place())
+    assert found and found[0][1] == closed

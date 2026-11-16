@@ -536,12 +536,22 @@ def test_request_interpretation_grows_linearly(unit):
         # 9 for linear code), and other processes on a shared runner are not counted either.
         # Interleave the sizes and keep each one's fastest run, so a slow moment hits both
         # sizes or neither instead of inflating one of them.
+        # Windows' process_time ticks in about 16 ms steps, so a single fast call can read as 0
+        # (ZeroDivisionError). Repeat each text until at least 50 ms of CPU time has passed and
+        # use the time per call.
+        def per_call(text):
+            calls, started = 0, time.process_time()
+            while True:
+                extract(text)
+                calls += 1
+                elapsed = time.process_time() - started
+                if elapsed >= 0.05:
+                    return elapsed / calls
+
         best = {small: float('inf'), large: float('inf')}
         for _ in range(5):
             for text in (small, large):
-                started = time.process_time()
-                extract(text)
-                best[text] = min(best[text], time.process_time() - started)
+                best[text] = min(best[text], per_call(text))
         return best[large] / best[small]
 
     # Linear work gives about 4; the quadratic versions measured 10 to 16. Up to three

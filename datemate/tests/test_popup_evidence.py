@@ -77,7 +77,14 @@ CASES = [
         True,
     ),
     ("팝업 카페", "서울", "치이카와 팝업 카페 후기", "예약 방법 정리", True),
-    ("안내 팝업스토어", "대구", "주말 나들이", "위치 안내 팝업스토어 는 1층", True),
+    # v3: 제목에 팝업이 없으면 주제 근거가 있어야 하므로 기간을 함께 둔다('안내' 가림 예외를 보는 사례).
+    (
+        "안내 팝업스토어",
+        "대구",
+        "주말 나들이",
+        "위치 안내 팝업스토어 는 1층, 11.20~11.30 운영",
+        True,
+    ),
     ("'팝업 창원'은 창이 아님", "경남", "롯데백화점 팝업 창원점 방문", "", True),
     (
         "'팝업이 뜨거운'은 창이 아님",
@@ -178,8 +185,13 @@ def test_reasons_name_the_evidence_and_points():
     assert result["evidence"] == ["title_term:팝업스토어", "period", "hub"]
     assert result["score"] == 6 and result["penalties"] == [] and result["excluded"] == []
     weak = popups.popup_evidence("동네 빵집 후기", "팝업 아님", has_period=False, has_hub=False)
+    # v3: 제목에 팝업이 없고 주제 근거도 없어 no_topic 이 함께 남는다.
     assert weak == dict(
-        show=False, score=1, evidence=["description_bare:팝업"], penalties=[], excluded=[]
+        show=False,
+        score=1,
+        evidence=["description_bare:팝업"],
+        penalties=["no_topic"],
+        excluded=[],
     )
 
 
@@ -240,11 +252,171 @@ def test_title_term_survives_promo_penalty_but_description_bare_does_not():
 
 
 def test_coupon_and_discount_alone_are_not_penalties():
+    # v3: 제목에 팝업이 없는 글은 주제 근거(여기서는 기간)가 있어야 보이므로 기간을 준다. 감점이 없다는 점을 본다.
     result = popups.popup_evidence(
-        "할인 소식", "팝업스토어 쿠폰 증정 할인 이벤트", has_period=False, has_hub=False
+        "할인 소식", "팝업스토어 쿠폰 증정 할인 이벤트", has_period=True, has_hub=False
     )
     assert result["show"] is True and result["penalties"] == []
 
 
 def test_rules_version_was_raised():
-    assert popups.RULES_VERSION == "popups-rules-v2"
+    assert popups.RULES_VERSION == "popups-rules-v3"
+
+
+# ---------------------------------------------------------------- 규칙 v3
+# 2026-11-16 운영 응답(서울·부산 '서울/부산 팝업스토어' 검색)에서 유형별로 고른 제목·요약(…로 잘린 요약 그대로).
+
+# (이름, 검색 지역, 제목, 요약, 라벨)
+V3_CASES = [
+    # ---- 제목에 팝업이 없지만 주제 근거가 있는 진짜 팝업 글
+    (
+        "기간이 읽히는 요약",
+        "서울",
+        "치이카와 친구들의 병원 나들이 클리닉 신상 출시 일정",
+        "이번 팝업스토어 는 더현대 서울 에서 진행될 예정이에요 팝업 명 : 치이카와 클리닉 POP-UP STORE "
+        "기간 : 2026년 11월 27일 ~ 2027년 1월 10일 장소 : 더현대 서울 5층",
+        True,
+    ),
+    (
+        "요약 '#이름 팝업'의 이름이 제목에 있음",
+        "서울",
+        "올기 찹쌀떡 가격 더현대 서울 웨이팅 구매방법 총정리",
+        "#올기찹쌀떡 #올기가격 #올기더현대 #올기 팝업 #더현대 서울팝업 #올기웨이팅방법",
+        True,
+    ),
+    (
+        "요약 '이름 장소 팝업'의 이름이 제목에 있음",
+        "서울",
+        "롯데월드몰 한정선 & 던스트 아우터 입어보기",
+        "암튼 잠실엔 던스트 잠실 팝업 아카이브 세일 때문에!! 가게 됐어요",
+        True,
+    ),
+    (
+        "요약 행사 서술(팝업이 열려)",
+        "부산",
+        "서면 롯데백화점 애니메이트 체인소맨 굿즈를 찾아라",
+        "생각보다 훨씬 큰 규모의 매장과 팝업 이 열려 있어서",
+        True,
+    ),
+    # ---- 팝업이 글의 주제가 아닌 글(거점 낱말이 있어도 빼야 함)
+    (
+        "맛집 글의 지나가는 언급",
+        "서울",
+        "성수 칼국수맛집 조조칼국수 웨이팅 후기, 캐치테이블 예약부터",
+        "조조칼국수 성수점 위치 서울 성동구 성수일로 8길 55... 근처 팝업스토어 를 구경하다가 방문했습니다",
+        False,
+    ),
+    (
+        "카페 글의 지나가는 언급",
+        "서울",
+        "성수역 대형카페 추천! 공부·작업·대화하기 좋은 에어드랍커피",
+        "성수동 팝업스토어 구경 후 쉬어갈 곳을 찾는 분 가을 감성 가득한 특별한 라떼를 즐기고 싶은 분",
+        False,
+    ),
+    (
+        "비교 표현",
+        "서울",
+        "익산 : 짐보관 '이리로 여행자 쉼' / 익산 아트센터",
+        "편인데 서울 에서 1시간 반! 왠 라면들이 반겨주네ㅋㅋ 성수동 라면 팝업스토어 같은 느낌ㅋㅋ",
+        False,
+    ),
+    (
+        "거점 해시태그만",
+        "서울",
+        "남들보다 먼저 보는 2026 코엑스 별마당도서관 크리스마스! 기간",
+        "스타필드코엑스몰트리 # 서울 크리스마스트리명소 #코엑스실내데이트 #코엑스 팝업스토어 #별마당도서관일정",
+        False,
+    ),
+    (
+        "사업 소식의 명사 나열",
+        "서울",
+        "스타원엔터테인먼트, 콘텐츠, 상품, 비즈니스 확장까지",
+        "12월 서울 코엑스에서 열리는 콘텐츠 IP 마켓 2026에... 올해 MBC 지상파 방영과 첫 단독 팝업 스토어 운영, "
+        "한국어 채널 구독자 90만 돌파에 이어",
+        False,
+    ),
+    (
+        "거점 없는 지나가는 언급",
+        "서울",
+        "마라톤 대회 완주 후 가장 하고 싶은 것: 먹방, 인증샷, 휴식, 쇼핑",
+        "대회장에 마련된 스포츠 브랜드 팝업 스토어 나 부스에서 파는 한정판 기념품이나 할인 용품은 꼭 구경하고 산다.",
+        False,
+    ),
+    # ---- 업체 글: 제목의 행사 표현도 지운다
+    (
+        "팝업스토어 화물 운송 업체",
+        "서울",
+        "크리스마스 팝업스토어 화물 운송, 백화점·전시장 야간 반입과",
+        "야간 반입을 진행하는 크리스마스 팝업스토어 화물 운송 현장",
+        False,
+    ),
+    ("팝업 제작·시공 업체", "부산", "팝업스토어 제작 시공 전문", "견적 문의 주세요", False),
+]
+
+
+@pytest.mark.parametrize(
+    "name,region,title,description,label", V3_CASES, ids=[c[0] for c in V3_CASES]
+)
+def test_v3_topic_and_vendor_cases(name, region, title, description, label):
+    assert popups.has_popup(title + " " + description)
+    result = verdict(region, title, description)
+    assert result["show"] is label, result
+
+
+def test_v3_hub_does_not_rescue_an_off_topic_mention():
+    """거점(+1)이 있어도 제목에 팝업이 없고 주제 근거가 없으면 보이지 않는다(v2 에서는 3점으로 보였음)."""
+    title = "성수 짱구 전시회 주차 어디에? 위치와 주변 주차장 정보"
+    description = (
+        "특히 성수는 주말이나 공휴일이면 카페와 팝업스토어 방문객까지 몰려 주차 공간을 찾기가"
+    )
+    result = verdict("서울", title, description)
+    assert result["evidence"] == ["description_term:팝업스토어", "hub"]
+    assert result["score"] == 3 and result["penalties"] == ["no_topic"] and result["show"] is False
+
+
+def test_v3_topic_evidence_is_named():
+    result = verdict("서울", "올기 찹쌀떡 가격 총정리", "#더현대 서울팝업 #올기 팝업")
+    assert result["evidence"] == ["description_bare:팝업", "hub", "topic:올기"]
+    narrated = popups.popup_evidence(
+        "K리그 산리오 굿즈 출시",
+        "CJ온스타일에서 온라인 팝업스토어 가 진행된다는 소식",
+        has_period=False,
+        has_hub=False,
+    )
+    assert narrated["show"] is True
+    assert narrated["evidence"] == ["description_term:팝업스토어", "narration:팝업스토어 가 진행"]
+
+
+@pytest.mark.parametrize(
+    "title,description,names",
+    [
+        ("올기 찹쌀떡 가격", "#올기 팝업", ["올기"]),
+        # 거점 별칭(코엑스)·시·도·일반 낱말(크리스마스)은 주제 이름이 아니다.
+        ("코엑스 별마당도서관 크리스마스", "#코엑스 팝업스토어 크리스마스 팝업", []),
+        ("부산 감자빵 후기", "부산 팝업스토어", []),
+        # 문장 경계를 넘어가지 않는다.
+        ("던스트 아우터", "던스트 매장. 팝업 아님", []),
+        ("던스트 아우터", "던스트 잠실 팝업", ["던스트"]),
+        # '팝업창' 같은 화면 요소 앞 낱말은 보지 않는다.
+        ("크롬 설정", "크롬 팝업창 끄기", []),
+    ],
+)
+def test_topic_names(title, description, names):
+    assert popups.topic_names(title, description) == names
+
+
+@pytest.mark.parametrize(
+    "title,region,other",
+    [
+        ("부산 팝업스토어 7곳 11월 말·12월 일정", "서울", "부산"),
+        ("대구팝업 이번 주 정리", "서울", "대구"),
+        ("부산 팝업스토어 7곳 11월 말·12월 일정", "부산", None),
+        # 검색 시·도 이름도 함께 쓴 제목은 다른 지역 글로 단정하지 않는다.
+        ("서울·부산 팝업 일정", "서울", None),
+        # 시·도 이름 바로 뒤에 '팝업'이 오는 꼴만 본다.
+        ("부산 출장 중 들른 성수 팝업", "서울", None),
+        ("정서불안 김햄찌 부산 신세계 팝업스토어", "서울", None),
+    ],
+)
+def test_title_other_region(title, region, other):
+    assert popups.title_other_region(title, region) == other

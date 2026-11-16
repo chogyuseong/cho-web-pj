@@ -532,7 +532,7 @@ def test_v1_spacing_variants_and_new_aliases():
 def test_hub_dictionary_v1_keeps_v0_and_has_verifiable_entries():
     v1 = {h["id"]: h for h in HUBS}
     assert len(v1) == len(HUBS) == 35
-    assert HUBS_VERSION == "hubs-v1.1-2026-11-14" and popups.RULES_VERSION == "popups-rules-v2"
+    assert HUBS_VERSION == "hubs-v1.1-2026-11-14" and popups.RULES_VERSION == "popups-rules-v3"
     for h in HUBS:
         assert h["verify"] and h["local_query"] and h["district"]
         assert "lat" not in h and "lon" not in h

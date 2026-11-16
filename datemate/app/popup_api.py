@@ -317,7 +317,8 @@ def place_view(hub, verdicts):
 def judge(raw, region, visit):
     """원본 글 → 보여 줄 글과 뺀 글 수. 거점 좌표는 아직 붙이지 않는다.
 
-    '팝업'이 없는 글과 팝업 행사 증거가 모자란 글(popups.popup_evidence, 규칙 v2)은 함께 not_popup 으로 센다.
+    '팝업'이 없는 글과 팝업 행사 증거가 모자란 글(popups.popup_evidence, 규칙 v2·v3)은 함께 not_popup 으로 센다.
+    다른 지역 거점만 있는 글과 제목이 다른 시·도 팝업을 말하는 글(규칙 v3)은 other_region 으로 센다.
     """
     shown, counts = [], Counter()
     for p in raw:
@@ -326,7 +327,7 @@ def judge(raw, region, visit):
             counts["not_popup"] += 1
             continue
         hub = popups.hub_match(text, HUBS, region)
-        if hub["status"] == "other_region":
+        if hub["status"] == "other_region" or popups.title_other_region(p["title"], region):
             counts["other_region"] += 1
             continue
         extraction = popups.extract_period(p["title"], p["description"])

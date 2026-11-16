@@ -21,6 +21,14 @@
   같은 지역 거점 1, 앱 가입·초대 홍보 낱말(추천코드·친구 초대·회원가입 등) −2.
   2점 이상만 보여 준다. 화면 요소·다른 물건의 '팝업'(메인 팝업, 팝업창, 팝업 차단, 팝업북, 팝업 텐트 등)은 증거로 세지 않는다.
 - 뺀 글은 '팝업'이 없는 글과 같이 not_popup 으로 센다. 제목·요약에 '팝업'이 없는 글의 처리(has_popup)는 그대로.
+
+규칙 v3(2026-11-16, 팝업이 글의 주제가 아닌 글이 섞이던 문제: 맛집·카페·주차·뉴스 글 요약에 "근처 팝업스토어를 구경하다가"처럼
+지나가듯 나온 '팝업'이 서울의 흔한 거점 낱말(성수·더현대 서울) 점수로 통과한 사례들):
+- 제목에 팝업 언급이 없으면 요약의 언급은 글의 주제라는 근거가 있을 때만 센다(없으면 거점 점수로도 구제하지 않음, no_topic).
+  근거: 기간이 읽힘, 요약의 행사 서술("팝업 열렸다·진행·운영·으로 들어왔다", "팝업스토어가 진행된다", "11월 팝업"), 요약에서 '팝업' 바로 앞
+  두 낱말 중 하나(거점 별칭·시·도 이름·일반 낱말 제외)가 제목에도 있음("올기 찹쌀떡 …" 글의 "#올기 팝업").
+- 팝업스토어를 만들거나 나르는 업체 글("팝업스토어 화물 운송", "팝업 제작·시공·인테리어·대행·렌탈", 견적) −4.
+- 제목이 다른 시·도 이름에 바로 '팝업'을 붙여 쓰고("부산 팝업스토어 7곳") 검색 시·도 이름은 없으면 다른 지역 글(other_region).
 """
 
 import hashlib
@@ -30,11 +38,13 @@ import re
 from datetime import date
 from urllib.parse import urlsplit, urlunsplit
 
+from .regions import ALIASES as REGION_ALIASES
 from .regions import normalize_region
 
 # v1.1: 새 표본(2페이지)을 본 뒤 고친 사후 조정(거점: '지난 N월', 여러 시·도 거점이 함께 나온 글). 수치는 보고서에 따로 적는다.
 # v2: 팝업 행사 증거 점수(popup_evidence). 원본 검색 캐시 키에 들어가므로 올리면 이전 캐시를 쓰지 않는다.
-RULES_VERSION = "popups-rules-v2"
+# v3: 제목에 팝업이 없는 글의 주제 근거, 업체 글 감점, 제목의 다른 시·도 팝업.
+RULES_VERSION = "popups-rules-v3"
 
 # ---------------------------------------------------------------- 텍스트
 
@@ -55,14 +65,20 @@ def has_popup(text):
 
 # 행사를 뜻하는 표현(강한 증거). 띄어쓰기·영문 표기를 함께 본다.
 _EVENT_SUFFIX = r"(?:스토어|샵|숍|매장|행사|존|오픈|부스|마켓|전시|카페|공간)"
+# 행사가 열린다는 서술("지하 1층 팝업 열렸다", "팝업 으로 열린", "11일부터 팝업 을 하는"). 0·1단계 표본에서
+# 요약에 '팝업' 한 마디만 있던 진짜 팝업 글이 이 꼴이었다. '열리면'은 화면 창일 수 있어 넣지 않는다.
+# v3: "센텀시티에 팝업 으로 들어왔다", "팝업 입점"도 행사 서술.
+_NARRATION = (
+    r"팝업\s*(?:이|을|으로|도|까지)?\s*"
+    r"(?:열렸|열린|열려|열리고|열리는|진행|운영|개최|하는|하고\s*있|들어왔|들어온|들어와|입점)"
+)
+# "부산 롯데백화점 11월 팝업": 달과 함께 쓴 팝업은 행사.
+_MONTH_POPUP = r"\d{1,2}\s*월\s*팝업"
 POPUP_EVENT_TERMS = (
     r"팝업\s*" + _EVENT_SUFFIX,
     r"pop[\s-]?up\s*(?:store|shop)",
-    # 행사가 열린다는 서술("지하 1층 팝업 열렸다", "팝업 으로 열린", "11일부터 팝업 을 하는"). 0·1단계 표본에서
-    # 요약에 '팝업' 한 마디만 있던 진짜 팝업 글이 이 꼴이었다. '열리면'은 화면 창일 수 있어 넣지 않는다.
-    r"팝업\s*(?:이|을|으로|도|까지)?\s*(?:열렸|열린|열려|열리고|열리는|진행|운영|개최|하는|하고\s*있)",
-    # "부산 롯데백화점 11월 팝업": 달과 함께 쓴 팝업은 행사.
-    r"\d{1,2}\s*월\s*팝업",
+    _NARRATION,
+    _MONTH_POPUP,
 )
 # 화면 요소나 다른 물건을 뜻하는 '팝업'. 이 자리의 '팝업'은 증거로 세지 않는다(가린 뒤 나머지에서 찾음).
 # 예: "추천 코드로 가입하면 메인 팝업을 통해 쿠폰 지급"(앱 화면), "팝업창 차단 해제", "아이 팝업북".
@@ -100,10 +116,31 @@ EVIDENCE_POINTS = dict(
 )
 PROMO_PENALTY = 2
 SHOW_THRESHOLD = 2
+# v3: 팝업스토어를 만들거나 나르는 업체 글. 제목의 행사 표현(4)을 지울 만큼 감점한다(기간·거점이 둘 다 있어야 남음).
+# '팝업' 바로 뒤에 업무 낱말이 오는 꼴만 본다("팝업 굿즈 제작 체험"처럼 행사 안의 제작은 걸리지 않음).
+POPUP_VENDOR_WORDS = (
+    r"팝업\s*"
+    + _EVENT_SUFFIX
+    + r"?\s*(?:화물|운송|물류|배차|제작|시공|인테리어|철거|대행|렌탈|대여|견적)",
+    r"팝업\s*" + _EVENT_SUFFIX + r"?\s*(?:설치|운영)\s*(?:업체|전문|대행)",
+)
+VENDOR_PENALTY = 4
 
 _NOT_EVENT = re.compile("|".join(POPUP_NOT_EVENT), re.I)
 _EVENT_TERM = re.compile("|".join(POPUP_EVENT_TERMS), re.I)
 _PROMO = re.compile("|".join(POPUP_PROMO_WORDS), re.I)
+_VENDOR = re.compile("|".join(POPUP_VENDOR_WORDS), re.I)
+# 주제 근거로 보는 행사 서술: _NARRATION·_MONTH_POPUP 에 더해 "온라인 팝업스토어 가 진행된다"처럼 행사 표현에 조사와
+# 동사가 붙은 꼴. 조사가 없는 명사 나열("첫 단독 팝업 스토어 운영, 구독자 90만 돌파")은 서술로 보지 않는다.
+_TERM_NARRATION = (
+    r"팝업\s*" + _EVENT_SUFFIX + r"\s*(?:이|가|을|를|도|은|는)\s*"
+    r"(?:열렸|열린|열려|열리고|열리는|진행|운영|개최|들어왔|들어온|들어와|입점)"
+)
+_TOPIC_ANCHOR = re.compile("|".join((_TERM_NARRATION, _NARRATION, _MONTH_POPUP)), re.I)
+# 주제 이름을 찾을 때 '팝업' 앞에서 보는 낱말 수와 문장 경계.
+TOPIC_WORDS_BEFORE = 2
+_SENTENCE_END = re.compile(r"[.!?|·…\n]")
+_WORD = re.compile(r"[가-힣A-Za-z0-9&]+")
 
 
 def popup_mentions(text):
@@ -117,9 +154,71 @@ def popup_mentions(text):
     return terms, bare, excluded
 
 
+_PLACE_KEYS = None
+
+
+def _place_keys():
+    """주제 이름으로 쓰지 않을 장소 낱말: 거점 별칭·이름과 시·도 이름(name_key 꼴)."""
+    global _PLACE_KEYS
+    if _PLACE_KEYS is None:
+        from .popup_hubs import HUBS
+
+        keys = {name_key(a) for h in HUBS for a in h["aliases"]}
+        keys |= {name_key(h["name"]) for h in HUBS} | {name_key(a) for a in REGION_ALIASES}
+        _PLACE_KEYS = frozenset(k for k in keys if k)
+    return _PLACE_KEYS
+
+
+def topic_names(title, description):
+    """v3: 요약에서 '팝업' 바로 앞 낱말(같은 문장, 최대 TOPIC_WORDS_BEFORE 개) 가운데 제목에도 있는 이름.
+
+    거점 별칭·시·도 이름이 들어간 낱말, 일반 낱말(GENERIC_NAME_WORDS), 두 글자 미만·숫자는 이름으로 보지 않는다.
+    "올기 찹쌀떡 가격 …" 글 요약의 "#올기 팝업" → ["올기"]. "#코엑스 팝업스토어"의 '코엑스'는 거점이라 세지 않는다.
+    """
+    title_key = name_key(normalize_text(title))
+    text = normalize_text(description)
+    masked = _NOT_EVENT.sub(lambda m: " " * len(m.group(0)), text)
+    generic = {name_key(w) for w in GENERIC_NAME_WORDS}
+    places = _place_keys()
+    names = []
+    for m in _BARE_EVENT.finditer(masked):
+        head = masked[: m.start()]
+        cut = max((s.end() for s in _SENTENCE_END.finditer(head)), default=0)
+        for word in _WORD.findall(head[cut:])[-TOPIC_WORDS_BEFORE:]:
+            key = name_key(word)
+            if len(key) < 2 or key.isdigit() or key in generic:
+                continue
+            if any(p in key for p in places):
+                continue
+            if key in title_key and word not in names:
+                names.append(word)
+    return names
+
+
+def title_other_region(title, region):
+    """v3: 제목이 다른 시·도 이름에 바로 '팝업'을 붙여 쓰고("부산 팝업스토어 7곳") 검색 시·도 이름은 쓰지 않으면 그 시·도."""
+    text = normalize_text(title)
+    if any(name in text for name, r in REGION_ALIASES.items() if r == region):
+        return None
+    for m in _REGION_POPUP.finditer(text):
+        other = REGION_ALIASES[m.group(1)]
+        if other != region:
+            return other
+    return None
+
+
+_REGION_POPUP = re.compile(
+    r"(?<![가-힣])("
+    + "|".join(map(re.escape, sorted(REGION_ALIASES, key=len, reverse=True)))
+    + r")\s*(?:팝업|pop[\s-]?up)",
+    re.I,
+)
+
+
 def popup_evidence(title, description, has_period, has_hub):
     """팝업 행사 글인지 증거 점수로 판정. has_period·has_hub 는 extract_period·hub_match 결과(부르는 쪽이 계산).
 
+    v3: 제목에 팝업 언급이 없으면 요약 언급은 주제 근거(기간·행사 서술·제목에도 있는 이름)가 있을 때만 보여 준다.
     반환: dict(show, score, evidence, penalties, excluded). evidence·penalties 는 사람이 읽는 근거 문자열.
     """
     t_terms, t_bare, t_excluded = popup_mentions(title)
@@ -152,8 +251,26 @@ def popup_evidence(title, description, has_period, has_hub):
     if promo:
         score -= PROMO_PENALTY
         penalties.append("promo:" + ",".join(promo))
+    vendor = sorted({re.sub(r"\s+", "", m.group(0)) for m in _VENDOR.finditer(text)})
+    if vendor:
+        score -= VENDOR_PENALTY
+        penalties.append("vendor:" + ",".join(vendor))
+    on_topic = True
+    if word and word[0].startswith("description_") and not has_period:
+        # v3: 제목에 팝업이 없고 기간도 없으면 요약의 행사 서술이나 제목에도 있는 이름이 있어야 글의 주제로 본다.
+        masked = _NOT_EVENT.sub(lambda m: " " * len(m.group(0)), normalize_text(description))
+        narration = _TOPIC_ANCHOR.search(masked)
+        if narration:
+            evidence.append("narration:" + narration.group(0))
+        else:
+            names = topic_names(title, description)
+            if names:
+                evidence.append("topic:" + names[0])
+            else:
+                on_topic = False
+                penalties.append("no_topic")
     return dict(
-        show=score >= SHOW_THRESHOLD,
+        show=on_topic and score >= SHOW_THRESHOLD,
         score=score,
         evidence=evidence,
         penalties=penalties,

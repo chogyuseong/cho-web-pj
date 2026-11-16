@@ -205,7 +205,37 @@ def test_referral_post_with_a_screen_popup_is_not_shown(fake):
     data = get(TestClient(app)).json()
     assert [p["url"] for p in data["posts"]] == ["https://blog.naver.com/a/coupon"]
     assert data["counts"]["not_popup"] == 1 and data["counts"]["shown"] == 1
-    assert data["rules_version"] == "popups-rules-v2"
+    assert data["rules_version"] == "popups-rules-v3"
+
+
+def test_off_topic_vendor_and_other_region_title_posts_are_counted_apart(fake):
+    """규칙 v3: 지나가는 언급(거점 낱말만 있음)·업체 글은 not_popup, 제목이 다른 시·도 팝업인 글은 other_region."""
+    fake.blog = [
+        item(
+            "성수 칼국수맛집 웨이팅 후기",
+            "성수동 위치... 근처 <b>팝업스토어</b> 를 구경하다가 방문했습니다",
+            "https://blog.naver.com/a/noodle",
+        ),
+        item(
+            "크리스마스 <b>팝업스토어</b> 화물 운송, 야간 반입",
+            "",
+            "https://blog.naver.com/a/cargo",
+        ),
+        item(
+            "부산 <b>팝업스토어</b> 7곳 11월 말 일정",
+            "공식 공지와 언론 보도를 모은 정보 글",
+            "https://blog.naver.com/a/busan",
+        ),
+        item(
+            "올기 찹쌀떡 가격 더현대 서울 웨이팅",
+            "#올기 <b>팝업</b> #더현대 서울팝업",
+            "https://blog.naver.com/a/olgi",
+        ),
+    ]
+    data = get(TestClient(app)).json()
+    assert [p["url"] for p in data["posts"]] == ["https://blog.naver.com/a/olgi"]
+    counts = data["counts"]
+    assert counts["not_popup"] == 2 and counts["excluded_other_region"] == 1
 
 
 def test_cache_is_reused_and_status_is_recomputed_for_each_visit_date(fake):

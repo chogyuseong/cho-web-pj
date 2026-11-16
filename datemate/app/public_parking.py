@@ -1,4 +1,4 @@
-"""공공데이터 '전국주차장정보표준데이터'(data/public_parking.json)의 요금·운영시간.
+"""공공데이터 '전국주차장정보표준데이터'와 서울 '공영주차장 안내 정보'(data/public_parking.json)의 요금·운영시간.
 
 scripts/build_public_parking.py 가 만든 파일을 처음 쓸 때 한 번 읽고, 0.01도 격자로 묶어 가까운 주차장을 찾는다.
 외부 호출은 없다. 파일이 없으면 빈 자료로 동작한다(주차장 칸은 네이버 지역 검색 결과만 보여 준다).
@@ -12,6 +12,7 @@ import threading
 from datetime import date
 
 from .config import ROOT
+from .regions import region_from_address
 
 PATH = ROOT / "data" / "public_parking.json"
 SOURCE = "공공데이터포털 전국주차장정보표준데이터"
@@ -35,10 +36,17 @@ def load(path=None):
             lots = [dict(zip(columns, row)) for row in payload["rows"]]
         except (OSError, ValueError, KeyError, TypeError):
             lots = []
-        grid = {}
+        grid, names = {}, {}
         for lot in lots:
-            grid.setdefault(cell(lot["lat"], lot["lon"]), []).append(lot)
-        result = (lots, grid)
+            if lot.get("lat") is not None and lot.get("lon") is not None:
+                grid.setdefault(cell(lot["lat"], lot["lon"]), []).append(lot)
+            core = name_core(lot["name"])
+            if lot.get("district") and len(core) >= 3:
+                # 구 이름은 시·도마다 겹친다(서울 중구·부산 중구). 시·도까지 함께 본다.
+                names.setdefault(
+                    (region_from_address(lot["address"]), lot["district"], core), []
+                ).append(lot)
+        result = (lots, grid, names)
         if path is None:
             _data = result
         return result
@@ -66,7 +74,7 @@ def metres(lat1, lon1, lat2, lon2):
 
 def nearby(lat, lon, radius_m):
     """(거리 m, 주차장) 가까운 순."""
-    _, grid = load()
+    _, grid, _ = load()
     span = int(radius_m / (CELL * 111_320 * 0.7)) + 1
     base = cell(lat, lon)
     found = []
@@ -77,6 +85,43 @@ def nearby(lat, lon, radius_m):
                 if d <= radius_m:
                     found.append((d, lot))
     return sorted(found, key=lambda pair: pair[0])
+
+
+def district(address):
+    """주소의 구·군·시 낱말 하나(광역·특별시·도 이름 다음)."""
+    for word in str(address or "").split():
+        if word.endswith(("특별시", "광역시", "특별자치시", "특별자치도", "도")) and len(word) > 2:
+            continue
+        if word.endswith(("구", "군", "시")):
+            return word
+    return None
+
+
+def name_core(name):
+    """이름 핵심: 괄호·주차장·공영·임시·노상·노외·건물·평면·지하 낱말과 띄어쓰기를 뺀다('성수2가3동(건물) 공영주차장(구)' → '성수2가3동')."""
+    text = re.sub(r"\([^)]*\)", "", str(name or ""))
+    text = re.sub(r"공영|주차장|임시|노상|노외|건물|평면|지하|\s", "", text)
+    return text.casefold()
+
+
+def by_name(name, address):
+    """좌표가 없는 자료(서울 노외 주차장 등)를 같은 구 + 이름 핵심으로 찾는다. 한쪽 핵심이 다른 쪽을 품으면 같은 곳으로 본다(4글자 이상)."""
+    _, _, names = load()
+    region, gu, core = region_from_address(address), district(address), name_core(name)
+    if not region or not gu or len(core) < 3:
+        return None
+    exact = names.get((region, gu, core))
+    if exact:
+        return exact[0]
+    if len(core) >= 4:
+        for (other_region, other_gu, other), lots in names.items():
+            if (
+                (other_region, other_gu) == (region, gu)
+                and len(other) >= 4
+                and (core in other or other in core)
+            ):
+                return lots[0]
+    return None
 
 
 def won(amount):
@@ -91,11 +136,17 @@ def fee_text(lot):
     parts = []
     if lot.get("base_minutes") and lot.get("base_fee") is not None:
         fee = "무료" if lot["base_fee"] == 0 else won(lot["base_fee"])
-        parts.append(f"기본 {lot['base_minutes']}분 {fee}")
+        if not lot.get("extra_minutes") and lot["base_minutes"] <= 10 and lot["base_fee"]:
+            # 추가 단위가 없고 기본 시간이 짧으면(서울 '5분 250원') 단위 요금이다.
+            parts.append(f"{lot['base_minutes']}분당 {fee}")
+        else:
+            parts.append(f"기본 {lot['base_minutes']}분 {fee}")
     if lot.get("extra_minutes") and lot.get("extra_fee"):
         parts.append(f"추가 {lot['extra_minutes']}분당 {won(lot['extra_fee'])}")
     if lot.get("day_fee"):
         parts.append(f"1일 {won(lot['day_fee'])}")
+    if lot.get("free_days"):
+        parts.append(lot["free_days"])
     if not parts:
         return None
     return ("유료·무료 혼합 · " if kind == "혼합" else "") + " · ".join(parts)

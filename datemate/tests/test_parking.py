@@ -7,7 +7,9 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from app import intent_discovery, parking, store, web_security
+import json
+
+from app import intent_discovery, parking, public_parking, store, web_security
 from app.catalog import places
 from app.condition_audit import audit_plan
 from app.main import app
@@ -15,7 +17,9 @@ from app.models import Conditions
 from app.planner import evaluate
 
 ORIGIN = dict(name='서울 종로구 출발', lat=37.575, lon=126.985)
-LOT_FIELDS = {'id', 'name', 'category', 'address', 'lat', 'lon', 'distance_m', 'walk_minutes', 'public_by_name'}
+LOT_FIELDS = {'id', 'name', 'category', 'address', 'lat', 'lon', 'distance_m', 'walk_minutes', 'public_by_name', 'public'}
+COLUMNS = ['id', 'name', 'kind', 'address', 'lat', 'lon', 'fee_kind', 'base_minutes', 'base_fee', 'extra_minutes', 'extra_fee',
+           'day_fee', 'days', 'weekday', 'saturday', 'holiday', 'as_of', 'provider']
 
 
 def unique_ip():
@@ -53,6 +57,29 @@ def make_plan(mode='real', transport='walk', car_legs=(), places_rows=None, **fi
 def item(title, lat, lon, category='교통,수송>주차장', address='서울특별시 종로구 삼청로 1'):
     return dict(title=title, category=category, roadAddress=address,
                 mapx=str(round(lon * 10000000)), mapy=str(round(lat * 10000000)))
+
+
+def public_rows(tmp_path, rows_):
+    """공공데이터 주차장 파일을 tmp 에 쓰고 그 파일로 바꾼다."""
+    path = tmp_path / 'public_parking.json'
+    path.write_text(json.dumps(dict(columns=COLUMNS, rows=rows_), ensure_ascii=False), encoding='utf-8')
+    public_parking.reset(path)
+
+
+def public_row(name, lat, lon, **fields):
+    row = dict(id='P-' + name, name=name, kind='공영', address='서울특별시 종로구 삼청동 1', lat=lat, lon=lon, fee_kind='유료',
+               base_minutes=30, base_fee=500, extra_minutes=10, extra_fee=200, day_fee=None, days='평일+토요일+공휴일',
+               weekday=['09:00', '21:00'], saturday=['10:00', '18:00'], holiday=None, as_of='2026-04-16', provider='종로구')
+    row.update(fields)
+    return [row[c] for c in COLUMNS]
+
+
+@pytest.fixture(autouse=True)
+def no_public_parking(tmp_path):
+    """기본은 공공데이터 주차장 없음(저장소의 실제 파일과 섞이지 않게). 필요한 테스트만 public_rows 로 채운다."""
+    public_rows(tmp_path, [])
+    yield
+    public_parking.reset()
 
 
 @pytest.fixture
@@ -144,7 +171,7 @@ def test_filters_dedupe_and_diagnostics(search):
     assert diagnostics['received'] == 8 * 2 + 2
     # 장소마다: 업종 아님 2(음식점·발렛), 다른 지역 1, 좌표 1, 800m 초과 1, 같은 이름·주소 1. 장소를 넘는 중복 1.
     assert diagnostics['rejected'] == dict(not_parking=4, other_region=2, bad_coordinates=2, out_of_radius=2, duplicate=3)
-    assert result['source_type'] == '네이버 지역 검색' and '포함하지 않았어요' in result['note']
+    assert result['source_type'] == '네이버 지역 검색 · 공공데이터포털 전국주차장정보표준데이터' and '포함하지 않았어요' in result['note']
 
 
 def test_second_request_uses_the_cache(search):
@@ -224,3 +251,76 @@ def test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(search, monke
             response = client.get(f"/api/plans/{plan['id']}/parking")
             codes.append(response.status_code)
     assert codes == [200, 429] and response.json()['detail'] == '주차장 검색은 잠시 후 다시 시도해 주세요.'
+
+
+def test_public_data_adds_fees_hours_and_extra_lots(search, tmp_path):
+    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)  # 방문일 2026-10-24(토)
+    place = plan['places'][0]
+    lat, lon = place['lat'], place['lon']
+    public_rows(tmp_path, [
+        # 네이버 결과와 같은 곳(30m 안, 이름 겹침) → 요금·운영시간이 붙는다.
+        public_row('삼청 공영주차장', lat + 0.0012, lon),
+        # 네이버에 없던 곳 → 따로 들어간다. 이름에 '주차'가 없으면 붙인다.
+        public_row('삼청동 2', lat + 0.002, lon, fee_kind='무료', base_fee=0),
+        # 800m 밖, 다른 시·도 주소는 뺀다.
+        public_row('먼 곳', lat + 0.009, lon),
+        public_row('다른 시도', lat + 0.001, lon, address='경기도 성남시 분당구 1'),
+    ])
+    search['answer'] = lambda term, area: ([item('삼청공영주차장', lat + 0.001, lon)], 'available')
+    result = parking.parking_near(plan)
+    lots = result['stops'][0]['lots']
+    assert [lot['name'] for lot in lots] == ['삼청공영주차장', '삼청동 2 주차장']
+    matched, extra = lots
+    assert matched['public'] == dict(fee='기본 30분 500원 · 추가 10분당 200원', hours='방문일(토) 10:00~18:00', kind='공영',
+                                     as_of='2026-04-16', source='공공데이터포털 전국주차장정보표준데이터')
+    assert extra['public']['fee'] == '무료' and extra['category'] == '공공데이터 주차장' and set(extra) == LOT_FIELDS
+    assert result['diagnostics']['public_matched'] == 1 and result['diagnostics']['public_candidates'] == 2
+
+
+def test_public_data_still_shows_without_a_naver_key(search, monkeypatch, tmp_path):
+    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)
+    place = plan['places'][0]
+    public_rows(tmp_path, [public_row('키 없이 보이는 주차장', place['lat'] + 0.001, place['lon'])])
+    monkeypatch.delenv('NAVER_SEARCH_CLIENT_ID')
+    result = parking.parking_near(plan)
+    assert result['status'] == 'available' and search['calls'] == []
+    assert [lot['name'] for lot in result['stops'][0]['lots']] == ['키 없이 보이는 주차장']
+    assert result['diagnostics']['cache_hit'] is False
+
+
+def test_fee_and_hours_text():
+    from datetime import date
+    lot = dict(fee_kind='유료', base_minutes=30, base_fee=1200, extra_minutes=15, extra_fee=600, day_fee=14400,
+               days='평일+토요일', weekday=['00:00', '23:59'], saturday=['09:00', '18:00'], holiday=None)
+    assert public_parking.fee_text(lot) == '기본 30분 1,200원 · 추가 15분당 600원 · 1일 14,400원'
+    assert public_parking.fee_text(dict(lot, fee_kind='무료')) == '무료'
+    assert public_parking.fee_text(dict(lot, fee_kind='혼합', extra_fee=None, day_fee=None)) == '유료·무료 혼합 · 기본 30분 1,200원'
+    assert public_parking.fee_text(dict(fee_kind='유료', base_minutes=None, base_fee=None)) is None
+    assert public_parking.hours_text(lot, date(2026, 11, 16)) == '방문일(월) 24시간'
+    assert public_parking.hours_text(lot, date(2026, 11, 21)) == '방문일(토) 09:00~18:00'
+    assert public_parking.hours_text(lot, date(2026, 11, 22)) == '방문일(일) 운영하지 않아요(운영요일: 평일+토요일)'
+    assert public_parking.hours_text(lot, None) is None
+
+
+def test_build_script_reads_the_cp949_csv(tmp_path, monkeypatch):
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location('build_public_parking', Path(__file__).parents[1] / 'scripts' / 'build_public_parking.py')
+    build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build)
+    header = ('주차장관리번호,주차장명,주차장구분,소재지도로명주소,소재지지번주소,운영요일,평일운영시작시각,평일운영종료시각,'
+              '토요일운영시작시각,토요일운영종료시각,공휴일운영시작시각,공휴일운영종료시각,요금정보,주차기본시간,주차기본요금,'
+              '추가단위시간,추가단위요금,1일주차권요금,위도,경도,데이터기준일자,제공기관명')
+    lines = [header,
+             '1-1,포석로공영주차장,공영,,경상북도 경주시 황남동 1,평일+토요일,10:00,18:00,10:00,18:00,,,유료,30,500,10,200,"10,000",35.83,129.21,2026-04-16,경상북도 경주시',
+             '1-2,좌표없음,공영,,경상북도 경주시 2,평일,,,,,,,무료,0,0,,,,,,2026-04-16,경상북도 경주시']
+    source = tmp_path / 'parking.csv'
+    source.write_bytes('\n'.join(lines).encode('cp949'))
+    out = tmp_path / 'out.json'
+    monkeypatch.setattr(build, 'OUT', out)
+    build.main(str(source))
+    payload = json.loads(out.read_text(encoding='utf-8'))
+    assert payload['columns'] == COLUMNS and len(payload['rows']) == 1
+    row = dict(zip(COLUMNS, payload['rows'][0]))
+    assert row['name'] == '포석로공영주차장' and row['address'] == '경상북도 경주시 황남동 1' and row['day_fee'] == 10000
+    assert row['weekday'] == ['10:00', '18:00'] and row['holiday'] is None and row['as_of'] == '2026-04-16'

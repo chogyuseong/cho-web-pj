@@ -5,21 +5,24 @@
 
 찾는 장소는 자동차 구간이 도착하는 장소다(leg_modes.car_position_notes 의 규칙대로 차는 그곳에 선다).
 귀가 구간의 도착(집)은 찾지 않는다. 장소마다 네이버 지역 검색 2건('장소명 주차장', '동네 공영주차장').
+공공데이터 전국주차장정보표준데이터(app/public_parking.py, 외부 호출 없음)의 같은 주차장에는 요금·방문일 운영시간·기준일을 붙이고,
+네이버 결과에 없던 공공데이터 주차장도 함께 넣어 가까운 순으로 장소당 3곳을 보인다. 네이버 키가 없으면 공공데이터만 쓴다.
 """
 
 import hashlib
 import json
 import math
 from collections import Counter
+from datetime import date
 
-from . import store
+from . import public_parking, store
 from .image_search import plain, search_enabled
 from .leg_modes import leg_mode, uses_car
 from .models import Conditions
 from .regions import korean_coordinates, region_from_address
 from .routes import distance
 
-SOURCE_TYPE = "네이버 지역 검색"
+SOURCE_TYPE = "네이버 지역 검색 · 공공데이터포털 전국주차장정보표준데이터"
 RADIUS_M = 800
 PER_STOP = 3
 MAX_LOOKUPS = 10
@@ -122,6 +125,30 @@ def filter_lots(place, items, regions):
     return sorted(lots.values(), key=lambda lot: lot["distance_m"]), len(items), rejected
 
 
+def visit_date(conditions):
+    try:
+        return date.fromisoformat(str(conditions.get("visit_date") or ""))
+    except ValueError:
+        return None
+
+
+def public_lot(lot, distance_m, visit):
+    """네이버 결과에 없던 공공데이터 주차장 한 곳."""
+    name = lot["name"] if "주차" in lot["name"] else lot["name"] + " 주차장"
+    return dict(
+        id="parking:public-" + hashlib.sha256(lot["id"].encode()).hexdigest()[:16],
+        name=name,
+        category="공공데이터 주차장",
+        address=lot["address"],
+        lat=lot["lat"],
+        lon=lot["lon"],
+        distance_m=round(distance_m),
+        walk_minutes=walk_minutes(distance_m / 1000),
+        public_by_name=False,
+        public=public_parking.details(lot, visit),
+    )
+
+
 def lookup_status(statuses):
     if "permission_required" in statuses:
         return "permission_required"
@@ -157,8 +184,8 @@ def parking_near(plan):
     indices = car_stops(plan)
     if not indices:
         return result("not_car")
-    if not search_enabled():
-        return result("key_missing")
+    # 네이버 키가 없어도 공공데이터 주차장(외부 호출 없음)은 보여 준다.
+    naver = search_enabled()
     course_region = conditions.get("region")
     targets = []
     for i in indices:
@@ -172,7 +199,7 @@ def parking_near(plan):
     cached = store.cached_many(t["key"] for t in targets)
     queries, owners = [], []
     for target in targets:
-        if target["key"] in cached:
+        if target["key"] in cached or not naver:
             continue
         place = target["place"]
         terms = [("주차장", place["name"])]
@@ -200,6 +227,9 @@ def parking_near(plan):
         if key in cached:
             per_place[key] = cached[key]
             continue
+        if not naver:
+            per_place[key] = dict(status="key_missing", lots=[], received=0, rejected={})
+            continue
         entry = found.get(key, dict(items=[], statuses=["unavailable"]))
         status = lookup_status(entry["statuses"])
         lots, received, reasons = filter_lots(target["place"], entry["items"], target["regions"])
@@ -215,7 +245,7 @@ def parking_near(plan):
         writes.append((key, row, CACHE_FOUND_SECONDS if lots else CACHE_EMPTY_SECONDS))
     if writes:
         store.cache_many(writes)
-    if targets and not queries:
+    if naver and targets and not queries:
         diagnostics["cache_hit"] = True
         count_cache_hit("parking_local")
     # 여러 장소에서 같은 주차장이 나오면 가장 가까운 장소 아래에만 둔다.
@@ -232,10 +262,54 @@ def parking_near(plan):
                 rejected["duplicate"] += 1
                 if lot["distance_m"] < current[0]:
                     nearest[lot["id"]] = (lot["distance_m"], target["index"])
+    # 공공데이터 주차장: 네이버 결과와 같은 곳이면 요금·운영시간을 붙이고, 아니면 따로 넣는다(가장 가까운 장소 아래에만).
+    visit = visit_date(conditions)
+    public_near, public_owner = {}, {}
+    for target in targets:
+        place = target["place"]
+        rows = []
+        for d, lot in public_parking.nearby(place["lat"], place["lon"], RADIUS_M):
+            region = region_from_address(lot["address"])
+            if region and region not in target["regions"]:
+                continue
+            rows.append((d, lot))
+            owner = public_owner.get(lot["id"])
+            if owner is None or d < owner[0]:
+                public_owner[lot["id"]] = (d, target["index"])
+        public_near[target["index"]] = rows
+    diagnostics["public_candidates"] = len(public_owner)
+    diagnostics["public_matched"] = 0
+    # 1) 네이버 결과마다 같은 공공데이터 주차장을 찾아 붙인다(쓴 행은 모든 장소에서 다시 쓰지 않음).
+    owned, used = {}, set()
+    for target in targets:
+        row = per_place[target["key"]]
+        own = [
+            dict(lot, public=None)
+            for lot in row["lots"]
+            if nearest[lot["id"]][1] == target["index"]
+        ]
+        for lot in own:
+            for _, pub in public_near[target["index"]]:
+                if pub["id"] in used:
+                    continue
+                gap = public_parking.metres(lot["lat"], lot["lon"], pub["lat"], pub["lon"])
+                if public_parking.same_lot(lot["name"], pub, gap):
+                    lot["public"] = public_parking.details(pub, visit)
+                    used.add(pub["id"])
+                    diagnostics["public_matched"] += 1
+                    break
+        owned[target["index"]] = own
     stops, statuses = [], []
     for target in targets:
         row = per_place[target["key"]]
-        lots = [lot for lot in row["lots"] if nearest[lot["id"]][1] == target["index"]][:PER_STOP]
+        own = owned[target["index"]]
+        # 2) 네이버 결과에 없던 공공데이터 주차장은 가장 가까운 장소 아래에만 넣는다.
+        for d, pub in public_near[target["index"]]:
+            if pub["id"] in used or public_owner[pub["id"]][1] != target["index"]:
+                continue
+            own.append(public_lot(pub, d, visit))
+        own.sort(key=lambda lot: lot["distance_m"])
+        lots = own[:PER_STOP]
         status = (
             "available"
             if lots
@@ -259,6 +333,8 @@ def parking_near(plan):
         overall = "permission_required"
     elif "unavailable" in statuses:
         overall = "unavailable"
+    elif "key_missing" in statuses:
+        overall = "key_missing"
     else:
         overall = "not_found"
     return result(overall, stops, "" if overall == "available" else None)

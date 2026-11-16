@@ -502,6 +502,12 @@ body:not(.show-date-plan) .hero-photo {
 .parking-panel a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
 .parking-panel button { min-height:44px; font-size:15px; }
 .parking-panel .parking-note { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+/* 블로그 후기 본문에서 읽은 영업시간(참고용). 확인된 운영 정보와 구분되게 회색 꼬리표로 둔다. */
+.review-facts { margin:8px 0; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--platform); overflow-wrap:anywhere; }
+.review-facts p { margin:2px 0; font-size:15px; line-height:1.5; color:var(--ink); }
+.review-facts .review-facts-tag { font-size:14px; background:var(--paper); color:var(--ink); border:1px solid var(--line); }
+.review-facts .hint { font-size:14px; color:var(--muted); }
+.review-facts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
 @media(max-width:800px) {
   .detail { --time:0px; --rail:36px; }
   .detail .stop { grid-template-columns:var(--rail) minmax(0,1fr); padding-bottom:24px; }

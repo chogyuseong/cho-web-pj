@@ -36,7 +36,7 @@ function renderDetail() {
     body.append(node('span', placeKind(place), 'step-category'));
     const cost = p.costs.find(c => c.name === place.name);
     if (cost) body.append(node('div', `${p.conditions.people}인 장소 비용 · ${range(cost.amount)}`, 'stop-cost'));
-    body.append(node('h4', place.name), node('div', `${p.timeline[i].arrival} ~ ${p.timeline[i].departure} · ${placeKind(place)}`, 'small'), linkedText('p', p.reasons[i], 'hint'));
+    body.append(node('h4', place.name), node('div', `${p.timeline[i].arrival} ~ ${p.timeline[i].departure} · ${placeKind(place)}`, 'small'), linkedText('p', p.reasons[i], 'hint'), reviewFactsLine(place, p.conditions.mode));
     const buttons = node('div', undefined, 'actions');
     buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 변경', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)), link('도착지 지도·길찾기 확인', p.legs[i].link));
     body.append(placeEvidencePanel(p, i));

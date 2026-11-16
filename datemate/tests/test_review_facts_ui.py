@@ -17,8 +17,10 @@ def test_review_hours_line_under_the_stop(audit_page):
         if first.replace(':', '%3A') in route.request.url or first in route.request.url:
             return route.fulfill(json=dict(status='available', hours='매일 11:00~21:00', closed='정기휴무 : 매주 월요일',
                                            note='블로그 후기에 적힌 정보예요. 지금과 다를 수 있어요.', evidence='…',
+                                           prices=[dict(item='감자만두', amount=10000, url='https://blog.naver.com/a/1', posted_at='2026-10-08'),
+                                                   dict(item='맑은한돈곰탕', amount=12000, url='https://blog.naver.com/a/1', posted_at='2026-10-08')],
                                            source=dict(url='https://blog.naver.com/a/1', title='후기', posted_at='2026-10-08')))
-        return route.fulfill(json=dict(status='not_found', hours=None, closed=None, source=None, evidence=None, note=''))
+        return route.fulfill(json=dict(status='not_found', hours=None, closed=None, source=None, evidence=None, note='', prices=[]))
 
     page.route('**/api/places/*/review-facts*', handle)
     page.evaluate(REAL)
@@ -28,7 +30,8 @@ def test_review_hours_line_under_the_stop(audit_page):
     box = stops.first.locator('.review-facts')
     text = box.inner_text()
     assert '후기에서 읽은 영업시간' in text and '매일 11:00~21:00 · 정기휴무 : 매주 월요일' in text
-    assert '블로그 글(2026-10-08) 기준 · 지금과 다를 수 있어요.' in text
+    assert '후기에 나온 가격 예 감자만두 10,000원 · 맑은한돈곰탕 12,000원' in text
+    assert '블로그 글(2026-10-08) 기준 · 지금과 다를 수 있어요. 예상 비용에는 넣지 않았어요.' in text
     anchor = box.locator('a')
     assert anchor.inner_text() == '근거 글 보기 ↗' and anchor.get_attribute('href') == 'https://blog.naver.com/a/1'
     # 읽은 것이 없는 장소에는 아무것도 남지 않는다.

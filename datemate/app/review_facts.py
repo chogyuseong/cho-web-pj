@@ -1,4 +1,4 @@
-"""블로그 후기 본문에서 읽은 영업시간·휴무(참고용). 추천 계산에는 쓰지 않고 결과 화면에 '후기 기준'으로만 보인다.
+"""블로그 후기 본문에서 읽은 영업시간·휴무와 메뉴 가격 예(참고용). 추천 계산에는 쓰지 않고 결과 화면에 '후기 기준'으로만 보인다.
 
 장소 블로그 검색(blog_search.place_blogs, 1시간 캐시)이 고른 글 최대 3개의 공개 본문(course_search.public_body)을 읽는다.
 한 글에 여러 장소가 나오므로 장소 이름이 나온 자리 바로 뒤(WINDOW 글자)에서만 '영업·운영·이용 시간 HH:MM~HH:MM'과
@@ -7,6 +7,7 @@
 
 2026-11-16 측정(인기 동네 6곳 추천 장소 41곳, 글 101개): 위 규칙으로 23곳에서 영업시간을 읽었고, 근거 문장을 사람이 본 판정으로
 23곳 모두 그 장소의 시간이었습니다(규칙을 이 표본을 보며 정했으므로 새 표본에서의 정확도는 아님).
+가격은 같은 표본에서 18곳에 메뉴 가격이 읽혔습니다. 2인 세트·추가 금액이 섞일 수 있어 비용 계산에는 쓰지 않고 '가격 예'로만 보입니다.
 """
 
 import hashlib
@@ -39,6 +40,20 @@ REST = re.compile(
     r"(?:정기\s*)?휴무(?:일)?\s*[:：]?\s*(?:매주\s*)?[월화수목금토일](?:요일)?"
     r"|[월화수목금토일]요일\s*(?:정기\s*)?휴무|연중\s*무휴"
 )
+# 가격: 장소 이름 뒤 PRICE_WINDOW 글자 안의 '메뉴 이름 N원'. 주차·배달·할인·합계·여러 개 묶음 같은 금액은 뺀다.
+PRICE_WINDOW = 1500
+AMOUNT = re.compile(r"(?<![\d,.])(\d{1,3}(?:,\d{3})+|\d{4,6})\s*원")
+ITEM_WORD = re.compile(r"[가-힣A-Za-z0-9()&+]+")
+# 메뉴 이름 앞에서 멈출 낱말: 주소(숫자·길·로·층·호), 안내 낱말, 지점 이름.
+ITEM_STOP = re.compile(
+    r"^(?:[\d\-]+|\d+원|.*\d+(?:길|로|번길|층|호|동)|메뉴.*|가격.*|주문.*|먹은|각각|기본|대표|인기|추천|티켓|예매|.{2,}점|.*(?:요|다|고|서|며|죠|네)|.*[었았였했])$"
+)
+NOT_MENU = re.compile(
+    r"시간\s*당|분\s*당|최대|하루|합쳐|합계|총|이후|추가\s*요금|\d\s*개|주차|배달|택배|배송|할인|적립|쿠폰|포인트"
+    r"|보증금|대여|주유|교통|택시|요금제|월\s*\d|원대|결제|영수증|기본요금|정가|원가"
+)
+PRICE_RANGE = {"카페·미식": (2500, 60000), "체험·제작": (3000, 150000), "문화·예술": (1000, 50000)}
+MAX_PRICES = 4
 DISTRICT = re.compile(r"([가-힣]{1,4}(?:시|군|구))(?=\s)")
 METRO = {"특별시", "광역시", "자치시"}
 
@@ -96,6 +111,48 @@ def read_post(body, place):
     return found
 
 
+def item_name(before, place_key=""):
+    """금액 바로 앞 글에서 메뉴 이름(낱말 최대 3개). 주소·안내 낱말·문장 끝말·지점·장소 이름에서 멈춘다."""
+    words = ITEM_WORD.findall(before.split(":")[-1].split("：")[-1])
+    picked = []
+    for word in reversed(words):
+        if ITEM_STOP.match(word) or (len(word) >= 4 and word in place_key):
+            break
+        picked.insert(0, word)
+        if len(picked) == 3:
+            break
+    name = " ".join(picked).strip(" &+").rstrip("( ")
+    if name.count("(") > name.count(")"):
+        name += ")"
+    return name.lstrip(")")
+
+
+def read_prices(body, place):
+    """한 글 본문에서 (메뉴 이름, 금액) 목록. 이름을 읽지 못한 금액은 버린다."""
+    own = districts(place.get("address"))
+    low, high = PRICE_RANGE.get(place.get("category"), (2000, 100000))
+    starts = sorted({m.start() for pattern in name_patterns(place) for m in pattern.finditer(body)})
+    found, used = [], set()
+    place_key = "".join(str(place.get("name") or "").split())
+    for start in starts:
+        window = body[start : start + PRICE_WINDOW]
+        for match in AMOUNT.finditer(window):
+            at = start + match.start()
+            if at in used:
+                continue
+            used.add(at)
+            if other_branch(window[: match.start()], own):
+                break
+            amount = int(match.group(1).replace(",", ""))
+            before = body[max(0, at - 25) : at]
+            if not low <= amount <= high or NOT_MENU.search(before + match.group(0)):
+                continue
+            name = item_name(before, place_key)
+            if len(re.sub(r"[^가-힣A-Za-z]", "", name)) >= 2:
+                found.append((name, amount))
+    return found
+
+
 def review_facts(place):
     """GET /api/places/{id}/review-facts 의 응답."""
     empty = dict(
@@ -104,11 +161,12 @@ def review_facts(place):
         closed=None,
         source=None,
         evidence=None,
+        prices=[],
         note="블로그 후기에 적힌 정보예요. 지금과 다를 수 있어요.",
     )
     if place.get("demo"):
         return dict(empty, status="demo")
-    if place.get("category") in SKIP_CATEGORIES or place.get("hours"):
+    if place.get("category") in SKIP_CATEGORIES:
         return dict(empty, status="skipped")
     from .blog_search import place_blogs
 
@@ -117,7 +175,7 @@ def review_facts(place):
         return dict(empty, status=blogs.get("status") or "unavailable")
     posts = blogs["posts"][:3]
     key = (
-        "review-facts-v1:"
+        "review-facts-v2:"
         + hashlib.sha256(
             repr([place.get("id"), place.get("name"), [p["url"] for p in posts]]).encode()
         ).hexdigest()
@@ -134,8 +192,23 @@ def review_facts(place):
         ThreadPoolExecutor(max_workers=3) as pool,
     ):
         bodies = context_map(pool, public_body, [p["url"] for p in posts])
-    votes, first = Counter(), {}
+    # 가격: 여러 글에 나온 메뉴 이름(띄어쓰기 무시)마다 첫 금액, 많이 나온 순으로 MAX_PRICES 개.
+    menu, menu_votes = {}, Counter()
     for post, body in zip(posts, bodies):
+        for name, amount in read_prices(body or "", place):
+            key_ = "".join(name.split())
+            menu_votes[key_] += 1
+            menu.setdefault(
+                key_,
+                dict(item=name, amount=amount, url=post["url"], posted_at=post.get("posted_at")),
+            )
+    prices = [menu[k] for k, _ in menu_votes.most_common(MAX_PRICES)]
+    votes, first = Counter(), {}
+    # 영업시간이 이미 확인된 장소는 후기 영업시간을 보이지 않는다(가격만).
+    known_hours = bool(place.get("hours"))
+    for post, body in zip(posts, bodies):
+        if known_hours:
+            break
         # 한 글 안에서 이름이 여러 번 나와도 같은 시간은 한 표.
         seen = set()
         for hours, closed, evidence in read_post(body or "", place):
@@ -143,26 +216,26 @@ def review_facts(place):
                 seen.add(hours)
                 votes[hours] += 1
             first.setdefault(hours, (post, closed, evidence))
-    if not votes:
-        result = dict(empty, read_posts=sum(1 for b in bodies if b))
+    read = sum(1 for b in bodies if b)
+    if not votes and not prices:
+        result = dict(empty, prices=[], read_posts=read)
         store.cache(key, result, EMPTY_SECONDS)
         return result
-    hours, _ = votes.most_common(1)[0]
-    post, closed, evidence = first[hours]
-    result = dict(
-        empty,
-        status="available",
-        hours=hours,
-        closed=closed,
-        evidence=evidence,
-        agreeing_posts=votes[hours],
-        read_posts=sum(1 for b in bodies if b),
-        source=dict(
-            url=post["url"],
-            title=post["title"],
-            posted_at=post.get("posted_at"),
-            blogger=post.get("blogger"),
-        ),
-    )
+    result = dict(empty, status="available", prices=prices, read_posts=read)
+    if votes:
+        hours, _ = votes.most_common(1)[0]
+        post, closed, evidence = first[hours]
+        result.update(
+            hours=hours,
+            closed=closed,
+            evidence=evidence,
+            agreeing_posts=votes[hours],
+            source=dict(
+                url=post["url"],
+                title=post["title"],
+                posted_at=post.get("posted_at"),
+                blogger=post.get("blogger"),
+            ),
+        )
     store.cache(key, result, CACHE_SECONDS)
     return result

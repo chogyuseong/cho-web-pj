@@ -82,7 +82,6 @@ def test_most_agreed_hours_with_source_and_cache(fake):
 
 def test_skips_parks_known_hours_demo_and_missing_blogs(fake):
     assert review_facts.review_facts(place(category='산책·풍경'))['status'] == 'skipped'
-    assert review_facts.review_facts(place(hours=[600, 1260]))['status'] == 'skipped'
     assert review_facts.review_facts(place(demo=True))['status'] == 'demo'
     fake['blogs'] = dict(status='not_found', posts=[])
     assert review_facts.review_facts(place())['status'] == 'not_found'
@@ -96,3 +95,28 @@ def test_route_is_expensive_and_unknown_place_is_404():
     assert any(p.match('GET /api/places/abc/review-facts') for p in web_security.EXPENSIVE)
     with TestClient(app) as client:
         assert client.get('/api/places/discovered:none/review-facts').status_code == 404
+
+
+MENU = ('온목당 경주황리단길본점 주소: 경북 경주시 사정로57번길 6 메뉴 맑은한돈곰탕 12,000원 들기름 칼국수 12,000원 '
+        '감자만두 10,000원 주차는 시간당 3,000원 칼국수 2개 24,000원 총 46,000원 결제')
+
+
+def test_reads_menu_prices_and_drops_parking_and_totals():
+    p = place(name='온목당 경주황리단길 본점', address='경상북도 경주시 사정로57번길 6')
+    found = review_facts.read_prices(MENU, p)
+    assert found == [('맑은한돈곰탕', 12000), ('들기름 칼국수', 12000), ('감자만두', 10000)]
+    # 다른 지점(다른 시·군·구) 뒤의 가격은 읽지 않는다.
+    branch = '온목당 부산점 주소: 부산 해운대구 우동 1 메뉴 맑은한돈곰탕 15,000원'
+    assert review_facts.read_prices(branch, p) == []
+
+
+def test_prices_are_returned_even_without_hours_and_for_places_with_known_hours(fake):
+    tag = uuid.uuid4().hex[:6]
+    urls = [f'https://blog.naver.com/p/{tag}{i}' for i in range(2)]
+    fake['blogs'] = dict(status='available', posts=posts(*urls))
+    fake['bodies'] = {urls[0]: MENU, urls[1]: '온목당 경주황리단길본점 감자만두 10,000원 맑은한돈곰탕 12,000원'}
+    p = place(name='온목당 경주황리단길 본점', address='경상북도 경주시 사정로57번길 6', hours=[660, 1290])
+    result = review_facts.review_facts(p)
+    assert result['status'] == 'available' and result['hours'] is None
+    assert [(x['item'], x['amount']) for x in result['prices']] == [('맑은한돈곰탕', 12000), ('감자만두', 10000), ('들기름 칼국수', 12000)]
+    assert result['prices'][0]['url'] == urls[0] and result['prices'][0]['posted_at'] == '2026-10-08'

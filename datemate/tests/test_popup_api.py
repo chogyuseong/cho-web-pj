@@ -206,7 +206,7 @@ def test_referral_post_with_a_screen_popup_is_not_shown(fake):
     data = get(TestClient(app)).json()
     assert [p["url"] for p in data["posts"]] == ["https://blog.naver.com/a/coupon"]
     assert data["counts"]["not_popup"] == 1 and data["counts"]["shown"] == 1
-    assert data["rules_version"] == "popups-rules-v3"
+    assert data["rules_version"] == "popups-rules-v4"
 
 
 def test_off_topic_vendor_and_other_region_title_posts_are_counted_apart(fake):

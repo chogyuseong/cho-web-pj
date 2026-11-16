@@ -260,7 +260,7 @@ def test_coupon_and_discount_alone_are_not_penalties():
 
 
 def test_rules_version_was_raised():
-    assert popups.RULES_VERSION == "popups-rules-v3"
+    assert popups.RULES_VERSION == "popups-rules-v4"
 
 
 # ---------------------------------------------------------------- 규칙 v3
@@ -420,3 +420,29 @@ def test_topic_names(title, description, names):
 )
 def test_title_other_region(title, region, other):
     assert popups.title_other_region(title, region) == other
+
+
+@pytest.mark.parametrize(
+    "title,description,shown",
+    [
+        # v4: 운영 서울 응답에 남았던 업체 글(제목 그대로). 팝업과 업무 낱말 사이에 다른 말이 끼어 있다.
+        (
+            "서울 팝업스토어 장소 대관, 280평 독채 케이브하우스 한남",
+            "브랜드 팝업 행사 공간을 찾으신다면",
+            False,
+        ),
+        (
+            "팝업스토어 간판 시공 | 스텐실 벽화 레터링부터 종료 후 원상복구",
+            "팝업스토어 현장 작업 사례",
+            False,
+        ),
+        # 행사 안의 제작 체험·인테리어 소품 팝업은 업체 글이 아니다.
+        ("성수 팝업스토어 굿즈 제작 체험 후기", "11월 20일까지 운영", True),
+        ("인테리어 소품 브랜드 첫 팝업스토어 오픈", "더현대 서울 5층", True),
+    ],
+)
+def test_v4_vendor_titles(title, description, shown):
+    result = popups.popup_evidence(title, description, has_period=False, has_hub=False)
+    assert result["show"] is shown, result
+    if not shown:
+        assert any(p.startswith("vendor:") for p in result["penalties"])

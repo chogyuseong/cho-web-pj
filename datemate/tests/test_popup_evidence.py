@@ -260,7 +260,7 @@ def test_coupon_and_discount_alone_are_not_penalties():
 
 
 def test_rules_version_was_raised():
-    assert popups.RULES_VERSION == "popups-rules-v4"
+    assert popups.RULES_VERSION == "popups-rules-v5"
 
 
 # ---------------------------------------------------------------- 규칙 v3
@@ -446,3 +446,32 @@ def test_v4_vendor_titles(title, description, shown):
     assert result["show"] is shown, result
     if not shown:
         assert any(p.startswith("vendor:") for p in result["penalties"])
+
+
+@pytest.mark.parametrize(
+    "title,description,shown",
+    [
+        # v5: 운영 서울 응답에 남았던 글(제목·요약 그대로 줄임).
+        (
+            "부산 창원 대구 대형룰렛 렌탈, 지역 축제 및 야외 행사장 시선 집중",
+            "지자체 문화 축제나 기업 홍보 부스, 대학교 축제, 백화점 팝업스토어 등 모든 현장에서",
+            False,
+        ),
+        (
+            "2026년 11월 27일 출시 예정인 '치이카와 클리닉' 굿즈 라인업, 일본 팝업",
+            "일본 팝업스토어 는 오픈 첫 주에 사전 추첨이나 당일 정리권 없이는",
+            False,
+        ),
+        # 지명이 다른 낱말에 붙어 있으면 국내 행사다.
+        ("서울숲역 홍콩익스프레스 팝업스토어 비행기 키링", "11월 30일까지 운영", True),
+        # 실제 팝업 소식을 담은 글은 그대로 둔다.
+        (
+            "NCT DREAM 정규 6집 초동 100만 장 돌파",
+            "서울 에서는 'WELCOME, DREAMERS'라는 이름의 팝업스토어 가 운영됐습니다.",
+            True,
+        ),
+    ],
+)
+def test_v5_vendor_in_description_and_foreign_popups(title, description, shown):
+    result = popups.popup_evidence(title, description, has_period=False, has_hub=False)
+    assert result["show"] is shown, result

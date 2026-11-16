@@ -1,5 +1,6 @@
 const httpClient=import('/static/http-client.mjs');
-async function api(...args){return (await httpClient).apiRequest(...args);}
+// 서버를 깨우는 동안(server-wake.js)에는 /status 말고는 보내지 않고, 준비되면 이어서 보낸다.
+async function api(...args){if(args[0]!=='/status'&&typeof ServerWake!=='undefined')await ServerWake.ready();return (await httpClient).apiRequest(...args);}
 
 async function copyPlanShare(plan){
   const shared=await api('/plans/'+plan.id+'/shares',{});

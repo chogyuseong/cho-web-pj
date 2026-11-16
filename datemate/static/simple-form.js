@@ -27,20 +27,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   const areaRow=chipRow('인기 동네'),areaStatus=node('p','','hint area-status');areaStatus.setAttribute('role','status');
   const areaCards=[...document.querySelectorAll('.curation-card[data-preset]')];
   function ready(){if(statusData)return true;toast('장소 정보를 준비 중이에요. 잠시 후 다시 눌러 주세요.');return false;}
-  // 화면이 뜬 직후 서버 상태를 받기 전에 누른 동네는 버리지 않고, 준비되는 대로(최대 30초) 마지막으로 누른 것을 적용한다.
-  let pendingArea=null,pendingTimer=null;
+  // 화면이 뜬 직후 서버 상태를 받기 전에 누른 동네는 버리지 않고, 서버가 준비되는 대로(server-wake.js) 마지막으로 누른 것을 적용한다.
+  let pendingArea=null,pendingWait=null;
   function whenReady(action){
     if(statusData){action();return;}
     pendingArea=action;areaStatus.textContent='장소 정보를 준비하고 있어요. 곧 적용할게요…';
-    if(pendingTimer)return;
-    let waited=0;
-    pendingTimer=setInterval(()=>{
-      waited+=100;
-      if(!statusData&&waited<30000)return;
-      clearInterval(pendingTimer);pendingTimer=null;
+    if(pendingWait)return;
+    pendingWait=ServerWake.ready().then(()=>{
+      pendingWait=null;
       const run=pendingArea;pendingArea=null;
       if(statusData)run();else areaStatus.textContent='장소 정보를 불러오지 못했어요. 새로고침한 뒤 다시 눌러 주세요.';
-    },100);
+    });
   }
   const areaChips=areaCards.map(card=>{const item=chip(card.dataset.preset,()=>whenReady(()=>{applyPresetArea(card);areaStatus.textContent=card.dataset.preset+'을(를) 데이트할 지역으로 골랐어요.';refresh();}));item.dataset.area=card.dataset.preset;return item;});
   const here=button('현재 위치',useCurrentLocation,'quick-chip current-location');
@@ -337,7 +334,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     action.append(node('strong','지난번처럼 추천'),node('span',savedText(saved),'again-summary'));
     again.append(action,node('p','날짜는 오늘로 맞춰서 바로 추천해요. 조건을 바꾸려면 아래에서 고르세요.','hint'));
   }
+  let savedWait=null;
   function useSaved(saved){
+    // 서버가 켜지는 중에 누른 ‘지난번처럼 추천’은 준비되면 그대로 진행한다.
+    if(!statusData&&ServerWake.waiting){
+      if(!savedWait){toast('서버를 준비하고 있어요. 준비되면 바로 추천할게요.');savedWait=ServerWake.ready().then(()=>{savedWait=null;if(statusData)useSaved(saved);});}
+      return;
+    }
     if(!ready())return;
     if(document.getElementById('submit-plan').disabled){toast('코스를 찾는 중이에요. 끝난 뒤 다시 눌러 주세요.');return;}
     applyArea(saved.region,saved.origin);

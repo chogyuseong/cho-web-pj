@@ -3,6 +3,24 @@
   "name": "datemate",
   "main": "cloudflare/worker.js",
   "compatibility_date": "2026-11-12",
+  // Builds cloudflare/generated/edge-pages.mjs (the "/" and "/shared" HTML with ?v= hashes)
+  // from datemate/static. Wrangler runs it on every `wrangler deploy` and `wrangler dev`.
+  "build": {
+    "command": "node cloudflare/build-edge-pages.mjs",
+    "watch_dir": "datemate/static"
+  },
+  // datemate/static is uploaded with the Worker so the first screen can be answered while
+  // the container is asleep (cloudflare/edge.mjs). run_worker_first keeps every request going
+  // through the Worker's host, probe and rate-limit checks; the Worker serves a file only
+  // when the container is not running or still starting, and adds the app's headers.
+  // html_handling "none": serve each file at its own path (no index.html redirects).
+  "assets": {
+    "directory": "./datemate/static",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none",
+    "not_found_handling": "none"
+  },
   "containers": [
     {
       "class_name": "DatemateContainer",

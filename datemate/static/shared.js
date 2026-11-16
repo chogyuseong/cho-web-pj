@@ -8,11 +8,13 @@ function link(text,url){
 }
 (() => {
   const token=location.hash.slice(1), status=document.getElementById('shared-status'), form=document.getElementById('shared-form');
-  async function request(path,body){
-    const response=await fetch(path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(15000)});
-    const data=await response.json();if(!response.ok)throw Error(data.detail||'연결하지 못했어요.');return data;
+  async function request(path,body,timeout=15000){
+    const response=await fetch(path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(timeout)});
+    let data;try{data=await response.json();}catch{const error=Error('연결하지 못했어요.');error.status=response.status;error.unreadable=true;throw error;}
+    if(!response.ok){const error=Error(data.detail||'연결하지 못했어요.');error.status=response.status;throw error;}return data;
   }
-  request('/api/shared-plan').then(data=>{
+  // 잠든 서버가 켜지는 동안에는 다시 물으며 안내를 보여 준다(server-wake.js).
+  ServerWake.load(timeout=>request('/api/shared-plan',undefined,timeout)).then(data=>{
     status.textContent=data.notice;
     for(const place of data.places){
       const article=document.createElement('article'),title=document.createElement('h2'),text=document.createElement('p'),label=document.createElement('label'),select=document.createElement('select');

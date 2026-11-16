@@ -5,6 +5,8 @@
 .dev.vars*
 node_modules/
 .wrangler/
+# Built by cloudflare/build-edge-pages.mjs on every wrangler deploy/dev.
+/cloudflare/generated/
 
 .venv/
 venv/

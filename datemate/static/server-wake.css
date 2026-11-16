@@ -1,0 +1,8 @@
+/* 잠든 서버가 켜지는 동안의 안내(server-wake.js). 오류처럼 보이지 않게 경고색 대신 차분한 바탕을 쓴다. */
+.server-wake{position:relative;margin:0;padding:10px 16px;background:var(--platform,#f1f3f2);color:var(--ink,#1f2328);border-bottom:1px solid var(--line,#d5dbdf);font-size:.95rem;line-height:1.5;text-align:center}
+.server-wake[hidden]{display:none}
+.server-wake::before{content:"";display:inline-block;width:.8em;height:.8em;margin-right:.5em;vertical-align:-.05em;border:2px solid var(--muted,#55606b);border-right-color:transparent;border-radius:50%;animation:server-wake-spin 1s linear infinite}
+.server-wake.stalled::before{display:none}
+@media (prefers-reduced-motion:reduce){.server-wake::before{animation:none}}
+@keyframes server-wake-spin{to{transform:rotate(360deg)}}
+@media print{.server-wake{display:none}}

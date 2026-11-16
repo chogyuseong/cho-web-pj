@@ -1,6 +1,6 @@
 # Cloudflare에 전체 앱 배포
 
-이 저장소는 FastAPI와 정적 화면을 하나의 컨테이너 이미지로 실행하고, Cloudflare Worker가 모든 요청을 그 컨테이너에 전달합니다. 운영용 개인 Docker 서버는 필요하지 않습니다. Cloudflare **Workers Paid** 플랜의 Containers가 필요합니다. 현재 저장 코드는 PostgreSQL을 사용하므로, 데이터 보존에는 외부에서 접속 가능한 **관리형 PostgreSQL**이 필요합니다. Cloudflare D1은 PostgreSQL 대체 설정만으로 연결되지 않습니다.
+이 저장소는 FastAPI와 정적 화면을 하나의 컨테이너 이미지로 실행하고, Cloudflare Worker가 모든 요청을 그 컨테이너에 전달합니다. 단, 컨테이너가 꺼져 있거나 막 켜지는 중이면 첫 화면(`/`, `/shared`, `/static/*`)은 Worker가 함께 배포된 파일로 바로 답하고 컨테이너는 뒤에서 켭니다(아래 "첫 화면을 엣지에서 바로 그리기"). 운영용 개인 Docker 서버는 필요하지 않습니다. Cloudflare **Workers Paid** 플랜의 Containers가 필요합니다. 현재 저장 코드는 PostgreSQL을 사용하므로, 데이터 보존에는 외부에서 접속 가능한 **관리형 PostgreSQL**이 필요합니다. Cloudflare D1은 PostgreSQL 대체 설정만으로 연결되지 않습니다.
 
 ## 권장: Cloudflare Workers Builds로 배포
 
@@ -29,6 +29,18 @@ Cloudflare에서 관리형 PostgreSQL 서버를 제공하는 구성은 이 앱�
 - ChromaDB는 컨테이너 내부의 `PersistentClient`로만 사용합니다. 별도의 Chroma HTTP 서버나 포트를 공개하지 않습니다. 현재 ChromaDB 서버 API 관련 보안 공지가 있으므로, 해당 포트를 추가로 노출하거나 원격 모델 실행 기능을 활성화하지 마세요. CI의 `pip-audit`는 이 공지 4건(PYSEC-2026-311, -3813, -3814, -3815)만 예외로 두며, 수정 버전이 나오면 업그레이드하고 예외를 지웁니다.
 - Worker는 컨테이너로 넘기기 전에 IP(IPv4는 주소, IPv6는 /64)마다 요청 수를 셉니다(`wrangler.jsonc`의 `ratelimits`). 화면·API는 60초에 600회, `/static/` 파일은 60초에 1200회를 넘으면 컨테이너를 깨우지 않고 `429`와 `Retry-After: 60`을 돌려줍니다. 앱 자체 제한(분당 240회)보다 넉넉한 앞단 방패이며, 제한 기능이 없거나 오류가 나면 요청을 통과시킵니다. Cloudflare의 이 제한은 데이터센터별로 세는 근사값입니다.
 - 운영 이미지는 `requirements.txt`(실행에 필요한 패키지)만 설치합니다. `pytest`, `pypdf` 같은 테스트·관리 도구는 `requirements-dev.txt`에 있습니다.
+
+## 첫 화면을 엣지에서 바로 그리기
+
+컨테이너는 10분 동안 요청이 없으면 꺼지고, 다시 켜지는 데 수십 초가 걸립니다. 그동안 빈 화면을 보이지 않도록 다음처럼 나눕니다.
+
+- `npx wrangler deploy`(와 `wrangler dev`)는 먼저 `wrangler.jsonc`의 `build` 명령(`node cloudflare/build-edge-pages.mjs`)으로 `/`와 `/shared` HTML을 만듭니다. 앱의 `versioned_page()`와 같은 규칙으로 js·css 주소에 내용 해시(`?v=`)를 붙이고, 결과는 `cloudflare/generated/`(Git 제외)에 둡니다. `datemate/static`은 Workers Static Assets(`assets`)로 Worker와 함께 올라갑니다. 따로 실행할 빌드 단계는 없습니다.
+- 모든 요청은 지금처럼 Worker의 주소 검사(421)·내부 경로 404·요청 한도를 거쳐 컨테이너의 Durable Object로 갑니다(`run_worker_first`). Durable Object는 `GET`/`HEAD`의 `/`, `/shared`, `/static/*`에 한해, 컨테이너가 꺼져 있거나 자기가 방금 켠 컨테이너가 아직 준비되지 않았으면 기다리지 않고 컨테이너 기동만 시작한 뒤 "엣지에서 답하라"는 신호를 돌려줍니다. 그러면 Worker가 위 HTML과 정적 파일에 앱과 같은 보안 머리글(CSP, Permissions-Policy, HSTS 등)과 캐시 머리글을 붙여 답합니다(`cloudflare/edge.mjs`). 쿠키는 만들지 않습니다.
+- 컨테이너가 이미 켜져 있으면 화면·정적 파일·API 모두 지금처럼 컨테이너가 답합니다. 배포 직후 옛 이미지의 컨테이너가 아직 떠 있어도 옛 화면과 옛 API가 함께 쓰이고, 새 화면은 그 컨테이너가 꺼진 뒤부터 나옵니다.
+- API(`/api/*`)는 여전히 컨테이너가 준비될 때까지 기다립니다. 화면의 `server-wake.js`가 `/api/status`를 다시 물으며 "서버를 준비하고 있어요" 안내를 보여 주고, 그 사이 누른 코스 만들기 등 다른 API 요청은 준비된 뒤 이어서 보냅니다.
+- 머리글 값은 `datemate/tests/test_edge_headers.py`가 `app/web_security.py`와 같은지 확인하고, Worker 동작은 `npm run test:security`가 확인합니다.
+- 요금: 정적 파일 저장은 무료이고, `run_worker_first` 때문에 이 요청들은 지금처럼 Worker 요청으로 셉니다. Durable Object 요청 수도 지금과 같습니다(요청마다 한 번).
+- 되돌리기: `wrangler.jsonc`의 `build`·`assets`를 지우고 `cloudflare/worker.js`를 이전 커밋으로 돌린 뒤 다시 배포하면 모든 요청이 예전처럼 컨테이너로 갑니다.
 
 ## 로컬에서 직접 배포하는 경우
 

@@ -4,7 +4,7 @@ with sync_playwright() as p:
     browser=p.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(bypass_csp=True,viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
     assert page.locator('.leisure-choices').count()==0
     page.evaluate("form.elements.mode.value='demo';clearLocationsForMode();form.elements.visit_date.value='2026-10-24';form.elements.budget.value='1000000';form.elements.max_leg.value='180';form.elements.request.value='';form.requestSubmit()")

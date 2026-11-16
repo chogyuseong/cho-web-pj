@@ -2,7 +2,7 @@
 with sync_playwright() as p:
     browser=p.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':900});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle');page.wait_for_function('Boolean(statusData)')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle');page.wait_for_function('Boolean(statusData)')
     def theme():
         page.locator('header a[href="#curation"]').click()
         page.wait_for_function('location.hash==="#curation"&&!document.body.classList.contains("show-explore")&&!document.body.classList.contains("show-date-plan")')

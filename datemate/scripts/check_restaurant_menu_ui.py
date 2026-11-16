@@ -13,13 +13,13 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
     page.evaluate('food=>document.querySelector("#results").replaceChildren(restaurantCard(food))',food)
     page.locator('.restaurant-menu').scroll_into_view_if_needed()
     page.locator('.menu-price-row').first.wait_for(timeout=25000)
     assert page.locator('.menu-price-row b').first.inner_text()
-    data=page.request.get('http://127.0.0.1:8000/api/places/'+food['id']+'/menu?mode=real').json()
+    data=page.request.get('http://127.0.0.1:8001/api/places/'+food['id']+'/menu?mode=real').json()
     assert data['status']=='available' and data['source_kind']=='naver_public_menu'
     assert data['matched_name']==food['name']
     assert data['source_url'].startswith('https://map.naver.com/p/entry/place/')

@@ -10,7 +10,7 @@ with sync_playwright() as pw:
     page = browser.new_page(viewport={'width':1440,'height':1000})
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000', wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001', wait_until='networkidle')
     assert page.locator('.hero-photo img').evaluate('(img)=>img.complete && img.naturalWidth>0')
     page.screenshot(path=str(out/'calm-desktop.png'), full_page=True)
     page.locator('#nav-explore').click()

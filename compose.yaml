@@ -2,7 +2,7 @@ services:
   web:
     build: .
     ports:
-      - "127.0.0.1:8000:8080"
+      - "127.0.0.1:8001:8080"
     env_file: datemate/.env
     environment:
       DATEMATE_RUNTIME: /data/runtime

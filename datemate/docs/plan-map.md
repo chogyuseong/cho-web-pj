@@ -10,6 +10,6 @@
 
 검증: 전체 테스트 33개 통과, JavaScript 구문 검사 통과. 입력된 서버 키로 서울시청→광화문 실제 자동차 API 응답과 path 43개를 확인했습니다. localhost:8000에서 Edge 데스크톱 지도·마커 및 모바일 가로 넘침 없음을 확인했습니다. 실제 모드의 완성된 일정 전체를 검증한 것은 아닙니다.
 
-브라우저 재검증: 서버 실행 후 PowerShell에서 `$env:DATEMATE_TEST_URL='http://localhost:8000'` 설정 후 `python scripts/check_plan_map.py` 실행.
+브라우저 재검증: 서버 실행 후 PowerShell에서 `$env:DATEMATE_TEST_URL='http://localhost:8001'` 설정 후 `python scripts/check_plan_map.py` 실행. 지도 인증에는 이 주소가 네이버 클라우드 콘솔의 Dynamic Map Web 서비스 URL에 등록돼 있어야 합니다(콘솔에서 직접 등록).
 
 공식 구현 참고: https://navermaps.github.io/maps.js.ncp/docs/naver.maps.Polyline.html

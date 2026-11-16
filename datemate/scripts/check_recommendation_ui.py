@@ -12,7 +12,7 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(viewport={'width':1280,'height':900})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.locator('#themes input').first.wait_for(state='attached')
     page.locator('#submit-plan').click()
     page.locator('#results .plan-card').first.wait_for()

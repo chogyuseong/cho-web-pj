@@ -33,7 +33,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 그 밖의 타일 주소·청크 크기 등은 [.env.example](.env.example)에 있습니다. 실제 장소 코스는 전국 17개 시·도를 지원하고, 가상 장소 데모는 서울만 지원합니다.
 
-로컬(`http://127.0.0.1:8000`, `http://localhost:8000`)에서 네이버 지도를 쓰려면 Dynamic Map의 Web 서비스 URL에 그 주소를 등록해야 합니다. 넣은 키의 실제 동작은 `scripts/check_external_integrations.py`로 제공자별 1회씩 확인할 수 있습니다.
+로컬(`http://127.0.0.1:8001`, `http://localhost:8001`)에서 네이버 지도를 쓰려면 네이버 클라우드 콘솔에서 Dynamic Map의 Web 서비스 URL에 그 주소를 직접 등록해야 합니다(코드나 `.env`로는 바뀌지 않습니다). 넣은 키의 실제 동작은 `scripts/check_external_integrations.py`로 제공자별 1회씩 확인할 수 있습니다.
 
 ### 키가 없는 경우
 
@@ -52,10 +52,10 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```powershell
 .\.venv\Scripts\python.exe scripts/index_data.py --mode demo
 .\.venv\Scripts\python.exe scripts/index_data.py --mode real
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-<http://127.0.0.1:8000>에 접속합니다. `/docs`에서 API를 확인하고 `/api/status`에서 키·색인 상태를 확인합니다. 종료는 `Ctrl+C`입니다. 개발 중 자동 재시작이 필요하면 서버 명령 뒤에 `--reload`를 추가하세요.
+<http://127.0.0.1:8001>에 접속합니다. `/docs`에서 API를 확인하고 `/api/status`에서 키·색인 상태를 확인합니다. 종료는 `Ctrl+C`입니다. 개발 중 자동 재시작이 필요하면 서버 명령 뒤에 `--reload`를 추가하세요.
 
 의미 임베딩으로 전환했다면 `EMBEDDING_MODE=real` 설정 후 위 두 색인을 다시 만들고 서버를 재시작하세요. 해시 색인과 의미 색인은 분리합니다.
 
@@ -65,7 +65,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 ```powershell
 $demoBody = @{ visit_date = (Get-Date).AddDays(1).ToString('yyyy-MM-dd'); mode = 'demo' } | ConvertTo-Json
-$demo = Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/plans' -Method Post -ContentType 'application/json' -Body $demoBody
+$demo = Invoke-RestMethod -Uri 'http://127.0.0.1:8001/api/plans' -Method Post -ContentType 'application/json' -Body $demoBody
 $demo.plans | Select-Object id, finish, minutes
 ```
 
@@ -135,7 +135,7 @@ runtime/   실행 중 DB·캐시·색인 (Git 제외)
 docs/      설계·출처·기능별 검증 기록
 ```
 
-- [API 문서(실행 서버)](http://127.0.0.1:8000/docs)
+- [API 문서(실행 서버)](http://127.0.0.1:8001/docs)
 - [(과거 방식) 장소 탐색 500곳](docs/explore-500.md)
 - [사진 복구와 한계](docs/explore-photo-recovery.md)
 - [메뉴·사진 검색 주소 정규화](docs/road-address-search.md)

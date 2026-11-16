@@ -1,6 +1,6 @@
 """Live public-area UI check with disposable storage and existing API settings.
 
-Uses port 8000 (must be free), so configured localhost map URLs can be tested.
+Uses port 8001 (must be free), so configured localhost map URLs can be tested.
 Writes screenshots/report only under runtime/live-browser-check. No user data.
 """
 import json
@@ -15,17 +15,17 @@ import httpx
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parents[1]
-BASE='http://127.0.0.1:8000'
+BASE='http://127.0.0.1:8001'
 
 
 def main():
-    with socket.socket() as sock:sock.bind(('127.0.0.1',8000))
+    with socket.socket() as sock:sock.bind(('127.0.0.1',8001))
     output=ROOT/'runtime'/'live-browser-check';output.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='datemate-live-browser-') as runtime:
         env=os.environ.copy()
         env.update(DATEMATE_RUNTIME=runtime,DATABASE_URL='',DATEMATE_ENV='development',
                    DATEMATE_PUBLIC_ORIGIN='',DATEMATE_ALLOWED_HOSTS='',DATEMATE_BACKUP_DIR='',
-                   DATEMATE_BOOTSTRAP_INDEX='1',EMBEDDING_MODE='demo',PORT='8000',PYTHONIOENCODING='utf-8')
+                   DATEMATE_BOOTSTRAP_INDEX='1',EMBEDDING_MODE='demo',PORT='8001',PYTHONIOENCODING='utf-8')
         with (output/'server.log').open('w',encoding='utf-8') as log:
             server=subprocess.Popen([sys.executable,'-m','app.cloud_start'],cwd=ROOT,env=env,stdout=log,stderr=log)
             try:

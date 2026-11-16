@@ -13,7 +13,7 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
     page.locator('[data-preset="서울 성수"]').click()
     page.locator('#submit-plan').click()
@@ -101,7 +101,7 @@ with sync_playwright() as pw:
     assert page.locator('[name=count]').input_value()=='2'
     # 실제 조건의 대체 후보가 없으면, 교체·되돌리기 버튼은 가상 코스로 별도 검증한다.
     if not replaced:
-        data=page.request.post('http://127.0.0.1:8000/api/plans',data={'mode':'demo','visit_date':date.today().isoformat(),'budget':1000000,'max_leg':180}).json()
+        data=page.request.post('http://127.0.0.1:8001/api/plans',data={'mode':'demo','visit_date':date.today().isoformat(),'budget':1000000,'max_leg':180}).json()
         fixture=data['plans'][0];cleanup=[p['id'] for p in data['plans']]
         page.evaluate('p=>{plans=[p];selected=p;locks.clear();renderResults();renderDetail();}',fixture)
         page.locator('#plan-detail .stop').first.get_by_role('button',name='↻ 다른 장소로 변경',exact=True).click()

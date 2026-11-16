@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 cases=[('종로구',37.573,126.979,'카페 투어, 볼링 제외',100000),('은평구',37.603,126.929,'비 오는 날 실내에서 카페',50000),('구로구',37.495,126.887,'전시와 산책',80000),('성수동',37.5446,127.0559,'맛집 탐방',30000)]
 results=[]
-with httpx.Client(base_url='http://127.0.0.1:8000',timeout=30) as client:
+with httpx.Client(base_url='http://127.0.0.1:8001',timeout=30) as client:
     for area,lat,lon,text,budget in cases:
         started=time.monotonic()
         payload=dict(mode='real',visit_date='2026-10-24',allow_estimates=True,allow_price_estimates=True,origin=dict(name=area,lat=lat,lon=lon),request=text,budget=budget)

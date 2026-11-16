@@ -13,7 +13,7 @@ with sync_playwright() as p:
         if len(calls)==1:route.abort()
         else:route.continue_()
     page.route('https://oapi.map.naver.com/openapi/v3/maps.js?*',sdk)
-    page.goto('http://localhost:8000',wait_until='networkidle')
+    page.goto('http://localhost:8001',wait_until='networkidle')
     page.locator('#submit-plan').click()
     page.locator('.map-reconnect').wait_for()
     assert page.locator('.map-schematic').get_attribute('open') is None

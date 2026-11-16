@@ -5,7 +5,7 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(viewport={'width':1200,'height':900})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     records=[]
     for concept in ['지적인 데이트','동심 데이트']:
         result=page.evaluate('''async concept=>await api('/plans',{mode:'real',allow_estimates:true,visit_date:'2026-10-24',

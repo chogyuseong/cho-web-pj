@@ -58,7 +58,7 @@ if __name__=='__main__':
         with sync_playwright() as pw:
             browser=pw.chromium.launch(channel='msedge',headless=True)
             probes=[]
-            for origin in ('http://127.0.0.1:8000','http://localhost:8000'):
+            for origin in ('http://127.0.0.1:8001','http://localhost:8001'):
                 context=browser.new_context()
                 page=context.new_page();messages=[];sdk_status=[]
                 def collect(message):
@@ -81,11 +81,11 @@ if __name__=='__main__':
     if '--live' in sys.argv:
         import httpx
         try:
-            response=httpx.get('http://127.0.0.1:8000/api/status',timeout=10)
+            response=httpx.get('http://127.0.0.1:8001/api/status',timeout=10)
             response.raise_for_status();live=response.json()
             result['live_server']={'reachable':True,'client_configured':bool(live.get('map_js_key')),
                 'key_matches_env':live.get('map_js_key')==os.getenv('NAVER_MAPS_JS_KEY_ID'),
-                'maps_script_current':httpx.get('http://127.0.0.1:8000/static/maps.js',timeout=10).text.lstrip('\ufeff').replace('\r\n','\n')==(Path(__file__).resolve().parents[1]/'static'/'maps.js').read_text(encoding='utf-8-sig')}
+                'maps_script_current':httpx.get('http://127.0.0.1:8001/static/maps.js',timeout=10).text.lstrip('\ufeff').replace('\r\n','\n')==(Path(__file__).resolve().parents[1]/'static'/'maps.js').read_text(encoding='utf-8-sig')}
         except Exception as error:
             result['live_server']={'reachable':False,'error_type':type(error).__name__}
     print(json.dumps(result,ensure_ascii=True,indent=2))

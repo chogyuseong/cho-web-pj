@@ -8,7 +8,7 @@ root=Path(__file__).resolve().parents[1]
 with sync_playwright() as p:
     browser=p.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(viewport={'width':1440,'height':1000})
-    page.goto('http://localhost:8000',wait_until='networkidle')
+    page.goto('http://localhost:8001',wait_until='networkidle')
     page.locator('[data-category="콘셉트별"]').wait_for()
     expected={'콘셉트별':['즐거운 데이트','편안한 데이트','지적인 데이트','동심 데이트'],
               '타입별':['활동적인','사교적인'], '계절별':['봄','여름','가을','겨울'],

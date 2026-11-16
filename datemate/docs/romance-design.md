@@ -41,4 +41,4 @@ Hero는 서비스의 분위기를 표현하는 이미지이며 특정 추천 장
 - 각 너비의 초기 화면·추천 결과·장소 탐색에서 가로 넘침 및 JavaScript 런타임 오류 없음.
 - 상세 결과: romance-ui-results.json.
 - 캡처: screenshots/romance-home-*.png, romance-plan-*.png, romance-explore-*.png.
-- 재검증: localhost:8000 서버 실행 후 python scripts/check_romance_ui.py.
+- 재검증: localhost:8001 서버 실행 후 python scripts/check_romance_ui.py.

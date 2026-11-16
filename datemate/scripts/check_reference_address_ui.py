@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     browser=p.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(viewport={'width':390,'height':844});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     result=page.evaluate('''()=>{
       const raw='박흥권 탁구 클럽 서울특별시 강남구 선릉로 664 건설빌딩 지하1층';
       const expected='박흥권 탁구 클럽 서울특별시 강남구 선릉로 664';

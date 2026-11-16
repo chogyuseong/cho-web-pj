@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(bypass_csp=True)
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
     page.evaluate("showPlace('discovered:a78d4397eebb13f183bb','real')")
     page.locator('#dialog .place-photo-panel').first.scroll_into_view_if_needed()

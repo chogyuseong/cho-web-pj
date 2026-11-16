@@ -25,7 +25,7 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000/?plan='+plan['id'],wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001/?plan='+plan['id'],wait_until='networkidle')
     panel=page.locator('#plan-detail .meal-rescue')
     panel.locator('.meal-card').first.wait_for(timeout=45000)
     count=panel.locator('.meal-card').count()

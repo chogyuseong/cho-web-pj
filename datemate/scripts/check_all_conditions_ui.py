@@ -15,7 +15,7 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000/?plan='+plan['id'],wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001/?plan='+plan['id'],wait_until='networkidle')
     page.wait_for_function('selected?.condition_checks?.length>0',timeout=20000)
     old_checks=page.evaluate('selected.condition_checks.length')
     # 여러 조건을 동시에 좁힌 실제 요청을 추천 버튼으로 전송한다.

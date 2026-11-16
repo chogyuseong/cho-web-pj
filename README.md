@@ -43,12 +43,12 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```powershell
 .\.venv\Scripts\python.exe scripts/index_data.py --mode demo
 .\.venv\Scripts\python.exe scripts/index_data.py --mode real
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-- 웹사이트: <http://127.0.0.1:8000>
-- API 문서: <http://127.0.0.1:8000/docs>
-- 기능별 연결 상태: <http://127.0.0.1:8000/api/status>
+- 웹사이트: <http://127.0.0.1:8001>
+- API 문서: <http://127.0.0.1:8001/docs>
+- 기능별 연결 상태: <http://127.0.0.1:8001/api/status>
 - 종료: 실행 터미널에서 `Ctrl+C`
 
 자세한 키 설정과 키 없는 데모 실행은 [실행·설정 안내](datemate/README.md)를 참고하세요.

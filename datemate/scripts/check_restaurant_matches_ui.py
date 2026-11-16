@@ -8,11 +8,11 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     result=page.evaluate('''async()=>await api('/plans',{mode:'real',allow_estimates:true,visit_date:'2026-10-24',
       count:3,origin:{name:'광화문',lat:37.575,lon:126.977},area_center:{name:'종로',lat:37.575,lon:126.985},budget:150000})''')
     plan=result['plans'][0]
-    page.goto('http://127.0.0.1:8000/?plan='+plan['id'],wait_until='domcontentloaded')
+    page.goto('http://127.0.0.1:8001/?plan='+plan['id'],wait_until='domcontentloaded')
     page.wait_for_function('Boolean(selected)',timeout=30000)
     data=page.evaluate('async()=>await fetchRestaurantMatches(selected)')
     assert len(data['groups'])==len(plan['places'])

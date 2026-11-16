@@ -6,7 +6,7 @@ with sync_playwright() as p:
     page=browser.new_page(bypass_csp=True,viewport={'width':390,'height':844},has_touch=True)
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.route('https://photos.example.test/**',lambda r:r.fulfill(content_type='image/png',body=png))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.evaluate('''()=>{
       const photos=[1,2,3].map(i=>({title:'사진'+i,kind:'search_result',image_url:'https://photos.example.test/'+i+'.png',source:'https://photos.example.test/'+i+'.png',search_url:'https://example.com',checked_at:'2026-10-23'}));
       placePhotoRequests.set('real:carousel-test',Promise.resolve({photos}));

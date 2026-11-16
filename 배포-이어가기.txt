@@ -490,7 +490,7 @@ Copy-Item .env.example .env
   시스템 파이썬에는 의존성이 없어 테스트가 실패합니다.
 - Windows 스마트 앱 컨트롤이 켜진 컴퓨터에서는 가상환경의 일부 패키지(uuid_utils 등)가
   "애플리케이션 제어 정책에서 이 파일을 차단했습니다" 오류로 실행되지 않습니다. 그럴 때는 Docker 로 실행합니다
-  (저장소 최상위에서): docker compose up --build -d → http://127.0.0.1:8000, 종료는 docker compose down.
+  (저장소 최상위에서): docker compose up --build -d → http://127.0.0.1:8001, 종료는 docker compose down.
   코드를 고치면 같은 명령으로 다시 빌드하고, .env 만 바꿨으면 docker compose up -d --force-recreate.
   테스트는 CI 처럼 python:3.12 컨테이너에서 requirements-dev.txt 와 playwright chromium 을 설치하고
   DATEMATE_BROWSER_CHANNEL=chromium 으로 pytest 를 실행합니다.
@@ -520,7 +520,7 @@ Copy-Item .env.example .env
   NAVER_MAPS_JS_KEY_ID
     용도: 브라우저에 네이버 지도 표시 (Dynamic Map)
     주의: 콘솔의 Web 서비스 URL에 접속 주소를 등록해야 합니다.
-          로컬은 http://127.0.0.1:8000 과 http://localhost:8000, 배포 후에는 실제 https 주소.
+          로컬은 http://127.0.0.1:8001 과 http://localhost:8001, 배포 후에는 실제 https 주소.
           2026-11-13 에 로컬에서는 "네이버 지도 Open API 인증이 실패했습니다"가 나왔습니다(로컬 주소가 등록돼 있지 않은 것으로 보임).
 
   DATEMATE_OPTION_SELECTOR (선택)
@@ -539,10 +539,10 @@ Copy-Item .env.example .env
 ----------------------------------------------------------------------
 .\.venv\Scripts\python.exe scripts/index_data.py --mode demo
 .\.venv\Scripts\python.exe scripts/index_data.py --mode real
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 
-- 화면: http://127.0.0.1:8000
-- 키·연결 상태: http://127.0.0.1:8000/api/status
+- 화면: http://127.0.0.1:8001
+- 키·연결 상태: http://127.0.0.1:8001/api/status
 - 색인 두 줄은 처음 한 번만 실행하면 됩니다. runtime 폴더(DB·캐시·색인)는 Git에 없어 새로 만들어집니다.
 - .env 를 바꾸면 서버를 재시작해야 반영됩니다.
 
@@ -969,7 +969,7 @@ Copy-Item .env.example .env
   ⑤ 운영에 같은 절차 적용 후 npx wrangler secret put DATABASE_URL.
 - Neon 복원 지점 backup-before-session-hash-2026-11-12 삭제(며칠 문제없이 운영된 뒤).
 - 로컬에서 네이버 지도를 보려면 네이버 클라우드 콘솔의 Web 서비스 URL 에 로컬 주소
-  (http://127.0.0.1:8000, http://localhost:8000)를 다시 등록합니다.
+  (http://127.0.0.1:8001, http://localhost:8001)를 다시 등록합니다.
 
 개발로 남은 것
 - 동네 검색이 역·가게 이름을 찾지 못하던 문제(운영에서 "강남역", "대전 성심당"이 "주소를 찾지 못했습니다")는 고쳐서 열 번째 배포로 올렸습니다.

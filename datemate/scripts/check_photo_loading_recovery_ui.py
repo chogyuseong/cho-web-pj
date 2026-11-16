@@ -8,7 +8,7 @@ with sync_playwright() as p:
  b=p.chromium.launch(channel='msedge',headless=True);page=b.new_page(bypass_csp=True,viewport={'width':390,'height':844})
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.route('https://photos.example.test/**',lambda r:r.fulfill(content_type='image/png',body=png))
- page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+ page.goto('http://127.0.0.1:8001',wait_until='networkidle')
  result=page.evaluate('''async()=>{
    const original=probePhoto;let release;probePhoto=url=>url.includes('slow')?new Promise(resolve=>release=resolve):Promise.resolve(true);
    const img=document.createElement('img');document.body.append(img);const seen=[];const started=performance.now();

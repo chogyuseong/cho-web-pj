@@ -7,7 +7,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 root=Path(__file__).resolve().parents[1]
-base='http://127.0.0.1:8000'
+base='http://127.0.0.1:8001'
 with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     context=browser.new_context(bypass_csp=True,viewport={'width':1440,'height':1000})

@@ -2,7 +2,7 @@ from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     browser=p.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page()
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.evaluate('''()=>{const p={places:[{id:'test',name:'테스트'}],reasons:['추천 근거: https://blog.naver.com/test/123'],place_evidence:[]};const box=placeEvidencePanel(p,0);box.id='link-test';box.open=true;document.body.append(box);document.body.append(linkedText('p','근거: https://example.com/source. javascript:alert(1)','link-safety-test'));}''')
     a=page.locator('#link-test a').first;assert a.get_attribute('href')=='https://blog.naver.com/test/123'
     assert a.get_attribute('target')=='_blank'

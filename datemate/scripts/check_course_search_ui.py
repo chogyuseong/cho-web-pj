@@ -12,7 +12,7 @@ with sync_playwright() as pw:
     browser=pw.chromium.launch(channel='msedge',headless=True)
     page=browser.new_page(bypass_csp=True,viewport={'width':1440,'height':1000})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)')
     page.locator('[name=course_query]').fill('연남동 데이트 코스')
     page.locator('[data-preset="서울 성수"]').click()
@@ -34,7 +34,7 @@ with sync_playwright() as pw:
     assert meal_penalty(plan,conditions)==0
     for place in plan['places']:
         if place['id'].startswith('discovered:'):
-            assert page.request.get('http://127.0.0.1:8000/api/places/'+place['id']+'?mode=real').ok
+            assert page.request.get('http://127.0.0.1:8001/api/places/'+place['id']+'?mode=real').ok
     page.locator('.course-evidence > summary').click()
     page.locator('.course-search-panel').screenshot(path=str(root/'docs/screenshots/course-search.png'))
     assert not errors,errors

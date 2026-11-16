@@ -1,4 +1,4 @@
-"""조건 화면 수동 점검. 로컬 서버(http://127.0.0.1:8000)를 띄운 뒤 실행한다.
+"""조건 화면 수동 점검. 로컬 서버(http://127.0.0.1:8001)를 띄운 뒤 실행한다.
 
 꼭 정할 것은 지역(동네 칩·현재 위치·다른 곳 찾기)뿐이고, 날짜·시간·예산·인원·장소 수·교통은
 요약 한 줄과 '바꾸기' 안의 칩으로 고친다. 데모 모드로 실제 추천까지 한 번 돌려 본다."""
@@ -11,7 +11,7 @@ with sync_playwright() as pw:
     # Playwright wait_for_function evaluates text with eval, which CSP blocks.
     page=browser.new_page(viewport={'width':1440,'height':1000},bypass_csp=True)
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-    page.goto('http://127.0.0.1:8000',wait_until='networkidle')
+    page.goto('http://127.0.0.1:8001',wait_until='networkidle')
     page.wait_for_function('Boolean(statusData)&&document.querySelector(".simple-plan-form")')
     for name in ('mode','region','course_query','mbti','trust_mode','stay_minutes','allow_estimates'):
         assert not page.locator('[name='+name+']').is_visible(),name

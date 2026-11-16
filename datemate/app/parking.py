@@ -29,7 +29,14 @@ MAX_LOOKUPS = 10
 CACHE_FOUND_SECONDS = 3600
 CACHE_EMPTY_SECONDS = 30
 EXCLUDED_WORDS = ("발렛", "주차대행", "세차")
-REJECTED = ("not_parking", "other_region", "bad_coordinates", "out_of_radius", "duplicate")
+REJECTED = (
+    "not_parking",
+    "bus_only",
+    "other_region",
+    "bad_coordinates",
+    "out_of_radius",
+    "duplicate",
+)
 NOTE = "주차 시간·요금은 일정과 비용에 포함하지 않았어요."
 MESSAGES = {
     "not_car": "자동차로 도착하는 장소가 없어요.",
@@ -87,6 +94,9 @@ def filter_lots(place, items, regions):
         text = name + " " + category
         if "주차" not in text or any(word in text for word in EXCLUDED_WORDS):
             rejected["not_parking"] += 1
+            continue
+        if public_parking.bus_only(name):
+            rejected["bus_only"] += 1
             continue
         if region_from_address(address) not in regions:
             rejected["other_region"] += 1
@@ -285,7 +295,7 @@ def parking_near(plan):
                     nearest[lot["id"]] = (lot["distance_m"], target["index"])
     # 공공데이터 주차장: 네이버 결과와 같은 곳이면 요금·운영시간을 붙이고, 아니면 따로 넣는다(가장 가까운 장소 아래에만).
     visit = visit_date(conditions)
-    public_near, public_owner = {}, {}
+    public_near, public_owner, bus_lots = {}, {}, set()
     for target in targets:
         place = target["place"]
         rows = []
@@ -293,12 +303,16 @@ def parking_near(plan):
             region = region_from_address(lot["address"])
             if region and region not in target["regions"]:
                 continue
+            if public_parking.bus_only(lot["name"]):
+                bus_lots.add(lot["id"])
+                continue
             rows.append((d, lot))
             owner = public_owner.get(lot["id"])
             if owner is None or d < owner[0]:
                 public_owner[lot["id"]] = (d, target["index"])
         public_near[target["index"]] = rows
     diagnostics["public_candidates"] = len(public_owner)
+    diagnostics["public_bus_only"] = len(bus_lots)
     diagnostics["public_matched"] = 0
     diagnostics["public_matched_by_name"] = 0
     # 1) 네이버 결과마다 같은 공공데이터 주차장을 찾아 붙인다(쓴 행은 모든 장소에서 다시 쓰지 않음).

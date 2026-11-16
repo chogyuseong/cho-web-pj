@@ -17,6 +17,8 @@ from .regions import region_from_address
 PATH = ROOT / "data" / "public_parking.json"
 SOURCE = "공공데이터포털 전국주차장정보표준데이터"
 CELL = 0.01
+# 승용차가 쓸 수 없는 버스 전용 주차장. '버스터미널 주차장'·'버스정류장 주차장'은 승용차도 쓰므로 낱말에 넣지 않는다.
+BUS_ONLY_WORDS = ("버스전용", "버스 전용", "관광버스", "대형버스", "버스주차장")
 _lock = threading.Lock()
 _data = None
 
@@ -41,7 +43,7 @@ def load(path=None):
             if lot.get("lat") is not None and lot.get("lon") is not None:
                 grid.setdefault(cell(lot["lat"], lot["lon"]), []).append(lot)
             core = name_core(lot["name"])
-            if lot.get("district") and len(core) >= 3:
+            if lot.get("district") and len(core) >= 3 and not bus_only(lot["name"]):
                 # 구 이름은 시·도마다 겹친다(서울 중구·부산 중구). 시·도까지 함께 본다.
                 names.setdefault(
                     (region_from_address(lot["address"]), lot["district"], core), []
@@ -102,6 +104,12 @@ def name_core(name):
     text = re.sub(r"\([^)]*\)", "", str(name or ""))
     text = re.sub(r"공영|주차장|임시|노상|노외|건물|평면|지하|\s", "", text)
     return text.casefold()
+
+
+def bus_only(name):
+    """버스 전용 주차장 이름인지. '승용'이 함께 있으면(버스·승용차 겸용) 아니다."""
+    text = str(name or "")
+    return "승용" not in text and any(word in text for word in BUS_ONLY_WORDS)
 
 
 def by_name(name, address):
@@ -178,6 +186,9 @@ def hours_text(lot, visit):
     if not span:
         return None
     start, end = span
+    if start == end:
+        # '00:00 00:00' 등. 서울 파일에서는 휴무·24시간·자료 없음 가운데 무엇인지 알 수 없어 비운다(모름).
+        return None
     if start == "00:00" and end in ("23:59", "24:00"):
         return f"방문일({label}) 24시간"
     return f"방문일({label}) {start}~{end}"

@@ -141,7 +141,8 @@ def test_posts_are_source_items_with_reading_kept_apart(fake):
     )
     assert data["attribution"] == "네이버 블로그 검색 결과"
     assert (
-        data["sources"][0]["query"] == "서울 팝업스토어" and data["sources"][0]["cached"] is False
+        data["sources"][0]["query"] == "2026년 11월 서울 팝업스토어"
+        and data["sources"][0]["cached"] is False
     )
     posts = {p["url"]: p for p in data["posts"]}
     olgi = posts["https://blog.naver.com/a/1"]
@@ -248,14 +249,17 @@ def test_cache_is_reused_and_status_is_recomputed_for_each_visit_date(fake):
     # 11-17 에는 올기(~11-16)가 종료라 숨는다. 같은 캐시라도 날짜마다 다시 판정한다.
     assert "https://blog.naver.com/a/1" not in [p["url"] for p in again["posts"]]
     assert again["counts"]["hidden_ended"] == 2
+    # 다른 달의 방문일은 검색어의 연·월이 달라 새로 검색한다.
     earlier = get(client, visit_date="2026-10-19").json()
+    assert earlier["sources"][0]["cached"] is False
+    assert ("blog", "2026년 10월 서울 팝업스토어") in fake.calls and fake.count("blog") == 2
     olgi = next(p for p in earlier["posts"] if p["url"].endswith("/a/1"))
     assert olgi["period"]["status"] == "upcoming"
     assert ids(get(client).json()) == ids(first)  # 같은 입력, 같은 순서
     # 검색어가 바뀌면 다른 캐시 키. 지역명이 앞에 붙어 있어도 같은 검색으로 본다.
     assert get(client, q="  성수​ ").json()["q"] == "성수"
     assert get(client, q="서울 성수").json()["sources"][0]["cached"] is True
-    assert fake.count("blog") == 2 and ("blog", "서울 성수 팝업스토어") in fake.calls
+    assert fake.count("blog") == 3 and ("blog", "2026년 11월 서울 성수 팝업스토어") in fake.calls
 
 
 def test_invalid_inputs(fake):

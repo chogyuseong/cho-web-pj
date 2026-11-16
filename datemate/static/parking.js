@@ -54,8 +54,8 @@ function parkingLotItem(lot) {
   item.append(title,
     node('p', `직선 ${Number(lot.distance_m).toLocaleString()}m · 걸어서 약 ${lot.walk_minutes}분(추정)`, 'parking-distance'),
     node('p', lot.address || '주소는 지도에서 확인해 주세요.', 'parking-address'),
-    node('p', '요금·운영시간·만차 여부 미확인', 'hint parking-unverified'),
-    placeMapLink('네이버 지도에서 보기 ↗', lot));
+    node('p', '요금·운영시간은 네이버 지도에서 바로 볼 수 있어요. 만차 여부는 알 수 없어요.', 'hint parking-unverified'),
+    placeMapLink('네이버 지도에서 요금·운영시간 보기 ↗', lot));
   return item;
 }
 

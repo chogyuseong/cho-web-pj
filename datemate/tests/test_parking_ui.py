@@ -68,7 +68,8 @@ def test_parking_panel_under_the_car_stop_map_and_walk_back(audit_page):
     text = first.inner_text()
     assert '삼청 공영주차장' in text and '공영(이름 기준)' in text
     assert '직선 320m · 걸어서 약 7분(추정)' in text and '서울특별시 종로구 삼청로 9' in text
-    assert '요금·운영시간·만차 여부 미확인' in text
+    assert '요금·운영시간은 네이버 지도에서 바로 볼 수 있어요.' in text and '만차 여부는 알 수 없어요.' in text
+    assert first.locator('a').inner_text() == '네이버 지도에서 요금·운영시간 보기 ↗'
     assert '공영(이름 기준)' not in second.inner_text()
     anchor = first.locator('a')
     assert anchor.inner_text().endswith('↗') and anchor.get_attribute('href').startswith('https://map.naver.com/')

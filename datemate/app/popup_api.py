@@ -7,7 +7,8 @@
 - 방문일 상태는 캐시하지 않고 요청마다 계산한다(visit_date 가 없으면 한국시간 오늘).
 
 캐시와 외부 호출
-- 원본 검색 결과: 성공 1시간, 팝업 글 0건 10분, 실패는 캐시하지 않음. 키에 지역·정규화 검색어·조회 조건·규칙/사전 버전.
+- 원본 검색 결과: 성공 1시간, 팝업 글 0건 10분, 실패는 캐시하지 않음. 키에 지역·정규화 검색어·조회 조건·규칙/사전 버전·방문 연월.
+  블로그 검색어는 '2026년 11월 서울 성수 팝업스토어'처럼 방문 연·월을 앞에 붙인다(그 달의 일정 정리 글이 더 잘 나옴).
 - 거점 좌표 판정: 7일(기존 서비스의 최장 지역 검색 보관 기간과 같게). 판정에 필요한 최소값(상태·등급·좌표)만 남긴다.
 - 요청당 외부 호출: 블로그 1 + 좌표가 캐시에 없는 거점 최대 3. 재시도 없음. 시간 제한 10초. 모두 observed_http 를 거친다.
 - 같은 캐시 키의 동시 호출은 키별 잠금으로 한 번만 부르고, 잠금은 짧게만 기다린다(image_search 와 같은 2.5초).
@@ -87,20 +88,35 @@ def without_region(region, q):
     return q
 
 
-def search_query(region, q):
-    """블로그 검색어. 0단계·1단계 실측과 같은 '{지역} 팝업스토어' 꼴을 기본으로 한다."""
+def month_words(visit):
+    """방문일의 '2026년 11월'. 팝업 글은 그 달의 일정을 정리한 글이 많아 검색어에 연·월을 붙이면 지금 열리는 팝업이 더 잘 나온다."""
+    return f"{visit.year}년 {visit.month}월"
+
+
+def search_query(region, q, visit):
+    """블로그 검색어: '{연}년 {월}월 {지역} [검색어] 팝업스토어'(예: '2026년 11월 서울 성수 팝업스토어')."""
     if not q:
-        return f"{region} 팝업스토어"
-    return f"{region} {q}" + ("" if "팝업" in q else " 팝업스토어")
+        return f"{month_words(visit)} {region} 팝업스토어"
+    return f"{month_words(visit)} {region} {q}" + ("" if "팝업" in q else " 팝업스토어")
 
 
 def _hash(parts):
     return hashlib.sha256(json.dumps(parts, ensure_ascii=False).encode()).hexdigest()
 
 
-def raw_key(region, q):
+def raw_key(region, q, visit):
+    # 검색어에 방문 연·월이 들어가므로 키에도 넣는다(같은 달 안의 다른 방문일은 같은 검색 결과를 쓴다).
     return "popups-raw:" + _hash(
-        [popups.RULES_VERSION, HUBS_VERSION, region, q.casefold(), SORT, DISPLAY, 1]
+        [
+            popups.RULES_VERSION,
+            HUBS_VERSION,
+            region,
+            q.casefold(),
+            SORT,
+            DISPLAY,
+            1,
+            month_words(visit),
+        ]
     )
 
 
@@ -420,8 +436,8 @@ def response(status, message, region, q, visit, basis, sources, posts, counts, c
 
 
 def find_popups(region, q, visit, basis):
-    key = raw_key(region, q)
-    query = search_query(region, q)
+    key = raw_key(region, q, visit)
+    query = search_query(region, q, visit)
     raw = store.cached(key)
     called = False
     with httpx.Client(timeout=TIMEOUT) as client:

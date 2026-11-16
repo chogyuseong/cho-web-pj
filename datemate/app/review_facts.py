@@ -37,7 +37,8 @@ DAYS = re.compile(
     r"(매일|평일|주말|[월화수목금토일](?:요일)?\s*(?:~|-)\s*[월화수목금토일](?:요일)?)[^0-9]{0,6}$"
 )
 REST = re.compile(
-    r"(?:정기\s*)?휴무(?:일)?\s*[:：]?\s*(?:매주\s*)?[월화수목금토일](?:요일)?"
+    # 요일 글자는 띄어쓰기·쌍점·'매주' 뒤에서만 읽는다('휴무일'의 '일'을 일요일로 읽지 않게).
+    r"(?:정기\s*)?휴무일?\s*[:：]?\s*(?:매주\s*)?(?<=[\s:：주])(?:[월화수목금토일]요일|[월화수목금토일](?![가-힣]))"
     r"|[월화수목금토일]요일\s*(?:정기\s*)?휴무|연중\s*무휴"
 )
 # 가격: 장소 이름 뒤 PRICE_WINDOW 글자 안의 '메뉴 이름 N원'. 주차·배달·할인·합계·여러 개 묶음 같은 금액은 뺀다.
@@ -175,7 +176,7 @@ def review_facts(place):
         return dict(empty, status=blogs.get("status") or "unavailable")
     posts = blogs["posts"][:3]
     key = (
-        "review-facts-v2:"
+        "review-facts-v3:"
         + hashlib.sha256(
             repr([place.get("id"), place.get("name"), [p["url"] for p in posts]]).encode()
         ).hexdigest()

@@ -30,6 +30,7 @@ PYTHON = [
     "app/store.py",
     "app/user_feedback.py",
     "app/search_robots.py",
+    "app/parking.py",
     "app/migrations",
     "scripts/operations_report.py",
     "scripts/operations_check.py",
@@ -52,6 +53,7 @@ JAVASCRIPT = [
     "feedback.js",
     "feedback-admin.js",
     "popups.js",
+    "parking.js",
 ]
 
 

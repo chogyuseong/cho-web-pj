@@ -2,6 +2,7 @@
 // passed as undefined), so the app falls back to its own defaults.
 // FEEDBACK_ADMIN_KEY (Secret) turns on the feedback admin view; DATEMATE_FEEDBACK_ENABLED
 // ("0" to switch off) hides the feedback tab and its write API.
+// SEOUL_OPEN_API_KEY (Secret) turns on live Seoul public parking counts in the parking panel.
 // DATEMATE_POPUPS_ENABLED ("0" to switch off) hides the popup browse switch and turns
 // /api/popups into 404; the two DATEMATE_IP_POPUP_SEARCHES_* values tune its own limits.
 export const OPTIONAL_CONTAINER_ENV = Object.freeze([
@@ -9,7 +10,7 @@ export const OPTIONAL_CONTAINER_ENV = Object.freeze([
   "NAVER_SEARCH_CLIENT_ID", "NAVER_SEARCH_CLIENT_SECRET", "NAVER_MAPS_KEY_ID",
   "NAVER_MAPS_KEY", "NAVER_MAPS_JS_KEY_ID",
   "MAP_TILE_URL", "MAP_TILE_ATTRIBUTION", "WIKI_CONTACT", "PHOTO_VISUAL_CHECK",
-  "TOUR_API_KEY",
+  "TOUR_API_KEY", "SEOUL_OPEN_API_KEY",
   "FEEDBACK_ADMIN_KEY", "DATEMATE_FEEDBACK_ENABLED",
   "DATEMATE_POPUPS_ENABLED", "DATEMATE_IP_POPUP_SEARCHES_PER_MINUTE",
   "DATEMATE_IP_POPUP_SEARCHES_PER_HOUR",

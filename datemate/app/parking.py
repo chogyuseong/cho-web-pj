@@ -149,6 +149,27 @@ def public_lot(lot, distance_m, visit):
     )
 
 
+def attach_live(stops, diagnostics):
+    """서울시 '(시)' 공영주차장이면 실시간 주차 대수를 붙인다(서울 열린데이터광장, 3분 캐시). 맞춘 코드는 응답에서 뺀다."""
+    pairs = []
+    for stop in stops:
+        for lot in stop["lots"]:
+            info = lot.get("public")
+            if info and "_seoul_code" in info:
+                pairs.append((info, info.pop("_seoul_code")))
+    diagnostics["live_candidates"] = len(pairs)
+    diagnostics["live_attached"] = 0
+    if not pairs:
+        return
+    from .seoul_parking_live import live_counts
+
+    live = live_counts()
+    for info, code in pairs:
+        if code in live:
+            info["live"] = live[code]
+            diagnostics["live_attached"] += 1
+
+
 def lookup_status(statuses):
     if "permission_required" in statuses:
         return "permission_required"
@@ -336,6 +357,7 @@ def parking_near(plan):
                 message="" if lots else MESSAGES.get(status, ""),
             )
         )
+    attach_live(stops, diagnostics)
     if "available" in statuses:
         overall = "available"
     elif "permission_required" in statuses:

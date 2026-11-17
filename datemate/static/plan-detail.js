@@ -1,3 +1,9 @@
+// 모든 구간의 설명(source)이 같으면 그 문장, 아니면 null. 같을 때는 일정 위에 한 번만 적고 구간마다 반복하지 않는다.
+function sharedLegSource(plan) {
+  const sources = (plan.legs || []).map(leg => leg.source).filter(Boolean);
+  return sources.length > 1 && sources.every(source => source === sources[0]) ? sources[0] : null;
+}
+
 // 상세는 일정 → 확인 → 결정·공유 순서로 #plan-detail에, 부가 정보는 축제 뒤 #plan-extras에 그린다.
 function renderDetail() {
   const root = $('#plan-detail'),
@@ -26,8 +32,12 @@ function renderDetail() {
   }
   box.append(transportOverview(p));
   const links = node('div', undefined, 'map-link-list');
-  p.places.forEach((place, i) => links.append(placeMapLink(`${i+1}. 네이버에서 찾기`, place)));
+  links.append(node('span', '네이버 지도에서 찾기', 'map-link-label'));
+  p.places.forEach((place, i) => links.append(placeMapLink(`${i+1}. ${place.name}`, place)));
   box.append(links);
+  // 구간마다 같은 설명(예: '직선거리 × 1.35 기반 이동 추정 · 실제 길찾기 미반영')이면 여기서 한 번만 적는다(routeLine 은 생략).
+  const legSource = sharedLegSource(p);
+  if (legSource) box.append(node('p', '이동 시간: ' + legSource, 'hint route-source-note'));
   p.places.forEach((place, i) => {
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
     const stop = node('article', undefined, 'stop');
@@ -35,10 +45,22 @@ function renderDetail() {
     stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'));
     stop.append(stamp);
     const body = node('div', undefined, 'timeline-card');
-    body.append(node('span', placeKind(place), 'step-category'));
+    // 읽는 순서: 장소 이름 → 한 줄 요약(분류 · 2인 비용 · 머무는 시간) → 후기에서 읽은 정보. 도착·떠나는 시각은 왼쪽 도장에 있다.
+    // 분류·체류·확인 방법·근거 링크를 이은 긴 문장(reasons)은 '정보 출처' 접기 안으로 옮긴다(2026-11-17 가독성 정리).
+    body.append(node('h4', place.name));
+    const meta = node('p', undefined, 'stop-meta');
+    meta.append(node('span', placeKind(place), 'step-category'));
     const cost = p.costs.find(c => c.name === place.name);
-    if (cost) body.append(node('div', `${p.conditions.people}인 장소 비용 · ${range(cost.amount)}`, 'stop-cost'));
-    body.append(node('h4', place.name), node('div', `${p.timeline[i].arrival} ~ ${p.timeline[i].departure} · ${placeKind(place)}`, 'small'), linkedText('p', p.reasons[i], 'hint'), reviewFactsLine(place, p.conditions.mode));
+    if (cost) meta.append(node('span', `${p.conditions.people}인 ${range(cost.amount)}`, 'stop-cost'));
+    const stay = p.timeline[i]?.stay;
+    // 구분점 없이 간격으로 나눈다(비용이 길어 줄이 바뀌면 점이 새 줄 맨 앞에 홀로 남았다).
+    if (Number.isFinite(stay)) meta.append(node('span', `${stay}분 머묾`, 'stop-stay'));
+    body.append(meta, reviewFactsLine(place, p.conditions.mode));
+    if (p.reasons[i]) {
+      const source = node('details', undefined, 'stop-source');
+      source.append(node('summary', '정보 출처'), linkedText('p', p.reasons[i], 'hint'));
+      body.append(source);
+    }
     const buttons = node('div', undefined, 'actions');
     buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 변경', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)), link('도착지 지도·길찾기 확인', p.legs[i].link));
     body.append(placeEvidencePanel(p, i));

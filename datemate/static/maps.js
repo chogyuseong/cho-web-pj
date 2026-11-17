@@ -375,6 +375,13 @@ function drawPlanMap(plan){
         const layer=L.tileLayer(statusData?.map_tile_url||'https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:statusData?.map_tile_attribution||'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
         layer.on('tileerror',()=>mapCaption.textContent='지도 배경을 불러오지 못했어요. 장소 링크와 아래 개략도를 이용해 주세요.');
         const coordinates=points.map(point=>[point.lat,point.lon]);
+        // 휴대폰(plan-map.css 와 같은 조건): 보이는 원(지름 약 21px)은 그대로 두고 그 아래 투명한 지름 44px 원을 깔아 누름 영역을 넓힌다.
+        // 투명한 원은 따로 둔 낮은 층(385: 팝업 표시 390·코스 원 400 아래)에 그려, 다른 장소의 보이는 원이나 팝업·주차 표시를 덮지 않고
+        // 지도 바탕을 누를 자리만 넓힌다.
+        if(matchMedia('(max-width:720px),(pointer:coarse)').matches){
+          map.createPane('routeHits').style.zIndex='385';
+          points.forEach(point=>L.circleMarker([point.lat,point.lon],{pane:'routeHits',radius:22,stroke:false,fillColor:'#fff',fillOpacity:0,className:'route-hit-area'}).addTo(map));
+        }
         points.forEach((point,i)=>{
           const title=node('span',(i===0?'출발':i>plan.places.length?'귀가':String(i))+' · '+point.name);
           L.circleMarker([point.lat,point.lon],{radius:9,color:i===0?'#1f2328':'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map).bindTooltip(title,{permanent:true,direction:'top'});

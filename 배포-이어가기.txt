@@ -8,10 +8,11 @@
 ★ 지금 상태 (2026-11-17 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 4e48dc3(병합), Worker 버전 a547a8bf-b480-4043-b35c-0b7aaaa3d493 (서른세 번째 배포, 2026-11-17 12:00 무렵)
-  배포 전 GitHub Actions 5개 작업이 브랜치 fix/frontend-modern-web 커밋 0775a6f 에서 모두 통과했습니다(Run 44004888288).
-★★ main 에 있지만 아직 배포하지 않은 것 (2026-11-17 오후, 브랜치 feat/a11y-mobile-polish 커밋 c47a29a, 병합 22e68c8)
-  · 사용자 지시는 '혼자 할 수 있는 것까지 하고 커밋·푸시'였고 배포는 하지 않았습니다. 다음 배포 때 함께 올라갑니다(배포하라는 지시가 있을 때만).
+운영에 올라간 것: 커밋 3cae442(병합 22e68c8), Worker 버전 6ef1d6c1-c027-4263-b3c5-498e995377d0 (서른네 번째 배포, 2026-11-17 오후)
+  배포 전 GitHub Actions 5개 작업이 브랜치 feat/a11y-mobile-polish 커밋 c47a29a 에서 모두 통과했습니다(Run 44010699952).
+  (그 전: 커밋 4e48dc3, Worker a547a8bf, 서른세 번째 배포, 2026-11-17 12:00 무렵)
+서른네 번째 배포로 올라간 것 (main 병합 22e68c8, 브랜치 feat/a11y-mobile-polish 커밋 c47a29a): 접근성·휴대폰 정리
+  · 처음에는 '혼자 할 수 있는 것까지 하고 커밋·푸시' 지시로 main 에만 넣었고, 이어서 사용자가 배포를 지시해 올렸습니다.
   · 내용(modern-web-guidance 점검 남은 항목 가운데 제품 판단이 필요 없는 것):
     - 메뉴: nav aria-label="주요 메뉴", 코스 만들기·장소 둘러보기 단추에 aria-pressed(app.js setTab).
     - 지도 두 곳(maps.js 네이버 지도·공개 지도)에 role=region.
@@ -25,7 +26,11 @@
     - 후기 신고 사유: prompt() 대신 후기 아래 입력칸(필수, 2000자, aria-expanded).
   · 검사: Docker(Playwright 1.64.1 chromium, SQLite) 전체 1203 통과(신고 입력칸 전), 새 tests/test_a11y_mobile_polish.py 9개 두 번 연속 통과, 관련 화면 테스트 45개 통과,
     format_sources --check 통과, GitHub Actions(아래 기록 커밋 전 브랜치 c47a29a) 통과.
-  · 배포 뒤 볼 것: 휴대폰에서 칩 높이·키보드 힌트, 장소 교체 뒤 키보드 포커스 위치, 입력칸 테두리 색이 어색하지 않은지, 결과 화면 사진이 나올 때 밀림.
+  · 운영 확인(배포 직후, / 에 Server-Timing 으로 새 컨테이너 확인, 자동화 Chromium 390px): nav aria-label·aria-pressed 가 화면 전환에 따라 바뀜,
+    조건 칩 10개 모두 높이 44px, 출발지 입력 테두리 rgb(127,137,146)·enterkeyhint=search, 인원·예산 inputmode=numeric, 가로 넘침 없음, 화면 오류 0.
+    line.css?v=<해시> 는 immutable 로 나감.
+  · 아직 볼 것(사람이): 실제 휴대폰 키보드의 검색·보내기 키, 장소 교체 뒤 키보드 포커스 위치, 입력칸 테두리 색이 어색하지 않은지, 결과 화면 사진이 나올 때 밀림.
+  · 문제가 생기면: git revert -m 1 22e68c8.
   · 하지 않은 것과 까닭:
     - 가격 검색 연결 재사용: 장소 검색 모듈이 httpx.get 을 직접 쓰고 여러 테스트의 가짜 네이버 장치가 그 경로에 물려 있어, 공유 클라이언트로 바꾸면
       테스트가 실제 네이버를 부를 위험이 있습니다. 테스트 장치를 함께 바꾸는 별도 작업으로(docs/price-stage-latency-2026-11-14.md 9절).

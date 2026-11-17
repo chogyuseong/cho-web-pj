@@ -5,10 +5,36 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
-★ 지금 상태 (2026-11-17 기준)
+★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 42b8860(병합, 브랜치 ui/readability-5 커밋 8a5aa0f), Worker 버전 a34ba709-c700-45d7-86a8-d8d44a40cd78 (서른아홉 번째 배포, 2026-11-17 밤)
+운영에 올라간 것: 커밋 541ac82(병합, 브랜치 ui/readability-6 커밋 32c335e·40b94ac·94983cd), Worker 버전 9ab2370c-768f-494e-92d9-3037043a7f77 (마흔 번째 배포, 2026-11-18 새벽)
+  배포 전 GitHub Actions 5개 작업이 94983cd(Run 44117166859)에서 통과, Docker 전체(SQLite, chromium) 1227 통과·6 건너뜀·실패 0. 병합 트리는 94983cd 와 같습니다.
+  40b94ac(Run 44113914745)는 test (postgres) 의 test_parking.py::test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(1분 한도 검사) 1개가 실패했고
+  같은 코드의 앞뒤 실행은 통과해 가끔 나는 실패로 봤습니다(확인한 것은 아님). 또 나면 그 테스트의 시간 의존성을 볼 것.
+  (그 전: 커밋 42b8860, Worker a34ba709, 서른아홉 번째)
+마흔 번째 배포로 올라간 것 (main 병합 541ac82): 지도 장소 번호를 누르면 일정의 그 장소로, 결과 사진은 화면 근처에서 받기
+  · 사용자가 '모든 권한' 으로 병합·배포·문서·종료까지 지시했습니다. 마커 이동·사진 늦게 받기는 메인이 고른 방향입니다
+    (네이버 축소 서버 search.pstatic.net/common/?src= 는 공개 문서 없는 주소라 쓰지 않기로 함).
+  · maps.js focusPlanStop: 네이버 지도 장소 번호(1..N) 마커 click → setTimeout 뒤 #plan-detail 같은 순번 .stop 으로 scrollIntoView(behavior 미지정) + h4 포커스(tabindex=-1, 떠나면 뗌).
+    setTimeout 인 까닭: 네이버 SDK 가 click 뒤 지도 칸으로 포커스를 되가져가 다시 스크롤함(운영 SDK 에서 확인, 문서에 없는 동작 — SDK 가 바뀌면 다시 볼 것).
+    마커에 role=button·aria-label 'N번 장소 · 눌러서 일정에서 보기'·cursor:pointer. Leaflet 은 보이는 원과 44px 투명 원 모두 이동, 이동선 interactive:false.
+    출발·귀가는 동작 없음, 식당·주차·축제·팝업 정보창 그대로. 지도 마커는 키보드 Tab 으로 닿지 않음(전과 같음).
+  · place-photos.js: 결과 화면 사진 패널은 /media 목록은 바로 받고, 후보 검사·<img> 는 카드가 화면 600px 안에 올 때(IntersectionObserver) 시작. beforeprint 에 남은 사진 모두 시작.
+    place-photos.css: 인쇄 때까지 못 받은 사진 칸은 인쇄에서 뺌, '사진을 확인하고 있어요…' 줄을 사진 칸 위에 겹쳐 받은 뒤 높이 변화 0(전에는 78px 당겨짐).
+    측정(작업자, 운영에 파일을 끼운 390px 성수): 결과 표시 뒤 스크롤 없이 20초 동안 사진 3건 15.8MB → 0건 0B. 끝까지 내리면 전후 모두 8건 32.3MB(용량 자체는 그대로).
+  · 새 tests/test_readability_stage6_ui.py 7개(테스트마다 끝난 추천 작업을 지움: 서버가 끝난 작업을 10분 기억하고 100개면 429 — 전체 테스트가 이 한도 근처라
+    화면 테스트를 더하면 뒤 테스트가 연쇄로 실패할 수 있음). test_plan_asset_display·test_results_extras_ui 는 사진 칸으로 먼저 스크롤하게 한 줄씩.
+  · 운영 확인(배포 직후, /api/status 14.1초 = 새 컨테이너, / 에 Server-Timing, maps.js 에 focusPlanStop, place-photos.js 에 IntersectionObserver,
+    자동화 Chromium 390px 성수 추천): 장소 마커 3개, 1번 마커를 누르면 포커스가 1번 장소 h4(팀홀튼 밴프 타운 성수점)로 가고 화면 안,
+    결과 표시 뒤 8초 동안 받은 네이버·위키미디어 이미지 21건 합 660,748B(지도 타일 포함, 수 MB 사진 없음), 가로 넘침 없음, 화면 오류 0.
+  · 사람이 볼 것(실기기): 휴대폰에서 장소 번호를 눌러 이동하는 느낌, 2·3번처럼 7px 거리로 겹친 마커를 누르면 다른 장소로 가는 체감
+    (작업자 측정: 2번 원 가운데의 98%를 이웃이 가져감, 투명 여백 없이도 87%. 원인은 마커 겹침), 빠르게 내릴 때 사진이 늦게 뜨는지,
+    아래로 내리지 않고 바로 「인쇄 / PDF」를 눌렀을 때 큰 사진 칸이 빠지는지(다시 인쇄하면 나옴), 아이폰 Safari 인쇄 창(서른일곱 번째부터 남은 것).
+  · 다음 후보(사용자 결정 필요): 겹친 장소 번호를 '2·3' 하나로 합치기, 지도 아래 장소 목록에 '일정에서 보기' 추가, 결과 사진 용량 자체 줄이기(축소 서버는 정책 판단),
+    CSS 18개 병합(하려면 Fable 권장).
+  · 문제가 생기면: git revert -m 1 541ac82.
+(서른아홉 번째) 운영에 올라간 것: 커밋 42b8860(병합, 브랜치 ui/readability-5 커밋 8a5aa0f), Worker 버전 a34ba709-c700-45d7-86a8-d8d44a40cd78 (2026-11-17 밤)
   배포 전 GitHub Actions 5개 작업이 8a5aa0f(Run 44089562208)에서 통과, Docker 전체 1220 통과·6 건너뜀·실패 0. 병합 트리는 8a5aa0f 와 같습니다.
   (그 전: 커밋 aea8083, Worker 6bf12ee9, 서른여덟 번째)
 서른아홉 번째 배포로 올라간 것 (main 병합 42b8860): 휴대폰 지도 마커 누름 영역 44px

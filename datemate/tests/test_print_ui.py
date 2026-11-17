@@ -86,3 +86,28 @@ def test_print_lets_long_place_cards_split_across_pages(audit_page):
       const result=[getComputedStyle(stop).breakInside,getComputedStyle(head).breakAfter,getComputedStyle(parking).breakInside];parking.remove();return result;}""")
     page.emulate_media(media='screen')
     assert styles == ['auto', 'avoid', 'avoid'], styles
+
+
+def test_print_button_calls_print_inside_the_click(audit_page):
+    """아이폰 Safari 는 사용자 조작 밖에서 부른 window.print() 를 무시한다(2026-11-17 신고). 누른 click 처리 안에서 바로 불러야 한다."""
+    page, base, errors = audit_page
+    generate(page)
+    page.evaluate("window.print=()=>{window.printedIn=window.event?window.event.type:'outside-event';}")
+    page.get_by_role('button', name='인쇄 / PDF', exact=True).click()
+    page.wait_for_function('window.printedIn!==undefined')
+    assert page.evaluate('window.printedIn') == 'click'
+    # 데스크톱 브라우저에는 아이폰 안내가 없다.
+    assert page.locator('.ios-print-hint').count() == 0
+
+
+def test_iphone_sees_the_share_sheet_print_hint(audit_page):
+    page, base, errors = audit_page
+    page.add_init_script("Object.defineProperty(navigator,'userAgent',{get:()=>'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'})")
+    page.reload(wait_until='networkidle')
+    page.wait_for_function("typeof statusData!=='undefined'&&!!statusData&&document.querySelector('.simple-plan-form')")
+    generate(page)
+    hint = page.locator('.plan-share .ios-print-hint')
+    assert hint.count() == 1 and '프린트' in hint.inner_text()
+    page.emulate_media(media='print')
+    assert not hint.is_visible()
+    page.emulate_media(media='screen')

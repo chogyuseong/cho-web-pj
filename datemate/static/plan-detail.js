@@ -120,8 +120,19 @@ function renderDetail() {
   const share = node('section', undefined, 'plan-share');
   share.setAttribute('aria-label', '코스 결정과 공유');
   const actions = node('div', undefined, 'actions share-actions');
-  actions.append(button('코스 카드 저장', () => showShareCard(p)), button('공유 링크 복사', () => copyPlanShare(p)), button('공유 취소', () => revokePlanShares(p)), button('인쇄 / PDF', () => window.print()));
+  // 인쇄는 누른 그 순간(같은 click 처리 안)에 부른다. button() 은 동작을 Promise 로 한 단계 미뤄 실행하는데,
+  // 아이폰 Safari 에서는 이 단추를 눌러도 아무 반응이 없었다(2026-11-17 사용자 신고). 사용자 조작 안에서 바로 부르는 것이 알려진 해법이다.
+  const printButton = node('button', '인쇄 / PDF', 'secondary');
+  printButton.type = 'button';
+  printButton.addEventListener('click', () => {
+    window.print();
+  });
+  actions.append(button('코스 카드 저장', () => showShareCard(p)), button('공유 링크 복사', () => copyPlanShare(p)), button('공유 취소', () => revokePlanShares(p)), printButton);
   share.append(decisionPanel(p), node('h3', '코스 저장·공유'), actions);
+  // 아이폰·아이패드: 그래도 인쇄 창이 뜨지 않는 경우가 있어 Safari 공유 시트의 프린트 경로를 함께 알린다(인쇄 때는 숨김).
+  if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+    share.append(node('p', '아이폰에서 인쇄 창이 뜨지 않으면 Safari의 공유(□↑) → 프린트에서 인쇄하거나 PDF로 저장할 수 있어요.', 'hint ios-print-hint'));
+  }
   box.append(share);
   root.append(box);
   // 부가 정보: 축제 구역 뒤 #plan-extras

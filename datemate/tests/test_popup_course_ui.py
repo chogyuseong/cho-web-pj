@@ -348,6 +348,8 @@ def test_located_posts_by_distance_unknown_folded_and_states(audit_page):
     # 페이지를 연 뒤 스위치가 꺼지면(404) 구역을 내린다.
     load(page, visit_date="2026-11-28")
     assert section.is_hidden()
+    # 구역을 내리면 코스 제목 옆 '팝업스토어 보기' 단추도 숨는다.
+    assert page.locator("#popup-jump").is_hidden()
 
 
 def test_late_success_error_and_loading_end_are_ignored(audit_page):
@@ -652,3 +654,23 @@ def test_four_widths_long_names_touch_targets_and_keyboard(audit_page):
             selector
         )
         assert page.evaluate("getComputedStyle(document.activeElement).outlineStyle") != "none"
+
+
+def test_popup_jump_sits_next_to_the_festival_jump_and_moves_to_the_popup_section(audit_page):
+    page, base, errors = audit_page
+    Api(page)
+    load(page)
+    jump = page.locator("#popup-jump")
+    assert jump.is_visible()
+    count = page.locator("#popup-course-results .popup-post").count() or None
+    text = jump.inner_text()
+    assert text.startswith("서울 팝업스토어") and text.endswith("보기 ↓"), text
+    # 축제 보기 단추 바로 옆(같은 제목 줄).
+    assert page.evaluate("document.getElementById('festival-jump').nextElementSibling.id") == "popup-jump"
+    page.emulate_media(reduced_motion="reduce")  # 부드러운 스크롤 중간 위치를 재지 않게
+    jump.click()
+    page.wait_for_function("document.activeElement?.id==='popup-course-title'")
+    # 팝업 구역이 페이지 끝 가까이에 있으면 맨 위까지 올라가지 못하므로, 제목이 화면 안에 들어왔는지를 본다.
+    seen = page.evaluate("""()=>{const r=document.getElementById('popup-course-title').getBoundingClientRect();
+      return r.top>=0&&r.bottom<=innerHeight;}""")
+    assert seen, count

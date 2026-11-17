@@ -9,7 +9,15 @@ import httpx
 from contextlib import contextmanager
 from . import store
 
-_slots=BoundedSemaphore(6)
+# 이 컨테이너에서 동시에 나가는 외부 호출 수. 추천 1건의 장소 검색(동시 5건)과 축제·팝업 조회가 같은 자리를 나눠 쓴다.
+_slots=BoundedSemaphore(max(1,int(os.getenv('DATEMATE_EXTERNAL_SLOTS','6') or 6)))
+
+
+def slot_wait_seconds():
+    """자리가 없을 때 기다리는 최대 시간(초). 예전처럼 바로 실패시키면 동시 추천 2건이 겹칠 때 검색이 조용히 빠져
+    후보가 줄었다. 무한정 기다리면 요청이 쌓이므로 상한을 둔다(0 이면 기다리지 않음, 최대 10초)."""
+    try:return min(10.0,max(0.0,float(os.getenv('DATEMATE_EXTERNAL_SLOT_WAIT_SECONDS','2'))))
+    except ValueError:return 2.0
 
 
 def provider_limits(provider):
@@ -84,7 +92,8 @@ def operation(provider,kind=None):
     start=time.perf_counter();failed=True;attempted=False;sent=None;state={}
     from .request_usage import current
     usage=current();charged=False
-    if not _slots.acquire(blocking=False):
+    wait=slot_wait_seconds()
+    if not (_slots.acquire(timeout=wait) if wait else _slots.acquire(blocking=False)):
         _traced(provider,kind,start,False,True)
         raise httpx.PoolTimeout('External request capacity reached')
     try:

@@ -94,7 +94,7 @@ def test_rejected_calls_are_counted_without_wait(monkeypatch):
 
 def test_capacity_rejection_is_counted(monkeypatch):
     class Full:
-        def acquire(self, blocking=True):
+        def acquire(self, blocking=True, timeout=None):
             return False
 
     monkeypatch.setattr(telemetry, '_slots', Full())
@@ -131,3 +131,49 @@ def test_recommendation_result_and_event_carry_timing():
     event = json.loads(row[0])
     assert event['timing']['stages']['장소 검색'] >= 0
     assert set(event['timing']['external']) == {'calls', 'failed', 'rejected', 'wait_ms_sum', 'wall_ms', 'peak_parallel'}
+
+
+def _hold_all_slots(slots):
+    held = 0
+    while slots.acquire(blocking=False):
+        held += 1
+    return held
+
+
+def test_busy_external_slots_wait_briefly_then_go(monkeypatch):
+    """자리가 잠깐 찼을 때는 바로 실패하지 않고 상한 안에서 기다렸다가 보낸다."""
+    import threading
+    monkeypatch.setenv('DATEMATE_EXTERNAL_SLOT_WAIT_SECONDS', '2')
+    slots = telemetry._slots
+    held = _hold_all_slots(slots)
+    try:
+        threading.Timer(.2, slots.release).start()
+        started = time.perf_counter()
+        observed_http(slow(0), 'https://naverapihub.apigw.ntruss.com/search/v1/local')
+        assert .15 <= time.perf_counter() - started < 2
+    finally:
+        for _ in range(held - 1):
+            slots.release()
+
+
+def test_busy_external_slots_give_up_after_the_limit(monkeypatch):
+    monkeypatch.setenv('DATEMATE_EXTERNAL_SLOT_WAIT_SECONDS', '0.2')
+    slots = telemetry._slots
+    held = _hold_all_slots(slots)
+    try:
+        started = time.perf_counter()
+        with recording() as trace:
+            with pytest.raises(httpx.PoolTimeout):
+                observed_http(slow(0), 'https://naverapihub.apigw.ntruss.com/search/v1/local')
+            summary = trace.summary()
+        assert .15 <= time.perf_counter() - started < 1.5
+        assert summary['external']['rejected'] == 1
+    finally:
+        for _ in range(held):
+            slots.release()
+
+
+def test_slot_wait_setting_is_bounded(monkeypatch):
+    for value, expected in (('0', 0.0), ('99', 10.0), ('-1', 0.0), ('abc', 2.0)):
+        monkeypatch.setenv('DATEMATE_EXTERNAL_SLOT_WAIT_SECONDS', value)
+        assert telemetry.slot_wait_seconds() == expected

@@ -22,18 +22,22 @@ def test_enter_while_composing_hangul_does_not_search(audit_page):
 
 def test_toast_shows_inside_an_open_modal_and_returns_to_the_page(audit_page):
     page, base, errors = audit_page
-    page.evaluate("openDialog('장소 정보')")
-    assert page.evaluate("document.querySelector('#dialog').getAttribute('aria-labelledby')") == 'dialog-title'
-    assert page.evaluate("document.getElementById('dialog-title').textContent") == '장소 정보'
-    page.evaluate("toast('대화상자 위 안내')")
-    assert page.evaluate("document.querySelector('#toast').parentElement.id") == 'dialog'
-    assert page.locator('#toast').is_visible()
-    # 모달 바깥은 비활성(inert)이라 눌러 볼 수 없는 위치가 아니라, 토스트가 실제 맨 위에 그려지는지 본다.
-    on_top = page.evaluate("""()=>{const r=document.querySelector('#toast').getBoundingClientRect();
-      return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)?.closest('#toast')!==null;}""")
-    assert on_top
-    page.evaluate("document.querySelector('#dialog').close()")
-    assert page.evaluate("document.querySelector('#toast').parentElement===document.body")
+    # 한 번의 실행 안에서 열고·띄우고·재고·닫는다(전체 테스트가 느릴 때 단계 사이에 다른 비동기 작업이 끼지 않게).
+    state = page.evaluate("""async()=>{
+      openDialog('장소 정보');
+      const dialog=document.querySelector('#dialog');
+      toast('대화상자 위 안내');
+      const el=document.querySelector('#toast');const r=el.getBoundingClientRect();
+      const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+      const open={label:dialog.getAttribute('aria-labelledby'),title:document.getElementById('dialog-title')?.textContent,
+        parent:el.parentElement.id,shown:getComputedStyle(el).display!=='none'&&r.width>0&&r.height>0,
+        onTop:!!hit&&el.contains(hit)};
+      // close 이벤트는 비동기로 온다. 토스트를 되돌리는 처리(먼저 붙음)가 끝난 뒤에 잰다.
+      const closed=new Promise(resolve=>dialog.addEventListener('close',()=>resolve(),{once:true}));
+      dialog.close();await closed;
+      return {...open,afterClose:el.parentElement===document.body};}""")
+    assert state == {'label': 'dialog-title', 'title': '장소 정보', 'parent': 'dialog', 'shown': True,
+                     'onTop': True, 'afterClose': True}, state
 
 
 def test_leaflet_is_not_loaded_until_the_fallback_map_needs_it(audit_page):

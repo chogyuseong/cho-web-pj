@@ -222,6 +222,10 @@ def test_permission_problem_from_the_provider(monkeypatch):
 
 def test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(search, monkeypatch):
     assert any(p.match('GET /api/plans/abc/parking') for p in web_security.EXPENSIVE)
+    # 운영은 1초. 전체 테스트를 돌리는 느린 기계에서는 첫 응답과 둘째 요청 사이가 1초를 넘어 막히지 않은 적이 있어,
+    # 이 검사에서는 막는 시간을 늘린다(막는 동작 자체를 본다).
+    from app import main as app_main
+    monkeypatch.setattr(app_main, 'PARKING_REPEAT_SECONDS', 30)
     with TestClient(app, client=(unique_ip(), 1)) as client:
         client.get('/api/status')
         plan = store.save_plan(make_plan(transport='car'), store.owner_of(client.cookies['dm_session']))

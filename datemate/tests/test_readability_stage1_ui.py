@@ -74,3 +74,19 @@ def test_desktop_keeps_the_map_in_the_side_rail(audit_page):
     generate(page)
     page.wait_for_function("document.querySelector('#plan-map-rail .plan-map-card')")
     assert page.locator('#plan-map-slot').is_hidden()
+
+
+def test_selected_course_card_keeps_only_what_the_tabs_do_not_show(audit_page):
+    """가독성 3단계: 코스 번호·목적 태그·차이 설명·조건 넓힘 태그·방문 장소 수는 탭에만 있다."""
+    page, base, errors = audit_page
+    page.set_viewport_size({'width': 390, 'height': 844})
+    generate(page)
+    card = page.evaluate("""()=>{const c=document.querySelector('#results .plan-card.selected');
+      return {heading:!!c.querySelector('.option-heading,.number'),tags:[...c.querySelectorAll(':scope > .tag')].map(t=>t.textContent),
+        stats:[...c.querySelectorAll('.stats small')].map(s=>s.textContent),title:!!c.querySelector('h3'),
+        last:c.lastElementChild.textContent,purposeInTab:document.querySelector('.plan-option-tabs [aria-pressed=true] .option-purpose')?.textContent||''};}""")
+    assert not card['heading'] and card['tags'] == [], card
+    assert card['title'] and not any('방문 장소' in s for s in card['stats']) and len(card['stats']) == 3, card
+    assert card['last'] == '일정 살펴보기 ↓', card
+    page.get_by_role('button', name='일정 살펴보기 ↓').click()
+    page.wait_for_function("document.querySelector('#plan-detail').getBoundingClientRect().top<innerHeight")

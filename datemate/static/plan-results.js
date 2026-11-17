@@ -67,22 +67,22 @@ function renderResults(result={}){
   // 5. 선택한 코스 카드: 수치와 태그
   if(current){const p=current,i=plans.findIndex(item=>item.id===p.id);
     const card=node('article',undefined,'plan-card'+(selected?.id===p.id?' selected':''));
-    const heading=node('div',undefined,'option-heading');
+    // 탭과 겹치는 것(코스 번호, 목적 태그·차이 설명, 조건 넓힘 태그, 방문 장소 수)은 카드에서 뺐다(2026-11-17 가독성 3단계).
+    // 카드에는 탭에 없는 것만 남긴다: 제목(인쇄 제목), 이 코스가 맞는 이유, 가격 미확인 안내, 비용·이동 근거·전체 시간, 장소 사진.
     card.dataset.option=String(i+1);
-    heading.append(node('div',`코스 ${i+1}`,'number'),button('일정 살펴보기',()=>choose(p,true),'secondary inspect-plan'));
-    card.append(heading,node('h3',p.decision_summary?.title||courseTitle(p)));
+    card.setAttribute('aria-label',`선택한 코스 ${i+1} 요약`);
+    card.append(node('h3',p.decision_summary?.title||courseTitle(p)));
     if(p.conditions.festival)card.append(node('p',`‘${p.conditions.festival.title}’ 축제 장소에서 출발하는 코스`,'festival-course-tag'));
     if(p.decision_summary){const summary=p.decision_summary;const fit=node('div',undefined,'fit-reasons');for(const reason of summary.fit_reasons||[summary.reason])fit.append(node('p',reason));card.append(fit);if(summary.unknown_prices||summary.assumed_prices)card.append(node('p',`가격 미확인 ${summary.unknown_prices}항목 · 계획용 가정 ${summary.assumed_prices}항목`,'hint'));}
-    if(p.option_purpose)card.append(node('strong',p.option_purpose,'tag'),node('p',p.option_description,'hint'));
     if(p.diversity_note)card.append(node('p',p.diversity_note,'hint'));
-    card.append(node('span',p.best_effort?'조건 차이가 있는 대안':'조건 비교 완료','tag'));
     const stats=node('div',undefined,'stats');
     const mode=travelMode(p);
-    for(const [value,label] of [[range(p.total),p.unknown?.length?'확인한 항목의 예상 비용':p.costs.some(x=>x.status!=='confirmed')?'예상 전체 비용 · 추정 포함':'등록 단가 기준 비용'],[`${travelMinutes(p)}분`,`이동 시간 · ${mode.label}`],[`${p.minutes}분`,'이동 + 체류 전체'],[`${p.places.length}곳`,'방문 장소']]){const box=node('div');box.append(node('b',value),node('small',label));stats.append(box);}
+    for(const [value,label] of [[range(p.total),p.unknown?.length?'확인한 항목의 예상 비용':p.costs.some(x=>x.status!=='confirmed')?'예상 전체 비용 · 추정 포함':'등록 단가 기준 비용'],[`${travelMinutes(p)}분`,`이동 시간 · ${mode.label}`],[`${p.minutes}분`,'이동 + 체류 전체']]){const box=node('div');box.append(node('b',value),node('small',label));stats.append(box);}
     card.append(stats);
     // 사진 미리보기는 접어 두고 접힘 제목에 장소 수를 적는다.
     const photos=planPhotoPreview(p);
     if(photos.children.length){const box=node('details',undefined,'plan-photo-details');box.append(node('summary',`장소 사진 ${photos.children.length}곳`),photos);box.open=photosOpen;card.append(box);}
+    card.append(button('일정 살펴보기 ↓',()=>choose(p,true),'secondary inspect-plan'));
     root.append(card);
     // 6. 휴대폰 지도 자리는 일정 뒤(#plan-detail 안)로 옮겼다(renderDetail).
   }

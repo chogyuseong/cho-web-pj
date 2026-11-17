@@ -1,6 +1,10 @@
 .env
 # Local secrets at every directory level; keep the empty template.
 .env.*
+# '.env 복사본' 처럼 공백·접미어가 붙은 비밀 파일도 막는다(2026-11-17 '.env datemate' 가 실수로 커밋됨).
+.env *
+*.env
+.env-*
 !.env.example
 .dev.vars*
 node_modules/

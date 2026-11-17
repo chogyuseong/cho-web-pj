@@ -11,6 +11,18 @@
 운영에 올라간 것: 커밋 3cae442(병합 22e68c8), Worker 버전 6ef1d6c1-c027-4263-b3c5-498e995377d0 (서른네 번째 배포, 2026-11-17 오후)
   배포 전 GitHub Actions 5개 작업이 브랜치 feat/a11y-mobile-polish 커밋 c47a29a 에서 모두 통과했습니다(Run 44010699952).
   (그 전: 커밋 4e48dc3, Worker a547a8bf, 서른세 번째 배포, 2026-11-17 12:00 무렵)
+★★ main 에 있지만 아직 배포하지 않은 것 (2026-11-17 저녁, 브랜치 perf/naver-session 커밋 74daae5, 병합 2212ba8)
+  · 배포는 하지 않았습니다(사용자가 고른 작업은 '가격 확인 연결 재사용'까지, 배포는 지시가 있을 때만). 다음 배포 때 함께 올라갑니다.
+  · 왜: 운영 측정(2026-11-17, 전주 추천)에서 가격 확인 단계가 새 연결 4개에 1,413ms(연결당 약 350ms)를 썼습니다. 장소 검색이 같은 호스트에 막 연결했는데도 새로 맺었습니다.
+  · 무엇(app/telemetry.py naver_session·shared_naver_client, observed_http, app/pricing.py price_plans, app/recommendation_service.generate):
+    추천 작업 하나 동안 naverapihub.apigw.ntruss.com 연결 풀(httpx.Client, 유휴 8개·30초)을 열어 두고, 진짜 httpx.get 으로 그 호스트를 부르는 호출(블로그·지역 검색)과
+    가격 검색 묶음이 그 풀을 씁니다. 요청·헤더·시간 제한·동시 실행 수는 그대로, 쿠키는 받지도 보내지도 않습니다. 추천 밖(장소 바꾸기·새로 고침 등)은 전과 같습니다.
+  · 테스트 안전장치: httpx.get 이 가짜로 바뀌어 있으면(테스트) 그 가짜를 그대로 쓰고, pricing.search_client 가 바뀌어 있으면 그것을 씁니다. 그래서 테스트가 실제 네이버를 부르지 않고
+    추천 속도 골든 테스트(외부 호출 종류·횟수)도 그대로 통과합니다. 새 tests/test_naver_session.py 6개.
+  · 검사: Docker(Playwright 1.64.1 chromium, SQLite) 전체 1210 통과, format_sources --check 통과, GitHub Actions(Run 44016253287) 5개 통과.
+  · 배포 뒤 볼 것: 가격 검색이 있는 추천 1회의 result.diagnostics.timing.external_by_stage['가격 확인'] 에서 new_connections 가 0~1 로 줄고
+    connect_ms 가 수십 ms 이하인지, wall_ms 가 전(2.9초, 동시 4건)보다 줄었는지, external.failed 가 늘지 않았는지. '장소 검색' 단계의 지역 검색 둘째 차례도 빨라질 수 있습니다.
+  · 문제가 생기면: git revert -m 1 2212ba8.
 서른네 번째 배포로 올라간 것 (main 병합 22e68c8, 브랜치 feat/a11y-mobile-polish 커밋 c47a29a): 접근성·휴대폰 정리
   · 처음에는 '혼자 할 수 있는 것까지 하고 커밋·푸시' 지시로 main 에만 넣었고, 이어서 사용자가 배포를 지시해 올렸습니다.
   · 내용(modern-web-guidance 점검 남은 항목 가운데 제품 판단이 필요 없는 것):
@@ -32,8 +44,7 @@
   · 아직 볼 것(사람이): 실제 휴대폰 키보드의 검색·보내기 키, 장소 교체 뒤 키보드 포커스 위치, 입력칸 테두리 색이 어색하지 않은지, 결과 화면 사진이 나올 때 밀림.
   · 문제가 생기면: git revert -m 1 22e68c8.
   · 하지 않은 것과 까닭:
-    - 가격 검색 연결 재사용: 장소 검색 모듈이 httpx.get 을 직접 쓰고 여러 테스트의 가짜 네이버 장치가 그 경로에 물려 있어, 공유 클라이언트로 바꾸면
-      테스트가 실제 네이버를 부를 위험이 있습니다. 테스트 장치를 함께 바꾸는 별도 작업으로(docs/price-stage-latency-2026-11-14.md 9절).
+    - 가격 검색 연결 재사용: 이 배포에서는 뺐고, 뒤에 perf/naver-session 으로 따로 했습니다(위 ★★).
     - 코스 탭 INP(상세 그리기 미루기): 탭을 누른 직후 상세를 읽는 테스트가 많아 따로 작업.
     - 모바일 헤더 축소(320px 에서 화면 33%), 사진 썸네일 우선(사진 품질 정책), CSS 18개 병합, 토스트 유지 시간·항상 보이는 live region, 지도 마커 크기: 화면·정책 판단이 필요.
     - content-visibility, 자동차 경로 확인 동시 호출: 측정이 먼저.

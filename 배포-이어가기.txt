@@ -8,11 +8,11 @@
 ★ 지금 상태 (2026-11-17 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 3cae442(병합 22e68c8), Worker 버전 6ef1d6c1-c027-4263-b3c5-498e995377d0 (서른네 번째 배포, 2026-11-17 오후)
-  배포 전 GitHub Actions 5개 작업이 브랜치 feat/a11y-mobile-polish 커밋 c47a29a 에서 모두 통과했습니다(Run 44010699952).
-  (그 전: 커밋 4e48dc3, Worker a547a8bf, 서른세 번째 배포, 2026-11-17 12:00 무렵)
-★★ main 에 있지만 아직 배포하지 않은 것 (2026-11-17 저녁, 브랜치 perf/naver-session 커밋 74daae5, 병합 2212ba8)
-  · 배포는 하지 않았습니다(사용자가 고른 작업은 '가격 확인 연결 재사용'까지, 배포는 지시가 있을 때만). 다음 배포 때 함께 올라갑니다.
+운영에 올라간 것: 커밋 43e0f4d(병합 2212ba8), Worker 버전 e76e2df2-1e2f-49e9-9455-13645f9fc842 (서른다섯 번째 배포, 2026-11-17 13:30 무렵)
+  배포 전 GitHub Actions 5개 작업이 브랜치 perf/naver-session 커밋 74daae5 에서 모두 통과했습니다(Run 44016253287).
+  (그 전: 커밋 3cae442, Worker 6ef1d6c1, 서른네 번째 배포 / 커밋 4e48dc3, Worker a547a8bf, 서른세 번째 배포)
+서른다섯 번째 배포로 올라간 것 (main 병합 2212ba8, 브랜치 perf/naver-session 커밋 74daae5): 추천 하나 동안 네이버 API 허브 연결 풀 재사용
+  · main 에 먼저 넣고, 이어서 사용자가 배포를 지시해 올렸습니다.
   · 왜: 운영 측정(2026-11-17, 전주 추천)에서 가격 확인 단계가 새 연결 4개에 1,413ms(연결당 약 350ms)를 썼습니다. 장소 검색이 같은 호스트에 막 연결했는데도 새로 맺었습니다.
   · 무엇(app/telemetry.py naver_session·shared_naver_client, observed_http, app/pricing.py price_plans, app/recommendation_service.generate):
     추천 작업 하나 동안 naverapihub.apigw.ntruss.com 연결 풀(httpx.Client, 유휴 8개·30초)을 열어 두고, 진짜 httpx.get 으로 그 호스트를 부르는 호출(블로그·지역 검색)과
@@ -20,8 +20,13 @@
   · 테스트 안전장치: httpx.get 이 가짜로 바뀌어 있으면(테스트) 그 가짜를 그대로 쓰고, pricing.search_client 가 바뀌어 있으면 그것을 씁니다. 그래서 테스트가 실제 네이버를 부르지 않고
     추천 속도 골든 테스트(외부 호출 종류·횟수)도 그대로 통과합니다. 새 tests/test_naver_session.py 6개.
   · 검사: Docker(Playwright 1.64.1 chromium, SQLite) 전체 1210 통과, format_sources --check 통과, GitHub Actions(Run 44016253287) 5개 통과.
-  · 배포 뒤 볼 것: 가격 검색이 있는 추천 1회의 result.diagnostics.timing.external_by_stage['가격 확인'] 에서 new_connections 가 0~1 로 줄고
-    connect_ms 가 수십 ms 이하인지, wall_ms 가 전(2.9초, 동시 4건)보다 줄었는지, external.failed 가 늘지 않았는지. '장소 검색' 단계의 지역 검색 둘째 차례도 빨라질 수 있습니다.
+  · 운영 확인: 배포 직후 1회(강릉 안목해변)는 컨테이너가 1초 만에 답해 예전 이미지였습니다(가격 확인 new_connections 4, connect_ms 1,517, 장소 검색 connection_observed 5/13).
+    13분 접속 없이 기다린 뒤(컨테이너 13.9초에 켜짐) 제주 애월 도보 추천 1회: 장소 검색 calls 6·connection_observed 6(블로그 검색이 풀을 거쳐 이제 기록됨),
+    가격 확인 calls 7·new_connections 3·connect_ms 1,060·wall 2,829ms·peak 4, 외부 호출 실패 0, price.plans_unchanged 3. 서버 안 합계 6.7초.
+  · 효과는 기대보다 작습니다: 이번 추천은 지역 검색이 캐시라 장소 검색이 네이버에 연결 1개만 맺었고, 가격 확인은 동시 4건이라 1개만 재사용·3개는 새로 맺었습니다
+    (연결 시간 약 1.4~1.5초 → 1.06초). 지역 검색이 실제로 나가는 추천이면 열린 연결이 더 많아 더 줄 것으로 추정합니다(재지 않음).
+    새 연결 하나에 약 350ms 가 드는 것은 컨테이너와 네이버 게이트웨이 사이 왕복이 긴 것으로 보입니다(locationHint apac. 컨테이너 위치는 확인 안 함).
+    더 줄이려면: 가격 확인 직전(코스 구성 단계)에 연결을 미리 맺어 두는 방법이 있으나, 인증 없는 요청을 게이트웨이에 보내야 해 하지 않았습니다.
   · 문제가 생기면: git revert -m 1 2212ba8.
 서른네 번째 배포로 올라간 것 (main 병합 22e68c8, 브랜치 feat/a11y-mobile-polish 커밋 c47a29a): 접근성·휴대폰 정리
   · 처음에는 '혼자 할 수 있는 것까지 하고 커밋·푸시' 지시로 main 에만 넣었고, 이어서 사용자가 배포를 지시해 올렸습니다.

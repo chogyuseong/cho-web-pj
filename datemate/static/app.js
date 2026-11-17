@@ -291,9 +291,18 @@ function toast(text) {
   }
   el.textContent = text;
   $('#toast').style.display = 'block';
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => $('#toast').style.display = 'none', 6500);
+  // 읽을 시간: 글 길이에 맞춰 6.5~15초(한 글자 약 0.15초). 마우스를 올리거나 포커스가 있는 동안은 닫지 않는다(WCAG 2.2.1, 2026-11-17).
+  toast.wait = Math.min(15000, Math.max(6500, String(text).length * 150));
+  toast.schedule();
 }
+toast.schedule = function(wait = toast.wait || 6500) {
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => {
+    const el = $('#toast');
+    if (el.matches(':hover') || el.contains(document.activeElement)) return toast.schedule(2000);
+    el.style.display = 'none';
+  }, wait);
+};
 
 function today() {
   const d = new Date();

@@ -90,3 +90,30 @@ def test_selected_course_card_keeps_only_what_the_tabs_do_not_show(audit_page):
     assert card['last'] == '일정 살펴보기 ↓', card
     page.get_by_role('button', name='일정 살펴보기 ↓').click()
     page.wait_for_function("document.querySelector('#plan-detail').getBoundingClientRect().top<innerHeight")
+
+
+def test_phone_header_is_one_compact_block(audit_page):
+    """가독성 3단계: 휴대폰 헤더는 여백을 줄이고 메뉴를 한 줄로 둬 120px 아래(전 390px 124px, 320px 172px). 보조 문구는 남긴다."""
+    page, base, errors = audit_page
+    for width in (390, 320):
+        page.set_viewport_size({'width': width, 'height': 700})
+        state = page.evaluate("""()=>{const h=document.querySelector('body > header'),n=h.querySelector('nav'),items=[...n.children];
+          return {height:h.getBoundingClientRect().height,tagline:getComputedStyle(h.querySelector('.brand-tagline')).display,
+            rows:new Set(items.map(i=>Math.round(i.getBoundingClientRect().top))).size,overflow:document.documentElement.scrollWidth>innerWidth};}""")
+        assert state['height'] <= 120 and state['tagline'] != 'none' and state['rows'] == 1 and not state['overflow'], (width, state)
+
+
+def test_toast_stays_long_enough_to_read_and_while_hovered(audit_page):
+    page, base, errors = audit_page
+    waits = page.evaluate("""()=>{toast('짧은 안내');const a=toast.wait;toast('가'.repeat(80));const b=toast.wait;toast('가'.repeat(400));return [a,b,toast.wait];}""")
+    assert waits == [6500, 12000, 15000], waits
+    # 나타나는 효과를 끄고, 먼저 마우스를 올린 다음 짧게 닫기를 걸어 본다.
+    page.emulate_media(reduced_motion='reduce')
+    page.evaluate("toast('마우스를 올린 안내')")
+    page.hover('#toast')
+    page.evaluate('toast.schedule(50)')
+    page.wait_for_timeout(300)
+    assert page.locator('#toast').is_visible()
+    page.mouse.move(0, 0)
+    page.evaluate('toast.schedule(50)')
+    page.wait_for_function("getComputedStyle(document.querySelector('#toast')).display==='none'")

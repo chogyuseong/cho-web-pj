@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const originInput=form.elements.origin_name,originHost=document.getElementById('origin-location');
   const originLabel=originInput.closest('label'),mapButton=originHost.querySelector('button');
   originInput.readOnly=false;originInput.maxLength=200;originInput.autocomplete='off';originInput.spellcheck=false;
-  originInput.placeholder='동네·역·주소로 검색';
+  originInput.placeholder='동네·역·주소로 검색';originInput.enterKeyHint='search';
   const searchRow=node('div',undefined,'origin-search');
   const searchButton=button('검색',()=>searchOrigin(),'secondary origin-search-button');
   originLabel.before(searchRow);searchRow.append(originLabel,searchButton);

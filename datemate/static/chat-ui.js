@@ -1,7 +1,7 @@
 function chatWidget(kind,id,chatMode){
   const container=node('section'),history=node('div',undefined,'chat-box'),f=node('form',undefined,'chat-form'),input=node('input');
   input.placeholder=kind==='plan'?'예: 총비용은 얼마야? 이동 시간과 주의할 점은?':'예: 운영시간과 가격이 확인되나요?';
-  input.setAttribute('aria-label','장소 또는 일정 질문');input.required=true;input.maxLength=4000;
+  input.setAttribute('aria-label','장소 또는 일정 질문');input.enterKeyHint='send';input.required=true;input.maxLength=4000;
   const send=node('button','질문하기','primary');send.type='submit';f.append(input,send);
   history.setAttribute('aria-live','polite');container.append(history,f,node('p',kind==='plan'?'현재 선택한 일정의 시간표·비용·조건을 바탕으로 답합니다. 일정 변경은 각 장소의 변경 버튼에서 확정해 주세요.':'확보한 장소 자료를 근거로 답합니다.','hint'));
   const ready=api(`/chat/${kind}/${id}?mode=${chatMode}`).then(data=>{

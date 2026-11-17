@@ -59,6 +59,7 @@ const PopupView = {
       query = node('input');
     query.id = 'popup-query';
     query.type = 'search';
+    query.enterKeyHint = 'search';
     query.maxLength = 30;
     query.placeholder = '예: 성수, 캐릭터, 디저트';
     queryLabel.append(query);

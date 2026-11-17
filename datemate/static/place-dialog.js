@@ -44,9 +44,20 @@ function drawMap(p) {
   return wrap;
 }
 let dialogGeneration = 0;
+// 대화상자를 연 단추와 그 단추가 있던 장소 카드 순번. 닫을 때 브라우저는 연 단추로 포커스를 돌려주지만,
+// 장소 교체·제보처럼 결과를 다시 그리면 그 단추가 사라져 포커스가 페이지 맨 위(body)로 떨어진다.
+let dialogReturn = null;
 
 function openDialog(title) {
   dialogGeneration++;
+  if (!$('#dialog').open) {
+    const opener = document.activeElement;
+    const stop = opener?.closest?.('#plan-detail .stop');
+    dialogReturn = {
+      opener,
+      stop: stop ? [...document.querySelectorAll('#plan-detail .stop')].indexOf(stop) : -1
+    };
+  }
   const root = $('#dialog-content');
   const heading = node('h2', title);
   heading.id = 'dialog-title';
@@ -168,3 +179,24 @@ async function showPlace(id, placeMode) {
   links.append(link('구글 사진 더보기', 'https://www.google.com/search?tbm=isch&q=' + q), link('구글 영상 더보기', 'https://www.google.com/search?tbm=vid&q=' + q), placeMapLink('네이버 지도', p));
   root.append(links, node('h3', '근거를 보며 질문하기'), chatWidget('place', id, placeMode));
 }
+
+// 닫힌 뒤 포커스가 갈 곳을 잃었으면(연 단추가 다시 그려져 사라짐) 같은 순번 장소의 제목, 없으면 상세 제목으로 옮긴다.
+// 이 파일은 app.js($ 정의)보다 먼저 읽히므로 맨 위 수준에서는 getElementById 를 쓴다.
+document.getElementById('dialog').addEventListener('close', () => {
+  const back = dialogReturn;
+  dialogReturn = null;
+  setTimeout(() => {
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    if (back?.opener?.isConnected && back.opener !== document.body) return back.opener.focus({
+      preventScroll: true
+    });
+    const stops = document.querySelectorAll('#plan-detail .stop');
+    const target = (back && back.stop >= 0 && stops[back.stop]?.querySelector('h4')) || document.querySelector('#plan-detail h2, #plan-detail h3');
+    if (!target) return;
+    if (!target.hasAttribute('tabindex')) target.tabIndex = -1;
+    target.focus({
+      preventScroll: true
+    });
+  }, 0);
+});

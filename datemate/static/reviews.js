@@ -63,15 +63,53 @@ async function loadReviews(root, p) {
       await api('/reviews/' + review.id, null, 'DELETE');
       await loadReviews(root, p);
     }));
-    actions.append(button('신고', async () => {
-      const reason = prompt('신고 사유를 입력해 주세요.');
-      if (reason?.trim()) {
-        const answer = await api('/reviews/' + review.id + '/report', {
-          reason
-        });
-        toast(answer.notice);
+    // 신고 사유는 prompt() 대신 후기 아래 입력칸으로 받는다(인앱 브라우저가 prompt 를 막는 경우가 있고, 길이·필수 검사를 할 수 있다).
+    const report = button('신고', () => {
+      const open = row.querySelector('.review-report');
+      if (open) {
+        open.remove();
+        report.setAttribute('aria-expanded', 'false');
+        return;
       }
-    }));
+      const reportForm = node('form', undefined, 'review-report');
+      const label = node('label', '신고 사유');
+      const reason = node('textarea');
+      reason.required = true;
+      reason.maxLength = 2000;
+      reason.rows = 3;
+      label.append(reason);
+      const send = node('button', '신고 보내기', 'secondary');
+      send.type = 'submit';
+      const cancel = button('취소', () => {
+        reportForm.remove();
+        report.setAttribute('aria-expanded', 'false');
+        report.focus();
+      });
+      reportForm.append(label, send, cancel);
+      reportForm.onsubmit = async event => {
+        event.preventDefault();
+        if (!reason.value.trim()) return reason.reportValidity();
+        send.disabled = true;
+        try {
+          const answer = await api('/reviews/' + review.id + '/report', {
+            reason: reason.value.trim()
+          });
+          toast(answer.notice);
+          reportForm.remove();
+          report.setAttribute('aria-expanded', 'false');
+          report.focus();
+        } catch (error) {
+          toast(error.message);
+        } finally {
+          send.disabled = false;
+        }
+      };
+      row.append(reportForm);
+      report.setAttribute('aria-expanded', 'true');
+      reason.focus();
+    });
+    report.setAttribute('aria-expanded', 'false');
+    actions.append(report);
     row.append(actions);
     root.append(row);
   }

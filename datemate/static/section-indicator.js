@@ -30,7 +30,11 @@
     const header = document.querySelector('body > header');
     const headerBottom = Math.max(0, header ? header.getBoundingClientRect().bottom : 0);
     // 헤더가 줄바꿈되거나 일부만 보일 때도 바로 아래에 붙도록 실제 위치를 쓴다.
-    bar.style.top = headerBottom + 'px';
+    // 위치는 제목들을 모두 읽은 뒤(placeBar) 쓴다. 먼저 쓰면 스크롤 프레임마다 레이아웃을 강제로 다시 계산한다.
+    const placeBar = () => {
+      const top = headerBottom + 'px';
+      if (bar.style.top !== top) bar.style.top = top;
+    };
     const line = headerBottom + 12;
     let active = null,
       section = null,
@@ -54,6 +58,7 @@
       }
     }
     const text = active ? headingText(active) : '';
+    placeBar();
     if (!text) {
       bar.classList.remove('is-visible');
       return;

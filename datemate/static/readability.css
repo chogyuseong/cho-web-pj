@@ -351,3 +351,8 @@ html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 #plan-extras>.plan-extras-panel { margin-top:24px; }
 .plan-photo-details { margin-top:14px; }
 .cost-table-details { margin:8px 0 12px; }
+/* 휴대폰: 조건 칩·소분류 칩을 손가락으로 누르기 쉽게 44px 높이로(전 34~38px). 넓은 화면은 그대로. */
+@media (max-width:720px) {
+  .chips label > span { display:inline-flex; align-items:center; min-height:44px; }
+  .date-subcategories span { display:flex; align-items:center; min-height:44px; }
+}

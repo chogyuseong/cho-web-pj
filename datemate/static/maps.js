@@ -227,7 +227,7 @@ function drawPlanMap(plan){
   wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
   wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();clearParking();dropMap();};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
-  canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
+  canvas.setAttribute('role','region');canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
   const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
   caption.setAttribute('role','status');
   const festivalNote=node('p','','hint map-festival-note');festivalNote.hidden=true;
@@ -361,7 +361,7 @@ function drawPlanMap(plan){
     schematic.append(node('summary','방문 순서 개략도 보기 (실제 지도 아님)'),drawMap(plan));
     wrap.replaceChildren(notice,schematic);
     loadLeaflet().then(()=>{if(disposed||!wrap.isConnected)return;
-      const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
+      const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('role','region');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
       wrap.prepend(mapCanvas,mapCaption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));

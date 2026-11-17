@@ -624,6 +624,9 @@ function setTab(explore) {
   $('#explore-section').hidden = !explore;
   $('#nav-plan').classList.toggle('active', !explore);
   $('#nav-explore').classList.toggle('active', explore);
+  // 지금 화면을 색만이 아니라 화면 읽기 프로그램에도 알린다.
+  $('#nav-plan').setAttribute('aria-pressed', String(!explore));
+  $('#nav-explore').setAttribute('aria-pressed', String(explore));
   if (explore) {
     if (location.hash !== '#explore-section') history.pushState(null, '', '#explore-section');
     requestAnimationFrame(() => {

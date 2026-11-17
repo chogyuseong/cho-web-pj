@@ -143,8 +143,9 @@ def test_source_urls_become_named_buttons_and_print_keeps_address(audit_page):
     assert 'https://m.blog.naver.com/test/123' in after[1] and 'https://example.com/a' in after[2]
     page.emulate_media(media='screen')
     generate(page)
-    reasons = ' '.join(page.locator('#plan-detail .timeline-card > p.hint').all_inner_texts())
-    assert 'http://' not in reasons and 'https://' not in reasons
+    # 추천 이유·확인 방법·근거 문장은 장소 카드의 '정보 출처' 접기 안에 있다(2026-11-17 가독성 정리).
+    reasons = ' '.join(page.locator('#plan-detail .timeline-card .stop-source p.hint').all_text_contents())
+    assert reasons and 'http://' not in reasons and 'https://' not in reasons
 
 
 def test_place_evidence_uses_plain_words_and_status_badges(audit_page):

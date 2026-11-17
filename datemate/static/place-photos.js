@@ -19,6 +19,19 @@ function photoCheckedAt(value){
   const two=n=>String(n).padStart(2,'0');
   return `${at.getFullYear()}-${two(at.getMonth()+1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
 }
+// 촬영·확인 시점, 변경 여부, 이용 조건은 '사진 정보' 접기 안에 둔다(전에는 사진마다 본문 크기 4줄, 2026-11-17 가독성 정리).
+function photoMetaLines(photo){
+  const lines=[node('p',`촬영 ${photo.taken_at||'시점 미확인'} · 자료 확인 ${photoCheckedAt(photo.checked_at)}`,'hint'),node('p',photo.changes||'원본 변경 없음','hint')];
+  if(['search_result','place_public'].includes(photo.kind))lines.push(node('p','검색 참고 이미지 · 원본 이용 조건 확인 필요','hint'));
+  return lines;
+}
+// 크게 보기(full)에서는 설명은 그대로 두고 시점·조건 줄만 접는다. 결과 화면의 장소 카드에서는 설명 전체를 접으므로(placePhotoPanel) 줄만 넣는다.
+function photoMeta(photo,full){
+  if(!full)return photoMetaLines(photo);
+  const box=node('details',undefined,'photo-meta');
+  box.append(node('summary','사진 정보'),...photoMetaLines(photo));
+  return [box];
+}
 // 장소 일치만 확인하고 사진 내용 검사는 하지 않은 사진임을 라벨에 드러낸다.
 function photoLabel(photo,fallback){return (photo.source_label||fallback)+(photo.visual_verification?.status==='unverified'?' · 내용 미검사':'');}
 // 사진 아래 출처 줄. 카드와 큰 보기 창이 같은 표기를 쓴다.
@@ -141,9 +154,12 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
     let current=0,counter=null,busy=false,suppressClickUntil=0;
     const copy=node('div',undefined,'place-photo-copy');copy.append(node('span','장소 사진','photo-eyebrow'),node('h5',photo.title),node('p',photo.caption||place.description||'원문에서 확인한 장소 사진입니다.'));
     if(place.description&&place.description!==photo.caption)copy.append(node('p',place.description,'hint'));
-    copy.append(node('p',`촬영 ${photo.taken_at||'시점 미확인'} · 자료 확인 ${photoCheckedAt(photo.checked_at)}`,'hint'),node('p',photo.changes||'원본 변경 없음','hint'));
-    if(['search_result','place_public'].includes(photo.kind))copy.append(node('p','검색 참고 이미지 · 원본 이용 조건 확인 필요','hint'));
-    panel.append(figure,copy);
+    copy.append(...photoMeta(photo,full));
+    // 결과 화면의 장소 카드: 사진과 출처 줄만 보이고 사진 제목·설명·확인 시점은 '사진 정보' 하나로 접는다(2026-11-17 가독성 정리).
+    let copyHost=copy;
+    if(!full){copyHost=node('details',undefined,'photo-meta photo-copy-fold');copyHost.append(node('summary','사진 정보'),copy);}
+    panel.append(figure,copyHost);
+    if(data.photos.length>1&&!full)panel.append(button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode),'secondary photo-more'));
     const loading=node('p','사진을 확인하고 있어요…','photo-status');figure.append(loading);
     const updatePhoto=(next,loadedUrl)=>{
       const index=data.photos.indexOf(next);if(index>=0)current=index;
@@ -151,9 +167,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       imageLink.setAttribute('aria-label',next.title+' 사진 크게 보기');
       copy.replaceChildren(node('span',photoLabel(next,next.image_role?next.image_role+' · 제목 기준':'장소 사진'),'photo-eyebrow'),node('h5',next.title),node('p',next.caption||place.description||''));
       if(place.description&&place.description!==next.caption)copy.append(node('p',place.description,'hint'));
-      copy.append(node('p',`촬영 ${next.taken_at||'시점 미확인'} · 자료 확인 ${photoCheckedAt(next.checked_at)}`,'hint'),node('p',next.changes||'원본 변경 없음','hint'));
-      if(['search_result','place_public'].includes(next.kind))copy.append(node('p','검색 참고 이미지 · 원본 이용 조건 확인 필요','hint'));
-      if(data.photos.length>1&&!full)copy.append(button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode)));
+      copy.append(...photoMeta(next,full));
       credits.replaceChildren(...photoCredits(next).childNodes);loading.remove();
     };
     const initialLoad=loadSafePhoto(img,data.photos,updatePhoto,async()=>{

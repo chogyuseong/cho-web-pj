@@ -113,7 +113,7 @@ function routeLine(plan, index, label) {
     toggle.dataset.transportToggle = String(index);
     line.append(toggle);
   }
-  if (leg.source) line.append(node('small', leg.source, 'route-line-source'));
+  if (leg.source && !sharedLegSource(plan)) line.append(node('small', leg.source, 'route-line-source'));
   return wrap;
 }
 

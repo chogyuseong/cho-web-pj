@@ -11,6 +11,19 @@ from test_functional_audit import audit_page, generate, wait_for_selected_detail
 from test_popup_map_ui import LEAFLET_CAPTURE, NAVER_STUB
 from test_results_extras_ui import wide_png
 
+
+@pytest.fixture(autouse=True)
+def release_finished_plan_jobs():
+    """이 파일의 화면 테스트는 코스를 7번 만든다. 서버는 끝난 작업을 10분 동안 기억하고 기억 중인 작업이 100개면 새 추천을 429 로 막는다
+    (app/plan_jobs.py). 전체 실행에서 이 파일 뒤의 테스트(test_results_flow_ui·test_review_improvements·test_security_limits)가
+    그 한도에 걸려 실패했으므로(로컬 Docker 2회), 이 파일이 만든 끝난 작업은 테스트마다 지워 다른 테스트의 몫을 쓰지 않게 한다."""
+    yield
+    from app import plan_jobs
+    with plan_jobs._lock:
+        for key in [k for k, job in plan_jobs._jobs.items() if job.get('status') != 'running']:
+            del plan_jobs._jobs[key]
+
+
 # 포커스가 간 곳: 몇 번째 장소 카드의 제목인지(-1 = 장소 제목 아님), 제목이 화면 안에 보이고 가려지지 않았는지, 포커스 표시.
 FOCUSED = """()=>{const a=document.activeElement,stops=[...document.querySelectorAll('#plan-detail .stop')];
   const index=stops.findIndex(s=>s.querySelector('.timeline-card>h4')===a);

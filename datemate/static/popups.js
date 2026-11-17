@@ -350,6 +350,29 @@ const PopupCourse = {
   ready() {
     return PopupView.enabled && Boolean(document.getElementById('popup-course'));
   },
+  // 코스 제목 옆 '축제 보기' 옆에서 팝업스토어 글 구역으로 바로 이어 준다(구역이 보일 때만).
+  jump(text) {
+    const jump = document.getElementById('popup-jump');
+    if (!jump) return;
+    if (!text) {
+      jump.hidden = true;
+      return;
+    }
+    jump.textContent = text;
+    jump.hidden = false;
+    jump.onclick = () => {
+      const section = document.getElementById('popup-course');
+      if (!section || section.hidden) return;
+      section.scrollIntoView({
+        block: 'start'
+      });
+      const title = document.getElementById('popup-course-title');
+      title.tabIndex = -1;
+      title.focus({
+        preventScroll: true
+      });
+    };
+  },
   // 저장된 코스를 열거나 진행 중이던 검색을 이어받을 때. 팝업 거점 선택은 되살리지 않는다(0단계 보고 8절).
   restore(conditions) {
     this.chosen = null;
@@ -381,6 +404,7 @@ const PopupCourse = {
     document.getElementById('popup-course-title').textContent = `${region}에서 찾은 팝업스토어 글`;
     document.getElementById('popup-course-demo').hidden = conditions.mode !== 'demo';
     section.hidden = false;
+    this.jump(`${region} 팝업스토어 보기 ↓`);
     results.replaceChildren();
     results.setAttribute('aria-busy', 'true');
     status.textContent = `${region}의 팝업 글을 찾고 있어요.`;
@@ -409,6 +433,7 @@ const PopupCourse = {
     // 페이지를 연 뒤 스위치가 꺼졌으면(404) 구역을 내린다.
     if (error.status === 404) {
       document.getElementById('popup-course').hidden = true;
+      this.jump(null);
       return;
     }
     document.getElementById('popup-course-status').textContent = '팝업 글을 불러오지 못했어요. 코스 추천에는 영향이 없어요.';
@@ -647,6 +672,7 @@ const PopupCourse = {
       return;
     }
     status.textContent = `${scope} 팝업 글 ${posts.length}건 · 위치를 확인한 글 ${located.length}건`;
+    this.jump(`${conditions.region || '서울'} 팝업스토어 ${posts.length}건 보기 ↓`);
     if (data.status === 'partial') results.append(node('p', data.message || '일부 장소의 위치를 확인하지 못해 위치 미확인으로 표시했어요.', 'popup-state popup-state-partial'));
     for (const line of notes) results.append(node('p', line, 'hint popup-note'));
     if (groups.length) {

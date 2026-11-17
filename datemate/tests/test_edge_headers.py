@@ -35,6 +35,7 @@ def test_edge_policy_strings_equal_the_app(monkeypatch):
     assert js_const('PERMISSIONS_POLICY') == page['permissions-policy']
     assert js_const('STRICT_TRANSPORT_SECURITY') == page['strict-transport-security']
     assert js_const('STATIC_CACHE_CONTROL') == production_headers(monkeypatch, '/static/app.js')['cache-control']
+    assert js_const('STATIC_IMMUTABLE_CACHE_CONTROL') == web_security.STATIC_IMMUTABLE_CACHE_CONTROL
     assert js_const('FEEDBACK_NAV_LINK') == user_feedback.NAV_LINK
 
 
@@ -73,3 +74,22 @@ def inspect_values():
     import inspect
     return tuple(re.search(r'not in \(([^)]*)\)', inspect.getsource(user_feedback.enabled)).group(1)
                  .replace('"', '').replace(' ', '').split(','))
+
+
+def static_headers(monkeypatch, query, status=200):
+    monkeypatch.setattr(web_security, 'production', lambda: True)
+    scope = {'type': 'http', 'method': 'GET', 'path': '/static/app.js', 'raw_path': b'/static/app.js', 'headers': [],
+             'scheme': 'https', 'server': ('datemate.example', 443), 'query_string': query.encode()}
+    return web_security.headers(Response('x', status_code=status), Request(scope), 'request-id').headers['cache-control']
+
+
+def test_static_files_are_immutable_only_for_the_current_content_hash(monkeypatch):
+    """배포 직후 예전 컨테이너가 새 주소(?v=새 해시)로 예전 파일을 보내도, 해시가 맞지 않으면 1년 캐시를 주지 않는다."""
+    from app.static_pages import file_version, versioned_page
+    current = file_version('/static/app.js')
+    assert current and f'/static/app.js?v={current}' in versioned_page('index.html')
+    assert static_headers(monkeypatch, f'v={current}') == 'public, max-age=31536000, immutable'
+    assert static_headers(monkeypatch, f'v={current}', 304) == 'public, max-age=31536000, immutable'
+    for query in ('v=000000000000', '', f'v={current[:11]}'):
+        assert static_headers(monkeypatch, query) == 'public, max-age=0, must-revalidate', query
+    assert file_version('/static/../app/main.py') is None and file_version('/static/none.js') is None

@@ -156,6 +156,10 @@ def content_security_policy(local=False):
     return '; '.join(directives)
 
 
+STATIC_CACHE_CONTROL = 'public, max-age=0, must-revalidate'
+STATIC_IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable'
+
+
 def headers(response, request, request_id):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
@@ -170,6 +174,11 @@ def headers(response, request, request_id):
         response.headers['Cache-Control'] = 'no-store'
         response.headers['Referrer-Policy'] = 'no-referrer'
     elif request.url.path.startswith('/static/'):
-        # Unversioned modules (including dynamically imported JS) must revalidate.
-        response.headers['Cache-Control'] = 'public, max-age=0, must-revalidate'
+        # 주소의 ?v= 가 지금 보내는 파일의 내용 해시와 같을 때만 1년 동안 다시 묻지 않게 한다(파일이 바뀌면 페이지의 주소가 바뀜).
+        # 해시를 확인하는 까닭: 배포 직후 새 페이지(엣지)가 예전 컨테이너에 새 주소를 물으면 예전 파일이 새 주소로 나가는데,
+        # 그것을 immutable 로 두면 브라우저가 1년 동안 예전 파일을 쓴다. 해시가 없거나 다르면 전처럼 매번 확인한다.
+        from .static_pages import file_version
+        version = request.query_params.get('v')
+        immutable = bool(version) and response.status_code in (200, 304) and version == file_version(request.url.path)
+        response.headers['Cache-Control'] = STATIC_IMMUTABLE_CACHE_CONTROL if immutable else STATIC_CACHE_CONTROL
     return response

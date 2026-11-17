@@ -204,3 +204,19 @@ test("a container answer that happens to carry the signal is ignored outside edg
   const response = await handleFetch(new Request(ORIGIN + "/api/status"), { ...ENV, ASSETS }, stub, PAGES);
   assert.equal(response.status, 204);
 });
+
+test("static files: immutable only when ?v= is the content hash the built pages use", async () => {
+  const versioned = PAGES["/"].match(/\/static\/app\.js\?v=([0-9a-f]{12})/);
+  assert.ok(versioned, "home page links app.js with ?v=");
+  const hit = (await run("/static/app.js?v=" + versioned[1])).response;
+  assert.equal(hit.status, 200);
+  assert.equal(hit.headers.get("cache-control"), "public, max-age=31536000, immutable");
+  // An old or made-up hash, or no hash, keeps the revalidating policy.
+  for (const suffix of ["?v=000000000000", "?v=" + versioned[1].slice(0, 11), ""]) {
+    const other = (await run("/static/app.js" + suffix)).response;
+    assert.equal(other.headers.get("cache-control"), "public, max-age=0, must-revalidate", suffix);
+  }
+  // Fonts and images are not versioned by the pages, so they always revalidate.
+  const font = (await run("/static/fonts/line-heading-800.woff2?v=" + versioned[1])).response;
+  assert.equal(font.headers.get("cache-control"), "public, max-age=0, must-revalidate");
+});

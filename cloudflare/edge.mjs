@@ -35,6 +35,8 @@ export const CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self' ht
 export const PERMISSIONS_POLICY = "camera=(), microphone=(), payment=()";
 export const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
 export const STATIC_CACHE_CONTROL = "public, max-age=0, must-revalidate";
+// ?v= equal to the content hash in the pages built with these assets (web_security.py does the same check).
+export const STATIC_IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 // datemate/app/user_feedback.py: home_page() drops this link when DATEMATE_FEEDBACK_ENABLED is off.
 export const FEEDBACK_NAV_LINK = '<a id="nav-feedback" href="/feedback">피드백</a>';
 
@@ -88,8 +90,26 @@ export function assetPathFor(pathname) {
 
 const PASSED_ASSET_HEADERS = ["content-type", "content-length", "etag", "last-modified"];
 
-export async function staticResponse(request, env) {
-  const assetPath = assetPathFor(new URL(request.url).pathname);
+// "/static/app.js" -> "<12 hex>" for every versioned address in the built pages. The pages and the
+// assets come from the same deploy, so a matching ?v= means this file is the one the page asked for.
+const versionCache = new WeakMap();
+export function assetVersions(pages) {
+  if (!pages || typeof pages !== "object") return new Map();
+  let versions = versionCache.get(pages);
+  if (!versions) {
+    versions = new Map();
+    for (const html of Object.values(pages)) {
+      if (typeof html !== "string") continue;
+      for (const [, url, version] of html.matchAll(/(\/static\/[^\s"'<>?]+)\?v=([0-9a-f]{12})/g)) versions.set(url, version);
+    }
+    versionCache.set(pages, versions);
+  }
+  return versions;
+}
+
+export async function staticResponse(request, env, pages) {
+  const url = new URL(request.url);
+  const assetPath = assetPathFor(url.pathname);
   if (!assetPath || !env.ASSETS) return notFound(request.method);
   const forwarded = new Headers();
   for (const name of ["if-none-match", "if-modified-since"]) {
@@ -111,6 +131,10 @@ export async function staticResponse(request, env) {
   // The app answers module scripts as text/javascript; keep the same type for .js/.mjs.
   if (/\.m?js$/.test(assetPath)) headers.set("content-type", "text/javascript; charset=utf-8");
   securityHeaders(headers, false);
+  const version = url.searchParams.get("v");
+  if (version && (asset.status === 200 || asset.status === 304) && assetVersions(pages).get(url.pathname) === version) {
+    headers.set("Cache-Control", STATIC_IMMUTABLE_CACHE_CONTROL);
+  }
   const body = request.method === "HEAD" || asset.status === 304 ? null : asset.body;
   if (!body) await asset.body?.cancel();
   return new Response(body, { status: asset.status, headers });
@@ -118,7 +142,7 @@ export async function staticResponse(request, env) {
 
 export function edgeResponse(route, request, env, pages) {
   if (route.kind === "page") return pageResponse(route.path, request.method, env, pages) ?? notFound(request.method);
-  return staticResponse(request, env);
+  return staticResponse(request, env, pages);
 }
 
 // Front shield in front of the app's own limits (240/min per IP range, static excluded).

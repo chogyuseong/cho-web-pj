@@ -8,7 +8,23 @@
 ★ 지금 상태 (2026-11-17 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 aea8083(병합, 브랜치 ui/readability-4), Worker 버전 6bf12ee9-0895-4fbd-8c6c-e8000497ffb7 (서른여덟 번째 배포, 2026-11-17 밤)
+운영에 올라간 것: 커밋 42b8860(병합, 브랜치 ui/readability-5 커밋 8a5aa0f), Worker 버전 a34ba709-c700-45d7-86a8-d8d44a40cd78 (서른아홉 번째 배포, 2026-11-17 밤)
+  배포 전 GitHub Actions 5개 작업이 8a5aa0f(Run 44089562208)에서 통과, Docker 전체 1220 통과·6 건너뜀·실패 0. 병합 트리는 8a5aa0f 와 같습니다.
+  (그 전: 커밋 aea8083, Worker 6bf12ee9, 서른여덟 번째)
+서른아홉 번째 배포로 올라간 것 (main 병합 42b8860): 휴대폰 지도 마커 누름 영역 44px
+  · plan-map.css: 720px 이하·손가락 입력에서 .route-marker 에 투명 ::after(가운데 기준 max(100%,44px)). 보이는 모양·anchor 그대로.
+    maps.js(Leaflet 대체 지도): 같은 조건에서 코스 점마다 투명 지름 44px 원(.route-hit-area)을 낮은 층 routeHits(z 385)에 깖(팝업 390·코스 원 400 아래).
+    새 tests/test_readability_stage5_ui.py 2개.
+  · 운영 확인(배포 직후, /api/status 16초 = 새 컨테이너, / 에 Server-Timing, 성수 추천 390px): 네이버 지도 마커 23개, 번호 원 38×38·축제 44×26 그대로, 누름 영역 44×44,
+    가로 넘침 없음, 화면 오류 0.
+  · 하지 않은 것: 결과 사진 썸네일 우선 — 운영 측정에서 결과 사진(place_public)은 image_url == url 로 고를 썸네일이 없어 효과 0이라 코드 변경 안 함.
+    결과 사진 1장이 3~7MB 인 것이 있음(3610×3610 3.1MB, 8192×5464 7.5MB). 줄이려면 네이버 축소 서버(search.pstatic.net/common/?src=…&type=w750, 7.5MB → 112KB)를
+    거쳐야 하나 공개 문서 없는 내부 주소이고 750px 은 배율 3 휴대폰에서 약간 흐려 정책 판단 필요. 측정: 작업 세션 scratchpad measure/ (임시).
+    CSS 18개 병합은 효과 대비 회귀 위험이 커서 보류(하려면 Fable 권장).
+  · 남은 위험: 장소 번호 마커는 눌러도 동작 없음(넓힌 영역이 쓸모 있는 건 식당·주차·축제·팝업). 마커가 몰린 곳에서는 이웃 표시의 투명 여백이 터치를 가져감.
+    실제 휴대폰에서 눌러 보는 확인은 사람이.
+  · 문제가 생기면: git revert -m 1 42b8860.
+(서른여덟 번째) 운영에 올라간 것: 커밋 aea8083(병합, 브랜치 ui/readability-4), Worker 버전 6bf12ee9-0895-4fbd-8c6c-e8000497ffb7 (2026-11-17 밤)
   배포 전 GitHub Actions 5개 작업이 ui/readability-4 커밋 91c72c4(Run 44054871570)에서 통과했습니다. 병합 트리는 91c72c4 와 같습니다(git diff 0줄).
   로컬 Docker 전체 테스트는 이번에 돌리지 않았습니다(새 컴퓨터, CI 통과 트리 그대로라 생략).
   (그 전: 커밋 8d100f0, Worker ebf6ce59, 서른일곱 번째 / 커밋 70d1c8e, Worker 79de2d56, 서른여섯 번째 / 커밋 43e0f4d, Worker e76e2df2, 서른다섯 번째 / 커밋 3cae442, Worker 6ef1d6c1, 서른네 번째)

@@ -17,6 +17,7 @@ from .request_intent import normalize
 from .feedback_preferences import personalizing, explanation
 from .request_usage import measure
 from .perf_trace import current as current_trace, recording, span
+from .telemetry import naver_session
 
 
 def generate(data: Conditions, owner: str):
@@ -25,6 +26,7 @@ def generate(data: Conditions, owner: str):
         recommendation_slot(owner),
         personalizing(owner, data.use_feedback, data.mode) as profile,
         measure() as usage,
+        naver_session(),
     ):
         started = time.perf_counter()
         try:

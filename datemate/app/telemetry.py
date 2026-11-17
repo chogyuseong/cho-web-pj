@@ -138,8 +138,45 @@ def write_metrics(rows):
     except Exception:logging.getLogger(__name__).warning('provider_metric_write_failed')
 
 
+# 추천 작업 하나 동안 네이버 API 허브(장소·블로그·가격 검색이 모두 같은 호스트)에 쓰는 연결 풀.
+# 전에는 장소 검색이 호출마다 httpx.get(새 TCP·TLS 연결)을 쓰고, 가격 확인은 묶음마다 새 클라이언트를 만들어
+# 운영에서 가격 확인의 새 연결 4개에 1.4초가 들었다(2026-11-17). 게이트웨이가 연결을 30초 넘게 유지하므로 같은 풀을 이어 쓴다.
+NAVER_API_HOST='naverapihub.apigw.ntruss.com'
+_REAL_GET=httpx.get
+_naver_session=ContextVar('naver_session',default=None)
+
+
+@contextmanager
+def naver_session():
+    """이 문맥(작업 스레드에는 context_map 이 넘김) 안의 네이버 API 허브 호출이 한 연결 풀을 쓰게 한다. 이미 열려 있으면 그것을 쓴다.
+
+    보내는 요청(주소·검색어·헤더·시간 제한)은 같고 쿠키는 받지도 보내지도 않는다. 동시 실행 수는 전처럼 telemetry 의 슬롯과 각 묶음이 정한다.
+    """
+    current=_naver_session.get()
+    if current is not None:
+        yield current
+        return
+    import http.cookiejar
+    client=httpx.Client(limits=httpx.Limits(max_connections=None,max_keepalive_connections=8,keepalive_expiry=30))
+    client.cookies.jar.set_policy(http.cookiejar.DefaultCookiePolicy(allowed_domains=[]))
+    token=_naver_session.set(client)
+    try:yield client
+    finally:
+        _naver_session.reset(token)
+        client.close()
+
+
+def shared_naver_client():
+    return _naver_session.get()
+
+
 def observed_http(call,url,**kwargs):
     from .perf_trace import call_kind,connection_probe
+    # 진짜 httpx.get 으로 네이버 API 허브를 부를 때만 작업의 연결 풀로 보낸다.
+    # 테스트가 httpx.get 을 가짜로 바꿔 둔 경우(call 이 가짜)는 그대로 둬 실제 네이버를 부르지 않는다.
+    if call is _REAL_GET and urlsplit(url).hostname==NAVER_API_HOST:
+        session=_naver_session.get()
+        if session is not None:call=session.get
     with operation(urlsplit(url).hostname or 'unknown',call_kind(url)) as state:
         state['probe']=connection_probe(getattr(call,'__self__',None),kwargs)
         response=call(url,**kwargs)

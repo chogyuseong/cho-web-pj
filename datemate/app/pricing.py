@@ -68,6 +68,8 @@ def search_client():
     client.cookies.jar.set_policy(http.cookiejar.DefaultCookiePolicy(allowed_domains=[]))
     return client
 
+_ORIGINAL_SEARCH_CLIENT=search_client
+
 # price_plans 가 묶음 동안 걸어 두는 클라이언트. 작업 스레드에는 context_map 이 문맥째 넘긴다.
 _batch_client=ContextVar('price_search_client',default=None)
 
@@ -170,7 +172,11 @@ def price_plans(plans,force=False):
     writes=[]
     misses=sum(not usable(known.get('price-search-v2:'+pid)) for pid in needed) if search_enabled() else 0
     # 새로 찾을 가격이 있을 때만 묶음 클라이언트를 만든다(모두 캐시면 TLS 설정을 읽지 않음).
-    client=search_client() if misses else None
+    # 추천 작업의 네이버 연결 풀(telemetry.naver_session)이 열려 있으면 장소 검색이 맺어 둔 연결을 이어 쓴다.
+    # search_client 를 바꿔 둔 경우(테스트의 가짜 응답)는 그것을 쓴다.
+    from .telemetry import shared_naver_client
+    shared=shared_naver_client() if search_client is _ORIGINAL_SEARCH_CLIENT else None
+    client=(shared or search_client()) if misses else None
     def one(p):
         cached=known.get('price-search-v2:'+p['id'])
         if usable(cached):cache_hit('price');return cached
@@ -182,7 +188,7 @@ def price_plans(plans,force=False):
             data=dict(zip(needed,context_map(executor,one,needed.values())))
     finally:
         _batch_client.reset(token)
-        if client is not None:client.close()
+        if client is not None and client is not shared:client.close()
     with span('price.cache_write'):
         store.cache_many(writes)
     stats=_stats.get()

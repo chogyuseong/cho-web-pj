@@ -1,6 +1,6 @@
 """인쇄 / PDF: 선택한 코스의 제목·일정·장소가 종이에 나오고, 단추·다른 코스·부가 구역은 빠진다."""
 import pytest
-from test_functional_audit import audit_page, generate  # noqa: F401
+from test_functional_audit import audit_page, generate, wait_for_selected_detail  # noqa: F401
 
 # 화면에 실제로 그려지는지(display:none 조상이 있으면 상자가 없다).
 SHOWN = "(selector)=>[...document.querySelectorAll(selector)].filter(el=>el.getClientRects().length>0).length"
@@ -52,6 +52,7 @@ def test_print_shows_selected_plan_and_hides_controls(audit_page, width):
     # 다른 코스를 고른 뒤에도 그 코스가 인쇄된다.
     page.locator('.plan-option-tabs button').nth(1).click()
     page.wait_for_function('document.querySelector(".plan-option-tabs button:nth-child(2)").getAttribute("aria-pressed")==="true"')
+    wait_for_selected_detail(page)
     check_print_layout(page)
 
 

@@ -41,6 +41,12 @@ def audit_page():
         server.should_exit=True;thread.join(10);sock.close()
 
 
+def wait_for_selected_detail(page):
+    """코스 탭은 탭 표시를 먼저 바꾸고 결과·상세·지도는 다음 화면 갱신 뒤에 그린다(plan-results choose). 다 그려질 때까지 기다린다."""
+    page.wait_for_function("document.querySelector('#plan-detail')?.dataset.planId===selected?.id"
+                           "&&document.querySelector('#results').getAttribute('aria-busy')!=='true'")
+
+
 def generate(page):
     page.evaluate("form.elements.mode.value='demo';form.elements.mode.dispatchEvent(new Event('change',{bubbles:true}));form.elements.visit_date.value='2026-10-24';form.elements.max_leg.value=180;form.elements.budget.value=1000000;")
     page.locator('#submit-plan').click()
@@ -81,6 +87,7 @@ def test_lock_replace_undo_chat_review_feedback_and_delete(audit_page):
     generate(page)
     page.locator('.plan-option-tabs button').nth(1).click()
     page.wait_for_function('document.querySelector(".plan-option-tabs button:nth-child(2)").getAttribute("aria-pressed")==="true"')
+    wait_for_selected_detail(page)
     original=page.evaluate('selected.id');locked=page.evaluate('selected.places[0].id')
     page.locator('#plan-detail .stop').first.get_by_role('button',name='○ 장소 고정',exact=True).click()
     page.wait_for_function('Object.keys(selected.conditions.locked).length===1')

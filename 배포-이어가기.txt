@@ -10,6 +10,28 @@
 공개 주소: https://datemate.guseong-family.workers.dev
 운영에 올라간 것: 커밋 4e48dc3(병합), Worker 버전 a547a8bf-b480-4043-b35c-0b7aaaa3d493 (서른세 번째 배포, 2026-11-17 12:00 무렵)
   배포 전 GitHub Actions 5개 작업이 브랜치 fix/frontend-modern-web 커밋 0775a6f 에서 모두 통과했습니다(Run 44004888288).
+★★ main 에 있지만 아직 배포하지 않은 것 (2026-11-17 오후, 브랜치 feat/a11y-mobile-polish 커밋 c47a29a, 병합 22e68c8)
+  · 사용자 지시는 '혼자 할 수 있는 것까지 하고 커밋·푸시'였고 배포는 하지 않았습니다. 다음 배포 때 함께 올라갑니다(배포하라는 지시가 있을 때만).
+  · 내용(modern-web-guidance 점검 남은 항목 가운데 제품 판단이 필요 없는 것):
+    - 메뉴: nav aria-label="주요 메뉴", 코스 만들기·장소 둘러보기 단추에 aria-pressed(app.js setTab).
+    - 지도 두 곳(maps.js 네이버 지도·공개 지도)에 role=region.
+    - 휴대폰 키보드: 장소 검색·출발지·팝업·주소 검색 enterkeyhint=search, 채팅 send, 인원·예산 inputmode=numeric.
+    - 대화상자를 닫은 뒤 포커스: 결과가 다시 그려져 연 단추가 사라졌으면 같은 순번 장소 카드의 h4(없으면 상세 제목)로(place-dialog.js).
+    - 입력·선택 칸 테두리 #7f8992(흰 바탕 3.56:1, 회색 3.2:1, 전 #d5dbdf 1.4:1), 포커스는 진한 색. line.css 끝에 둠(앞쪽 같은 선택자 규칙이 덮으므로).
+    - 720px 이하 조건 칩·소분류 칩 높이 44px(readability.css).
+    - 인쇄에서 불러오는 중 문구(.loading-note: 메뉴 가격·주차장, .photo-status) 숨김.
+    - 사진 칸(.photo-viewport)과 불러오는 중 패널에 사진 높이만큼 자리를 미리 둠(CLS, place-photos.css). 인쇄에서는 풂.
+    - section-indicator.js: 제목 위치를 모두 읽은 뒤 막대 위치를 씀(스크롤마다 강제 레이아웃 없앰).
+    - 후기 신고 사유: prompt() 대신 후기 아래 입력칸(필수, 2000자, aria-expanded).
+  · 검사: Docker(Playwright 1.64.1 chromium, SQLite) 전체 1203 통과(신고 입력칸 전), 새 tests/test_a11y_mobile_polish.py 9개 두 번 연속 통과, 관련 화면 테스트 45개 통과,
+    format_sources --check 통과, GitHub Actions(아래 기록 커밋 전 브랜치 c47a29a) 통과.
+  · 배포 뒤 볼 것: 휴대폰에서 칩 높이·키보드 힌트, 장소 교체 뒤 키보드 포커스 위치, 입력칸 테두리 색이 어색하지 않은지, 결과 화면 사진이 나올 때 밀림.
+  · 하지 않은 것과 까닭:
+    - 가격 검색 연결 재사용: 장소 검색 모듈이 httpx.get 을 직접 쓰고 여러 테스트의 가짜 네이버 장치가 그 경로에 물려 있어, 공유 클라이언트로 바꾸면
+      테스트가 실제 네이버를 부를 위험이 있습니다. 테스트 장치를 함께 바꾸는 별도 작업으로(docs/price-stage-latency-2026-11-14.md 9절).
+    - 코스 탭 INP(상세 그리기 미루기): 탭을 누른 직후 상세를 읽는 테스트가 많아 따로 작업.
+    - 모바일 헤더 축소(320px 에서 화면 33%), 사진 썸네일 우선(사진 품질 정책), CSS 18개 병합, 토스트 유지 시간·항상 보이는 live region, 지도 마커 크기: 화면·정책 판단이 필요.
+    - content-visibility, 자동차 경로 확인 동시 호출: 측정이 먼저.
 서른세 번째 배포로 올라간 것 (main 병합 4e48dc3, 브랜치 fix/frontend-modern-web): modern-web-guidance 점검에서 고른 8가지
   · 점검: datemate/static 을 네이티브 대체·성능·접근성/모바일 세 갈래로 보고 23개 항목을 뽑았고, 사용자가 추천 묶음(아래)을 골랐습니다.
     남은 후보(헤더가 320px 화면 33% 차지, 코스 탭 INP, 사진 한꺼번에 받기, 사진 CLS, section-indicator 강제 레이아웃, content-visibility,

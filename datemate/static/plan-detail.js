@@ -12,8 +12,10 @@ function renderDetail() {
   // 어느 코스의 상세인지(코스 탭은 상세를 다음 화면 갱신 뒤에 그림, plan-results choose).
   root.dataset.planId = selected ? selected.id : '';
   extras?.replaceChildren();
-  renderPlanMapCard();
-  if (!selected) return;
+  if (!selected) {
+    renderPlanMapCard();
+    return;
+  }
   const p = selected,
     box = node('section', undefined, 'detail panel');
   const head = node('div', undefined, 'detail-header');
@@ -78,6 +80,12 @@ function renderDetail() {
     const r = p.legs.at(-1);
     box.append(routeLine(p, p.legs.length - 1, `귀가: ${r.origin} → ${r.destination}`));
   }
+  // 휴대폰 지도 자리: 일정을 먼저 읽고 지도를 보도록 일정 바로 뒤에 둔다(2026-11-17 가독성 정리, 전에는 일정 앞).
+  // 데스크톱은 오른쪽 패널(#plan-map-rail)에 그린다. 지도는 상세를 문서에 붙인 뒤 renderPlanMapCard 가 채운다.
+  const slot = node('div', undefined, 'plan-map-slot');
+  slot.id = 'plan-map-slot';
+  slot.hidden = true;
+  box.append(slot);
   // 확인: 네 가지 확인, 비용표(접힘), 합계와 미확인 비용 경고(접힘 밖)
   box.append(executionSummary(p), node('h3', '비용은 투명하게'));
   const scroll = node('div', undefined, 'table-scroll'),
@@ -157,6 +165,7 @@ function renderDetail() {
   }
   box.append(share);
   root.append(box);
+  renderPlanMapCard();
   // 부가 정보: 축제 구역 뒤 #plan-extras
   const more = node('section', undefined, 'detail panel plan-extras-panel');
   more.setAttribute('aria-label', '더 둘러보기');

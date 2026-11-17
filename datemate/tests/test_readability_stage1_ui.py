@@ -46,3 +46,31 @@ def test_map_links_are_one_compact_row(audit_page):
     assert links.all_inner_texts() == [f'{i + 1}. {name}' for i, name in enumerate(names)]
     height = page.evaluate("document.querySelector('#plan-detail .map-link-list').getBoundingClientRect().height")
     assert height < 120, height  # 전에는 화면 폭 단추 3개(약 170px)
+
+
+def test_phone_reads_timeline_before_the_map_and_compact_numbers(audit_page):
+    """2단계: 휴대폰은 일정 뒤에 지도, 고른 코스 수치는 2×2 칸, 장소 단추는 높이 44px 로 글자 길이만큼."""
+    page, base, errors = audit_page
+    page.set_viewport_size({'width': 390, 'height': 844})
+    generate(page)
+    page.wait_for_function("document.querySelector('#plan-map-slot .plan-map-card')")
+    order = page.evaluate("""()=>{const last=[...document.querySelectorAll('#plan-detail .stop')].at(-1),slot=document.getElementById('plan-map-slot'),
+      check=document.querySelector('#plan-detail .execution-summary');
+      return {afterStops:!!(last.compareDocumentPosition(slot)&Node.DOCUMENT_POSITION_FOLLOWING),
+        beforeChecks:!!(slot.compareDocumentPosition(check)&Node.DOCUMENT_POSITION_FOLLOWING),inDetail:!!slot.closest('#plan-detail')};}""")
+    assert order == {'afterStops': True, 'beforeChecks': True, 'inDetail': True}, order
+    stats = page.evaluate("""()=>{const boxes=[...document.querySelectorAll('#results .plan-card .stats > div')];
+      return {cols:new Set(boxes.map(b=>Math.round(b.getBoundingClientRect().left))).size,rows:new Set(boxes.map(b=>Math.round(b.getBoundingClientRect().top))).size};}""")
+    assert stats == {'cols': 2, 'rows': 2}, stats
+    buttons = page.evaluate("""()=>[...document.querySelectorAll('#plan-detail .stop .actions > button')].filter(b=>b.getClientRects().length)
+      .map(b=>({h:b.getBoundingClientRect().height,lines:Math.round(b.getBoundingClientRect().height/parseFloat(getComputedStyle(b).lineHeight||'20'))}))""")
+    assert buttons and all(b['h'] >= 43.5 for b in buttons), buttons
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+
+
+def test_desktop_keeps_the_map_in_the_side_rail(audit_page):
+    page, base, errors = audit_page
+    page.set_viewport_size({'width': 1440, 'height': 1000})
+    generate(page)
+    page.wait_for_function("document.querySelector('#plan-map-rail .plan-map-card')")
+    assert page.locator('#plan-map-slot').is_hidden()

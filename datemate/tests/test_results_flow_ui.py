@@ -1,4 +1,5 @@
-"""결과 화면이 사용자 흐름 순서(코스 카드 → 비교 → 선택 코스 → 지도 → 일정 → 확인 → 결정·공유 → 축제 → 부가)로 놓이는지 확인한다."""
+"""결과 화면이 사용자 흐름 순서(코스 카드 → 비교 → 선택 코스 → 일정 → 지도 → 확인 → 결정·공유 → 축제 → 부가)로 놓이는지 확인한다.
+휴대폰 지도는 2026-11-17 가독성 정리에서 일정 앞에서 일정 뒤로 옮겼다(데스크톱은 오른쪽 패널)."""
 import os
 import re
 from pathlib import Path
@@ -7,7 +8,7 @@ from test_functional_audit import audit_page, generate
 # DOM 순서대로 있어야 하는 결과 화면 구역. 없는 구역(조건 안내 등)은 건너뛴다.
 FLOW = ['#edit-conditions', '.results-area .section-heading h2', '#progress', '#results > .condition-differences',
         '#results > .plan-option-tabs', '#results > .comparison-details', '#results > .plan-card.selected',
-        '#plan-map-slot', '#plan-detail .detail-header h2', '#plan-detail .stop', '#plan-detail .execution-summary',
+        '#plan-detail .detail-header h2', '#plan-detail .stop', '#plan-map-slot', '#plan-detail .execution-summary',
         '#plan-detail .cost-table-details', '#plan-detail .planning-decision', '#plan-detail .share-actions',
         '#festival-section', '#plan-extras .leisure-course-panel', '#plan-extras .chat-form']
 
@@ -78,7 +79,7 @@ def test_map_moves_between_mobile_slot_and_desktop_rail(audit_page):
     page, base, errors = audit_page
     page.set_viewport_size({'width': 1280, 'height': 900})
     generate(page)
-    # ⑦ 데스크톱은 오른쪽 패널, 모바일은 선택 카드 바로 뒤. 폭을 바꾸면 자리가 바뀐다.
+    # ⑦ 데스크톱은 오른쪽 패널, 모바일은 일정(마지막 장소) 뒤·확인 앞(2026-11-17 가독성 정리). 폭을 바꾸면 자리가 바뀐다.
     page.wait_for_function("document.querySelector('#plan-map-rail .plan-map-card')")
     assert page.locator('#plan-map-slot').is_hidden()
     rail = page.locator('#plan-map-rail').bounding_box()
@@ -90,7 +91,9 @@ def test_map_moves_between_mobile_slot_and_desktop_rail(audit_page):
     page.set_viewport_size({'width': 390, 'height': 844})
     page.wait_for_function("document.querySelector('#plan-map-slot .plan-map-card')")
     assert page.locator('#plan-map-rail').is_hidden() and page.locator('.plan-map-card').count() == 1
-    assert page.evaluate("document.querySelector('#results > .plan-card.selected').nextElementSibling.id") == 'plan-map-slot'
+    assert page.evaluate("""()=>{const slot=document.getElementById('plan-map-slot'),last=[...document.querySelectorAll('#plan-detail .stop')].at(-1);
+      return !!slot.closest('#plan-detail')&&!!(last.compareDocumentPosition(slot)&Node.DOCUMENT_POSITION_FOLLOWING)
+        &&!!(slot.compareDocumentPosition(document.querySelector('#plan-detail .execution-summary'))&Node.DOCUMENT_POSITION_FOLLOWING);}""")
     page.locator('#plan-map-slot .map-option-tabs button').nth(1).click()
     page.wait_for_function("document.querySelector('.plan-option-tabs [aria-pressed=true]').dataset.option==='2'")
     assert page.locator('#plan-map-slot .map-option-tabs [aria-pressed=true]').get_attribute('data-map-option') == '2'

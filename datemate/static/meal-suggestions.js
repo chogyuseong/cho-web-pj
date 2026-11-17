@@ -94,8 +94,9 @@ function mealSuggestionPanel(plan,index){
     const more=link('다른 맛집이 궁금하세요?','https://search.naver.com/search.naver?'+new URLSearchParams({query:area+' 주변 맛집'}));
     more.className='secondary more-restaurants';
     more.title=area+' 주변 맛집 네이버 검색 · 새 탭';
+    // 찾은 식당이 없으면 큰 상자 대신 한 줄 안내와 검색 링크만 둔다(2026-11-17 가독성 정리).
+    if(!group?.restaurants.length){panel.classList.add('is-empty');panel.append(node('p',group?.message||'반경 1,500m까지 검색했지만 확인된 식당이 없어요.','hint'),more);return;}
     panel.append(list,more,node('p',group?.note||'반경 500m · 직선거리 기준','hint'));
-    if(!group?.restaurants.length)panel.append(node('p',group?.message||'반경 1,500m까지 검색했지만 확인된 식당이 없어요.','hint'));
   }).catch(()=>panel.append(node('p','식당 검색에 실패했어요.','hint'),button('다시 찾기',()=>panel.replaceWith(mealSuggestionPanel(plan,index)))));
   return panel;
 }

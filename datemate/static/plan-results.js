@@ -84,8 +84,7 @@ function renderResults(result={}){
     const photos=planPhotoPreview(p);
     if(photos.children.length){const box=node('details',undefined,'plan-photo-details');box.append(node('summary',`장소 사진 ${photos.children.length}곳`),photos);box.open=photosOpen;card.append(box);}
     root.append(card);
-    // 6. 모바일 지도 자리. 데스크톱에서는 오른쪽 패널(#plan-map-rail)에 그린다.
-    const slot=node('div',undefined,'plan-map-slot');slot.id='plan-map-slot';slot.hidden=true;root.append(slot);
+    // 6. 휴대폰 지도 자리는 일정 뒤(#plan-detail 안)로 옮겼다(renderDetail).
   }
   if(!plans.length){root.append(emptyRecommendation(result));}
   // 7~9. 일정 · 확인 · 결정과 공유

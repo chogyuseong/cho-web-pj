@@ -2,7 +2,7 @@
 import json
 import os
 from pathlib import Path
-from test_functional_audit import audit_page, generate
+from test_functional_audit import audit_page, generate, wait_for_selected_detail
 
 
 def snapshot(page):
@@ -49,6 +49,9 @@ def test_readability_and_controls(audit_page,tmp_path):
     page.set_viewport_size({'width':1440,'height':1000})
     generate(page)
     page.locator('.plan-option-tabs button').nth(1).click()
+    # 탭 표시는 누르자마자 바뀐다(상세·지도는 다음 화면 갱신 뒤).
+    assert page.evaluate("document.querySelector('.plan-option-tabs [aria-pressed=true]').dataset.option")=='2'
+    wait_for_selected_detail(page)
     assert page.locator('.plan-option-tabs [aria-pressed=true] .selection-indicator').inner_text()=='선택됨'
     assert page.locator('.plan-option-tabs [aria-pressed=true]').get_attribute('data-option')=='2'
     assert page.locator('.map-option-tabs [aria-pressed=true]').get_attribute('data-map-option')=='2'

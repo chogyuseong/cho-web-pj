@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlsplit
 from fastapi.testclient import TestClient
 from test_feedback_ui import route_festivals
 from test_festival_restore import saved_plan
-from test_functional_audit import audit_page, generate  # noqa: F401
+from test_functional_audit import audit_page, generate, wait_for_selected_detail  # noqa: F401
 from test_popup_ui import AREA, BUILDING, CONFIRMED, LONG_TITLE, payload, post
 
 from app import main
@@ -561,6 +561,7 @@ def test_popup_failure_keeps_course_festivals_and_map(audit_page):
     page.wait_for_function(
         'document.querySelector(".plan-option-tabs button:nth-child(2)").getAttribute("aria-pressed")==="true"'
     )
+    wait_for_selected_detail(page)
 
 
 def test_switch_off_draws_no_course_section(audit_page, monkeypatch):

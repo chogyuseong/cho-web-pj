@@ -3,6 +3,8 @@ function renderDetail() {
   const root = $('#plan-detail'),
     extras = $('#plan-extras');
   root.replaceChildren();
+  // 어느 코스의 상세인지(코스 탭은 상세를 다음 화면 갱신 뒤에 그림, plan-results choose).
+  root.dataset.planId = selected ? selected.id : '';
   extras?.replaceChildren();
   renderPlanMapCard();
   if (!selected) return;

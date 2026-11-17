@@ -5,7 +5,7 @@
 """
 import re
 
-from test_functional_audit import audit_page  # noqa: F401 (fixture)
+from test_functional_audit import audit_page, wait_for_selected_detail  # noqa: F401 (fixture)
 
 HELD = dict(status='running', stage='가격 확인', message='코스 후보를 찾았어요. 가격과 필수 조건을 마지막으로 확인해요')
 
@@ -104,6 +104,7 @@ def test_confirmed_courses_say_what_changed_from_the_preview(audit_page):
     assert page.evaluate("document.querySelector('#results').firstElementChild.classList.contains('plan-preview-changes')")
     page.locator('#results .plan-option-tabs button').nth(1).click()
     page.wait_for_function('selected?.id===plans[1].id')
+    wait_for_selected_detail(page)
     assert page.locator('#results .plan-preview-changes').count() == 1
     assert no_overflow(page, 320) and no_overflow(page, 390)
 

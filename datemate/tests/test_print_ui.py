@@ -73,3 +73,15 @@ def test_print_pdf_contains_selected_plan(audit_page, tmp_path):
     assert '인쇄/PDF' not in squeezed and '공유링크복사' not in squeezed
     assert 1 <= len(reader.pages) <= 12, len(reader.pages)
     print(f'print layout: detail {height:.0f}px, document {doc}px, pdf pages {len(reader.pages)}')
+
+
+def test_print_lets_long_place_cards_split_across_pages(audit_page):
+    """장소 카드를 통째로 다음 쪽에 넘기면 앞 쪽이 대부분 빈다(2026-11-17 운영 PDF 2·4쪽). 카드는 나뉘고 머리 줄은 아래 내용과 붙는다."""
+    page, base, errors = audit_page
+    generate(page)
+    page.emulate_media(media='print')
+    styles = page.evaluate("""()=>{const stop=document.querySelector('#plan-detail .stop');const head=stop.querySelector('h4');
+      const parking=document.createElement('div');parking.className='parking-panel';document.querySelector('#plan-detail').append(parking);
+      const result=[getComputedStyle(stop).breakInside,getComputedStyle(head).breakAfter,getComputedStyle(parking).breakInside];parking.remove();return result;}""")
+    page.emulate_media(media='screen')
+    assert styles == ['auto', 'avoid', 'avoid'], styles

@@ -39,7 +39,8 @@ header .brand-name .brand-tagline { color:var(--hong); font-weight:650; letter-s
 @media(max-width:480px) { .evidence-item { grid-template-columns:auto minmax(0,1fr); } .evidence-text { grid-column:1 / -1; } }
 
 /* Named source links print their address so a paper copy still shows where the fact came from. */
-@media print { a.source-url-link::after { content:" (" attr(href) ")"; font-size:11px; overflow-wrap:anywhere; } .section-indicator { display:none!important; } }
+/* 인쇄: 출처 주소는 근거로 남기되, 장소 이름을 퍼센트 인코딩한 네이버 지도 검색 주소는 여러 줄을 차지하고 따라 칠 수도 없어 뺀다(PDF 에서는 링크가 그대로 눌림). */
+@media print { a.source-url-link::after { content:" (" attr(href) ")"; font-size:11px; overflow-wrap:anywhere; } a.source-url-link[href*="map.naver.com/p/search/"]::after { content:none; } .section-indicator { display:none!important; } }
 
 /* Mobile: the current section heading follows below the sticky header. */
 .section-indicator { position:fixed; left:0; right:0; top:var(--site-header-height,76px); z-index:29; display:flex; align-items:baseline; gap:8px; min-width:0; padding:8px 16px; background:#fff; border-bottom:1px solid var(--line); font-size:14px; line-height:1.5; color:var(--ink); opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .18s,transform .18s,visibility 0s linear .18s; pointer-events:none; }

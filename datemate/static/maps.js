@@ -68,7 +68,9 @@ function renderPlanMapCard(){
     },selected.id===plan.id?'primary':'secondary');
     tab.dataset.mapOption=String(index+1);tab.setAttribute('aria-pressed',String(selected.id===plan.id));tabs.append(tab);
   });
-  card.append(node('h2','우리 코스 지도'),tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),mapLegend(selected),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
+  // 휴대폰에서는 지도가 상세('우리 하루, 자세히 보기', h2) 안에 들어가므로 한 단계 낮은 h3. 그래야 뒤의 '비용은 투명하게'가 지도에 속한 것처럼 읽히지 않는다(구역 표시줄·화면 읽기 목차).
+  const mapTitle=node(mobile?'h3':'h2','우리 코스 지도','plan-map-title');
+  card.append(mapTitle,tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),mapLegend(selected),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
   const places=node('div',undefined,'map-place-list');
   selected.places.forEach((place,index)=>places.append(placeMapLink((index+1)+'. '+place.name,place)));
   card.append(places);(mobile?slot:rail).append(card);planMapCard=card;

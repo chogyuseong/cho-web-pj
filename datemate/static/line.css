@@ -770,3 +770,5 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 .detail .meal-suggestions.is-empty .hint { margin:0 0 8px; }
 /* 휴대폰 지도 자리는 #plan-detail 안으로 옮겨 style.css 의 '#results 의 다른 자식 숨김' 인쇄 규칙에서 빠졌다. 종이에서는 따로 숨긴다. */
 @media print { .plan-map-slot { display:none !important; } }
+/* 휴대폰 지도 제목은 h3(maps.js renderPlanMapCard). 데스크톱 h2 와 같은 모양. */
+.plan-map-card > h3.plan-map-title { margin:0 0 14px; font-size:19px; line-height:1.4; color:var(--ink); }

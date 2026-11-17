@@ -1,6 +1,7 @@
 line-heading-800.woff2 는 네이버 "나눔스퀘어 네오 ExtraBold"(NanumSquareNeo-dEb.ttf, Version 1.000)의 부분집합입니다.
 - 원본: https://campaign.naver.com/nanumsquare_neo/download/NaverNanumSquareNeo.zip (2026-11-13 내려받음)
 - 라이선스 확인: https://help.naver.com/service/30016/contents/18088 (네이버 나눔글꼴 라이선스안내, NanumSquareNeo 가 예약 글꼴 이름으로 명시된 SIL OFL 1.1)
+- 2026-11-17: 이전 파일은 이름만 .woff2 이고 내용은 압축 안 된 TTF(353,944 바이트)였습니다. fontTools 4.68.0 으로 글리프·문자 매핑·윤곽선을 바꾸지 않고 WOFF2 로만 다시 감쌌습니다(111,404 바이트).
 - 변경: KS X 1001 한글 2,350자 + 기본 라틴(U+0020–007E) + 일부 문장부호만 남기고 woff2 로 변환했습니다.
   OFL 1.1 제3조(수정본은 예약 글꼴 이름을 쓸 수 없음)에 따라 글꼴 내부 이름을 "DateMate Line Heading" 으로 바꿨습니다.
   저작권 표기(name ID 0)와 상표 표기(name ID 7)는 원본 그대로입니다.

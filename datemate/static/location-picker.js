@@ -114,7 +114,9 @@ async function openLocationPicker(kind){
     naverMap=new naver.maps.Map(canvas,{center:new naver.maps.LatLng(previous.lat,previous.lon),zoom:15});
     naver.maps.Event.addListener(naverMap,'click',event=>pickOnMap(event.coord.lat(),event.coord.lng()));
   }catch{message.textContent='네이버 지도에 연결하지 못해 OpenStreetMap 지도를 사용합니다.';}}
-  if(!naverMap){
+  // 공개 지도(Leaflet)는 여기서 처음 불러온다. 받지 못하면 지도 없이 주소 검색만 쓴다.
+  if(!naverMap&&!await loadLeaflet().then(()=>true,()=>false))message.textContent='지도를 불러오지 못했어요. 주소 검색을 이용해 주세요.';
+  else if(!naverMap&&canvas.isConnected&&$('#dialog').open){
     map=L.map(canvas,{scrollWheelZoom:false,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false}).setView([previous.lat,previous.lon],15);locationMap=map;
     const credit=document.createElement('a');credit.href='https://www.openstreetmap.org/copyright';credit.target='_blank';credit.rel='noopener';credit.textContent=statusData?.map_tile_attribution||'© OpenStreetMap contributors';
     const tiles=L.tileLayer(statusData?.map_tile_url||'https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:credit.outerHTML}).addTo(map);

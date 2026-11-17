@@ -48,7 +48,9 @@ let dialogGeneration = 0;
 function openDialog(title) {
   dialogGeneration++;
   const root = $('#dialog-content');
-  root.replaceChildren(node('h2', title));
+  const heading = node('h2', title);
+  heading.id = 'dialog-title';
+  root.replaceChildren(heading);
   if (!$('#dialog').open) $('#dialog').showModal();
   return root;
 }

@@ -3,7 +3,8 @@ from test_functional_audit import audit_page,generate
 
 def test_wheel_zooms_map_and_still_works_after_course_change(audit_page):
     page,base,errors=audit_page
-    page.evaluate('''() => {
+    page.evaluate('''async () => {
+      await loadLeaflet();
       window.courseMaps=[];
       const create=L.map;
       L.map=function(...args){const map=create(...args);window.courseMaps.push(map);return map;};

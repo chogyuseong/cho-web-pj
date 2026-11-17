@@ -137,8 +137,10 @@ def test_source_urls_become_named_buttons_and_print_keeps_address(audit_page):
     text = page.locator('.named-link-test').inner_text()
     assert 'https://' not in text.replace('javascript:alert(1)', '') and page.locator('.named-link-test a[href^="javascript"]').count() == 0
     page.emulate_media(media='print')
-    after = page.evaluate("getComputedStyle(document.querySelector('.named-link-test a.source-url-link'),'::after').content")
-    assert 'https://map.naver.com/' in after
+    after = page.evaluate("[...document.querySelectorAll('.named-link-test a.source-url-link')].map(a=>getComputedStyle(a,'::after').content)")
+    # 출처 주소는 종이에 남기고, 장소 이름을 인코딩한 네이버 지도 검색 주소는 여러 줄만 차지해 뺀다.
+    assert after[0] == 'none', after[0]
+    assert 'https://m.blog.naver.com/test/123' in after[1] and 'https://example.com/a' in after[2]
     page.emulate_media(media='screen')
     generate(page)
     reasons = ' '.join(page.locator('#plan-detail .timeline-card > p.hint').all_inner_texts())

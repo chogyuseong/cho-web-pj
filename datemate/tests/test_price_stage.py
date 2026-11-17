@@ -240,3 +240,12 @@ def test_fixed_input_recommendation_reports_the_price_stage(naver):
     warm = run('jeonju', naver)
     counts = warm['diagnostics']['timing']['counts']
     assert counts['price.cached'] == 7 and 'price.lookups' not in counts
+
+
+def test_price_parallel_defaults_to_four_and_is_bounded(monkeypatch):
+    from app import pricing
+    monkeypatch.delenv('DATEMATE_PRICE_PARALLEL', raising=False)
+    assert pricing.price_parallel() == 4
+    for value, expected in (('3', 3), ('0', 1), ('99', 6), ('x', 4)):
+        monkeypatch.setenv('DATEMATE_PRICE_PARALLEL', value)
+        assert pricing.price_parallel() == expected

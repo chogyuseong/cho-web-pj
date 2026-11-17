@@ -11,6 +11,14 @@ function probePhoto(url){
   const promise=new Promise(resolve=>{const probe=new Image();probe.referrerPolicy='no-referrer';let timer;const done=ok=>{clearTimeout(timer);probe.onload=null;probe.onerror=null;resolve(ok&&probe.naturalWidth>0);};probe.onload=()=>done(true);probe.onerror=()=>done(false);timer=setTimeout(()=>{done(false);probe.src='';},6000);probe.src=url;});
   photoLoads.set(url,{promise,until:Date.now()+60000});return promise;
 }
+// 자료 확인 시각: 서버가 주는 ISO 시각(2026-11-17T00:22:24.22+00:00)을 이 기기 시간대의 '2026-11-17 09:22'로 보여 준다.
+// 날짜만 있는 값(위키미디어)이나 읽을 수 없는 값은 그대로 둔다.
+function photoCheckedAt(value){
+  const text=String(value||'');if(!/^\d{4}-\d{2}-\d{2}T/.test(text))return text||'시점 미확인';
+  const at=new Date(text);if(Number.isNaN(at.getTime()))return text;
+  const two=n=>String(n).padStart(2,'0');
+  return `${at.getFullYear()}-${two(at.getMonth()+1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
+}
 // 장소 일치만 확인하고 사진 내용 검사는 하지 않은 사진임을 라벨에 드러낸다.
 function photoLabel(photo,fallback){return (photo.source_label||fallback)+(photo.visual_verification?.status==='unverified'?' · 내용 미검사':'');}
 // 사진 아래 출처 줄. 카드와 큰 보기 창이 같은 표기를 쓴다.
@@ -133,7 +141,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
     let current=0,counter=null,busy=false,suppressClickUntil=0;
     const copy=node('div',undefined,'place-photo-copy');copy.append(node('span','장소 사진','photo-eyebrow'),node('h5',photo.title),node('p',photo.caption||place.description||'원문에서 확인한 장소 사진입니다.'));
     if(place.description&&place.description!==photo.caption)copy.append(node('p',place.description,'hint'));
-    copy.append(node('p',`촬영 ${photo.taken_at||'시점 미확인'} · 자료 확인 ${photo.checked_at}`,'hint'),node('p',photo.changes||'원본 변경 없음','hint'));
+    copy.append(node('p',`촬영 ${photo.taken_at||'시점 미확인'} · 자료 확인 ${photoCheckedAt(photo.checked_at)}`,'hint'),node('p',photo.changes||'원본 변경 없음','hint'));
     if(['search_result','place_public'].includes(photo.kind))copy.append(node('p','검색 참고 이미지 · 원본 이용 조건 확인 필요','hint'));
     panel.append(figure,copy);
     const loading=node('p','사진을 확인하고 있어요…','photo-status');figure.append(loading);
@@ -143,7 +151,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       imageLink.setAttribute('aria-label',next.title+' 사진 크게 보기');
       copy.replaceChildren(node('span',photoLabel(next,next.image_role?next.image_role+' · 제목 기준':'장소 사진'),'photo-eyebrow'),node('h5',next.title),node('p',next.caption||place.description||''));
       if(place.description&&place.description!==next.caption)copy.append(node('p',place.description,'hint'));
-      copy.append(node('p',`촬영 ${next.taken_at||'시점 미확인'} · 자료 확인 ${next.checked_at||'시점 미확인'}`,'hint'),node('p',next.changes||'원본 변경 없음','hint'));
+      copy.append(node('p',`촬영 ${next.taken_at||'시점 미확인'} · 자료 확인 ${photoCheckedAt(next.checked_at)}`,'hint'),node('p',next.changes||'원본 변경 없음','hint'));
       if(['search_result','place_public'].includes(next.kind))copy.append(node('p','검색 참고 이미지 · 원본 이용 조건 확인 필요','hint'));
       if(data.photos.length>1&&!full)copy.append(button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode)));
       credits.replaceChildren(...photoCredits(next).childNodes);loading.remove();

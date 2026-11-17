@@ -61,10 +61,10 @@ def search_client():
     전에는 검색마다 httpx.get 이 클라이언트를 새로 만들어 TLS 설정을 다시 읽고 TCP·TLS 연결을 새로 맺었다.
     묶음 안에서 연결을 다시 쓰면 둘째 차례부터 연결 왕복(TCP 1번·TLS 1번)과 새 연결의 느린 시작이 빠진다.
     보내는 요청(주소·검색어·헤더·시간 제한)은 같다. 쿠키는 받지도 보내지도 않는다(호출마다 새 클라이언트였던 때와 같음).
-    연결 수는 제한하지 않는다: 동시 실행은 전처럼 price_plans 의 3건과 telemetry 의 전체 슬롯이 정한다(풀 대기가 생기지 않게).
+    연결 수는 제한하지 않는다: 동시 실행은 price_plans 의 price_parallel()(기본 4건)과 telemetry 의 전체 슬롯이 정한다(풀 대기가 생기지 않게).
     """
     import http.cookiejar
-    client=httpx.Client(limits=httpx.Limits(max_connections=None,max_keepalive_connections=3,keepalive_expiry=30))
+    client=httpx.Client(limits=httpx.Limits(max_connections=None,max_keepalive_connections=6,keepalive_expiry=30))
     client.cookies.jar.set_policy(http.cookiejar.DefaultCookiePolicy(allowed_domains=[]))
     return client
 
@@ -154,10 +154,17 @@ def collecting_stats():
     try:yield box
     finally:_stats.reset(token)
 
+def price_parallel():
+    """가격 검색 동시 건수. 7~8건이 3차례에서 2차례로 줄도록 기본 4건(전에는 3건).
+    네이버 API 허브 문서의 한도는 하루 25,000회(429 = 하루 허용량 초과)뿐이고 초당 한도는 적혀 있지 않다(2026-11-17 확인).
+    동시 건수는 하루 호출 수를 바꾸지 않는다. 문제가 보이면 DATEMATE_PRICE_PARALLEL=3 으로 되돌린다(1~6)."""
+    try:return min(6,max(1,int(os.getenv('DATEMATE_PRICE_PARALLEL','4'))))
+    except ValueError:return 4
+
 def price_plans(plans,force=False):
     from .perf_trace import span
     needed={p['id']:p for plan in plans if plan['conditions']['mode']=='real' for p in plan['places'] if p['price'] is None}
-    # 캐시는 한 번에 읽고(force 가 아니면) 새로 찾은 가격은 끝난 뒤 한 번에 저장한다. 조회 대상·동시 3건·캐시 시간은 그대로.
+    # 캐시는 한 번에 읽고(force 가 아니면) 새로 찾은 가격은 끝난 뒤 한 번에 저장한다. 조회 대상·캐시 시간은 그대로, 동시 건수는 price_parallel().
     with span('price.cache_read'):
         known={} if force or not needed else store.cached_many('price-search-v2:'+pid for pid in needed)
     writes=[]
@@ -171,7 +178,7 @@ def price_plans(plans,force=False):
     # 새로 찾을 가격 검색의 제공자 예산은 한 번에 잡는다(호출마다 잡으면 운영 DB의 쓰기 잠금에서 줄을 선다).
     token=_batch_client.set(client)
     try:
-        with span('price.lookups'),prepaid(BLOG_SEARCH_URL,misses),ThreadPoolExecutor(max_workers=3) as executor:
+        with span('price.lookups'),prepaid(BLOG_SEARCH_URL,misses),ThreadPoolExecutor(max_workers=price_parallel()) as executor:
             data=dict(zip(needed,context_map(executor,one,needed.values())))
     finally:
         _batch_client.reset(token)

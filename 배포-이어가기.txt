@@ -8,7 +8,29 @@
 ★ 지금 상태 (2026-11-17 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 2a59444, Worker 버전 6f360f19-aa1c-417f-a60b-4c9458942217 (서른한 번째 배포, 2026-11-17 02:13)
+운영에 올라간 것: 커밋 8d822bb(병합 92d40f5), Worker 버전 904c19b7-94a9-45b1-9d1e-422aa1578a7e (서른두 번째 배포, 2026-11-17 09:50 무렵)
+  배포 전 GitHub Actions 5개 작업이 브랜치 fix/print-layout-and-speed 커밋 7f567ff 에서 모두 통과했습니다(Run 103).
+서른두 번째 배포로 올라간 것 (main 병합 92d40f5, 브랜치 fix/print-layout-and-speed, 커밋 04356cb·7f567ff): PDF 빈 쪽, 외부 호출 자리 대기, 가격 동시 4건
+  · 왜: 서른한 번째 배포 뒤 운영 PDF(성수 1안, 11쪽)에서 2쪽 70%·4쪽 80%가 비었습니다. 장소 카드(.stop)를 통째로 넘기는데 카드가 한 쪽 가까이 깁니다.
+    네이버 지도 검색 링크 뒤에 퍼센트 인코딩 주소 4줄이 찍혔고, 사진의 '자료 확인'이 UTC ISO 문자열로 나왔습니다.
+  · PDF(static/style.css·clarity.css·place-photos.js): 인쇄에서 .stop 은 쪽 사이에서 나뉘고(h4 는 아래와 붙음, 주차장·식당 상자는 그대로 안 자름),
+    map.naver.com/p/search/ 링크만 주소를 뺐습니다(다른 출처 주소는 남김). 자료 확인 시각은 기기 시간대 'YYYY-MM-DD HH:MM'.
+  · 외부 호출 자리(app/telemetry.py): 6자리가 차면 바로 실패하던 것을 최대 DATEMATE_EXTERNAL_SLOT_WAIT_SECONDS(기본 2, 최대 10, 0 이면 예전처럼 바로 실패) 기다립니다.
+    자리 수는 DATEMATE_EXTERNAL_SLOTS(기본 6). 추천 2건이 겹치면 장소 검색(동시 5)과 축제·팝업 조회가 자리를 나눠 써 검색이 조용히 빠질 수 있었습니다.
+  · 가격 검색 동시 건수(app/pricing.py price_parallel): 3 → DATEMATE_PRICE_PARALLEL(기본 4, 1~6). 묶음 클라이언트의 유휴 연결 3 → 6.
+    네이버 API 허브 문서의 한도는 하루 25,000회(429 = 하루 허용량 초과)뿐이고 초당 한도는 적혀 있지 않습니다(2026-11-17 확인). 문제가 보이면 3 으로 되돌립니다.
+  · 운영 확인(09:5x, 컨테이너 새 이미지 확인: / 에 Server-Timing, 새 CSS·JS 내용):
+    전주 한옥마을 도보 추천 1회 — 서버 안 6.9초(장소 검색 2.9, 코스 구성 0.7, 가격 확인 3.2), 가격 확인 외부 호출 peak_parallel 4, wall 2.9초
+    (배포 전 성수 1회는 peak 3, wall 3.9초. 지역이 달라 같은 조건 비교는 아님), 외부 호출 실패 0, price.plans_unchanged 3.
+    같은 코스 PDF 6쪽, 마지막 쪽 빼고 모두 95% 이상 채워짐, 지도 링크 주소 없음, '자료 확인 2026-11-17 09:58'.
+  · 보인 것(고치지 않음): 메뉴 가격을 불러오기 전에 인쇄하면 '메뉴 가격을 확인하고 있어요…'가 종이에 찍힙니다.
+  · 측정 메모: 클릭→추천 요청(POST)은 페이지 안에서 5ms 입니다. 자동화 측정의 1~3초는 Playwright 클릭 대기라 프런트 지연이 아닙니다.
+  · 다음 속도 후보: 가격 확인의 새 연결 4개에 1,413ms(연결당 약 350ms). 장소 검색과 같은 연결 풀을 쓰면 줄일 수 있으나
+    장소 검색 모듈들이 httpx.get 을 직접 쓰고 여러 테스트의 가짜 네이버 장치가 그 경로에 물려 있어 따로 작업합니다(docs/price-stage-latency-2026-11-14.md 9절).
+    자동차 모드의 경로 확인 순차 호출도 후보(측정 안 함).
+  · 문제가 생기면: 환경변수만 바꾸려면 cloudflare/worker.js startAndWait() env 에 DATEMATE_PRICE_PARALLEL=3 또는 DATEMATE_EXTERNAL_SLOT_WAIT_SECONDS=0 을 넣고 재배포,
+    전체를 되돌리려면 git revert -m 1 92d40f5.
+  (그 전: 커밋 2a59444, Worker 6f360f19, 서른한 번째 배포, 2026-11-17 02:13)
   배포 전 GitHub Actions 5개 작업(test sqlite·postgres, container, security, python-audit)이 2a59444 에서 모두 통과했습니다(Run 101).
   병합 커밋 8add4a9 의 첫 실행(Run 100)은 test (sqlite) 의 pytest 단계가 실패했고(postgres 는 그 때문에 취소), 어느 테스트였는지는 로그를 받지 못해 모릅니다.
   같은 트리를 git archive 로 풀어 Docker(chromium, SQLite)에서 돌리면 1184 통과·1 건너뜀, 새 화면 테스트 11개는 CPU 1개로 4번 반복해도 통과해서
@@ -37,7 +59,7 @@
     공유 화면(/shared)의 안내, 컨테이너가 켜지는 데 5분 넘게 걸릴 때의 '서버 준비가 늦어지고 있어요' 문구.
   · 문제가 생기면: git revert -m 1 8add4a9 로 되돌려 푸시하고 CI 통과 뒤 다시 배포합니다.
   · 브랜치 feat/edge-first-paint 는 2026-11-17 에 origin 에서 지웠습니다(main 에 모두 병합된 것 확인 뒤). 이 컴퓨터의 워크트리도 지웠습니다.
-  · 사용자가 직접 볼 것: 10분 넘게 쉰 뒤 휴대폰으로 열었을 때의 첫 화면, 실제 브라우저에서 「인쇄 / PDF」로 저장한 PDF.
+  · 사용자가 직접 볼 것: 10분 넘게 쉰 뒤 휴대폰으로 열었을 때의 첫 화면, 실제 브라우저에서 「인쇄 / PDF」로 저장한 PDF(서른두 번째 배포에서 빈 쪽 수정).
 서른 번째 배포로 올라간 것 (main 병합 fc11908, 브랜치 fix/print-shows-plan, 커밋 046a1c3): 「인쇄 / PDF」에 코스가 나오게
   · 왜: 사용자 신고 "PDF 저장이 작동을 안 한다". 단추는 눌리지만 style.css 의 @media print 가 #results 를 통째로 숨겼고, 선택한 코스 상세(#plan-detail)는
     renderResults 가 #results 안에 붙이므로 PDF 에 코스가 없고 축제·팝업 구역만 나왔습니다(첫 커밋 d05361f 부터 있던 문제).

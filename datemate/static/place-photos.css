@@ -61,3 +61,10 @@
 .catalog .place-photo .photo-viewport{min-height:105px}.catalog .place-photo-panel:has(>.photo-status:only-child){min-height:105px}}
 @media(max-width:600px){.plan-photo-preview .place-photo .photo-viewport,.plan-photo-preview .place-photo-panel:has(>.photo-status:only-child){min-height:105px}}
 @media print{.place-photo .photo-viewport,.place-photo-panel{min-height:0!important}}
+/* 결과 화면 사진은 화면 근처에 올 때 받는다(place-photos.js startPhotoNearViewport). 인쇄 직전(beforeprint)에 남은 사진을 시작하지만
+   인쇄 전에 다 받지 못한 사진(숨긴 img)은 빈 칸·출처 줄만 남지 않게 종이에서 사진 칸째 뺀다. 받은 사진·사진 없음 안내는 그대로 나온다. */
+@media print{.place-photo-panel:has(.photo-open img[hidden]){display:none!important}}
+/* 사진을 받는 동안의 '사진을 확인하고 있어요…'(figure 안)는 자리를 미리 잡은 사진 칸 위에 얹는다. 전에는 사진 아래에 한 줄(약 78px)을 더 차지했다가
+   사진이 오면 빠져 아래 일정이 위로 당겨졌다. 이제 화면 근처에 와서야 받기 시작하므로 그 당김이 보이는 자리에서 일어날 수 있어 겹쳐 둔다. */
+.place-photo{position:relative}
+.place-photo>.photo-status{position:absolute;top:0;left:0;right:0;margin:0}

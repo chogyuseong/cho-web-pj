@@ -200,6 +200,27 @@ function popupMapNote(note,items){
   const legend=note.closest('.plan-map-card')?.querySelector('.map-legend-popups');if(legend)legend.hidden=!items.length;
 }
 
+/* 지도의 장소 번호 표시(1..N, 출발·귀가 제외)를 누르면 코스 상세(#plan-detail)의 같은 순번 장소 카드로 스크롤하고
+   카드 제목(h4)에 키보드 포커스를 옮긴다(데스크톱 오른쪽 패널·휴대폰 일정 뒤 지도 모두). 스크롤은 behavior 를 주지 않아
+   html 의 scroll-behavior(동작 줄이기면 auto)를 따르고, 머리 가림은 html 의 scroll-padding-top 이 맡는다.
+   제목은 원래 포커스를 받지 않으므로 tabindex=-1 을 잠시 붙이고(이미 있으면 그대로), 포커스가 떠나면 우리가 붙인 것만 뗀다.
+   포커스 표시는 plan-map.css(.timeline-card>h4.map-stop-target:focus) — 마우스로 누른 뒤의 스크립트 포커스는 :focus-visible 이 아니라서 따로 둔다. */
+function focusPlanStop(index){
+  const stop=document.querySelectorAll('#plan-detail .stop')[index],title=stop?.querySelector('.timeline-card>h4');
+  if(!title)return false;
+  if(!title.classList.contains('map-stop-target')){
+    const added=!title.hasAttribute('tabindex');
+    if(added)title.tabIndex=-1;
+    title.classList.add('map-stop-target');
+    title.addEventListener('blur',()=>{title.classList.remove('map-stop-target');if(added)title.removeAttribute('tabindex');},{once:true});
+  }
+  stop.scrollIntoView({block:'start'});
+  title.focus({preventScroll:true});
+  return true;
+}
+// 장소 번호 표시의 접근 가능한 이름은 고정 문구(번호만)다. 장소 이름은 HTML 에 넣지 않고 title(네이버 표시 옵션)로만 준다.
+function stopMarkerLabel(number){return number+'번 장소 · 눌러서 일정에서 보기';}
+
 function drawPlanMap(plan){
   let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[],popupMarkers=[],parkingMarkers=[];
   const wrap=node('section',undefined,'plan-map');
@@ -259,8 +280,13 @@ function drawPlanMap(plan){
         const label=i===0?'출발':i>plan.places.length?'귀가':String(i);
         // 장소명은 HTML에 삽입하지 않고 텍스트·title로만 전달한다.
         // 쌓임 순서: 팝업 표시(120) < 코스 표시(130) < 축제 표시(150·고른 축제 300). 팝업 동네 기준점이 출발지와 같은 자리여도 출발·번호 표시가 위에 보이고 눌린다.
+        // 장소 번호(1..N)는 눌러서 일정의 그 장소로 간다(role=button·고정 이름·손가락 커서). 출발·귀가는 전처럼 동작 없음.
+        const stop=i>0&&i<=plan.places.length;
         const marker=new naver.maps.Marker({map,position:coord(point),title:label+' · '+point.name,zIndex:130,
-          icon:{content:'<span class="route-marker '+(i===0?'route-start':'')+'">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
+          icon:{content:'<span class="route-marker '+(i===0?'route-start':'')+(stop?' route-stop-marker" role="button" aria-label="'+stopMarkerLabel(i):'')+'">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
+        // 네이버 지도는 표시 click 을 알린 뒤 지도 칸(tabindex)에 포커스를 되돌려 그 칸으로 다시 스크롤한다(운영 SDK 에서 확인).
+        // 그래서 이번 누름 처리가 다 끝난 뒤(setTimeout)에 장소 제목으로 옮긴다.
+        if(stop)naver.maps.Event.addListener(marker,'click',()=>setTimeout(()=>focusPlanStop(i-1)));
         bounds.extend(coord(point));
       });
       let actual=0;
@@ -378,16 +404,24 @@ function drawPlanMap(plan){
         // 휴대폰(plan-map.css 와 같은 조건): 보이는 원(지름 약 21px)은 그대로 두고 그 아래 투명한 지름 44px 원을 깔아 누름 영역을 넓힌다.
         // 투명한 원은 따로 둔 낮은 층(385: 팝업 표시 390·코스 원 400 아래)에 그려, 다른 장소의 보이는 원이나 팝업·주차 표시를 덮지 않고
         // 지도 바탕을 누를 자리만 넓힌다.
+        // 장소 번호(1..N) 점은 눌러서 일정의 그 장소로 간다. points 는 좌표 없는 점을 걸렀으므로 순번은 plan.places 에서 찾는다.
+        const stopIndex=point=>plan.places.indexOf(point);
+        // 보이는 원에만 role=button·이름을 주고, 아래의 투명한 누름 원은 같은 동작만 한다(화면 읽기에 단추가 둘로 읽히지 않게).
+        const goToStop=(circle,index,named)=>{if(index<0)return;circle.on('click',()=>focusPlanStop(index));
+          const path=named&&circle.getElement?.();if(path){path.setAttribute('role','button');path.setAttribute('aria-label',stopMarkerLabel(index+1));}};
         if(matchMedia('(max-width:720px),(pointer:coarse)').matches){
           map.createPane('routeHits').style.zIndex='385';
-          points.forEach(point=>L.circleMarker([point.lat,point.lon],{pane:'routeHits',radius:22,stroke:false,fillColor:'#fff',fillOpacity:0,className:'route-hit-area'}).addTo(map));
+          points.forEach(point=>goToStop(L.circleMarker([point.lat,point.lon],{pane:'routeHits',radius:22,stroke:false,fillColor:'#fff',fillOpacity:0,className:'route-hit-area'}).addTo(map),stopIndex(point),false));
         }
-        points.forEach((point,i)=>{
-          const title=node('span',(i===0?'출발':i>plan.places.length?'귀가':String(i))+' · '+point.name);
-          L.circleMarker([point.lat,point.lon],{radius:9,color:i===0?'#1f2328':'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map).bindTooltip(title,{permanent:true,direction:'top'});
+        points.forEach(point=>{
+          const index=stopIndex(point),origin=point===plan.conditions.origin;
+          const title=node('span',(origin?'출발':index<0?'귀가':String(index+1))+' · '+point.name);
+          const circle=L.circleMarker([point.lat,point.lon],{radius:9,color:origin?'#1f2328':'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3,className:index<0?'':'route-stop-circle'}).addTo(map);
+          circle.bindTooltip(title,{permanent:true,direction:'top'});goToStop(circle,index,true);
         });
         // 구간마다 수단에 맞는 점선으로 잇는다(공개 지도에는 실제 도로 경로를 그리지 않는다).
-        for(let i=0;i<coordinates.length-1;i++){const style=legLineStyle(plan,plan.legs[i]);L.polyline([coordinates[i],coordinates[i+1]],{color:'#55606b',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style}).addTo(map);}
+        // 이동선은 장소 원 뒤에 그려져 원 가운데를 지나므로, 누름을 받지 않게 해(interactive:false) 원 가운데를 눌러도 장소로 가게 한다.
+        for(let i=0;i<coordinates.length-1;i++){const style=legLineStyle(plan,plan.legs[i]);L.polyline([coordinates[i],coordinates[i+1]],{color:'#55606b',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style,interactive:false}).addTo(map);}
         wrap.updateFestivals=()=>{
           if(disposed||!mapCanvas.isConnected)return;
           clearFestivals();const items=festivalMapItems();

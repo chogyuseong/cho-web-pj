@@ -5,6 +5,10 @@
 .naver-plan-map{height:360px;width:100%;max-width:100%;min-width:0;border:1px solid var(--line);border-radius:18px;overflow:hidden;contain:layout paint;background:#fff;position:relative;}
 .route-marker{display:flex;justify-content:center;align-items:center;width:38px;height:38px;background-color:var(--hong);border:3px solid #fff;border-radius:50%;color:#fff;font:bold 13px system-ui;white-space:nowrap}
 .route-marker.route-start{background-color:var(--hong);}
+/* 장소 번호 표시(네이버 지도)·장소 원(공개 지도)은 눌러서 일정의 그 장소로 간다(maps.js focusPlanStop). */
+.route-marker.route-stop-marker,.leaflet-interactive.route-stop-circle{cursor:pointer}
+/* 지도에서 옮겨 온 장소 제목의 포커스 표시. 마우스로 누른 뒤의 스크립트 포커스는 :focus-visible 이 아니라 :focus 로 보인다(포커스가 떠나면 class 를 뗀다). */
+#plan-detail .timeline-card>h4.map-stop-target:focus{outline:3px solid var(--cheong);outline-offset:4px;border-radius:4px}
 .plan-map .map-caption{position:static;padding:10px 0 4px;margin:0;font-size:14px;color:var(--muted);background:transparent;overflow-wrap:anywhere}
 @media(max-width:720px){.naver-plan-map{height:290px}}
 /* 휴대폰(좁은 화면·손가락 입력): 보이는 표시(번호 원 38px, P 32px, 축제·팝업 26~28px 높이)는 그대로 두고

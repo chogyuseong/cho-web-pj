@@ -115,6 +115,27 @@ async function loadSafePhoto(img,photos,onSelected,onFailed){
   await next();
 }
 
+/* 사진 바이트는 화면 근처에 올 때 받기 시작한다(2026-11-17 운영 측정: 결과 사진 한 장이 3~7MB, 8192×5464 7.5MB 도 있었음).
+   결과 화면 장소 카드(eager)는 사진 목록(/media, 지도 링크 확인 rememberVerifiedMapTarget 도 함께 함)은 바로 받되,
+   후보 검사(new Image())와 <img> 는 카드가 화면에서 PHOTO_NEAR_MARGIN 안으로 들어올 때 시작한다. 검사용 Image() 가 이미 원본을 다 받으므로
+   <img loading="lazy"> 만으로는 줄지 않는다. 인쇄 직전(beforeprint)에는 남은 사진을 모두 시작한다.
+   IntersectionObserver 가 없는 브라우저는 전처럼 바로 받는다. */
+const PHOTO_NEAR_MARGIN='600px 0px';
+const deferredPhotoStarts=new Map();
+function startPhotoNearViewport(target,start){
+  if(!('IntersectionObserver' in window)){start();return;}
+  for(const [run,element] of deferredPhotoStarts)if(!element.isConnected)run.cancel();
+  let done=false;
+  const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting))run();},{rootMargin:PHOTO_NEAR_MARGIN});
+  const stop=()=>{done=true;observer.disconnect();deferredPhotoStarts.delete(run);};
+  function run(){if(done)return;stop();start();}
+  run.cancel=stop;
+  deferredPhotoStarts.set(run,target);observer.observe(target);
+}
+// 인쇄에서는 화면 밖 사진도 나와야 하므로 남은 사진을 모두 시작한다(닫힌 접기 안 사진은 종이에도 안 나오므로 그대로 둔다).
+// 인쇄 전에 다 받지 못한 사진 칸은 인쇄에서 숨긴다(place-photos.css).
+addEventListener('beforeprint',()=>{for(const [run,element] of [...deferredPhotoStarts]){if(!element.isConnected)run.cancel();else if(!element.closest('details:not([open])'))run();}});
+
 function fetchPlacePhotos(place,photoMode,force=false){
   const key=photoMode+':'+place.id;
   if(force)placePhotoRequests.delete(key);
@@ -145,7 +166,8 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
     if(!data.photos.length){const empty=node('div',undefined,'photo-empty-card');empty.append(node('strong',place.name),node('p',place.category||'장소'),node('p',place.address||'주소는 장소 정보에서 확인해 주세요.'));panel.append(empty);panel.append(node('p',data.message||'해당 장소의 사진을 찾지 못했습니다.','photo-status'),link('네이버에서 장소 사진 보기 ↗',data.search_url||'https://search.naver.com/search.naver?where=image&query='+encodeURIComponent(place.name+' '+(place.region||''))),retry());return;}
     const photo=data.photos[0],figure=node('figure',undefined,'place-photo'),img=node('img');
     img.alt=photo.title+' — '+place.name;img.loading=eager?'eager':'lazy';img.decoding='async';img.width=640;img.height=420;
-    img.referrerPolicy='no-referrer';
+    // 사진을 받기 전(화면 근처를 기다리는 동안)에는 src 없는 img 의 대체 글자가 보이지 않게 숨겨 둔다. 자리는 .photo-viewport 가 잡는다.
+    img.referrerPolicy='no-referrer';img.hidden=true;
     // 사진을 누르면 같은 페이지 안의 큰 보기 창이 열린다(원문은 아래 출처 줄의 링크로 연다).
     const imageLink=node('button',undefined,'photo-open');imageLink.type='button';imageLink.setAttribute('aria-label',photo.title+' 사진 크게 보기');imageLink.append(img);
     imageLink.addEventListener('click',()=>{if(Date.now()>=suppressClickUntil)PhotoViewer.open(data.photos,current,place.name,imageLink);});
@@ -170,10 +192,14 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       copy.append(...photoMeta(next,full));
       credits.replaceChildren(...photoCredits(next).childNodes);loading.remove();
     };
-    const initialLoad=loadSafePhoto(img,data.photos,updatePhoto,async()=>{
-      try{if(data.photo_source!=='matched_review_photos'){const fallback=await api('/places/'+encodeURIComponent(place.id)+'/media?mode='+photoMode+'&fallback=reviews',null,'GET',{timeout:60000});if(fallback.photos?.length){placePhotoRequests.set(photoMode+':'+place.id,Promise.resolve(fallback));await load();return;}}}catch{}
-      try{const qid=/^Q[1-9][0-9]*$/.test(place.id)?place.id:null;if(qid){const fallback=await discoverPlacePhotos(place,{...data,photos:[],wikidata_id:qid});if(fallback.photos.length){await loadSafePhoto(img,fallback.photos,updatePhoto,unavailable);return;}}}catch{}
-      unavailable();
+    // 결과 화면 장소 카드(eager)는 사진 바이트를 화면 근처에 올 때 받는다(startPhotoNearViewport). 다른 곳은 패널 자체가 이미 화면 근처에서 load() 했다.
+    const initialLoad=new Promise(resolve=>{
+      const begin=()=>resolve(loadSafePhoto(img,data.photos,updatePhoto,async()=>{
+        try{if(data.photo_source!=='matched_review_photos'){const fallback=await api('/places/'+encodeURIComponent(place.id)+'/media?mode='+photoMode+'&fallback=reviews',null,'GET',{timeout:60000});if(fallback.photos?.length){placePhotoRequests.set(photoMode+':'+place.id,Promise.resolve(fallback));await load();return;}}}catch{}
+        try{const qid=/^Q[1-9][0-9]*$/.test(place.id)?place.id:null;if(qid){const fallback=await discoverPlacePhotos(place,{...data,photos:[],wikidata_id:qid});if(fallback.photos.length){await loadSafePhoto(img,fallback.photos,updatePhoto,unavailable);return;}}}catch{}
+        unavailable();
+      }));
+      if(eager&&!full)startPhotoNearViewport(figure,begin);else begin();
     });
     function unavailable(){loading.remove();imageLink.replaceWith(node('div','현재 표시할 수 있는 장소 사진이 없어요. 사진 원문에서 확인해 주세요.','photo-status'));panel.append(retry());}
     if(data.photos.length>1){

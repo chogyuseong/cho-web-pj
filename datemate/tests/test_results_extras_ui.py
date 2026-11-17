@@ -155,6 +155,8 @@ def test_result_photo_opens_same_viewer(audit_page):
     mount_photo_routes(page, base, count=2)
     page.route('**/api/places/*/blogs?*', lambda route: route.fulfill(json={'posts': [], 'message': '없음'}))
     real_results(page, base)
+    # 결과 화면 사진은 화면 근처에 올 때 받는다(가독성 6단계). 사진 칸(자리를 미리 잡음)으로 내려가면 받아 단추가 보인다.
+    page.locator('.timeline-card .place-photo').first.scroll_into_view_if_needed()
     opener = page.locator('.timeline-card .photo-open').first
     opener.wait_for()
     opener.click()

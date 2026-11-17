@@ -57,8 +57,9 @@ def test_real_plan_assets_and_map_fallback():
               plans=[plan];selected=plan;statusData.map_js_key='';
               setTab(false);showPlannerPage(true);renderResults();renderDetail();
             }''',plan)
+            # 결과 화면 사진은 화면 근처에 올 때 받으므로(가독성 6단계) 받기 전 숨은 img 대신 자리를 잡아 둔 사진 칸으로 스크롤한다.
+            page.locator('.timeline-card .place-photo').first.scroll_into_view_if_needed()
             photo=page.locator('.timeline-card .place-photo img').first
-            photo.scroll_into_view_if_needed()
             playwright.expect(photo).to_be_visible(timeout=15000)
             assert photo.evaluate('img=>img.naturalWidth>0')
             menu=page.locator('.timeline-card .restaurant-menu').first

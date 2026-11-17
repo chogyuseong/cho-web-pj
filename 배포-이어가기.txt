@@ -8,8 +8,31 @@
 ★ 지금 상태 (2026-11-17 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 8d822bb(병합 92d40f5), Worker 버전 904c19b7-94a9-45b1-9d1e-422aa1578a7e (서른두 번째 배포, 2026-11-17 09:50 무렵)
-  배포 전 GitHub Actions 5개 작업이 브랜치 fix/print-layout-and-speed 커밋 7f567ff 에서 모두 통과했습니다(Run 103).
+운영에 올라간 것: 커밋 4e48dc3(병합), Worker 버전 a547a8bf-b480-4043-b35c-0b7aaaa3d493 (서른세 번째 배포, 2026-11-17 12:00 무렵)
+  배포 전 GitHub Actions 5개 작업이 브랜치 fix/frontend-modern-web 커밋 0775a6f 에서 모두 통과했습니다(Run 44004888288).
+서른세 번째 배포로 올라간 것 (main 병합 4e48dc3, 브랜치 fix/frontend-modern-web): modern-web-guidance 점검에서 고른 8가지
+  · 점검: datemate/static 을 네이티브 대체·성능·접근성/모바일 세 갈래로 보고 23개 항목을 뽑았고, 사용자가 추천 묶음(아래)을 골랐습니다.
+    남은 후보(헤더가 320px 화면 33% 차지, 코스 탭 INP, 사진 한꺼번에 받기, 사진 CLS, section-indicator 강제 레이아웃, content-visibility,
+    CSS 18개 병합, 대화상자 닫은 뒤 포커스, 토스트 6.5초·숨김 live region, 입력 테두리 대비, aria-current, 지도 role, enterkeyhint/inputmode,
+    작은 칩·마커, prompt())는 고치지 않았습니다.
+  · 한글 조합 중 Enter: app.js(#search)·popups.js 는 isComposing·keyCode 229 이면 검색하지 않습니다(두 번 검색·덜 입력된 검색 방지).
+  · 토스트: 모달(showModal) 대화상자가 열려 있으면 토스트를 그 안(최상위 층)으로 옮기고 닫히면 body 로 되돌립니다. 전에는 배경막 뒤 비활성 영역에 떠 안 보이고 안 읽혔습니다.
+  · #dialog 에 aria-labelledby="dialog-title"(openDialog 가 h2 에 id). scrollIntoView 3곳에서 behavior:'smooth' 를 빼 html 의 scroll-behavior(동작 줄이기면 auto)를 따릅니다.
+  · 정적 파일 캐시(app/web_security.py, app/static_pages.file_version, cloudflare/edge.mjs assetVersions): ?v= 가 지금 보내는 파일의 내용 해시와 같을 때만
+    'public, max-age=31536000, immutable'. 해시를 확인하는 까닭은 배포 직후 새 페이지(엣지)가 예전 컨테이너에 새 주소를 물으면 예전 파일이 새 주소로 나가기 때문입니다.
+    해시 없음·다름, 글꼴·이미지는 전처럼 max-age=0, must-revalidate.
+  · 글꼴: fonts/line-heading-800.woff2 는 이름만 woff2 인 압축 안 된 TTF(353,944B)였습니다. fontTools 로 글리프·cmap·윤곽선 그대로 WOFF2(111,404B)로 다시 감쌌고
+    index.html·shared.html 에 preload. 대체 글꼴 size-adjust 는 넣지 않았습니다.
+  · 히어로 사진: <picture> 로 1000px 이하에서는 1px data 그림(받지 않음), 넓은 화면은 images/seoul-evening.webp(277KB, 전 JPEG 361KB) + fetchpriority=high.
+  · Leaflet: index.html 에서 leaflet.css·js 를 뺐고, 대체 지도(maps.js)와 위치 고르기(location-picker.js)가 loadLeaflet() 으로 그때 불러옵니다.
+  · CI 정리: test_parking 의 '1초 안 연속 요청 차단'은 느린 기계에서 1초가 지나 실패할 수 있어 PARKING_REPEAT_SECONDS(운영 1)로 빼고 테스트에서만 30으로 늘렸습니다
+    (Run 100 의 원인 모를 sqlite 실패가 이것이었을 수 있음). 실패한 테스트는 GitHub 주석(::error)으로 남겨 로그인 없이 check-runs annotations API 로 볼 수 있습니다(tests/conftest.py).
+    한 번 난 postgres 실패(run 44000635573)는 Docker PostgreSQL 17 전체 실행(1191 통과)에서 재현되지 않았고 다음 실행에서 통과했습니다. 원인은 모릅니다.
+  · 검사: Docker(Playwright 1.64.1 chromium) SQLite 전체 1193 통과(고친 2개 제외), PostgreSQL 전체 1191 통과, node --test cloudflare/edge.test.mjs 13 통과, format_sources --check 통과.
+  · 운영 확인(배포 직후, 컨테이너 새 이미지: / 에 Server-Timing): app.js?v=<맞는 해시> immutable, 틀린 해시 must-revalidate, 글꼴 wOF2 111,404B,
+    390px 에서 히어로·Leaflet 요청 0건, 1440px 은 webp, 조합 중 Enter 무시, 대화상자 위 토스트 보이고 닫으면 body 로, window.L 없음, 화면 오류 0.
+  · 문제가 생기면: git revert -m 1 4e48dc3.
+  (그 전: 커밋 8d822bb(병합 92d40f5), Worker 904c19b7, 서른두 번째 배포, 2026-11-17 09:50 무렵)
 서른두 번째 배포로 올라간 것 (main 병합 92d40f5, 브랜치 fix/print-layout-and-speed, 커밋 04356cb·7f567ff): PDF 빈 쪽, 외부 호출 자리 대기, 가격 동시 4건
   · 왜: 서른한 번째 배포 뒤 운영 PDF(성수 1안, 11쪽)에서 2쪽 70%·4쪽 80%가 비었습니다. 장소 카드(.stop)를 통째로 넘기는데 카드가 한 쪽 가까이 깁니다.
     네이버 지도 검색 링크 뒤에 퍼센트 인코딩 주소 4줄이 찍혔고, 사진의 '자료 확인'이 UTC ISO 문자열로 나왔습니다.

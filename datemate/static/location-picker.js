@@ -33,7 +33,7 @@ async function openLocationPicker(kind){
   const footer=node('div',undefined,'location-footer');
   const searchForm=node('form',undefined,'location-search');
   const label=node('label','도로명 주소 또는 지번 주소'),query=node('input');
-  query.placeholder='예: 부산 해운대구 해운대로 264';query.maxLength=200;query.required=true;query.minLength=2;
+  query.placeholder='예: 부산 해운대구 해운대로 264';query.enterKeyHint='search';query.maxLength=200;query.required=true;query.minLength=2;
   label.append(query);const searchButton=node('button','주소 검색','primary');searchForm.append(label,searchButton);
   const message=node('p',kind==='origin'?'데이트할 지역의 주소를 검색하거나 지도에서 선택하세요. 선택한 위치가 코스의 시작 기준이 됩니다.':'주소를 검색하거나 지도를 움직여 원하는 위치를 선택하세요.','hint');message.setAttribute('role','status');
   const results=node('div',undefined,'location-results');

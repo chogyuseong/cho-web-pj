@@ -83,7 +83,7 @@ function parkingPanel(plan, index) {
     heading = `${index+1}번 · ${place.name} 근처 주차장`;
   panel.setAttribute('aria-label', heading);
   const body = node('div', undefined, 'parking-body');
-  body.append(node('p', '근처 주차장을 찾고 있어요…', 'hint'));
+  body.append(node('p', '근처 주차장을 찾고 있어요…', 'hint loading-note'));
   panel.append(node('h4', heading), body, node('p', PARKING_SOURCE_NOTE, 'hint parking-note'));
   const retry = () => loadParking(plan, true).catch(() => {});
 

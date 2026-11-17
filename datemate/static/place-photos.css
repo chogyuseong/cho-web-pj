@@ -51,3 +51,13 @@
 .blog-skeleton-line.short{width:55%}
 @keyframes blog-skeleton-pulse{0%,100%{opacity:1}50%{opacity:.45}}
 @media(prefers-reduced-motion:reduce){.blog-skeleton span{animation:none}}
+/* 사진 자리 미리 잡기(CLS): 사진은 받아질 때까지 숨겨져(hidden) 높이 0 이었다가 195px 로 나타나 아래 일정을 밀었다.
+   사진 칸과 불러오는 중인 패널에 화면별 사진 높이(위 규칙과 같은 값)만큼 자리를 먼저 둔다. 사진이 없으면 그 자리에 안내가 들어간다. */
+.place-photo .photo-viewport{min-height:195px}
+.place-photo-panel:has(>.photo-status:only-child){min-height:223px}
+.catalog .place-photo .photo-viewport,.plan-photo-preview .place-photo .photo-viewport{min-height:145px}
+.catalog .place-photo-panel:has(>.photo-status:only-child),.plan-photo-preview .place-photo-panel:has(>.photo-status:only-child){min-height:145px}
+@media(max-width:720px){.place-photo .photo-viewport{min-height:210px}.place-photo-panel:has(>.photo-status:only-child){min-height:234px}
+.catalog .place-photo .photo-viewport{min-height:105px}.catalog .place-photo-panel:has(>.photo-status:only-child){min-height:105px}}
+@media(max-width:600px){.plan-photo-preview .place-photo .photo-viewport,.plan-photo-preview .place-photo-panel:has(>.photo-status:only-child){min-height:105px}}
+@media print{.place-photo .photo-viewport,.place-photo-panel{min-height:0!important}}

@@ -20,9 +20,9 @@ function hasPlaceMenu(place){
   return Boolean(place.meal||place.cuisine||/카페|미식|식당|음식점|베이커리/.test(place.category||'')||(place.tags||[]).some(tag=>['cafe','restaurant','bakery'].includes(tag)));
 }
 function restaurantMenuPanel(food){
-  const box=node('div',undefined,'restaurant-menu');box.setAttribute('aria-label',food.name+' 메뉴 가격');box.append(node('p','메뉴 가격을 확인하고 있어요…','hint'));
+  const box=node('div',undefined,'restaurant-menu');box.setAttribute('aria-label',food.name+' 메뉴 가격');box.append(node('p','메뉴 가격을 확인하고 있어요…','hint loading-note'));
   async function load(refresh=false){
-    box.replaceChildren(node('p','메뉴 가격을 확인하고 있어요…','hint'));
+    box.replaceChildren(node('p','메뉴 가격을 확인하고 있어요…','hint loading-note'));
     try{
       if(refresh)restaurantMenuRequests.delete(food.id);
       if(!restaurantMenuRequests.has(food.id))restaurantMenuRequests.set(food.id,api('/places/'+encodeURIComponent(food.id)+'/menu?mode=real'+(refresh?'&refresh=true':'')).catch(e=>{restaurantMenuRequests.delete(food.id);throw e;}));

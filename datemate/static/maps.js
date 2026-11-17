@@ -1,5 +1,21 @@
 /* 공개 클라이언트 ID가 설정된 경우에만 로드한다. 비밀 API 키는 사용하지 않는다. */
 let naverLoader;
+// 공개 지도(Leaflet, JS 147KB·CSS 15KB)는 네이버 지도가 실패했을 때만 쓰므로, 그때 처음 불러온다(전에는 모든 첫 화면이 받고 CSS 가 렌더를 막았다).
+let leafletLoader=null;
+function loadLeaflet(){
+  if(window.L)return Promise.resolve();
+  if(leafletLoader)return leafletLoader;
+  const attach=(tag,props)=>new Promise((resolve,reject)=>{
+    const el=Object.assign(document.createElement(tag),props);el.dataset.datemateLeaflet='true';
+    el.onload=resolve;el.onerror=()=>{el.remove();reject(Error('공개 지도 로딩 실패'));};
+    document.head.append(el);
+  });
+  leafletLoader=Promise.all([
+    document.querySelector('link[data-datemate-leaflet]')?Promise.resolve():attach('link',{rel:'stylesheet',href:'/static/vendor/leaflet/leaflet.css'}),
+    attach('script',{src:'/static/vendor/leaflet/leaflet.js'}),
+  ]).then(()=>{if(!window.L)throw Error('공개 지도 로딩 실패');}).catch(error=>{leafletLoader=null;throw error;});
+  return leafletLoader;
+}
 function loadNaverMaps(key,force=false){
   if(force){naverLoader=null;window.naverMapAuthFailed=false;}
   if(window.naverMapAuthFailed)return Promise.reject(Error('지도 인증 실패'));
@@ -344,7 +360,7 @@ function drawPlanMap(plan){
     const schematic=node('details',undefined,'map-schematic');
     schematic.append(node('summary','방문 순서 개략도 보기 (실제 지도 아님)'),drawMap(plan));
     wrap.replaceChildren(notice,schematic);
-    if(window.L){
+    loadLeaflet().then(()=>{if(disposed||!wrap.isConnected)return;
       const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
       wrap.prepend(mapCanvas,mapCaption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
@@ -400,7 +416,7 @@ function drawPlanMap(plan){
         requestAnimationFrame(fit);
         if(window.ResizeObserver){resizeObserver=new ResizeObserver(fit);resizeObserver.observe(mapCanvas);}
       }catch{mapCanvas.replaceWith(node('p','공개 지도를 표시하지 못했어요. 아래 개략도와 장소 링크를 이용해 주세요.','hint'));}
-    }
+    }).catch(()=>{});
   }
   return wrap;
 }

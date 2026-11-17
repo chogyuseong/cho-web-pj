@@ -329,7 +329,6 @@ const FestivalPanel = {
     jump.hidden = false;
     jump.onclick = () => {
       section.scrollIntoView({
-        behavior: 'smooth',
         block: 'start'
       });
       const title = document.getElementById('festival-title');

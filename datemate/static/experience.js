@@ -236,9 +236,7 @@ function showDraft(original, draft) {
       if (!commitPlanChange(original.id, next) || generation !== dialogGeneration) return;
       form.elements.count.value = next.conditions.count;
       $('#dialog').close();
-      $('#plan-detail').scrollIntoView({
-        behavior: 'smooth'
-      });
+      $('#plan-detail').scrollIntoView();
       toast('시간·동선·비용을 반영했어요. 교체 되돌리기로 원래 코스로 돌아갈 수 있어요.');
     } finally {
       apply.disabled = false;

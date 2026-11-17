@@ -274,7 +274,22 @@ function linkedText(tag, text, cls) {
 }
 
 function toast(text) {
-  $('#toast').textContent = text;
+  const el = $('#toast');
+  // showModal() 로 연 대화상자는 최상위 층이고 바깥은 비활성(inert)이라 body 의 토스트가 그 뒤에 가려지고 읽히지도 않는다.
+  // 열린 모달이 있으면 토스트를 그 안으로 옮기고, 대화상자가 닫히면 body 로 되돌린다.
+  let host = document.body;
+  for (const dialog of document.querySelectorAll('dialog[open]')) {
+    try {
+      if (dialog.matches(':modal')) host = dialog;
+    } catch {}
+  }
+  if (el.parentElement !== host) {
+    host.append(el);
+    if (host !== document.body) host.addEventListener('close', () => document.body.append(el), {
+      once: true
+    });
+  }
+  el.textContent = text;
   $('#toast').style.display = 'block';
   clearTimeout(toast.timer);
   toast.timer = setTimeout(() => $('#toast').style.display = 'none', 6500);
@@ -564,9 +579,8 @@ form.addEventListener('submit', async e => {
     renderResults(result);
     renderDetail();
     $('#progress').textContent = (plans.length ? `추천 완료 · ${plans.length}개의 일정` : (result.reasons?.[0] || '추천 조건을 확인해 주세요.')) + PlanPreview.summary();
-    if (window.innerWidth < 720) $('#results').scrollIntoView({
-      behavior: 'smooth'
-    });
+    // behavior 를 넘기지 않아 html 의 scroll-behavior 를 따른다(동작 줄이기 설정이면 바로 이동).
+    if (window.innerWidth < 720) $('#results').scrollIntoView();
   } catch (error) {
     toast(error.message);
     showSearchFailure(error);
@@ -635,7 +649,8 @@ async function search() {
 }
 $('#search-button').onclick = () => search().catch(e => toast(e.message));
 $('#search').addEventListener('keydown', e => {
-  if (e.key === 'Enter') search().catch(e => toast(e.message));
+  // 한글 조합 중 Enter(isComposing, keyCode 229)는 글자를 확정하는 키라 검색하지 않는다(두 번 검색·덜 입력된 검색 방지).
+  if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) search().catch(e => toast(e.message));
 });
 mountLocationFields();
 mountPriceControls();

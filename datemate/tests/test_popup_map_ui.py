@@ -193,7 +193,7 @@ def test_leaflet_popup_layer_lifecycle_view_and_failures(audit_page):
     api.by_day["2026-12-01"] = (200, ONE)
     api.by_day["2026-12-02"] = (500, {"detail": "점검용 연결 실패"})
     page.evaluate(
-        """()=>{statusData.map_js_key=null;window.courseMaps=[];window.itemsAtMap=[];const create=L.map;
+        """async()=>{await loadLeaflet();statusData.map_js_key=null;window.courseMaps=[];window.itemsAtMap=[];const create=L.map;
           L.map=function(...args){const map=create(...args);window.courseMaps.push(map);window.itemsAtMap.push(PopupCourse.mapItems.length);return map;};}"""
     )
     generate(page)
@@ -304,7 +304,7 @@ def test_leaflet_popup_layer_lifecycle_view_and_failures(audit_page):
     assert page.locator(".plan-map .map-popup-panel").is_hidden()
 
 
-LEAFLET_CAPTURE = """()=>{statusData.map_js_key=null;window.courseMaps=[];const create=L.map;
+LEAFLET_CAPTURE = """async()=>{await loadLeaflet();statusData.map_js_key=null;window.courseMaps=[];const create=L.map;
   L.map=function(...args){const map=create(...args);window.courseMaps.push(map);return map;};}"""
 # 성수처럼 동네 기준점 거점이 출발지와 같은 좌표인 경우(나머지 거점은 그대로).
 AREA_AT_ORIGIN = """()=>{const o=selected.conditions.origin;

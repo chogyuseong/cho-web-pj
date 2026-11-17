@@ -67,7 +67,8 @@ const PopupView = {
     bar.append(regionLabel, queryLabel, searchButton);
     region.addEventListener('change', () => this.search());
     query.addEventListener('keydown', event => {
-      if (event.key === 'Enter') this.search();
+      // 한글 조합 중 Enter 는 글자 확정이라 검색하지 않는다.
+      if (event.key === 'Enter' && !event.isComposing && event.keyCode !== 229) this.search();
     });
     const about = node('p', '네이버 블로그 검색 결과를 글마다 그대로 보여 드려요. 기간·장소는 검색 요약에서 읽은 것이라 실제 운영과 다를 수 있어요. 방문 전 원문을 확인해 주세요.', 'hint popup-about');
     const status = node('p', '', 'popup-status');

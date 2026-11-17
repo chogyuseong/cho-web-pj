@@ -642,6 +642,10 @@ def nearby_restaurants(id: str, request: Request, after_index: int = Query(defau
         raise HTTPException(422, str(exc))
 
 
+# 같은 브라우저가 주차장 검색을 연달아 누를 때 두 번째를 막는 시간(초).
+PARKING_REPEAT_SECONDS = 1
+
+
 @app.get("/api/plans/{id}/parking")
 def nearby_parking(id: str, request: Request):
     """자동차로 도착하는 장소 근처 주차장. 결과 화면에서만 부르며 계획은 바꾸지 않는다."""
@@ -657,7 +661,7 @@ def nearby_parking(id: str, request: Request):
         30,
         "주차장 검색은 잠시 후 다시 시도해 주세요.",
     )
-    store.cache(key, True, 1)
+    store.cache(key, True, PARKING_REPEAT_SECONDS)
     return parking_near(plan)
 
 

@@ -46,3 +46,19 @@ from app import store
 @pytest.fixture(autouse=True)
 def storage():
     store.init()
+
+
+def pytest_runtest_logreport(report):
+    """GitHub Actions 에서 실패한 테스트를 주석(::error)으로 남긴다.
+
+    작업 로그는 로그인해야 받을 수 있지만 주석은 공개 API(check-runs/{id}/annotations)로 읽힌다.
+    원인 모를 CI 실패(2026-11-16 Run 100, 2026-11-17 postgres)를 로그 없이 확인하려는 것이다. 테스트 이름과 마지막 오류 줄만 남긴다.
+    """
+    if not os.getenv('GITHUB_ACTIONS') or not report.failed:
+        return
+    lines = [line for line in str(report.longrepr).splitlines() if line.strip()]
+    detail = ' | '.join(lines[-3:])[:900]
+    for old, new in (('%', '%25'), ('\r', '%0D'), ('\n', '%0A')):
+        detail = detail.replace(old, new)
+    # pytest 진행 표시(.F) 뒤에 붙으면 GitHub 가 명령으로 읽지 않으므로 줄을 바꿔 시작한다.
+    print(f'\n::error title=pytest {report.when} failed::{report.nodeid} :: {detail}', file=sys.__stdout__, flush=True)

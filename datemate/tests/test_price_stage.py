@@ -24,12 +24,27 @@ def slow(seconds):
     return call
 
 
+def together(count, seconds):
+    """count 개의 호출이 모두 도착할 때까지 서로 기다린 뒤 seconds 동안 잠드는 가짜 호출.
+    그냥 slow() 를 쓰면 전체 테스트처럼 기계가 바쁠 때 한 스레드가 늦게 시작해 앞 호출이 끝난 뒤 들어가
+    겹친 수가 2로 나왔다(2026-11-18 Docker 전체 실행 두 번 연속 실패). 측정 장치가 '실제로 겹친' 호출을 세는지 보는 테스트라
+    겹침 자체는 이렇게 보장한다. 셋이 5초 안에 모이지 못하면(자리 부족 등) BrokenBarrierError 로 바로 드러난다."""
+    gate = threading.Barrier(count, timeout=5)
+
+    def call(url, **kwargs):
+        gate.wait()
+        time.sleep(seconds)
+        return httpx.Response(200)
+    return call
+
+
 def test_external_calls_are_also_summarised_per_stage():
     with recording() as trace, measure(), ThreadPoolExecutor(max_workers=3) as pool:
         stage('장소 검색')
         observed_http(slow(.03), 'https://naverapihub.apigw.ntruss.com/search/v1/local')
         stage('가격 확인')
-        context_map(pool, lambda _: observed_http(slow(.1), 'https://naverapihub.apigw.ntruss.com/search/v1/blog'), range(3))
+        blog = together(3, .1)
+        context_map(pool, lambda _: observed_http(blog, 'https://naverapihub.apigw.ntruss.com/search/v1/blog'), range(3))
         perf_trace.count('price.lookups', 3)
         perf_trace.count('price.lookups_used', 0)
         summary = trace.summary()

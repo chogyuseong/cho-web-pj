@@ -8,7 +8,15 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 aa64d78(main 병합, 브랜치 perf/leisure-photo-thumb 커밋 39279cd = 레저 사진 격자도 축소), Worker 버전 af210b71-5682-4b44-b972-91ae150fbbbb (마흔여덟 번째 배포, 2026-11-18 밤)
+CSS 정리 5-0 검증 장치(main 병합 de3bd3f, 브랜치 test/css-snapshot 커밋 b36a76f·1bded94, 2026-11-19, 테스트 도구라 배포 불필요)
+  · 새 datemate/tests/css_snapshot.py: capture --out DIR / compare A B. 15장면 × 12폭 = 180캡처, 전 요소·가상 요소 getComputedStyle·상자·스크린샷·상태 표본(Tab·hover).
+    Docker 안 datemate 폴더에서 DATEMATE_BROWSER_CHANNEL=chromium python tests/css_snapshot.py capture --out runtime/css-snapshots/before --jobs 4 (산출물 runtime/, Git 제외).
+    줄이는 옵션: --scenes, --widths, --jobs, --no-states, --no-screenshots, --tab-limit, --hover-limit. 외부 요청은 모두 끊음(지도 타일만 1×1 PNG).
+  · 완료 기준: 무변경 두 번 → 180캡처 차이 0. line.css 한 곳 3px→4px → 144캡처 차이 보고(되돌림). 규칙 사용률 1585/2181(72.7%), 안 맞은 규칙 596개(rule-usage.txt).
+  · 실행 시간: 전체 캡처 1회 약 16분(약 140MB), 단계당 before·after 약 32분. Docker 전체 1270 통과·6 건너뜀·실패 0(파일명이 test_ 아니라 전체 실행에 안 들어감).
+  · 설계와 다르게 한 점(무변경인데 흔들려서): hover 는 CDP forcePseudoState, Leaflet 지도 안 요소의 자리 값·지도 칸 픽셀은 비교 제외, 시계는 2026-10-20 10:00 KST 에서 실제 속도로,
+    대화상자 장면은 보이는 화면만 찍음, 인쇄 장면은 상태 표본 없음. 테스트 이미지 datemate-test:css 는 datemate-test:local 에 requirements-dev(pillow 13) 더한 로컬 이미지.
+(마흔여덟 번째) 운영에 올라간 것: 커밋 aa64d78(main 병합, 브랜치 perf/leisure-photo-thumb 커밋 39279cd = 레저 사진 격자도 축소), Worker 버전 af210b71-5682-4b44-b972-91ae150fbbbb (마흔여덟 번째 배포, 2026-11-18 밤)
   사용자 결정: 레저 격자도 /photo-thumb(폭 960), 크게 보기·원본 링크는 원본 유지. 사용자가 '병합하고 배포해' 로 지시.
   · leisure.js: 격자에서 loadSafePhoto(…, {thumb: true}), 실패 때 원본. '크게 보기' 링크와 같은 사진 거르기는 원본 주소 기준, 다시 찾기 때 thumb 시험 결과도 지움.
     서버 동작 변경 없음(레저 사진도 /media·fallback=reviews 로 와서 이미 thumb_url 이 붙음). 새 허용 호스트 없음.

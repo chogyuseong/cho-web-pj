@@ -8,8 +8,14 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 ddd4e18(병합, 브랜치 feat/transit-compare 커밋 b11d154), Worker 버전 99f629e8-08f3-4b43-b28d-8830047dc11f (마흔세 번째 배포, 2026-11-18 낮)
-  ★ main 은 그 뒤 7124703(꼬리표 수정, fix/transit-badges)까지 있음 — 아직 배포 안 됨. 화면 파일(transit-compare.js)만 바뀜, 배포 지시 받으면 올릴 것.
+운영에 올라간 것: 커밋 072911c(main, 꼬리표 수정 병합 7124703 포함), Worker 버전 6d0685b8-638a-4cd3-a061-fa7c93475b3e (마흔네 번째 배포, 2026-11-18 오후)
+  사용자가 '1, 2 진행해'(1 = 꼬리표 수정 재배포)로 지시. 바뀐 파일은 transit-compare.js 하나(transitBadges: 선택지 둘 이상 중 혼자 가장 좋을 때만 꼬리표).
+  배포 직후에는 앞선 운영 확인으로 깨어 있던 컨테이너가 예전 파일을 줬고(Server-Timing 있음), 11분 접속 없이 기다린 뒤 엣지가 새 파일을 줌(transitBadges 확인).
+  CI: 7124703(Run 44227182463) 결과는 이 기록 시점에 따로 보지 않음 — 같은 내용이 들어간 뒤 커밋들의 CI 로 확인할 것.
+  같은 지시의 2번: 가격 단계 테스트(test_price_stage::test_external_calls_are_also_summarised_per_stage) 고침 — 브랜치 fix/price-stage-overlap-test 커밋 7a0a4e0, CI 5개 통과.
+    원인(확인함): 가짜 호출 3개가 0.1초씩 잠드는 동안 겹친다고 가정했는데, 기계가 바쁘면 한 스레드가 늦게 시작해 peak_parallel 이 2.
+    고침: 가짜 호출이 threading.Barrier(3)에서 서로 기다린 뒤 잠듦. Docker 에서 CPU 부하를 걸고 30회씩: 고치기 전 4/30 실패, 고친 뒤 0/30. 운영 코드는 그대로(배포 불필요).
+(마흔세 번째) 운영에 올라간 것: 커밋 ddd4e18(병합, 브랜치 feat/transit-compare 커밋 b11d154), Worker 버전 99f629e8-08f3-4b43-b28d-8830047dc11f (2026-11-18 낮)
   사용자가 TMAP 키를 직접 등록한 뒤 '키 등록했어, 배포해' 로 지시(npx wrangler secret list 에 TMAP_TRANSIT_APP_KEY 확인).
   배포 전 Docker 전체(SQLite, chromium) 1246 통과·6 건너뜀·1 실패(test_price_stage 동시성 시간 테스트, 두 번째 연속 — 아래 후보). CI 는 배포 뒤 확인할 것.
   마흔세 번째 배포로 올라간 것: 대중교통 구간 지하철·버스 비교(TMAP 대중교통 API)
@@ -26,11 +32,12 @@
     · 운영 확인(배포 직후): /api/status 13.9초(새 컨테이너), transit_compare_available=true. 자동화 Chromium 390px 로 성수역 출발 대중교통 추천(성수다락·팀홀튼 밴프 타운 성수점·서울숲)
       → 비교 1회 = TMAP 3건(무료 10건 안). 1구간 버스+지하철(2호선→지선 2413) 19분, 2구간 마을버스 성동13 7분, 3구간 지하철 22분·버스 21분·혼합 20분.
       요금·환승·도보·노선·지도 좌표 모두 읽힘, 미리보기·지도 실선·지도 안내 정상, 화면 오류 0. 응답 형식은 문서와 같았음(legs[].route, passShape.linestring, steps[].linestring).
-    · 그 확인에서 고친 것(7124703, 미배포): 선택지가 하나뿐이면 꼬리표 3개가 다 붙고, 지하철·버스 모두 환승 0회인데 지하철에만 '환승 적음'이 붙음
+    · 그 확인에서 고친 것(7124703, 마흔네 번째에 배포): 선택지가 하나뿐이면 꼬리표 3개가 다 붙고, 지하철·버스 모두 환승 0회인데 지하철에만 '환승 적음'이 붙음
       → 둘 이상 중 혼자 가장 좋을 때만 붙임(transitBadges).
     · 새 테스트 tests/test_transit_compare.py 9개, tests/test_transit_compare_ui.py 2개, cloudflare/validation.test.mjs 11개.
     · 문제가 생기면: 키만 지우면 기능이 숨겨짐(npx wrangler secret delete TMAP_TRANSIT_APP_KEY) 또는 git revert -m 1 ddd4e18.
-  다음 후보: test_price_stage::test_external_calls_are_also_summarised_per_stage 가 전체 실행에서 두 번 연속 실패(peak_parallel==3 가정) — 고칠 것.
+  다음 후보(사용자 결정 필요): 지도 아래 장소 목록에 '일정에서 보기', 대체 지도(Leaflet) 번호 합치기, 결과 사진 용량, CSS 18개 병합(Fable 권장).
+  사용자 할 일: TMAP 무료 요금제면 하루 10건뿐 — 실사용은 종량제로. SK Open API 회원 유형 확인. 휴대폰으로 비교 카드·지도 실선 보기.
 (마흔두 번째) 운영에 올라간 것: 커밋 8454367(병합, 브랜치 ui/meal-photo-mobile 커밋 2dce8b8·7ec4d38), Worker 버전 9eb91606-9e65-47ae-b0b1-404933f1704c (2026-11-18 낮)
   사용자가 '배포해' 로 지시. GitHub Actions(Run 44218614012)가 끝나기 전에 배포했고, 배포 뒤 5개 작업 모두 통과를 확인했습니다.
   Docker 전체(SQLite, chromium) 1235 통과·6 건너뜀·1 실패: test_price_stage.py::test_external_calls_are_also_summarised_per_stage

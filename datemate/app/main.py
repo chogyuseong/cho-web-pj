@@ -508,8 +508,36 @@ def place_media(
         refresh_allowed(
             "media", request.state.owner, "사진 새로 조회는 잠시 후 다시 시도해 주세요."
         )
-    return media_info(
-        p, prefer_public=fallback == "place", force=refresh, review_only=fallback == "reviews"
+    from .photo_thumb import with_thumbs
+
+    # 사진마다 thumb_url(카드용 줄인 사진, /photo-thumb)을 붙이고 그 원본을 허용 목록에 올린다(app/photo_thumb.py).
+    return with_thumbs(
+        media_info(
+            p, prefer_public=fallback == "place", force=refresh, review_only=fallback == "reviews"
+        )
+    )
+
+
+@app.get("/photo-thumb", include_in_schema=False)
+def photo_thumb(u: str = Query(max_length=2000), w: int = 960):
+    """카드용 줄인 사진(WebP). /api/ 밖에 둔 까닭: /api/* 는 Cache-Control no-store 가 강제돼(web_security.headers) 브라우저가 다시 받는다.
+    허용 목록(우리 media 응답이 내보낸 주소)·호스트·크기 확인은 app/photo_thumb.py. 실패는 모두 404 — 브라우저가 원본으로 대체한다."""
+    from .photo_thumb import BROWSER_SECONDS, Rejected, thumbnail
+
+    web_security.require_ip(
+        "photo-thumb",
+        "DATEMATE_IP_PHOTO_THUMBS_PER_MINUTE",
+        120,
+        "사진을 잠시 후 다시 불러와 주세요.",
+    )
+    try:
+        body = thumbnail(u, w)
+    except Rejected:
+        raise HTTPException(404, "Not Found")
+    return Response(
+        body,
+        media_type="image/webp",
+        headers={"Cache-Control": f"public, max-age={BROWSER_SECONDS}"},
     )
 
 

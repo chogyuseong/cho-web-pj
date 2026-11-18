@@ -24,7 +24,7 @@ os.environ['DATEMATE_PROVIDER_CALLS_PER_HOUR']='10000'
 # Every test request comes from the same TestClient address within a few minutes,
 # far beyond one real visitor; tests of these limits lower them with monkeypatch.
 for _name in ('SESSIONS','EXPENSIVE_REQUESTS','RECOMMENDATIONS','CHATS','GEOCODE','REVERSE_GEOCODE',
-              'LOCAL_SEARCHES','REFRESHES','REVIEWS','EXPLORE_SEARCHES','POPUP_SEARCHES','TRANSIT_COMPARES'):
+              'LOCAL_SEARCHES','REFRESHES','REVIEWS','EXPLORE_SEARCHES','POPUP_SEARCHES','TRANSIT_COMPARES','PHOTO_THUMBS'):
     os.environ[f'DATEMATE_IP_{_name}_PER_MINUTE']='100000'
 os.environ['DATEMATE_IP_POPUP_SEARCHES_PER_HOUR']='100000'
 # 로컬 단위 테스트가 사용자 실제 검색 키로 외부 API를 호출하지 않게 한다.

@@ -159,3 +159,25 @@ def test_media_response_adds_thumb_urls_and_allows_only_those(monkeypatch):
     assert store.cached(photo_thumb.allow_key(allowed)) is True and store.cached(photo_thumb.allow_key(other)) is None
     assert ttls == [photo_thumb.ALLOW_SECONDS] and photo_thumb.ALLOW_SECONDS < 86400
     assert 'thumb_url' not in data['photos'][0]  # 원래 응답 dict 는 바꾸지 않음
+
+
+@pytest.mark.parametrize('params', [{}, {'fallback': 'reviews'}, {'refresh': 'true'}])
+def test_leisure_grid_requests_get_thumbs_and_only_listed_photos_are_fetched(origin, monkeypatch, params):
+    """레저 사진 격자(static/leisure.js)가 부르는 /media 세 가지(기본·후기 대체·다시 찾기)도 thumb_url 을 받고,
+    그 응답이 내보낸 주소만 /photo-thumb 로 줄여 준다. 응답에 없던 주소(같은 허용 호스트라도)는 받지 않고 404."""
+    from app import main as app_main
+    from app.catalog import places
+    listed, unlisted = source_url(), source_url()
+    data = dict(status='available', photo_source='matched_review_photos',
+                photos=[dict(kind='place_public', image_url=listed, url=listed, title='레저 사진')])
+    monkeypatch.setattr(app_main, 'media_info', lambda place, **kw: data)
+    place_id = places('demo')[0]['id']
+    with TestClient(app, client=(unique_ip(), 1)) as client:
+        body = client.get(f'/api/places/{place_id}/media', params=dict(mode='demo', **params)).json()
+        thumb = body['photos'][0]['thumb_url']
+        assert thumb.startswith('/photo-thumb?u=') and thumb.endswith('&w=960')
+        assert body['photos'][0]['image_url'] == listed  # 원본 주소(크게 보기 링크)는 그대로
+        response = client.get(thumb)
+        assert response.status_code == 200 and response.headers['content-type'] == 'image/webp'
+        assert get(client, unlisted).status_code == 404
+    assert origin['calls'] == [listed]

@@ -5,7 +5,7 @@
 
 흐름: GET /api/places/{id}/media 가 사진마다 thumb_url(/photo-thumb?u=원본&w=960)을 붙이며 그 원본 주소를 허용 목록에 6시간 올린다(with_thumbs).
       브라우저(static/place-photos.js)는 카드에서 thumb_url 을 먼저 시도하고, 실패(404 등)하면 지금처럼 원본을 직접 받는다.
-      크게 보기(PhotoViewer)는 원본 그대로.
+      크게 보기(PhotoViewer)는 원본 그대로. 레저 사진 격자(static/leisure.js)도 같은 /media 응답의 thumb_url 을 쓴다(그 링크는 원본).
 
 보안(SSRF·열린 중계 막기) — 이 경로는 남의 서버에서 받아 오므로 아래를 모두 지킨다:
   · 우리 media 응답이 내보낸 주소만(허용 목록 photo-thumb-ok:sha256(주소), TTL ALLOW_SECONDS). 목록에 없으면 받지 않고 404.

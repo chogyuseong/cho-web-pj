@@ -107,7 +107,7 @@ const photoGenerations=new WeakMap();
 /* thumb:true(카드)면 사진마다 서버가 줄인 사진(photo.thumb_url, /photo-thumb, 폭 960 WebP)을 먼저 하나만 시험하고, 되면 그것으로 끝낸다.
    안 되면(404: 허용 목록 만료·받기 실패·줄여도 안 작아짐 등) 아래 원래 방식(원본 후보를 한꺼번에 시험)으로 넘어간다.
    줄인 사진을 원본 후보와 '같이' 시험하면 원본도 다 받아 버려 줄인 효과가 없으므로 반드시 먼저·따로 시험한다(2026-11-18, app/photo_thumb.py).
-   크게 보기(PhotoViewer)·레저 사진 격자(leisure.js)는 thumb 없이 부른다(원본). */
+   크게 보기(PhotoViewer)는 thumb 없이 부른다(원본). 레저 사진 격자(leisure.js)도 2026-11-18 부터 thumb:true(그 '크게 보기' 링크는 원본). */
 async function loadSafePhoto(img,photos,onSelected,onFailed,{thumb=false}={}){
   const generation=(photoGenerations.get(img)||0)+1;photoGenerations.set(img,generation);
   const active=()=>photoGenerations.get(img)===generation;

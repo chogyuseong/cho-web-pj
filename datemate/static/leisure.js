@@ -208,12 +208,15 @@ function leisurePhotoPanel(place, photoMode) {
       await Promise.all(slots.filter(slot => !slot.loaded).map(async slot => {
         while (queue.length && panel.isConnected && Date.now() < deadline) {
           const photo = queue.shift();
+          // 격자에는 서버가 줄인 사진(thumb_url, /photo-thumb 폭 960 WebP)을 먼저 쓰고, 안 되면 원본(loadSafePhoto thumb 옵션, 2026-11-18).
+          // 눌러서 여는 '크게 보기' 링크는 늘 원본이다. url 이 줄인 사진이면 그 사진의 첫 원본 후보로 바꿔 건다(같은 사진 거르기도 원본 기준).
           await loadSafePhoto(slot.image, [photo], (selectedPhoto, url) => {
-            if (!panel.isConnected || displayed.has(url)) return;
-            displayed.add(url);
+            const full = url === selectedPhoto.thumb_url ? photoCandidates(selectedPhoto)[0] || url : url;
+            if (!panel.isConnected || displayed.has(full)) return;
+            displayed.add(full);
             slot.loaded = true;
             slot.image.alt = place.name + ' 사진 ' + (slot.index + 1);
-            const original = link('', url);
+            const original = link('', full);
             original.setAttribute('aria-label', place.name + ' 사진 ' + (slot.index + 1) + ' 크게 보기');
             original.append(slot.image);
             const credit = node('figcaption');
@@ -230,6 +233,8 @@ function leisurePhotoPanel(place, photoMode) {
               status.textContent = '일부 사진을 표시하지 못했어요. 다시 찾기를 눌러 주세요.';
               if (!panel.querySelector('.leisure-photo-retry')) panel.append(button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'));
             }
+          }, {
+            thumb: true
           });
           if (slot.loaded) break;
         }
@@ -238,7 +243,7 @@ function leisurePhotoPanel(place, photoMode) {
     try {
       if (force) {
         for (const photo of lastPhotos)
-          for (const url of photoCandidates(photo)) photoLoads.delete(url);
+          for (const url of [photo.thumb_url, ...photoCandidates(photo)]) photoLoads.delete(url);
       }
       lastPhotos = [];
       let data;

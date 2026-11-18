@@ -8,9 +8,31 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 8454367(병합, 브랜치 ui/meal-photo-mobile 커밋 2dce8b8·7ec4d38), Worker 버전 9eb91606-9e65-47ae-b0b1-404933f1704c (마흔두 번째 배포, 2026-11-18 낮)
+운영에 올라간 것: 커밋 ddd4e18(병합, 브랜치 feat/transit-compare 커밋 b11d154), Worker 버전 99f629e8-08f3-4b43-b28d-8830047dc11f (마흔세 번째 배포, 2026-11-18 낮)
+  ★ main 은 그 뒤 7124703(꼬리표 수정, fix/transit-badges)까지 있음 — 아직 배포 안 됨. 화면 파일(transit-compare.js)만 바뀜, 배포 지시 받으면 올릴 것.
+  사용자가 TMAP 키를 직접 등록한 뒤 '키 등록했어, 배포해' 로 지시(npx wrangler secret list 에 TMAP_TRANSIT_APP_KEY 확인).
+  배포 전 Docker 전체(SQLite, chromium) 1246 통과·6 건너뜀·1 실패(test_price_stage 동시성 시간 테스트, 두 번째 연속 — 아래 후보). CI 는 배포 뒤 확인할 것.
+  마흔세 번째 배포로 올라간 것: 대중교통 구간 지하철·버스 비교(TMAP 대중교통 API)
+    · 사용자 요청: 지하철이 편한지 버스가 편한지 시간·지도로 보고 각각 골라 보기. 사용자 결정: TMAP, 단추를 눌렀을 때만 조회, 고르면 화면 미리보기만(저장 코스·공유·인쇄는 추정 그대로).
+    · 약관(2026-11-18 확인, transit.tmapmobility.com/terms · tmapapi.tmapmobility.com/terms.html): 받은 데이터는 저장 후 24시간 이상 사용 불가 → 서버 캐시 6시간,
+      화면은 17시간 뒤 버림, 코스에 저장 안 함. 같은 서비스에 프로젝트 여러 개 금지(키 하나). 요금 무료 하루 10건 / 종량제 건당 0.88원 후불.
+      출처 표시·다른 지도 위 표시·상업 이용 조항은 없음. SK Open API 포털 공통 약관은 공개 주소에서 못 찾음. 회원 유형(개인/사업자)은 사용자가 확인.
+    · 서버 app/transit_compare.py + GET /api/plans/{id}/transit-compare: 대중교통 구간마다 POST apis.openapi.sk.com/transit/routes 1건(count 10, 방문일이 오늘 이후면 searchDttm),
+      pathType 1 지하철·2 버스·3 버스+지하철로 묶어 묶음마다 가장 빠른 것(시간·도보·환승·원화 요금·노선 이름·지도 좌표). 하루 상한 DATEMATE_TMAP_TRANSIT_CALLS_PER_DAY(기본 300),
+      같은 브라우저 2초 반복 429, IP 분당 DATEMATE_IP_TRANSIT_COMPARES_PER_MINUTE(10), EXPENSIVE 등록. /api/status 에 transit_compare_available(키 있을 때).
+      2026-10-29 에 키가 없어 뺐던 예전 어댑터(git 689176e^ route_providers.py)의 검증을 다시 씀.
+    · 화면 static/transit-compare.js: 일정 위 「지하철·버스 비교하기」(누르면 좌표를 TMAP 에 보낸다는 안내), 구간 아래 선택지 카드(가장 빠름·덜 걸음·환승 적음 꼬리표, 노선),
+      고르면 도착 미리보기 한 줄, 네이버 지도·대체 지도에 고른 경로 실선(파랑 지하철·초록 버스·회색 점선 도보). 키 없으면 아무것도 안 보임, 인쇄에서 숨김.
+    · 운영 확인(배포 직후): /api/status 13.9초(새 컨테이너), transit_compare_available=true. 자동화 Chromium 390px 로 성수역 출발 대중교통 추천(성수다락·팀홀튼 밴프 타운 성수점·서울숲)
+      → 비교 1회 = TMAP 3건(무료 10건 안). 1구간 버스+지하철(2호선→지선 2413) 19분, 2구간 마을버스 성동13 7분, 3구간 지하철 22분·버스 21분·혼합 20분.
+      요금·환승·도보·노선·지도 좌표 모두 읽힘, 미리보기·지도 실선·지도 안내 정상, 화면 오류 0. 응답 형식은 문서와 같았음(legs[].route, passShape.linestring, steps[].linestring).
+    · 그 확인에서 고친 것(7124703, 미배포): 선택지가 하나뿐이면 꼬리표 3개가 다 붙고, 지하철·버스 모두 환승 0회인데 지하철에만 '환승 적음'이 붙음
+      → 둘 이상 중 혼자 가장 좋을 때만 붙임(transitBadges).
+    · 새 테스트 tests/test_transit_compare.py 9개, tests/test_transit_compare_ui.py 2개, cloudflare/validation.test.mjs 11개.
+    · 문제가 생기면: 키만 지우면 기능이 숨겨짐(npx wrangler secret delete TMAP_TRANSIT_APP_KEY) 또는 git revert -m 1 ddd4e18.
+  다음 후보: test_price_stage::test_external_calls_are_also_summarised_per_stage 가 전체 실행에서 두 번 연속 실패(peak_parallel==3 가정) — 고칠 것.
+(마흔두 번째) 운영에 올라간 것: 커밋 8454367(병합, 브랜치 ui/meal-photo-mobile 커밋 2dce8b8·7ec4d38), Worker 버전 9eb91606-9e65-47ae-b0b1-404933f1704c (2026-11-18 낮)
   사용자가 '배포해' 로 지시. GitHub Actions(Run 44218614012)가 끝나기 전에 배포했고, 배포 뒤 5개 작업 모두 통과를 확인했습니다.
-  다음 후보(사용자 검토 중): TMAP 대중교통 API(종량제 건당 0.88원, 무료 하루 10건)로 구간마다 지하철·버스 경로 비교·선택. 키 발급은 사용자, 약관 미확인.
   Docker 전체(SQLite, chromium) 1235 통과·6 건너뜀·1 실패: test_price_stage.py::test_external_calls_are_also_summarised_per_stage
     (스레드 3개 동시 실행 peak_parallel==3 을 보는 시간 의존 테스트, 그 파일만 다시 돌리면 11개 통과, 이번 변경과 무관한 코드). 또 나면 그 테스트의 동시성 가정을 볼 것.
   운영 확인(배포 직후): /api/status 13.5초에 200(꺼져 있던 컨테이너가 새 이미지로 켜짐), / 에 Server-Timing, place-photos.js 에 photoSourceLink,

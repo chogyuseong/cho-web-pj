@@ -8,7 +8,27 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 25bf037(main, 병합 743dc1a·09e7d5c 포함), Worker 버전 e2865858-9022-46ab-a695-ded7f0e0b390 (마흔한 번째 배포, 2026-11-18 오전)
+운영에 올라간 것: 커밋 8454367(병합, 브랜치 ui/meal-photo-mobile 커밋 2dce8b8·7ec4d38), Worker 버전 9eb91606-9e65-47ae-b0b1-404933f1704c (마흔두 번째 배포, 2026-11-18 낮)
+  사용자가 '배포해' 로 지시. GitHub Actions(Run 44218614012)가 끝나기 전에 배포했습니다(배포 시점: python-audit·security 통과, 나머지 진행 중) — 결과를 확인할 것.
+  Docker 전체(SQLite, chromium) 1235 통과·6 건너뜀·1 실패: test_price_stage.py::test_external_calls_are_also_summarised_per_stage
+    (스레드 3개 동시 실행 peak_parallel==3 을 보는 시간 의존 테스트, 그 파일만 다시 돌리면 11개 통과, 이번 변경과 무관한 코드). 또 나면 그 테스트의 동시성 가정을 볼 것.
+  운영 확인(배포 직후): /api/status 13.5초에 200(꺼져 있던 컨테이너가 새 이미지로 켜짐), / 에 Server-Timing, place-photos.js 에 photoSourceLink,
+    plan-evidence.js 에 transitBasisNote, selle.css 에 사진 정보 접기 규칙. 실제 추천을 만들어 화면을 보지는 않았습니다(외부 API 호출 아낌) — 사람이 휴대폰으로 볼 것.
+  ① 휴대폰 식당 카드 사진 (2dce8b8) — 사용자 신고: 가격표 옆 사진이 너무 좁게 보기 안 좋게 나옴
+    · selle.css 760px 이하: 식당 카드를 한 칸으로(정보·가격표 → 사진 카드 폭 200px → 단추). 전에는 정보 옆 사진 칸 100px(사진 100×100). 데스크톱은 그대로 옆에.
+      식당 카드의 '사진 정보' 접기가 열어도 비어 있던 것(.meal-photo .place-photo-copy{display:none})도 고침.
+    · place-photos.js: 네이버 사진 출처 줄을 '네이버 공개 사진 · 원본 · 검색' 으로 줄임(사용자 지시). 사진 구분(업체 등록 / 방문자 후기 / 업체 연결 공개 사진 · 등록 주체 미확인,
+      내용 미검사)은 '사진 정보' 접기 첫 줄 '사진 구분: …'으로 옮김(사용자 지시). 크게 보기 창은 '원본' 링크 이름·title 에만 남음.
+    · 사용자 질문 '사진 밑 출처 줄은 유도한 것인가' → 의도한 출처 표기(2026-10-30 사진 출처 작업)라고 답함. 레저 카드(leisure.js) 출처는 그대로.
+    · 새 tests/test_meal_photo_mobile_ui.py 3개(예전 CSS 에서는 휴대폰 2개 실패 확인), test_results_extras_ui 의 출처 줄 검사 갱신.
+  ② 대중교통이 지하철인지 버스인지 표시 (7ec4d38) — 사용자 요청
+    · 사실: 대중교통 길찾기는 연결돼 있지 않음(네이버 지도 API 공개분은 자동차 Directions 뿐). 대중교통 구간은 직선거리×1.35 ÷ 시속 18km + 대기 8분(도보 6분), 요금 1인 1,500원 추정.
+      '지하철로'·'버스 타고' 요청도 같은 추정. 사용자가 '추정임을 분명히 표시'를 고름(실제 대중교통 API(ODsay 등) 연동은 하지 않기로).
+    · routes.py: 가정값을 TRANSIT_SPEED_KMH·TRANSIT_WAIT_MINUTES·TRANSIT_WALK_MINUTES·TRANSIT_FARE_PER_PERSON 상수로, 추정 대중교통 구간에 transit_basis 문장.
+    · 화면: 구간 줄 '대중교통 12분 · 추정 (지하철·버스 구분 없음)', 일정 위에 '대중교통: 지하철·버스를 구분하지 않은 추정이에요. 평균 시속 18km, …' 한 번.
+      예전에 저장한 코스(transit_basis 없음)는 숫자 없이 구분 없음만. 새 tests/test_transit_basis.py 3개.
+  · 문제가 생기면: git revert -m 1 8454367.
+(마흔한 번째) 운영에 올라간 것: 커밋 25bf037(main, 병합 743dc1a·09e7d5c 포함), Worker 버전 e2865858-9022-46ab-a695-ded7f0e0b390 (2026-11-18 오전)
   사용자가 '배포해' 로 지시. 바뀐 정적 파일은 maps.js·plan-map.css 2개, 내용은 아래 '마흔한 번째 배포로 올라간 것'.
   운영 확인(배포 직후): /api/status 17.3초에 200(꺼져 있던 컨테이너가 새 이미지로 켜짐), / 에 Server-Timing, maps.js?v=ab53a1cd022b 에 planStopGroups·stopMarkerWidth.
     자동화 Chromium 390px, 운영 파일 그대로(바꿔 끼우지 않음) 실제 네이버 SDK 로 가상 성수 코스를 그림: 확대 14 에서 '1'(38×38 원)·'2·3'(56×38, 모서리 19px),

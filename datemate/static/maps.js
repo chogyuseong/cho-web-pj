@@ -220,6 +220,22 @@ function focusPlanStop(index){
 }
 // 장소 번호 표시의 접근 가능한 이름은 고정 문구(번호만)다. 장소 이름은 HTML 에 넣지 않고 title(네이버 표시 옵션)로만 준다.
 function stopMarkerLabel(number){return number+'번 장소 · 눌러서 일정에서 보기';}
+// 화면 거리(px)가 이보다 가까운 장소 번호는 한 표시로 합친다. 번호 표시 지름(plan-map.css .route-marker 38px)과 같다.
+const STOP_MERGE_PX=38;
+// places 의 순번을 화면에서 겹치는 것끼리 묶는다([[0],[1,2],…], 순번 오름차순). 각 장소는 앞에서부터 처음 만난 묶음의 첫 장소와 비교한다.
+// offsetOf(place)→{x,y} 가 실패하거나 숫자가 아니면 묶지 않는다(번호마다 하나).
+function planStopGroups(places,offsetOf){
+  const single=places.map((_,i)=>[i]);
+  let offsets;
+  try{offsets=places.map(place=>{const at=offsetOf(place);return {x:+at.x,y:+at.y};});}catch{return single;}
+  if(offsets.some(at=>!Number.isFinite(at.x)||!Number.isFinite(at.y)))return single;
+  const groups=[];
+  offsets.forEach((at,i)=>{
+    const near=groups.find(group=>Math.hypot(offsets[group[0]].x-at.x,offsets[group[0]].y-at.y)<STOP_MERGE_PX);
+    if(near)near.push(i);else groups.push([i]);
+  });
+  return groups;
+}
 
 function drawPlanMap(plan){
   let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[],popupMarkers=[],parkingMarkers=[];
@@ -277,18 +293,37 @@ function drawPlanMap(plan){
       const map=new naver.maps.Map(canvas,{center:coord(points[0]),zoom:14,zoomControl:true,scrollWheel:true});activeMap=map;
       const bounds=new naver.maps.LatLngBounds();
       points.forEach((point,i)=>{
-        const label=i===0?'출발':i>plan.places.length?'귀가':String(i);
+        bounds.extend(coord(point));
+        // 장소 번호(1..N)는 아래 drawStops 가 화면 거리에 따라 묶어 그린다. 여기서는 출발·귀가만(누름 동작 없음).
+        if(i>0&&i<=plan.places.length)return;
+        const label=i===0?'출발':'귀가';
         // 장소명은 HTML에 삽입하지 않고 텍스트·title로만 전달한다.
         // 쌓임 순서: 팝업 표시(120) < 코스 표시(130) < 축제 표시(150·고른 축제 300). 팝업 동네 기준점이 출발지와 같은 자리여도 출발·번호 표시가 위에 보이고 눌린다.
-        // 장소 번호(1..N)는 눌러서 일정의 그 장소로 간다(role=button·고정 이름·손가락 커서). 출발·귀가는 전처럼 동작 없음.
-        const stop=i>0&&i<=plan.places.length;
-        const marker=new naver.maps.Marker({map,position:coord(point),title:label+' · '+point.name,zIndex:130,
-          icon:{content:'<span class="route-marker '+(i===0?'route-start':'')+(stop?' route-stop-marker" role="button" aria-label="'+stopMarkerLabel(i):'')+'">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
-        // 네이버 지도는 표시 click 을 알린 뒤 지도 칸(tabindex)에 포커스를 되돌려 그 칸으로 다시 스크롤한다(운영 SDK 에서 확인).
-        // 그래서 이번 누름 처리가 다 끝난 뒤(setTimeout)에 장소 제목으로 옮긴다.
-        if(stop)naver.maps.Event.addListener(marker,'click',()=>setTimeout(()=>focusPlanStop(i-1)));
-        bounds.extend(coord(point));
+        new naver.maps.Marker({map,position:coord(point),title:label+' · '+point.name,zIndex:130,
+          icon:{content:'<span class="route-marker '+(i===0?'route-start':'')+'">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
       });
+      // 장소 번호(1..N)는 눌러서 일정의 그 장소로 간다(role=button·고정 이름·손가락 커서).
+      // 화면에서 표시 지름(38px)보다 가까운 번호는 '2·3' 표시 하나로 합쳐 그린다(전에는 7px 거리로 겹쳐 2번을 누르면 98%가 3번으로 감).
+      // 합친 표시는 앞 번호의 장소로 간다(일정에서 뒤 번호는 바로 아래). 확대·축소하면 다시 묶는다.
+      // 지도가 화면 좌표를 주지 못하면(투영 없음·오류) 전처럼 번호마다 따로 그린다.
+      let stopMarkers=[];
+      const drawStops=()=>{
+        if(disposed||activeMap!==map)return;
+        stopMarkers.forEach(marker=>quietly(()=>marker.setMap(null)));stopMarkers=[];
+        planStopGroups(plan.places,place=>map.getProjection().fromCoordToOffset(coord(place))).forEach(members=>{
+          const numbers=members.map(i=>i+1),label=numbers.join('·'),width=38+18*(members.length-1);
+          const lat=members.reduce((sum,i)=>sum+plan.places[i].lat,0)/members.length,lon=members.reduce((sum,i)=>sum+plan.places[i].lon,0)/members.length;
+          const merged=members.length>1,name=merged?label+'번 장소 · 눌러서 일정에서 '+numbers[0]+'번부터 보기':stopMarkerLabel(numbers[0]);
+          const marker=new naver.maps.Marker({map,position:new naver.maps.LatLng(lat,lon),zIndex:130,
+            title:members.map(i=>(i+1)+' · '+plan.places[i].name).join(' / '),
+            icon:{content:'<span class="route-marker route-stop-marker'+(merged?' route-stop-merged" style="width:'+width+'px':'')+'" role="button" aria-label="'+name+'">'+label+'</span>',
+              anchor:new naver.maps.Point(width/2,19)}});
+          // 네이버 지도는 표시 click 을 알린 뒤 지도 칸(tabindex)에 포커스를 되돌려 그 칸으로 다시 스크롤한다(운영 SDK 에서 확인).
+          // 그래서 이번 누름 처리가 다 끝난 뒤(setTimeout)에 장소 제목으로 옮긴다.
+          naver.maps.Event.addListener(marker,'click',()=>setTimeout(()=>focusPlanStop(members[0])));
+          stopMarkers.push(marker);
+        });
+      };
       let actual=0;
       for(let i=0;i<points.length-1;i++){
         const leg=plan.legs[i],style=legLineStyle(plan,leg);
@@ -299,6 +334,8 @@ function drawPlanMap(plan){
           strokeOpacity:.9,strokeStyle:LINE_DASH.naver[style]});
       }
       map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
+      drawStops();
+      naver.maps.Event.addListener(map,'zoom_changed',drawStops);
       wrap.updateFestivals=()=>{
         if(disposed||!canvas.isConnected)return;
         clearFestivals();const items=festivalMapItems();

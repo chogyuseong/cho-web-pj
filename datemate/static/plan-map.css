@@ -7,6 +7,8 @@
 .route-marker.route-start{background-color:var(--hong);}
 /* 장소 번호 표시(네이버 지도)·장소 원(공개 지도)은 눌러서 일정의 그 장소로 간다(maps.js focusPlanStop). */
 .route-marker.route-stop-marker,.leaflet-interactive.route-stop-circle{cursor:pointer}
+/* 화면에서 겹치는 장소 번호를 합친 표시('2·3'). 너비는 maps.js 가 묶인 수에 맞춰 style 로 주고(기준점이 가운데가 되게), 모양은 알약형. */
+.route-marker.route-stop-merged{border-radius:19px}
 /* 지도에서 옮겨 온 장소 제목의 포커스 표시. 마우스로 누른 뒤의 스크립트 포커스는 :focus-visible 이 아니라 :focus 로 보인다(포커스가 떠나면 class 를 뗀다). */
 #plan-detail .timeline-card>h4.map-stop-target:focus{outline:3px solid var(--cheong);outline-offset:4px;border-radius:4px}
 .plan-map .map-caption{position:static;padding:10px 0 4px;margin:0;font-size:14px;color:var(--muted);background:transparent;overflow-wrap:anywhere}

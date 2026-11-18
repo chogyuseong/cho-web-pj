@@ -104,7 +104,11 @@ const PhotoViewer={
   }
 };
 const photoGenerations=new WeakMap();
-async function loadSafePhoto(img,photos,onSelected,onFailed){
+/* thumb:true(카드)면 사진마다 서버가 줄인 사진(photo.thumb_url, /photo-thumb, 폭 960 WebP)을 먼저 하나만 시험하고, 되면 그것으로 끝낸다.
+   안 되면(404: 허용 목록 만료·받기 실패·줄여도 안 작아짐 등) 아래 원래 방식(원본 후보를 한꺼번에 시험)으로 넘어간다.
+   줄인 사진을 원본 후보와 '같이' 시험하면 원본도 다 받아 버려 줄인 효과가 없으므로 반드시 먼저·따로 시험한다(2026-11-18, app/photo_thumb.py).
+   크게 보기(PhotoViewer)·레저 사진 격자(leisure.js)는 thumb 없이 부른다(원본). */
+async function loadSafePhoto(img,photos,onSelected,onFailed,{thumb=false}={}){
   const generation=(photoGenerations.get(img)||0)+1;photoGenerations.set(img,generation);
   const active=()=>photoGenerations.get(img)===generation;
   img.hidden=true;img.referrerPolicy='no-referrer';const attempted=new Set(),deadline=Date.now()+20000;
@@ -121,6 +125,14 @@ async function loadSafePhoto(img,photos,onSelected,onFailed){
   async function next(){
     for(const photo of photos){
       if(!active())return;
+      if(thumb&&photo.thumb_url&&!attempted.has(photo.thumb_url)){
+        attempted.add(photo.thumb_url);
+        if(await probePhoto(photo.thumb_url)){
+          // 표시 중에 줄인 사진이 깨지면(드묾) 원본 첫 후보로 바꾼다(select 의 backup).
+          if(active())select(photo,photo.thumb_url,photoCandidates(photo)[0]);
+          return;
+        }
+      }
       const urls=photoCandidates(photo).filter(url=>!attempted.has(url)&&(location.protocol!=='https:'||new URL(url,location.origin).protocol==='https:'));
       if(!urls.length||Date.now()>deadline)continue;urls.forEach(url=>attempted.add(url));
       const probes=urls.map(url=>probePhoto(url).then(ok=>{if(!ok)throw Error('unavailable');return url;}));
@@ -219,7 +231,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
         try{if(data.photo_source!=='matched_review_photos'){const fallback=await api('/places/'+encodeURIComponent(place.id)+'/media?mode='+photoMode+'&fallback=reviews',null,'GET',{timeout:60000});if(fallback.photos?.length){placePhotoRequests.set(photoMode+':'+place.id,Promise.resolve(fallback));await load();return;}}}catch{}
         try{const qid=/^Q[1-9][0-9]*$/.test(place.id)?place.id:null;if(qid){const fallback=await discoverPlacePhotos(place,{...data,photos:[],wikidata_id:qid});if(fallback.photos.length){await loadSafePhoto(img,fallback.photos,updatePhoto,unavailable);return;}}}catch{}
         unavailable();
-      }));
+      },{thumb:true}));
       if(eager&&!full)startPhotoNearViewport(figure,begin);else begin();
     });
     function unavailable(){loading.remove();imageLink.replaceWith(node('div','현재 표시할 수 있는 장소 사진이 없어요. 사진 원문에서 확인해 주세요.','photo-status'));panel.append(retry());}
@@ -233,8 +245,8 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
         const previous=current,index=(current+delta+data.photos.length)%data.photos.length;
         try{await loadSafePhoto(img,[data.photos[index]],updatePhoto,async()=>{
           toast('이 사진은 표시할 수 없어 이전 사진을 유지해요.');
-          await loadSafePhoto(img,[data.photos[previous]],updatePhoto,unavailable);
-        });}finally{busy=false;previousButton.disabled=false;nextButton.disabled=false;viewport.setAttribute('aria-busy','false');}
+          await loadSafePhoto(img,[data.photos[previous]],updatePhoto,unavailable,{thumb:true});
+        },{thumb:true});}finally{busy=false;previousButton.disabled=false;nextButton.disabled=false;viewport.setAttribute('aria-busy','false');}
       }
       previousButton=button('‹',()=>move(-1),'photo-arrow photo-prev');previousButton.setAttribute('aria-label','이전 사진');
       nextButton=button('›',()=>move(1),'photo-arrow photo-next');nextButton.setAttribute('aria-label','다음 사진');
@@ -246,7 +258,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       viewport.addEventListener('touchcancel',()=>{touch=null;},{passive:true});
     }
     if(data.photos.length>1&&!full){const more=button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode));copy.append(more);}
-    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(['search_result','place_public'].includes(item.kind))credit.append(node('span','네이버 공개 사진 · '),photoSourceLink(item,'원본'));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',item.title+' 사진 크게 보기');open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')));}panel.append(extra);}
+    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(['search_result','place_public'].includes(item.kind))credit.append(node('span','네이버 공개 사진 · '),photoSourceLink(item,'원본'));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',item.title+' 사진 크게 보기');open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')),{thumb:true});}panel.append(extra);}
   }catch(error){panel.replaceChildren(node('p','사진 정보를 불러오지 못했습니다. 다시 시도해 주세요.','photo-status'),retry());}}
   // 목록 전체를 한 번에 조회하지 않고 화면 근처의 장소만 불러온다.
   if(eager)load();else if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){observer.disconnect();load();}},{rootMargin:'150px'});observer.observe(panel);}else load();

@@ -84,3 +84,12 @@
 - 2026-11-18 **5-1 @import 합치기** — `location-picker-layout.css` 내용을 `location-picker.css` 맨 앞(예전 @import 자리)에 넣고 layout 파일 삭제(사용자 확인).
   검증 장치에 장면 `location_dialog`(출발지 '지도에서 고르기' 대화상자) 추가. 전후 11장면 × 12폭 차이 0(layout 파일을 뺀 상태로 찍음),
   위치 선택·자산·CSP 관련 테스트 17개, 엣지 테스트 13개 통과.
+- 2026-11-18 **5-2 죽은 규칙 지우기(일부)** — 새 `datemate/scripts/css_dead_rules.py`(목록만 / `--apply`)로 '정적 HTML·JS·서버·엣지 코드 어디에도 없는 클래스'만 가리키는
+  선택자 120곳을 지움(7개 파일, 43줄 삭제·27줄 수정). 지운 클래스: .ai-label .art-blue .art-label .art-mint .art-number .art-pink .big-symbol .date-note .empty-tags
+  .feature-tags .flower .hero-art .hero-pill .journal-heart .journal-illustration .journal-orbit .journal-spark .journal-steps .journal-top .leisure-choices .media-empty
+  .nav-cta .option-heading(.inspect-plan 은 이 안에서만) .orbit .photo-choices .preset-art .preset-copy .route-art .route-feature .ticket .ticket-dots.
+  도구가 처음에 `popup-${kind}` 템플릿으로 만드는 .popup-kind 를 죽었다고 잘못 봐서 템플릿 앞부분 검사를 더했고, 지울 이름은 사람이 단어 검색으로 한 번 더 확인함.
+  전후 11장면 × 12폭: 스타일·상자 차이 0. 스크린샷은 location_dialog 560px 한 곳 4픽셀이 실행마다 흔들림(같은 CSS 로 찍어도 세 번 중 두 번 다름, 위치 544,52) — CSS 탓 아님, 알려진 흔들림.
+  관련 화면 테스트 44개 통과.
+  아직 안 한 것(5-2 의 나머지): 완전 중복 규칙(planner-layout `[hidden]`, selle `.mode-badge`), line `main .eyebrow{display:none}` 때문에 죽은 eyebrow 규칙,
+  규칙 사용률(CDP) 목록 — 화면에 쓰이는 이름이지만 이기지 못해 죽은 규칙은 5-3 이후 부품 평탄화 때 함께 정리하는 편이 안전함.

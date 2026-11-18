@@ -25,7 +25,6 @@ nav .nav,nav a{
   padding:8px 12px;
 }
 .nav.active:before{display:none}
-.nav-cta{font-size:15px;padding:10px 20px;font-weight:700;text-decoration:none}
 main{max-width:1440px;padding:0 40px}
 button,a,input,select,textarea,summary{-webkit-tap-highlight-color:transparent}
 
@@ -259,8 +258,6 @@ input:focus,textarea:focus,select:focus{
   padding:16px;
 }
 .place-photo img{object-fit:cover}
-.photo-choices button{border-radius:999px}
-.photo-choices button[aria-pressed=true]{background-color:var(--brand-soft);border-color:var(--hong);color:var(--hong);font-weight:750}
 .place-evidence{background-color:#fff;border:1px solid var(--line);border-radius:14px}
 .place-blogs{background-color:#fff!important;border:1px solid var(--line)!important;border-radius:14px}
 .place-blogs summary{color:var(--hong)!important;font-weight:750}
@@ -307,10 +304,6 @@ input:focus,textarea:focus,select:focus{
 .source-search-fallback{color:var(--hong);font-weight:600}
 
 /* Leisure Panels */
-.leisure-choices{border:1px solid var(--line);border-radius:16px;padding:14px 18px;background-color:#fff;margin:12px 0 18px}
-.leisure-choices>summary{cursor:pointer;font-weight:750;color:var(--hong);min-height:28px}
-.leisure-choices .simple-activity-ideas button{min-height:44px}
-.leisure-choices button[aria-pressed=true]{background-color:var(--hong)!important;border-color:var(--hong)!important;color:#fff!important}
 .leisure-results{margin:16px 0 24px;padding:18px;border:1px solid var(--line);border-radius:18px;background-color:#fff}
 .leisure-results>summary{cursor:pointer;min-height:36px;font-size:17px;font-weight:750;color:var(--hong)}
 .leisure-result-card{border-top:1px solid var(--line);padding:16px 0}
@@ -486,14 +479,12 @@ input,select,textarea{max-width:100%;min-width:0}
 }
 @media(max-width:1000px) and (min-width:801px){
   header{padding-inline:24px;gap:20px}
-  .nav-cta{font-size:13px}
   nav{gap:14px}
 }
 @media(max-width:800px){
   header{height:auto;min-height:76px;flex-wrap:wrap;padding:14px 20px;gap:12px 16px}
   .brand{font-size:20px}
   header nav{margin-left:auto;gap:10px}
-  header .nav-cta{display:none}
   nav .nav{font-size:14px}
   main{padding:0 20px}
   .hero-copy{display:block;padding-bottom:0}
@@ -512,10 +503,9 @@ input,select,textarea{max-width:100%;min-width:0}
   .timeline-card h4{font-size:21px}
   .plan-photo-preview{grid-template-columns:1fr}
   .plan-photo-preview .place-photo img{height:185px}
-  .plan-photo-preview .place-photo-copy,.plan-photo-preview .place-blogs,.plan-photo-preview .photo-choices{display:none}
+  .plan-photo-preview .place-photo-copy,.plan-photo-preview .place-blogs{display:none}
   .plan-photo-preview .place-photo-panel{margin-bottom:10px}
   .plan-photo-name{font-size:16px}
-  .photo-choices{grid-column:1/-1}
 }
 @media(max-width:600px){
   .catalog{grid-template-columns:minmax(0,1fr)}
@@ -550,7 +540,7 @@ input,select,textarea{max-width:100%;min-width:0}
   button{transition:none}
 }
 @media print{
-  .hero-actions,.photo-choices{display:none!important}
+  .hero-actions{display:none!important}
   body{background:white}
   .detail.panel{border:0;box-shadow:none}
   .plan-card{box-shadow:none}
@@ -623,7 +613,7 @@ h2[tabindex="-1"]:focus,h3[tabindex="-1"]:focus{outline:none!important}
 .quick-chip:disabled{opacity:1;background-color:#fff;color:var(--muted);border-style:dashed;text-decoration:line-through;cursor:not-allowed}
 .quick-chip.current-location{background-color:#fff;border-style:dashed}
 .quick-chip.current-location:disabled{text-decoration:none;cursor:wait}
-.area-status:empty,.date-note:empty{display:none}
+.area-status:empty{display:none}
 .quick-summary{
   display:flex;
   align-items:center;

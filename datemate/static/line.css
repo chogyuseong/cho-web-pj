@@ -78,7 +78,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 }
 :is(.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary)):hover { border-color:var(--ink)!important; }
 .text-link { color:var(--ink); font-weight:700; text-decoration:underline; text-underline-offset:4px; }
-.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.leisure-filter button,.photo-choices button,.map-option-tabs button,.date-subcategories span,.tag,.step-category,.leisure-sport-tag,.festival-course-tag,.field-requirement {
+.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.leisure-filter button,.map-option-tabs button,.date-subcategories span,.tag,.step-category,.leisure-sport-tag,.festival-course-tag,.field-requirement{
   border-radius:999px!important;
 }
 .quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button {
@@ -89,8 +89,8 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 }
 .quick-chip:hover,.simple-activity-ideas button:hover { border-color:var(--ink)!important; }
 /* 선택 표시는 홍. 색만으로 구분하지 않도록 밑줄을 함께 쓴다. */
-.quick-chip[aria-pressed=true],.leisure-filter button[aria-pressed=true],.photo-choices button[aria-pressed=true],
-.map-option-tabs button[aria-pressed=true],.results-area .transport-options>button[aria-pressed=true],.leisure-choices button[aria-pressed=true] {
+.quick-chip[aria-pressed=true],.leisure-filter button[aria-pressed=true],
+.map-option-tabs button[aria-pressed=true],.results-area .transport-options>button[aria-pressed=true]{
   background:var(--hong)!important;
   border-color:var(--hong)!important;
   color:#fff!important;
@@ -621,8 +621,8 @@ body:not(.show-date-plan) .hero-photo {
 /* ---------- 부가: 레저 · 대화 · 후기 ---------- */
 .leisure-course-panel { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; box-shadow:none; padding:24px 0; }
 .leisure-course-panel>h3 { color:var(--ink); }
-.leisure-choices,.leisure-results { background:#fff; border:1px solid var(--line); border-radius:10px; }
-.leisure-choices>summary,.leisure-results>summary,.leisure-setting>h4 { color:var(--ink); }
+.leisure-results{ background:#fff; border:1px solid var(--line); border-radius:10px; }
+.leisure-results>summary,.leisure-setting>h4{ color:var(--ink); }
 .leisure-photo-grid img,.leisure-photo-empty { background:var(--platform); border-color:var(--line); border-radius:0; }
 .leisure-photo-grid figure>a { border-radius:0; }
 .chat-box { background:var(--platform); border:0; border-radius:0; }

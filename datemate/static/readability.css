@@ -27,7 +27,6 @@ main .service-details summary { font-size:15px; color:var(--muted); }
 main .service-details summary>span { color:var(--hong); }
 main .eyebrow,main :is(.workspace-intro,.curation) .eyebrow { font-size:14px!important; letter-spacing:.09em; color:var(--hong)!important; }
 main .hero .hero-description { font-size:18px!important; line-height:1.9; color:var(--muted); max-width:38em; }
-main .hero-pill { font-size:14px; line-height:1.7; letter-spacing:.06em; color:var(--hong); background-color:var(--platform); }
 main .hero-actions a { font-size:16px; min-height:50px; }
 main .workspace-intro>p { font-size:16px; color:var(--muted); }
 
@@ -178,7 +177,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 .detail .actions button { border:1px solid var(--line); }
 .stop .actions>a { border:1px solid var(--line); border-radius:10px; background-color:#fff; color:var(--hong); font-weight:650; text-decoration:none; }
 .detail .map-link-list { font-size:15px; }
-.plan-card .option-heading .inspect-plan { font-size:15px; padding:10px 16px; }
 @media(max-width:800px) {
   .results-area .actions { display:grid; grid-template-columns:minmax(0,1fr); }
   .results-area .actions:has(>:nth-child(3)) { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -186,8 +184,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
   .results-area .actions>:is(button,a) { width:100%; }
   .detail .map-link-list { display:grid; grid-template-columns:minmax(0,1fr); }
   .detail .map-link-list a { width:100%; }
-  .plan-card .option-heading { flex-direction:column; align-items:stretch; }
-  .plan-card .option-heading .inspect-plan { width:100%; }
 }
 /* 이동 수단 바꾸기: 구간 줄의 [수단 바꾸기] 하나, 펼치면 수단 4개를 2열 균등으로. 고른 수단은 aria-pressed로 표시. */
 .detail .route-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
@@ -317,7 +313,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
 @media print { .skip-to-content { display:none; } }
 
 main .data-banner .eyebrow { color:#fff!important; }
-main .hero .hero-pill { font-size:14px!important; }
 h2[tabindex="-1"]:focus { outline:none!important; }
 
 /* Keep anchored sections and the map below the wrapping sticky navigation. */

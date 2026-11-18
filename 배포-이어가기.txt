@@ -54,7 +54,17 @@
     · 대체 지도(Leaflet)도 planStopGroups 로 겹친 번호 원을 '2·3' 하나로(툴팁 '2·3 · 이름A / 이름B', 누르면 2번, zoomend 마다 다시 묶음, 지도 크기 0 이면 묶지 않음).
     · 새 tests/test_readability_stage8_ui.py 4개.
     · 문제가 생기면: git revert -m 1 4a086b3.
-  다음 후보(사용자 결정 필요): 결과 사진 용량(정책 판단), CSS 18개 병합(Fable 권장).
+  ★ main 에 들어갔지만 아직 배포 안 된 것: 카드 사진 서버 축소(브랜치 perf/photo-thumb 커밋 a4a5bc4·1897ddd, CI Run 44248951408 5개 통과,
+    Docker 전체 1270 통과·6 건너뜀·실패 0). 사용자 결정: '우리 서버에서 줄여 보내기'(네이버 비공개 축소 주소는 안 씀). 배포 지시 받으면 올릴 것(서버·화면·의존성 모두 바뀜).
+    · app/photo_thumb.py + GET /photo-thumb(/api/ 밖이라 브라우저 캐시 가능): 원본을 받아 폭 960(또는 480) WebP. 열린 중계 방지 — 우리 /media 응답이 내보낸 주소만
+      (허용 목록 photo-thumb-ok:, 6시간), https·*.pstatic.net/upload.wikimedia.org·계정·포트 검사, 리다이렉트 안 따름, 15MB·6천만 화소·8초, 동시 변환 2, IP 분당
+      DATEMATE_IP_PHOTO_THUMBS_PER_MINUTE(120), 메모리 LRU 64MB. 사진 받기는 외부 API 예산(공급자별 시간당)에 넣지 않음. 실패는 모두 404 → 브라우저가 원본으로.
+    · /api/places/{id}/media 가 허용 사진에 thumb_url 을 붙임(media_info 는 그대로). place-photos.js: 카드는 thumb 먼저 따로, 실패 때만 원본. 크게 보기·레저 격자는 원본.
+    · 의존성 pillow==13.0.0(requirements.txt·두 잠금 파일). 처음 넣은 12.3.0 은 알려진 취약점 8건(13.0.0 에서 고침)으로 CI python-audit 실패 → 13.0.0.
+    · 새 tests/test_photo_thumb.py 17, tests/test_photo_thumb_ui.py 2. *.workers.dev 는 Cloudflare Cache API 를 못 쓰는 것으로 알아 엣지 캐시는 없음(확인 안 함).
+    · 배포 뒤 할 것: 운영 성수 추천 끝까지 내렸을 때 사진 바이트 합(전 약 32MB) 측정, /photo-thumb 첫 변환 시간·컨테이너 메모리. 레저 사진 격자는 다음 후보.
+  CSS 18개 정리: Fable 설계를 datemate/docs/css-consolidation-plan-2026-11-18.md 에 남김(1063a1b, 아직 적용 안 함, 첫 단계는 계산값 비교 장치). 사용자 지시로 단계별 진행.
+  GitHub CLI(gh) 로그인됨(2026-11-18) — CI 결과·실패 로그는 gh run view 로. 로그인 전에는 공개 API 시간당 60회 한도에 걸린 적 있음.
   사용자 할 일: TMAP 무료 요금제면 하루 10건뿐 — 실사용은 종량제로. SK Open API 회원 유형 확인. 휴대폰으로 비교 카드·지도 실선 보기.
 (마흔두 번째) 운영에 올라간 것: 커밋 8454367(병합, 브랜치 ui/meal-photo-mobile 커밋 2dce8b8·7ec4d38), Worker 버전 9eb91606-9e65-47ae-b0b1-404933f1704c (2026-11-18 낮)
   사용자가 '배포해' 로 지시. GitHub Actions(Run 44218614012)가 끝나기 전에 배포했고, 배포 뒤 5개 작업 모두 통과를 확인했습니다.

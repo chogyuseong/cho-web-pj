@@ -8,6 +8,17 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
+CSS 정리 5-1·5-2 (main 병합 1e48e53, 브랜치 refactor/css-5-1-5-2 커밋 b7b63a7·f56e002·cc15ab0, 2026-11-19) — 병합만, 아직 배포 안 함
+  · 사용자가 '모든 권한' 으로 남은 작업 진행·기록·종료를 지시. npx wrangler deploy 는 Claude Code 자동 모드 권한 규칙(Production Deploy)에 막혀 실행하지 못함.
+    배포하려면: 저장소 최상위에서 git status 깨끗한지 보고 npx.cmd wrangler deploy (Docker Desktop 켜고). 화면 계산값이 같아 급하지 않음.
+  · 5-1: location-picker-layout.css 13줄을 location-picker.css 맨 앞에 합치고 파일 삭제(참조는 @import 한 줄뿐).
+  · 5-2: html·js·app·tests·scripts·cloudflare 어디에도 없는 클래스 26개 규칙 삭제(hero-art, orbit, ticket*, flower, art-*, route-feature, route-art, feature-tags,
+    journal-*(journal-demo 제외), preset-art·preset-copy, data-point, ai-label, big-symbol, empty-tags, eyebrow — 목록 전체는 f56e002 커밋 메시지).
+    selle 의 .mode-badge{display:none!important} 중복 삭제(line.css 가 같은 값으로 뒤에서 이김). 규칙 2181 → 2082, 안 맞은 규칙 596 → 498.
+  · 남긴 것: planner-layout 의 [hidden]{display:none!important} — 설계는 '완전 중복'으로 봤으나 selle 의 클래스 하나짜리 display:grid!important 를 이기는 역할이라 유지.
+    :not(.eyebrow) 안의 선택자 7곳(명시도가 바뀌어 유지), .journal-demo·.data-points(사용 중).
+  · 검증: 두 단계 모두 css_snapshot 전체 비교 180캡처 차이 0. Docker 전체 1276 통과·6 건너뜀·실패 0, format_sources --check 통과, CI Run 44369886957 5개 통과.
+  · 다음 단계 5-3(결과 화면 평탄화 → results.css)은 위험이 크고 단계가 많음 — Fable 권장, 하위 단계마다 css_snapshot 비교. 문제가 생기면: git revert -m 1 1e48e53.
 CSS 정리 5-0 검증 장치(main 병합 de3bd3f, 브랜치 test/css-snapshot 커밋 b36a76f·1bded94, 2026-11-19, 테스트 도구라 배포 불필요)
   · 새 datemate/tests/css_snapshot.py: capture --out DIR / compare A B. 15장면 × 12폭 = 180캡처, 전 요소·가상 요소 getComputedStyle·상자·스크린샷·상태 표본(Tab·hover).
     Docker 안 datemate 폴더에서 DATEMATE_BROWSER_CHANNEL=chromium python tests/css_snapshot.py capture --out runtime/css-snapshots/before --jobs 4 (산출물 runtime/, Git 제외).

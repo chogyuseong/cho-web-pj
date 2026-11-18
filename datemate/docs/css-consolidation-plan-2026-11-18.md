@@ -74,4 +74,4 @@
 - **5-7 재발 방지 테스트**: 새 `datemate/tests/test_css_structure.py` — `!important`는 허용 목록만 / 같은 선택자가 두 파일에 있으면 실패 / html 링크 순서 고정. 각 파일 머리 주석에 '맡는 범위·넣지 말 것'.
 
 ## 진행 기록
-- (아직 없음)
+- 2026-11-18 5-0 검증 장치: 커밋 b36a76f(브랜치 test/css-snapshot, `datemate/tests/css_snapshot.py`, CSS·HTML·JS 변경 없음). Docker(Playwright 1.64.1 chromium, --jobs 4)에서 15장면×12폭=180캡처 1회 약 16분(약 140MB, runtime/ 아래·Git 제외). 무변경 2회 비교 차이 0 / line.css `.curation-card::before` margin-top 3→4px 임시 변경(커밋 안 함) 시 144캡처 차이(그 속성만, 스크린샷 34캡처) / 규칙 사용 1585/2181(72.7%), 한 번도 안 맞은 규칙 596개(server-wake.css 0/6, popups.css 52/123 등). Docker 전체 1270 통과·6 건너뜀·실패 0. 설계와 다른 점: hover 는 CDP forcePseudoState, 지도 이동 칸 안의 자리 값·타일 제외, 지도 칸은 스크린샷에서 가림, 모달 장면은 보이는 화면만 찍음, 인쇄 장면은 상태 표본 없음.

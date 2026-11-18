@@ -8,7 +8,16 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 4738b4a(병합, 브랜치 feat/naver-site-verification 커밋 5a7d303), Worker 버전 2a47e9ab-e1b5-42e9-9903-3208907c9ec1 (마흔여섯 번째 배포, 2026-11-18 오후)
+운영에 올라간 것: 커밋 c21e6ac(main, 병합 a2cd6d9 = 카드 사진 서버 축소), Worker 버전 76c56205-22bc-41eb-bf51-d1c055bc34bf (마흔일곱 번째 배포, 2026-11-18 오후)
+  사용자가 '배포해' 로 지시. 컨테이너 이미지 새로 빌드(pillow-13.0.0 설치 확인), /api/status 19.6초(새 컨테이너).
+  운영 확인(자동화 Chromium 390px, 성수역 출발 도보 추천 = 팀홀튼 밴프 타운 성수점·성수다락·크래프트 프랙티스, 코스 2 엠엠블루 포함):
+    · /media 응답에 thumb_url(ldb-phinf·clip-service-phinf.pstatic.net), /photo-thumb 첫 변환 1.4~1.9초, image/webp, Cache-Control public 86400.
+    · 카드 사진 모두 /photo-thumb(폭 960)로 표시, 받은 줄인 사진 39~303KB(평균 약 150KB) — 전에는 원본 3~7MB. 카드 흐름에서 원본 요청 0건.
+    · 허용되지 않은 주소(example.com)는 404.
+    · 관찰: 처음 보는 장소는 /media 조회가 늦어 카드가 화면을 지나친 뒤에 준비되면, 그 근처로 다시 와야 사진을 받는다(가독성 6단계부터의 '화면 근처에서 받기' 동작, 이번 변경 아님).
+  · 사람이 볼 것: 휴대폰에서 카드 사진 화질(폭 960 WebP), 크게 보기가 원본인지.
+  · 문제가 생기면: git revert -m 1 a2cd6d9(Pillow 의존성도 함께 빠짐).
+(마흔여섯 번째) 운영에 올라간 것: 커밋 4738b4a(병합, 브랜치 feat/naver-site-verification 커밋 5a7d303), Worker 버전 2a47e9ab-e1b5-42e9-9903-3208907c9ec1 (2026-11-18 오후)
   사용자가 네이버 서치어드바이저에 사이트를 등록하고 소유 확인(HTML 태그 방식) 태그를 줬고, '배포해' 로 지시.
   · datemate/static/index.html <head> 의 구글 확인 태그 뒤에 <meta name="naver-site-verification" content="3fb663454990174f24df5e7e69985aab46c3e54b">.
     cloudflare/edge.test.mjs 가 엣지 첫 화면에 이 태그가 있는지 확인(13 통과). 첫 화면 관련 파이썬 테스트 29 통과.
@@ -54,8 +63,8 @@
     · 대체 지도(Leaflet)도 planStopGroups 로 겹친 번호 원을 '2·3' 하나로(툴팁 '2·3 · 이름A / 이름B', 누르면 2번, zoomend 마다 다시 묶음, 지도 크기 0 이면 묶지 않음).
     · 새 tests/test_readability_stage8_ui.py 4개.
     · 문제가 생기면: git revert -m 1 4a086b3.
-  ★ main 에 들어갔지만 아직 배포 안 된 것: 카드 사진 서버 축소(브랜치 perf/photo-thumb 커밋 a4a5bc4·1897ddd, CI Run 44248951408 5개 통과,
-    Docker 전체 1270 통과·6 건너뜀·실패 0). 사용자 결정: '우리 서버에서 줄여 보내기'(네이버 비공개 축소 주소는 안 씀). 배포 지시 받으면 올릴 것(서버·화면·의존성 모두 바뀜).
+  카드 사진 서버 축소(마흔일곱 번째 배포로 올라감, 브랜치 perf/photo-thumb 커밋 a4a5bc4·1897ddd, CI Run 44248951408 5개 통과,
+    Docker 전체 1270 통과·6 건너뜀·실패 0). 사용자 결정: '우리 서버에서 줄여 보내기'(네이버 비공개 축소 주소는 안 씀).
     · app/photo_thumb.py + GET /photo-thumb(/api/ 밖이라 브라우저 캐시 가능): 원본을 받아 폭 960(또는 480) WebP. 열린 중계 방지 — 우리 /media 응답이 내보낸 주소만
       (허용 목록 photo-thumb-ok:, 6시간), https·*.pstatic.net/upload.wikimedia.org·계정·포트 검사, 리다이렉트 안 따름, 15MB·6천만 화소·8초, 동시 변환 2, IP 분당
       DATEMATE_IP_PHOTO_THUMBS_PER_MINUTE(120), 메모리 LRU 64MB. 사진 받기는 외부 API 예산(공급자별 시간당)에 넣지 않음. 실패는 모두 404 → 브라우저가 원본으로.

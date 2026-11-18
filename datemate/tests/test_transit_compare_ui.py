@@ -88,6 +88,14 @@ def test_compare_choose_bus_preview_and_map(audit_page):
     assert f"지하철 {leg['options']['subway']['minutes']}분" in text and '가장 빠름' in text
     assert '환승 1회 · 도보 9분 · 1인 1,550원' in text and '수도권2호선 → 수도권분당선' in text
     assert '덜 걸음' in bus.inner_text() and '환승 적음' in bus.inner_text()
+    assert subway.locator('.transit-badge').all_inner_texts() == ['가장 빠름']
+    # 선택지가 하나뿐인 구간(첫 구간: 지하철만)은 비교할 것이 없어 꼬리표를 붙이지 않는다.
+    assert first.locator('.transit-option').count() == 1 and first.locator('.transit-badge').count() == 0
+    # 값이 같으면(둘 다 환승 0회) 어느 쪽에도 그 꼬리표를 붙이지 않는다(2026-11-18 운영 첫 조회에서 지하철에만 붙던 것).
+    tie = page.evaluate("""()=>{const o=(m,w,t)=>({minutes:m,walk_minutes:w,transfers:t});
+      const leg={options:{subway:o(22,21,0),bus:o(21,7,0),mixed:o(20,18,1)}};
+      return ['subway','bus','mixed'].map(k=>transitBadges(leg,k));}""")
+    assert tie == [[], ['덜 걸음'], ['가장 빠름']]
     # 미리보기: 앞 장소를 떠나는 시각 + 고른 경로 분(+여유시간). 일정의 추정과 차이.
     preview = second.locator('.transit-preview')
     assert preview.inner_text().endswith('(일정의 추정보다 3분 빠름). 저장된 일정·비용은 바뀌지 않아요.')

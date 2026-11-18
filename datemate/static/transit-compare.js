@@ -11,7 +11,18 @@ const TRANSIT_KIND_NAMES = {subway: '지하철', bus: '버스', mixed: '버스+�
 const TRANSIT_KIND_ORDER = ['subway', 'bus', 'mixed'];
 // 지도 선 색: 구간 조각 종류별(도보는 회색 짧은 점선). 패널의 선택지 색 점은 그 선택지의 대표 색(혼합은 보라).
 const TRANSIT_LINE_COLORS = {subway: '#1f5fbf', bus: '#2e8b57', walk: '#55606b', mixed: '#7b4bb3'};
-const TRANSIT_BADGES = {fastest: '가장 빠름', least_walk: '덜 걸음', fewest_transfers: '환승 적음'};
+// 꼬리표: 선택지 값의 이름 → [꼬리표 글자, 비교할 값]. transitBadges 가 '혼자 가장 좋은' 선택지에만 붙인다.
+const TRANSIT_BADGES = [['가장 빠름', o => o.minutes], ['덜 걸음', o => o.walk_minutes], ['환승 적음', o => o.transfers]];
+
+// 이 선택지에 붙일 꼬리표. 선택지가 둘 이상이고 그 값이 다른 모든 선택지보다 작을 때만(같으면 붙이지 않음).
+// 2026-11-18 운영 첫 조회에서 선택지가 하나뿐인 구간에 꼬리표 3개가 다 붙고, 지하철·버스 모두 환승 0회인데 지하철에만 '환승 적음'이 붙어 고쳤다.
+// 서버의 best(가장 빠른 것)는 처음 고를 선택지를 정하는 데만 쓴다(loadTransitCompare).
+function transitBadges(leg, kind) {
+  const others = TRANSIT_KIND_ORDER.filter(k => k !== kind && leg.options?.[k]).map(k => leg.options[k]);
+  if (!others.length) return [];
+  const mine = leg.options[kind];
+  return TRANSIT_BADGES.filter(([, value]) => others.every(o => value(mine) < value(o))).map(([label]) => label);
+}
 
 function transitCompareEntry(planId) {
   if (!transitCompareState.has(planId)) transitCompareState.set(planId, {request: null, data: null, error: null, receivedAt: 0, choices: new Map(), listeners: new Set()});
@@ -108,7 +119,7 @@ function transitOptionButton(plan, leg, kind, chosen) {
   const dot = node('span', '', 'transit-kind-dot');
   dot.style.background = TRANSIT_LINE_COLORS[kind];
   head.append(dot, node('strong', `${name} ${option.minutes}분`));
-  const badges = Object.entries(TRANSIT_BADGES).filter(([key]) => leg.best?.[key] === kind).map(([, label]) => node('span', label, 'tag transit-badge'));
+  const badges = transitBadges(leg, kind).map(label => node('span', label, 'tag transit-badge'));
   head.append(...badges);
   const facts = [`환승 ${option.transfers}회`, `도보 ${option.walk_minutes}분`];
   if (Number.isFinite(option.fare_per_person)) facts.push(`1인 ${won(option.fare_per_person)}`);

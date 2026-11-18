@@ -72,6 +72,7 @@ def test_https_session_cookie():
         assert 'secure' in cookie and 'httponly' in cookie and 'samesite=lax' in cookie
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_ip_budget_survives_cookie_rotation(monkeypatch):
     monkeypatch.setenv('DATEMATE_IP_REQUESTS_PER_MINUTE', '2')
     with TestClient(app, client=('192.0.2.123', 12345)) as client:
@@ -85,6 +86,7 @@ def test_ip_budget_survives_cookie_rotation(monkeypatch):
         assert client.get('/healthz').status_code == 200
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_chat_budget_rejects_before_model(monkeypatch):
     monkeypatch.setenv('DATEMATE_USER_CHATS_PER_MINUTE', '1')
     with TestClient(app) as client:
@@ -149,6 +151,7 @@ def test_request_budget_atomic_under_concurrency():
         assert sum(workers.map(attempt,range(12)))==3
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_public_stream_and_sdk_share_budget_control(monkeypatch):
     from app.telemetry import observed_stream, invoke_model
     monkeypatch.setenv('DATEMATE_PROVIDER_CALLS_PER_HOUR','1')

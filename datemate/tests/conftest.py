@@ -48,6 +48,20 @@ def storage():
     store.init()
 
 
+# 분·시간 한도는 int(time.time() // 60) 같은 고정 구간으로 센다. 한도를 낮춘 테스트의 요청 사이에 분이 바뀌면
+# 둘째 요청이 새 구간에서 다시 허용돼 429 를 기대한 검사가 가끔 실패한다(2026-11-18 CI postgres, test_parking:258 이 [200, 200]).
+# 이 여유보다 짧게 남았으면 다음 분까지 기다렸다 시작한다. 정시는 분 경계이기도 해서 시간 한도도 함께 지킨다.
+RATE_WINDOW_MARGIN_SECONDS = 15
+
+
+@pytest.fixture
+def same_rate_window():
+    import time
+    left = 60 - time.time() % 60
+    if left < RATE_WINDOW_MARGIN_SECONDS:
+        time.sleep(left + 0.05)
+
+
 def pytest_runtest_logreport(report):
     """GitHub Actions 에서 실패한 테스트를 주석(::error)으로 남긴다.
 

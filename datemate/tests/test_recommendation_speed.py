@@ -359,6 +359,7 @@ def _safe(action):
         return type(error).__name__
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_prepaid_never_exceeds_the_hourly_provider_budget(monkeypatch):
     from app import telemetry
     monkeypatch.setenv('DATEMATE_PROVIDER_CALLS_PER_HOUR', '4')

@@ -98,6 +98,8 @@ test("built pages match versioned_page(): only ?v=<sha256[:12]> added to existin
     }
   }
   assert.match(PAGES["/"], /<meta name="google-site-verification" content="[^"]+">/);
+  // 네이버 서치어드바이저 소유 확인(2026-11-18). 엣지가 내보내는 첫 화면에도 남아 있어야 한다.
+  assert.match(PAGES["/"], /<meta name="naver-site-verification" content="3fb663454990174f24df5e7e69985aab46c3e54b">/);
   assert.ok(PAGES["/"].includes(FEEDBACK_NAV_LINK));
 });
 

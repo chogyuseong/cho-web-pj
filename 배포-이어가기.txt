@@ -36,7 +36,13 @@
       → 둘 이상 중 혼자 가장 좋을 때만 붙임(transitBadges).
     · 새 테스트 tests/test_transit_compare.py 9개, tests/test_transit_compare_ui.py 2개, cloudflare/validation.test.mjs 11개.
     · 문제가 생기면: 키만 지우면 기능이 숨겨짐(npx wrangler secret delete TMAP_TRANSIT_APP_KEY) 또는 git revert -m 1 ddd4e18.
-  다음 후보(사용자 결정 필요): 지도 아래 장소 목록에 '일정에서 보기', 대체 지도(Leaflet) 번호 합치기, 결과 사진 용량, CSS 18개 병합(Fable 권장).
+  ★ main 에 들어갔지만 아직 배포 안 된 것: 가독성 8단계(브랜치 ui/readability-8 커밋 b96a5d5, CI Run 44236793173 5개 통과, Docker 전체 1251 통과·6 건너뜀·실패 0).
+    · 사용자 '진행해'(남은 후보 중 바로 할 수 있는 둘). 바뀐 파일 maps.js·line.css(화면만, 서버 그대로) → 배포 지시 받으면 올릴 것.
+    · 지도 아래 장소 목록 한 줄 = 네이버 지도 링크 + 「일정에서 보기」 단추(focusPlanStop, 44px, aria-label 'N번 이름 일정에서 보기'). 지도 표시는 Tab 으로 닿지 않아 키보드 길.
+    · 대체 지도(Leaflet)도 planStopGroups 로 겹친 번호 원을 '2·3' 하나로(툴팁 '2·3 · 이름A / 이름B', 누르면 2번, zoomend 마다 다시 묶음, 지도 크기 0 이면 묶지 않음).
+    · 새 tests/test_readability_stage8_ui.py 4개.
+    · 문제가 생기면: git revert -m 1 4a086b3.
+  다음 후보(사용자 결정 필요): 결과 사진 용량(정책 판단), CSS 18개 병합(Fable 권장).
   사용자 할 일: TMAP 무료 요금제면 하루 10건뿐 — 실사용은 종량제로. SK Open API 회원 유형 확인. 휴대폰으로 비교 카드·지도 실선 보기.
 (마흔두 번째) 운영에 올라간 것: 커밋 8454367(병합, 브랜치 ui/meal-photo-mobile 커밋 2dce8b8·7ec4d38), Worker 버전 9eb91606-9e65-47ae-b0b1-404933f1704c (2026-11-18 낮)
   사용자가 '배포해' 로 지시. GitHub Actions(Run 44218614012)가 끝나기 전에 배포했고, 배포 뒤 5개 작업 모두 통과를 확인했습니다.

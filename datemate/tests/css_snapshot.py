@@ -135,6 +135,12 @@ def scene_shared(page, base):
     page.wait_for_function("document.querySelectorAll('#shared-places article').length>0")
 
 
+def scene_location_dialog(page, base):
+    """출발지 위치 선택 대화상자(location-picker.css·location-picker-layout.css 의 규칙). 지도 칸 자체는 스크린샷에서 가린다."""
+    page.locator('#origin-location').get_by_role('button', name='지도에서 고르기', exact=True).click()
+    page.wait_for_function('!!locationMap', timeout=25000)
+
+
 def scene_feedback(page, base):
     page.goto(base + '/feedback')
     page.wait_for_load_state('networkidle')
@@ -147,7 +153,7 @@ def scene_feedback_admin(page, base):
 
 SCENES = [(f.__name__.removeprefix('scene_'), f) for f in (
     scene_home, scene_home_expanded, scene_results_demo, scene_results_course2, scene_results_real,
-    scene_results_print, scene_explore, scene_shared, scene_feedback, scene_feedback_admin)]
+    scene_results_print, scene_explore, scene_location_dialog, scene_shared, scene_feedback, scene_feedback_admin)]
 
 
 @pytest.mark.parametrize('name,prepare', SCENES, ids=[n for n, _ in SCENES])

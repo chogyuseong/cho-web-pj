@@ -220,6 +220,41 @@ function focusPlanStop(index){
 }
 // 장소 번호 표시의 접근 가능한 이름은 고정 문구(번호만)다. 장소 이름은 HTML 에 넣지 않고 title(네이버 표시 옵션)로만 준다.
 function stopMarkerLabel(number){return number+'번 장소 · 눌러서 일정에서 보기';}
+/* ── 겹친 장소 번호 합치기(가독성 7단계, 2026-11-18) ──────────────────────────────────────────────
+   왜: 운영 성수 코스(390px, 확대 14)에서 2·3번 표시가 7px 거리로 겹쳐, 2번 원 가운데를 누르면 98%가 3번으로 갔다.
+   무엇: 네이버 지도의 장소 번호(1..N) 표시를 화면 거리로 묶어, 가까운 것은 '2·3' 알약 표시 하나로 그린다(drawPlanMap 의 drawStops).
+   함께 맞춰야 하는 값(하나를 바꾸면 나머지도):
+     · 표시 지름 38px  = plan-map.css .route-marker width/height = STOP_MERGE_PX = 아래 stopMarkerWidth 의 1개 너비 = 기준점 y(19 = 38/2)
+     · 알약 모서리 19px = plan-map.css .route-stop-merged border-radius(높이의 절반)
+     · 너비 공식       = stopMarkerWidth, tests/test_readability_stage7_ui.py 가 56px(2개)·74px(3개)·기준점 x 를 확인한다
+   안 한 것: 네이버 지도가 실패했을 때의 대체 지도(Leaflet, 이 파일 fallback())는 묶지 않는다. 하려면 거기서 offsetOf 를
+     map.latLngToContainerPoint 로 주고 'zoomend' 때 다시 그리면 같은 planStopGroups 를 쓸 수 있다(보이는 원·44px 투명 원 둘 다 다시 그려야 함). */
+
+// 화면 거리(px)가 이보다 가까운 장소 번호는 한 표시로 합친다. 번호 표시 지름과 같게 둬서 '조금이라도 겹치면 합침'이다.
+// 더 일찍 합치고 싶으면(예: 휴대폰 누름 영역 44px 기준) 이 값만 키우면 된다.
+const STOP_MERGE_PX=38;
+// 묶음 하나의 표시 너비(px). 1개는 원(38), 2개부터 번호가 하나 늘 때마다 18px 넓힌다('2·3' 56, '1·2·3' 74).
+// 두 자리 번호('10·11')도 56px 안에 들어가는 것을 test_merged_marker_text_fits_inside_the_pill 이 실제 CSS 로 잰다.
+// 너비는 CSS 가 아니라 style 로 준다: 네이버 표시의 기준점(anchor)을 너비의 가운데로 줘야 장소 좌표에 표시 가운데가 오기 때문이다.
+function stopMarkerWidth(count){return 38+18*(count-1);}
+// places 의 순번을 화면에서 겹치는 것끼리 묶는다. 결과는 [[0],[1,2],…](바깥·안쪽 모두 순번 오름차순, 모든 순번이 정확히 한 번).
+// 묶는 법(욕심 방식): 장소를 순서대로 보며, 앞에서 만든 묶음 중 '첫 장소'와의 거리가 STOP_MERGE_PX 미만인 첫 묶음에 넣는다.
+//   그래서 사슬처럼 이어진 경우(A–B 30px, B–C 30px, A–C 60px)는 {A,B},{C} 가 된다. B 와 C 의 표시가 조금 겹칠 수 있지만
+//   한 표시가 끝없이 길어지지 않는다. 사슬 전체를 묶고 싶으면 '묶음의 아무 장소와 가까우면' 으로 바꾸면 된다(find 안의 비교).
+// offsetOf(place)→{x,y}: 지금 확대 수준의 화면 좌표(px). 던지거나 숫자가 아니면(투영 없음·SDK 변경) 묶지 않고 번호마다 하나를 돌려준다
+//   → 지도는 합치기 전과 똑같이 보인다(가짜 SDK 를 쓰는 기존 화면 테스트도 이 경로).
+function planStopGroups(places,offsetOf){
+  const single=places.map((_,i)=>[i]);
+  let offsets;
+  try{offsets=places.map(place=>{const at=offsetOf(place);return {x:+at.x,y:+at.y};});}catch{return single;}
+  if(offsets.some(at=>!Number.isFinite(at.x)||!Number.isFinite(at.y)))return single;
+  const groups=[];
+  offsets.forEach((at,i)=>{
+    const near=groups.find(group=>Math.hypot(offsets[group[0]].x-at.x,offsets[group[0]].y-at.y)<STOP_MERGE_PX);
+    if(near)near.push(i);else groups.push([i]);
+  });
+  return groups;
+}
 
 function drawPlanMap(plan){
   let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[],popupMarkers=[],parkingMarkers=[];
@@ -277,18 +312,46 @@ function drawPlanMap(plan){
       const map=new naver.maps.Map(canvas,{center:coord(points[0]),zoom:14,zoomControl:true,scrollWheel:true});activeMap=map;
       const bounds=new naver.maps.LatLngBounds();
       points.forEach((point,i)=>{
-        const label=i===0?'출발':i>plan.places.length?'귀가':String(i);
+        bounds.extend(coord(point));
+        // 장소 번호(1..N)는 아래 drawStops 가 화면 거리에 따라 묶어 그린다. 여기서는 출발·귀가만(누름 동작 없음).
+        if(i>0&&i<=plan.places.length)return;
+        const label=i===0?'출발':'귀가';
         // 장소명은 HTML에 삽입하지 않고 텍스트·title로만 전달한다.
         // 쌓임 순서: 팝업 표시(120) < 코스 표시(130) < 축제 표시(150·고른 축제 300). 팝업 동네 기준점이 출발지와 같은 자리여도 출발·번호 표시가 위에 보이고 눌린다.
-        // 장소 번호(1..N)는 눌러서 일정의 그 장소로 간다(role=button·고정 이름·손가락 커서). 출발·귀가는 전처럼 동작 없음.
-        const stop=i>0&&i<=plan.places.length;
-        const marker=new naver.maps.Marker({map,position:coord(point),title:label+' · '+point.name,zIndex:130,
-          icon:{content:'<span class="route-marker '+(i===0?'route-start':'')+(stop?' route-stop-marker" role="button" aria-label="'+stopMarkerLabel(i):'')+'">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
-        // 네이버 지도는 표시 click 을 알린 뒤 지도 칸(tabindex)에 포커스를 되돌려 그 칸으로 다시 스크롤한다(운영 SDK 에서 확인).
-        // 그래서 이번 누름 처리가 다 끝난 뒤(setTimeout)에 장소 제목으로 옮긴다.
-        if(stop)naver.maps.Event.addListener(marker,'click',()=>setTimeout(()=>focusPlanStop(i-1)));
-        bounds.extend(coord(point));
+        new naver.maps.Marker({map,position:coord(point),title:label+' · '+point.name,zIndex:130,
+          icon:{content:'<span class="route-marker '+(i===0?'route-start':'')+'">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
       });
+      // 장소 번호(1..N) 표시: 눌러서 일정의 그 장소로 간다(role=button·고정 이름·손가락 커서). 묶는 기준·함께 맞출 값은 위 planStopGroups 머리 주석.
+      // drawStops 는 지금 확대 수준에서 번호를 묶어 '전부 지우고 다시' 그린다. 부르는 곳은 둘:
+      //   ① 처음 fitBounds 직후(실제 SDK 는 지도를 만든 직후·fitBounds 직후에도 투영 좌표를 준다, 2026-11-18 운영 SDK 에서 확인)
+      //   ② 지도의 zoom_changed(확대 단추·두 손가락·식당 표시 뒤 fitBounds 모두). 실제 SDK 는 zoom_changed 때 이미 새 확대 수준의 좌표를 준다
+      //      ('zooming' 은 바뀌기 전 좌표라 쓰지 않는다). 끌어서 옮기기는 화면 거리가 그대로라 다시 묶을 필요가 없다.
+      // 표시 수가 장소 수(최대 몇 개)뿐이라 매번 새로 만드는 비용은 작다. 표시마다 붙인 click 처리는 표시와 함께 SDK 가 버린다.
+      let stopMarkers=[];
+      const drawStops=()=>{
+        // 지도를 다시 그렸거나(코스 탭 전환·다시 연결) 정리했으면 예전 지도의 늦은 zoom_changed 는 무시한다.
+        if(disposed||activeMap!==map)return;
+        stopMarkers.forEach(marker=>quietly(()=>marker.setMap(null)));stopMarkers=[];
+        planStopGroups(plan.places,place=>map.getProjection().fromCoordToOffset(coord(place))).forEach(members=>{
+          // members: 이 표시에 묶인 장소 순번(0부터). 화면 번호는 +1. '·'(가운뎃점)으로 잇는다.
+          const numbers=members.map(i=>i+1),label=numbers.join('·'),width=stopMarkerWidth(members.length);
+          // 합친 표시의 자리는 묶인 장소 좌표의 평균(한 장소면 그 장소 그대로).
+          const lat=members.reduce((sum,i)=>sum+plan.places[i].lat,0)/members.length,lon=members.reduce((sum,i)=>sum+plan.places[i].lon,0)/members.length;
+          // 화면 읽기 이름: 한 장소는 예전과 같은 문구(test_readability_stage6_ui 가 그대로 확인), 합친 표시는 어디로 가는지(앞 번호)를 말한다.
+          const merged=members.length>1,name=merged?label+'번 장소 · 눌러서 일정에서 '+numbers[0]+'번부터 보기':stopMarkerLabel(numbers[0]);
+          // 보안: content(HTML)에는 숫자·고정 문구만 넣는다. 장소 이름(외부 검색 결과)은 title 옵션으로만 준다(SDK 가 글자로 다룸).
+          // 이 줄을 고칠 때 장소 이름이나 검색 결과 글자를 content 에 이어 붙이지 말 것.
+          const marker=new naver.maps.Marker({map,position:new naver.maps.LatLng(lat,lon),zIndex:130,
+            title:members.map(i=>(i+1)+' · '+plan.places[i].name).join(' / '),
+            icon:{content:'<span class="route-marker route-stop-marker'+(merged?' route-stop-merged" style="width:'+width+'px':'')+'" role="button" aria-label="'+name+'">'+label+'</span>',
+              anchor:new naver.maps.Point(width/2,19)}});
+          // 합친 표시는 앞 번호 장소로 간다(일정에서 뒤 번호는 바로 아래 카드). 묶인 장소를 고르게 하려면 여기서 작은 선택 칸을 열면 된다.
+          // 네이버 지도는 표시 click 을 알린 뒤 지도 칸(tabindex)에 포커스를 되돌려 그 칸으로 다시 스크롤한다(운영 SDK 에서 확인).
+          // 그래서 이번 누름 처리가 다 끝난 뒤(setTimeout)에 장소 제목으로 옮긴다.
+          naver.maps.Event.addListener(marker,'click',()=>setTimeout(()=>focusPlanStop(members[0])));
+          stopMarkers.push(marker);
+        });
+      };
       let actual=0;
       for(let i=0;i<points.length-1;i++){
         const leg=plan.legs[i],style=legLineStyle(plan,leg);
@@ -299,6 +362,9 @@ function drawPlanMap(plan){
           strokeOpacity:.9,strokeStyle:LINE_DASH.naver[style]});
       }
       map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
+      // 장소 번호는 화면 거리로 묶으므로 fitBounds 로 확대 수준이 정해진 뒤에 그리고, 확대 수준이 바뀔 때마다 다시 묶는다(drawStops 주석).
+      drawStops();
+      naver.maps.Event.addListener(map,'zoom_changed',drawStops);
       wrap.updateFestivals=()=>{
         if(disposed||!canvas.isConnected)return;
         clearFestivals();const items=festivalMapItems();

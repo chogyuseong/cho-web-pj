@@ -8,7 +8,12 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 072911c(main, 꼬리표 수정 병합 7124703 포함), Worker 버전 6d0685b8-638a-4cd3-a061-fa7c93475b3e (마흔네 번째 배포, 2026-11-18 오후)
+운영에 올라간 것: 커밋 2d13058(main, 병합 4a086b3 = 가독성 8단계), Worker 버전 b85b9223-a0a1-4389-98f6-e02f608ae99b (마흔다섯 번째 배포, 2026-11-18 오후)
+  사용자가 '배포해' 로 지시. 바뀐 파일 maps.js·line.css 둘(아래 '가독성 8단계'). 배포 전 Docker 전체 1251 통과·실패 0, CI(Run 44236793173) 5개 통과.
+  운영 확인(배포 직후): 컨테이너가 꺼져 있어 엣지가 새 파일을 줌(Server-Timing 없음) — maps.js 에 drawLeafletStops·map-place-go, line.css 에 .map-place-row.
+    실제 추천을 만들어 화면을 보지는 않았습니다(외부 API 아낌). 사람이 볼 것: 휴대폰에서 지도 아래 「일정에서 보기」 단추, 대체 지도는 네이버 지도가 안 될 때만 보임.
+  문제가 생기면: git revert -m 1 4a086b3.
+(마흔네 번째) 운영에 올라간 것: 커밋 072911c(main, 꼬리표 수정 병합 7124703 포함), Worker 버전 6d0685b8-638a-4cd3-a061-fa7c93475b3e (2026-11-18 오후)
   사용자가 '1, 2 진행해'(1 = 꼬리표 수정 재배포)로 지시. 바뀐 파일은 transit-compare.js 하나(transitBadges: 선택지 둘 이상 중 혼자 가장 좋을 때만 꼬리표).
   배포 직후에는 앞선 운영 확인으로 깨어 있던 컨테이너가 예전 파일을 줬고(Server-Timing 있음), 11분 접속 없이 기다린 뒤 엣지가 새 파일을 줌(transitBadges 확인).
   CI: 7124703(Run 44227182463) 결과는 이 기록 시점에 따로 보지 않음 — 같은 내용이 들어간 뒤 커밋들의 CI 로 확인할 것.
@@ -36,8 +41,8 @@
       → 둘 이상 중 혼자 가장 좋을 때만 붙임(transitBadges).
     · 새 테스트 tests/test_transit_compare.py 9개, tests/test_transit_compare_ui.py 2개, cloudflare/validation.test.mjs 11개.
     · 문제가 생기면: 키만 지우면 기능이 숨겨짐(npx wrangler secret delete TMAP_TRANSIT_APP_KEY) 또는 git revert -m 1 ddd4e18.
-  ★ main 에 들어갔지만 아직 배포 안 된 것: 가독성 8단계(브랜치 ui/readability-8 커밋 b96a5d5, CI Run 44236793173 5개 통과, Docker 전체 1251 통과·6 건너뜀·실패 0).
-    · 사용자 '진행해'(남은 후보 중 바로 할 수 있는 둘). 바뀐 파일 maps.js·line.css(화면만, 서버 그대로) → 배포 지시 받으면 올릴 것.
+  가독성 8단계(마흔다섯 번째 배포로 올라감, 브랜치 ui/readability-8 커밋 b96a5d5, CI Run 44236793173 5개 통과, Docker 전체 1251 통과·6 건너뜀·실패 0).
+    · 사용자 '진행해'(남은 후보 중 바로 할 수 있는 둘). 바뀐 파일 maps.js·line.css(화면만, 서버 그대로).
     · 지도 아래 장소 목록 한 줄 = 네이버 지도 링크 + 「일정에서 보기」 단추(focusPlanStop, 44px, aria-label 'N번 이름 일정에서 보기'). 지도 표시는 Tab 으로 닿지 않아 키보드 길.
     · 대체 지도(Leaflet)도 planStopGroups 로 겹친 번호 원을 '2·3' 하나로(툴팁 '2·3 · 이름A / 이름B', 누르면 2번, zoomend 마다 다시 묶음, 지도 크기 0 이면 묶지 않음).
     · 새 tests/test_readability_stage8_ui.py 4개.

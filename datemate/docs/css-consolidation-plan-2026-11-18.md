@@ -74,4 +74,10 @@
 - **5-7 재발 방지 테스트**: 새 `datemate/tests/test_css_structure.py` — `!important`는 허용 목록만 / 같은 선택자가 두 파일에 있으면 실패 / html 링크 순서 고정. 각 파일 머리 주석에 '맡는 범위·넣지 말 것'.
 
 ## 진행 기록
-- (아직 없음)
+- 2026-11-18 **5-0 검증 장치** — `datemate/tests/css_snapshot.py`(찍기, 장면 10 × 폭 12, 약 3분·94MB) + `datemate/scripts/css_snapshot_compare.py`(비교).
+  장면: home, home_expanded, results_demo, results_course2, results_real(사진·메뉴·주차·대중교통 비교 패널 포함), results_print, explore, shared, feedback, feedback_admin.
+  무변경 두 번 찍기의 차이를 0 으로 만들며 고친 것: CSS 변수 나열 순서가 실행마다 달라 속성 이름 정렬 / sticky 머리글 때문에 찍기 전 맨 위로 /
+  늦게 그려지는 칸 때문에 networkidle + 500ms 대기 / 스크린샷에서 지도 칸·알림(#toast)·지도 설명 줄을 가림(실행마다 내용이 달라짐, 스타일 비교는 그대로).
+  민감도: 복사본에서 '일정에서 보기' 단추 여백만 1px 바꾸자 모든 폭에서 스타일·스크린샷 차이를 보고함.
+  아직 안 한 것: 규칙 사용률(미사용 규칙 목록, CDP CSS.startRuleUsageTracking) → 5-2 때, :hover·:focus-visible 표본·강제 색상 → 5-5 전에.
+  쓰는 법: 같은 Docker 컨테이너에서 `CSS_SNAPSHOT_OUT=/snap/before python -m pytest tests/css_snapshot.py -q -p no:cacheprovider` → CSS 수정 → after 로 다시 → `python scripts/css_snapshot_compare.py /snap/before /snap/after`.

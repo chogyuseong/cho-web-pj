@@ -165,6 +165,12 @@ def test_capture(audit_page, name, prepare):
     page.wait_for_load_state('networkidle')
     page.wait_for_timeout(500)
     open_all_details(page, 'body')
+    # 레저 추천처럼 늦게 오는 응답이 한 번은 찍히고 한 번은 안 찍혔다(5-3a 비교에서 확인) → '불러오는 중' 문구가 사라질 때까지 기다린다(최대 10초).
+    try:
+        page.wait_for_function("![...document.querySelectorAll('.loading-note')].some(e=>e.getClientRects().length)", timeout=10000)
+    except Exception:
+        pass
+    page.wait_for_load_state('networkidle')
     out = pathlib.Path(OUT) / name
     out.mkdir(parents=True, exist_ok=True)
     result = {}

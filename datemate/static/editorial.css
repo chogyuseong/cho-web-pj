@@ -104,38 +104,6 @@ input:focus,textarea:focus,select:focus{
 }
 
 /* Results Area, Option Tabs, Comparison & Course Cards */
-#results>.plan-option-tabs{
-  position:static!important;
-  top:auto!important;
-  z-index:auto;
-  margin-bottom:22px;
-  background-color:#fff!important;
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:10px;
-  gap:10px;
-}
-.plan-option-tabs button{
-  border-radius:14px!important;
-  padding:16px!important;
-  text-align:left;
-  min-width:0;
-  flex:1;
-  overflow-wrap:anywhere;
-}
-.plan-option-tabs .secondary{
-  border-color:transparent!important;
-  background-color:#fff!important;
-  color:var(--ink)!important;
-}
-.plan-option-tabs .secondary:hover{
-  background-color:#fff!important;
-}
-.plan-option-tabs button[aria-pressed=true]{
-  background-color:var(--brand-blue)!important;
-  border-color:var(--hong)!important;
-  color:#fff!important;
-}
 
 .option-comparison{
   border:1px solid var(--line);
@@ -492,8 +460,6 @@ input,select,textarea{max-width:100%;min-width:0}
   .workspace-intro h2{font-size:26px}
   .simple-plan-form .simple-form-group{padding:18px}
   .section-heading h2{font-size:22px}
-  .plan-option-tabs{position:static;display:grid;grid-template-columns:1fr;padding:8px}
-  .plan-option-tabs button{width:100%;padding:14px}
   .plan-card,.detail.panel{padding:20px;border-radius:20px}
   .plan-card h3{font-size:22px}
   .stats{padding:16px;gap:14px}

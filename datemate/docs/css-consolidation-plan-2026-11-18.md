@@ -93,3 +93,8 @@
   관련 화면 테스트 44개 통과.
   아직 안 한 것(5-2 의 나머지): 완전 중복 규칙(planner-layout `[hidden]`, selle `.mode-badge`), line `main .eyebrow{display:none}` 때문에 죽은 eyebrow 규칙,
   규칙 사용률(CDP) 목록 — 화면에 쓰이는 이름이지만 이기지 못해 죽은 규칙은 5-3 이후 부품 평탄화 때 함께 정리하는 편이 안전함.
+- 2026-11-18 **5-3a 코스 탭 → 새 `results.css`** — 새 `datemate/scripts/css_move_component.py`(목록만 / `--apply`)로 `.plan-option-tabs`, `.option-(facts|line|label|purpose|title|route|difference|relaxed)`,
+  `.selection-indicator` 규칙 65개를 place-photos·selle·calm·editorial·readability·line 에서 원래 순서·@media 그대로 옮김. index.html 의 line.css 바로 뒤에 results.css 링크.
+  `main :is(small,.small,…,.option-label)` 처럼 다른 부품과 괄호 안에 묶인 1개는 그대로 둠(5-5 글자 체계 때).
+  화면 차이 0(다시 찍은 두 번 모두 5-2 기준과 같음). 처음 한 번은 레저 추천 응답이 늦어 결과 320px 이 달랐음 → 검증 장치가 '불러오는 중'(.loading-note)이 사라질 때까지 기다리게 고침.
+  아직 옮긴 그대로(!important·덮어쓰기 포함). '이기는 선언만 남기기'는 부품을 다 옮긴 뒤 results.css 안에서 한 부품씩.

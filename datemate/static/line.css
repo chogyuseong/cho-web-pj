@@ -37,7 +37,7 @@ h4,h5 { font-size:19px; line-height:1.45; }
   h3 { font-size:24px; }
 }
 main a { color:var(--cheong); }
-.nowrap,.option-facts,.stats b,.total-row,.timeline-stamp,.num,time { font-variant-numeric:tabular-nums; }
+.nowrap,.stats b,.total-row,.timeline-stamp,.num,time{ font-variant-numeric:tabular-nums; }
 main :is(.hint,.muted,small,.small) { color:var(--muted); }
 main .eyebrow { display:none; }
 
@@ -111,7 +111,6 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
   font-weight:600;
 }
 .field-requirement { background:var(--hong); color:#fff; border:0; }
-.selection-indicator { background:var(--hong)!important; color:#fff!important; border:0!important; }
 
 /* ---------- 입력 ---------- */
 input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select,
@@ -325,48 +324,9 @@ body:not(.show-date-plan) .hero-photo {
 /* ---------- 결과: 제목 · 코스 카드 ---------- */
 .section-heading .step { display:none; }
 .results-area .section-heading h2 { margin:0; }
-#results>.plan-option-tabs {
-  background:none!important;
-  border:0;
-  border-radius:0!important;
-  padding:0!important;
-  gap:12px!important;
-  box-shadow:none;
-  backdrop-filter:none;
-}
-#results .plan-option-tabs button,
-#results .plan-option-tabs button.primary,
-#results .plan-option-tabs button.secondary {
-  background:#fff!important;
-  color:var(--ink)!important;
-  border:1px solid var(--line)!important;
-  border-radius:10px!important;
-  padding:16px!important;
-  box-shadow:none!important;
-  outline:0;
-}
-#results .plan-option-tabs button:hover { border-color:var(--ink)!important; }
-#results .plan-option-tabs button[aria-pressed=true] {
-  border-color:var(--line)!important;
-  border-left:4px solid var(--hong)!important;
-  padding-left:13px!important;
-}
-#results .plan-option-tabs button[aria-pressed=true] :is(strong,span) { color:var(--ink)!important; }
-#results .plan-option-tabs button[aria-pressed=true] .selection-indicator { color:#fff!important; }
-#results .plan-option-tabs .option-label { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; }
-#results .plan-option-tabs .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
-#results .plan-option-tabs button[aria-pressed=true] .option-purpose { color:var(--muted)!important; }
-#results .plan-option-tabs .option-relaxed { color:var(--ink); border-color:var(--line); }
-#results .plan-option-tabs .option-route { font-size:16px; font-weight:700; color:var(--ink); }
-#results .plan-option-tabs :is(.option-title,.option-facts,.option-difference) { color:var(--muted); }
-#results .plan-option-tabs button[aria-pressed=true] :is(.option-title,.option-facts,.option-difference) { color:var(--muted)!important; }
 /* 미니 노선: 장소 수만큼 ●─●─● */
-#results .plan-option-tabs .option-line,.option-line { position:relative; display:flex!important; justify-content:space-between; align-items:center; width:calc(var(--stops,3) * 26px)!important; height:16px; margin:2px 0; }
-.option-line::before { content:''; position:absolute; left:6px; right:6px; top:calc(50% - 2px); height:4px; background:var(--hong); }
-.option-line i { position:relative; width:14px; height:14px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
-#results .plan-option-tabs button[aria-pressed=true] .option-line i { background:var(--hong); }
 @media(forced-colors:active) {
-  .option-line::before,.line-sample li::before,.stop::before,.route-line-block::before { forced-color-adjust:none; }
+  .line-sample li::before,.stop::before,.route-line-block::before{ forced-color-adjust:none; }
 }
 
 /* 선택한 코스 요약 카드 */
@@ -712,9 +672,6 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 #results .plan-preview .hint { margin:0 0 12px; overflow-wrap:anywhere; }
 .plan-preview-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
 .plan-preview-card { display:flex; flex-direction:column; gap:2px; min-width:0; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--platform); overflow-wrap:anywhere; word-break:keep-all; }
-.plan-preview-card .option-label { font-family:var(--font-head); font-weight:800; font-size:15px; color:var(--ink); }
-.plan-preview-card .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
-.plan-preview-card .option-route { font-size:16px; line-height:1.6; color:var(--ink); }
 .plan-preview-pending { font-size:14px; line-height:1.6; color:var(--muted); }
 .plan-preview-changes { border-left:4px solid var(--hong); background:var(--platform); padding:10px 14px; margin:0 0 16px; overflow-wrap:anywhere; }
 .plan-preview-changes strong { color:var(--ink); }

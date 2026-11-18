@@ -1,0 +1,128 @@
+/* 결과 화면 부품(CSS 정리 5-3, 2026-11-18~). 설계: datemate/docs/css-consolidation-plan-2026-11-18.md.
+   index.html 에서 line.css 바로 뒤에 불러온다(지금은 옛 테마 파일들 뒤라야 옮긴 규칙이 전처럼 이긴다).
+   한 부품의 규칙은 이 파일 한 곳에만 둔다. 다른 파일에 같은 부품 선택자를 새로 쓰지 말 것.
+   지금은 옮긴 그대로(!important·중복 포함)이고, 부품마다 '이기는 선언만 남기기'는 화면 비교를 하며 차례로 한다. */
+
+/* ── 코스 탭(5-3a) (CSS 정리로 여러 파일에서 옮겨 옴. 원래 적용 순서 그대로, 출처 파일을 각 묶음 앞에 적음) ── */
+/* from place-photos.css */
+.plan-option-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;position:sticky;top:10px;z-index:8;background:#fff;padding:8px;border-radius:10px}
+/* from selle.css */
+.plan-option-tabs{background:#fff!important;padding:10px!important;border-radius:15px!important;border:1px solid var(--line);z-index:4!important}
+.plan-option-tabs button{border-radius:9px!important}
+.plan-option-tabs button[aria-selected=true]{background:var(--hong)!important;color:white!important}
+@media(max-width:760px){.plan-option-tabs{top:0!important}}
+.plan-option-tabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));scroll-margin-top:12px;align-items:stretch}
+.plan-option-tabs button{min-width:0;text-align:left;display:flex;flex-direction:column;gap:5px;padding:13px!important;box-shadow:none}
+.plan-option-tabs [aria-pressed=true]{outline:2px solid var(--line);outline-offset:2px}
+@media(max-width:760px){.plan-option-tabs{gap:6px!important;padding:8px!important}}
+@media(max-width:760px){.plan-option-tabs button{padding:9px!important}}
+/* from calm.css */
+.plan-option-tabs{border-radius:12px!important;background:#fff!important;}
+.plan-option-tabs button{white-space:normal;font-size:13px;min-height:48px}
+.plan-option-tabs button[aria-pressed=true],.plan-option-tabs button[aria-selected=true]{background:var(--hong)!important;color:white!important;border-color:var(--hong)!important}
+@media(max-width:800px){.plan-option-tabs{position:static!important}}
+.plan-option-tabs button{font-size:15px;line-height:1.6;overflow-wrap:anywhere}
+/* from editorial.css */
+#results>.plan-option-tabs{position:static!important;
+  top:auto!important;
+  z-index:auto;
+  margin-bottom:22px;
+  background-color:#fff!important;
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:10px;
+  gap:10px;}
+.plan-option-tabs button{border-radius:14px!important;
+  padding:16px!important;
+  text-align:left;
+  min-width:0;
+  flex:1;
+  overflow-wrap:anywhere;}
+.plan-option-tabs .secondary{border-color:transparent!important;
+  background-color:#fff!important;
+  color:var(--ink)!important;}
+.plan-option-tabs .secondary:hover{background-color:#fff!important;}
+.plan-option-tabs button[aria-pressed=true]{background-color:var(--brand-blue)!important;
+  border-color:var(--hong)!important;
+  color:#fff!important;}
+@media(max-width:800px){.plan-option-tabs{position:static;display:grid;grid-template-columns:1fr;padding:8px}}
+@media(max-width:800px){.plan-option-tabs button{width:100%;padding:14px}}
+/* from readability.css */
+.plan-option-tabs button{display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:flex-start;
+  gap:8px;
+  padding:16px;
+  text-align:left;}
+.plan-option-tabs .option-label{display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  letter-spacing:0;
+  font-weight:700;
+  color:var(--hong);}
+.plan-option-tabs button>span,.plan-option-tabs button>strong{display:block; width:100%; min-width:0;}
+.plan-option-tabs button span{margin-left:0;}
+.plan-option-tabs .option-purpose{font-weight:700;}
+.plan-option-tabs .option-relaxed{font-size:13px; font-weight:750; padding:1px 8px; border-radius:999px; border:1px solid currentColor;}
+.plan-option-tabs .option-route{font-size:17px; line-height:1.5; color:var(--ink); word-break:keep-all; overflow-wrap:anywhere;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden;}
+.plan-option-tabs :is(.option-title,.option-facts,.option-difference){font-size:14px; line-height:1.55; color:var(--muted); font-weight:500; word-break:keep-all;}
+.plan-option-tabs .option-facts{font-variant-numeric:tabular-nums;}
+.plan-option-tabs .option-facts .range-lines{display:inline;}
+.plan-option-tabs .option-facts .range-lines>span+span{margin-left:.3em;}
+.plan-option-tabs .option-facts .range-lines>span{display:inline-block;}
+.plan-option-tabs button[aria-pressed=true] :is(strong,span,.option-label){color:var(--ink)!important;}
+.selection-indicator{font-size:12px;
+  font-weight:750;
+  padding:2px 8px;
+  border:1px solid #fff;
+  border-radius:999px;
+  background-color:var(--hong);
+  color:#fff;}
+.results-area .plan-option-tabs button{display:flex; justify-content:flex-start; text-align:left;}
+@media(min-width:801px) and (max-width:1279px){#results>.plan-option-tabs{grid-template-columns:minmax(0,1fr)!important;}}
+@media(max-width:800px){.plan-option-tabs button{display:flex;}}
+@media(max-width:800px){.plan-option-tabs strong{font-size:17px;}}
+@media(forced-colors:active){.plan-option-tabs button[aria-pressed=true]{border:3px solid Highlight;}}
+@media(forced-colors:active){.selection-indicator{border:1px solid currentColor;}}
+/* from line.css */
+.option-facts{font-variant-numeric:tabular-nums;}
+.selection-indicator{background:var(--hong)!important; color:#fff!important; border:0!important;}
+#results>.plan-option-tabs{background:none!important;
+  border:0;
+  border-radius:0!important;
+  padding:0!important;
+  gap:12px!important;
+  box-shadow:none;
+  backdrop-filter:none;}
+#results .plan-option-tabs button,#results .plan-option-tabs button.primary,#results .plan-option-tabs button.secondary{background:#fff!important;
+  color:var(--ink)!important;
+  border:1px solid var(--line)!important;
+  border-radius:10px!important;
+  padding:16px!important;
+  box-shadow:none!important;
+  outline:0;}
+#results .plan-option-tabs button:hover{border-color:var(--ink)!important;}
+#results .plan-option-tabs button[aria-pressed=true]{border-color:var(--line)!important;
+  border-left:4px solid var(--hong)!important;
+  padding-left:13px!important;}
+#results .plan-option-tabs button[aria-pressed=true] :is(strong,span){color:var(--ink)!important;}
+#results .plan-option-tabs button[aria-pressed=true] .selection-indicator{color:#fff!important;}
+#results .plan-option-tabs .option-label{color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px;}
+#results .plan-option-tabs .option-purpose{font-family:var(--font-body); font-weight:600; color:var(--muted);}
+#results .plan-option-tabs button[aria-pressed=true] .option-purpose{color:var(--muted)!important;}
+#results .plan-option-tabs .option-relaxed{color:var(--ink); border-color:var(--line);}
+#results .plan-option-tabs .option-route{font-size:16px; font-weight:700; color:var(--ink);}
+#results .plan-option-tabs :is(.option-title,.option-facts,.option-difference){color:var(--muted);}
+#results .plan-option-tabs button[aria-pressed=true] :is(.option-title,.option-facts,.option-difference){color:var(--muted)!important;}
+#results .plan-option-tabs .option-line,.option-line{position:relative; display:flex!important; justify-content:space-between; align-items:center; width:calc(var(--stops,3) * 26px)!important; height:16px; margin:2px 0;}
+.option-line::before{content:''; position:absolute; left:6px; right:6px; top:calc(50% - 2px); height:4px; background:var(--hong);}
+.option-line i{position:relative; width:14px; height:14px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff;}
+#results .plan-option-tabs button[aria-pressed=true] .option-line i{background:var(--hong);}
+@media(forced-colors:active){.option-line::before{forced-color-adjust:none;}}
+.plan-preview-card .option-label{font-family:var(--font-head); font-weight:800; font-size:15px; color:var(--ink);}
+.plan-preview-card .option-purpose{font-family:var(--font-body); font-weight:600; color:var(--muted);}
+.plan-preview-card .option-route{font-size:16px; line-height:1.6; color:var(--ink);}

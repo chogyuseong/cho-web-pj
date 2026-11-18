@@ -8,7 +8,14 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 2d13058(main, 병합 4a086b3 = 가독성 8단계), Worker 버전 b85b9223-a0a1-4389-98f6-e02f608ae99b (마흔다섯 번째 배포, 2026-11-18 오후)
+운영에 올라간 것: 커밋 4738b4a(병합, 브랜치 feat/naver-site-verification 커밋 5a7d303), Worker 버전 2a47e9ab-e1b5-42e9-9903-3208907c9ec1 (마흔여섯 번째 배포, 2026-11-18 오후)
+  사용자가 네이버 서치어드바이저에 사이트를 등록하고 소유 확인(HTML 태그 방식) 태그를 줬고, '배포해' 로 지시.
+  · datemate/static/index.html <head> 의 구글 확인 태그 뒤에 <meta name="naver-site-verification" content="3fb663454990174f24df5e7e69985aab46c3e54b">.
+    cloudflare/edge.test.mjs 가 엣지 첫 화면에 이 태그가 있는지 확인(13 통과). 첫 화면 관련 파이썬 테스트 29 통과.
+  · 배포 직후 깨어 있던 컨테이너가 예전 첫 화면을 줌(사용자가 배포 전에 [소유확인]을 눌러 네이버 접속이 컨테이너를 깨운 듯).
+    11분 접속 없이 기다린 뒤 엣지가 새 첫 화면을 줌(태그 있음, Server-Timing 없음). 그 뒤 사용자가 [소유확인]·사이트맵 제출(/sitemap.xml).
+  · 같은 사이트 사이트맵: https://datemate.guseong-family.workers.dev/sitemap.xml (첫 화면만), robots.txt 는 /api/ 만 막음.
+(마흔다섯 번째) 운영에 올라간 것: 커밋 2d13058(main, 병합 4a086b3 = 가독성 8단계), Worker 버전 b85b9223-a0a1-4389-98f6-e02f608ae99b (2026-11-18 오후)
   사용자가 '배포해' 로 지시. 바뀐 파일 maps.js·line.css 둘(아래 '가독성 8단계'). 배포 전 Docker 전체 1251 통과·실패 0, CI(Run 44236793173) 5개 통과.
   운영 확인(배포 직후): 컨테이너가 꺼져 있어 엣지가 새 파일을 줌(Server-Timing 없음) — maps.js 에 drawLeafletStops·map-place-go, line.css 에 .map-place-row.
     실제 추천을 만들어 화면을 보지는 않았습니다(외부 API 아낌). 사람이 볼 것: 휴대폰에서 지도 아래 「일정에서 보기」 단추, 대체 지도는 네이버 지도가 안 될 때만 보임.

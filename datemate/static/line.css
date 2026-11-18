@@ -39,7 +39,6 @@ h4,h5 { font-size:19px; line-height:1.45; }
 main a { color:var(--cheong); }
 .nowrap,.option-facts,.stats b,.total-row,.timeline-stamp,.num,time { font-variant-numeric:tabular-nums; }
 main :is(.hint,.muted,small,.small) { color:var(--muted); }
-main .eyebrow { display:none; }
 
 /* 포커스 표시는 그대로 두고 색만 청색으로. */
 :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible {

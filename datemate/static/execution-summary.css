@@ -1,5 +1,4 @@
 /* This component owns its layout; styled in the Seoul Romance Atelier palette. */
-.execution-summary { background-color:#fff; border:1px solid var(--line); border-radius:20px; padding:22px; margin:20px 0; min-width:0; }
 .execution-summary h3 { font-size:19px; margin:0; color:var(--ink); letter-spacing:-0.4px; }
 .execution-summary .execution-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:16px 0; }
 .execution-summary .execution-grid>div { background-color:#fff; padding:16px; border:1px solid var(--line); border-radius:16px; min-width:0; }
@@ -12,7 +11,6 @@
 .execution-summary summary { cursor:pointer; padding:10px 0; font-weight:700; color:var(--hong); }
 .execution-summary .route-assumptions p { overflow-wrap:anywhere; }
 @media(max-width:480px) {
-  .execution-summary { padding:16px; border-radius:16px; }
   .execution-summary .execution-grid { grid-template-columns:1fr; }
   .execution-summary .verification-place>button { margin-left:0; }
 }

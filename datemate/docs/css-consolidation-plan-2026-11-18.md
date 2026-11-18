@@ -111,3 +111,7 @@
 - 2026-11-18 **5-3d 식당 제안·메뉴·블로그·근거 → results.css** — `--subject --pattern '\.(meal-[\w-]+|restaurant-menu\b|menu-[\w-]+|place-blogs\b|place-evidence\b)'` 로 59개를
   style·place-photos·plan-map·selle·calm·editorial·readability·line 에서 옮김. 조상만 맞는 선택자 65개(`.meal-actions>a`, `.place-blogs summary`, readability `main :is(...)` 등)는 제자리.
   전후 11장면 × 12폭(/snap/s3c 와 비교): 차이 없음(스크린샷 포함).
+- 2026-11-18 **5-3e 실행 요약·계획 결정·비용 표 → results.css** — `--subject --pattern '\.(execution-summary|planning-decision|planning-study|table-scroll|table-details|total-row)\b'` 로 18개.
+  처음에는 execution-summary.css·planning-outcomes.css 를 통째로 흡수(subject 없이)해 파일을 지웠는데, `.planning-decision .actions button`·`label`·`input` 이 line.css 의 공통 단추·입력 규칙 뒤로 가
+  결과 화면 48곳(장면·폭)이 바뀜 → 되돌리고 subject 로 다시. 두 파일에는 조상만 맞는 규칙 27개가 남아 링크·파일 유지(5-5 공통 요소 때 흡수).
+  전후 11장면 × 12폭(/snap/s3d 와 비교): 차이 없음.

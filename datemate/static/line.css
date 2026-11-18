@@ -37,7 +37,7 @@ h4,h5 { font-size:19px; line-height:1.45; }
   h3 { font-size:24px; }
 }
 main a { color:var(--cheong); }
-.nowrap,.total-row,.num,time{ font-variant-numeric:tabular-nums; }
+.nowrap,.num,time{ font-variant-numeric:tabular-nums; }
 main :is(.hint,.muted,small,.small) { color:var(--muted); }
 main .eyebrow { display:none; }
 
@@ -395,7 +395,6 @@ body:not(.show-date-plan) .hero-photo {
 .photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
 
 /* ---------- 확인: 네 가지 확인은 2열 정의 목록 ---------- */
-.execution-summary { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; padding:20px 0 4px; box-shadow:none; }
 .execution-summary h3 { color:var(--ink); }
 .execution-summary .execution-grid { display:block; margin:12px 0 16px; }
 .execution-summary .execution-grid>div {
@@ -415,11 +414,8 @@ body:not(.show-date-plan) .hero-photo {
 .execution-summary .execution-grid p { margin:0; color:var(--ink); font-size:16px; }
 .execution-summary summary { color:var(--ink); }
 .execution-summary .verification-place>a { color:var(--cheong); }
-.detail .table-scroll { border:0; border-radius:0; }
 .detail td { color:var(--ink); }
-.detail .total-row { background:none; border:0; border-bottom:1px solid var(--line); border-radius:0; padding:12px 0; }
 .detail .total-row>span:last-child { color:var(--ink); }
-.planning-decision { background:var(--platform); border:0; border-radius:0; box-shadow:none; }
 .planning-decision h3 { color:var(--ink); }
 .planning-decision>.partner-agreement { border-top:1px solid var(--line); }
 .planning-decision .actions button { border-radius:10px; }

@@ -143,23 +143,12 @@ header .brand-name small { font-size:13px; color:var(--muted); }
   .detail .route-line .route-mode-toggle { width:100%; }
 }
 /* 코스 카드: 1280px 이상만 3열. 지도 패널이 옆에 서는 801~1279px에서는 카드가 좁아 이름이 잘리므로 1열로 쌓는다. */
-.detail .table-scroll { border:1px solid var(--line); border-radius:14px; margin:16px 0; background-color:#fff; }
-.detail .table-scroll:focus-visible { outline:3px solid var(--hong); outline-offset:3px; }
 .detail table { white-space:normal; min-width:700px; }
 .detail th { background-color:#fff; color:var(--hong); font-weight:750; }
 .detail td { vertical-align:top; min-width:85px; overflow-wrap:anywhere; color:var(--ink); }
 .detail td:first-child { min-width:160px; font-weight:650; }
 .detail .chat-box { font-size:16px; line-height:1.85; }
 .detail .chat-form button { font-size:16px; }
-.detail .total-row {
-  gap:16px;
-  font-size:16px;
-  padding:14px 18px;
-  margin:8px 0;
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:14px;
-}
 .detail .total-row>span:last-child { flex-shrink:0; font-variant-numeric:tabular-nums; color:var(--hong); font-weight:800; }
 
 .plan-map-card .map-option-tabs button { font-size:15px; min-height:44px; border-radius:999px; }
@@ -236,7 +225,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
   .detail .chat-form { flex-wrap:wrap; }
   .detail .chat-form input { flex-basis:100%; }
   .detail .chat-form button { width:100%; min-height:46px; }
-  .detail .total-row { flex-wrap:wrap; gap:4px 12px; }
 }
 @media print { .skip-to-content { display:none; } }
 

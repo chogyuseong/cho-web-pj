@@ -72,7 +72,12 @@
     · 의존성 pillow==13.0.0(requirements.txt·두 잠금 파일). 처음 넣은 12.3.0 은 알려진 취약점 8건(13.0.0 에서 고침)으로 CI python-audit 실패 → 13.0.0.
     · 새 tests/test_photo_thumb.py 17, tests/test_photo_thumb_ui.py 2. *.workers.dev 는 Cloudflare Cache API 를 못 쓰는 것으로 알아 엣지 캐시는 없음(확인 안 함).
     · 배포 뒤 할 것: 운영 성수 추천 끝까지 내렸을 때 사진 바이트 합(전 약 32MB) 측정, /photo-thumb 첫 변환 시간·컨테이너 메모리. 레저 사진 격자는 다음 후보.
-  CSS 18개 정리: Fable 설계를 datemate/docs/css-consolidation-plan-2026-11-18.md 에 남김(1063a1b, 아직 적용 안 함, 첫 단계는 계산값 비교 장치). 사용자 지시로 단계별 진행.
+  CSS 18개 정리(진행 중, 아직 운영 배포 안 함): 설계·단계별 기록은 datemate/docs/css-consolidation-plan-2026-11-18.md '진행 기록'.
+    · 사용자 지시(2026-11-18 저녁): 혼자 할 수 있는 데까지 진행 → 배포 → 이 문서·README → 커밋·푸시. 컴퓨터가 언제 꺼질지 몰라 단계 하나마다 이 줄을 고치고 커밋·푸시.
+    · 브랜치는 단계마다 이어서 만듦(css/stage-0-snapshot → … → css/stage-3e-summary), 모두 origin 에 푸시. 아직 main 에 병합 안 함.
+    · 끝난 단계: 5-0 비교 장치, 5-1, 5-2(일부), 5-3a 코스 탭, 5-3b 코스 카드, 5-3c 일정, 5-3d 식당·메뉴·블로그·근거, 5-3e 실행 요약·계획 결정·비용 표.
+    · 이어서 할 때: Docker 컨테이너 dmtest 의 /css/datemate 에 static 을 docker cp 하고 tests/css_snapshot.py 로 찍어 앞 단계(/snap/s3e 등)와 비교. 컨테이너가 없으면
+      앞 단계 커밋을 git archive 로 풀어 before 를 다시 찍을 것. 옮길 때는 scripts/css_move_component.py --subject(조상만 맞는 선택자는 남김 — 옮기면 공통 단추·입력과 순서가 뒤집혀 화면이 바뀜).
   GitHub CLI(gh) 로그인됨(2026-11-18) — CI 결과·실패 로그는 gh run view 로. 로그인 전에는 공개 API 시간당 60회 한도에 걸린 적 있음.
   사용자 할 일: TMAP 무료 요금제면 하루 10건뿐 — 실사용은 종량제로. SK Open API 회원 유형 확인. 휴대폰으로 비교 카드·지도 실선 보기.
 (마흔두 번째) 운영에 올라간 것: 커밋 8454367(병합, 브랜치 ui/meal-photo-mobile 커밋 2dce8b8·7ec4d38), Worker 버전 9eb91606-9e65-47ae-b0b1-404933f1704c (2026-11-18 낮)

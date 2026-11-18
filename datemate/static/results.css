@@ -525,3 +525,35 @@ main .meal-card .menu-price-row{font-size:15px; gap:12px;}
 .meal-suggestions{background:var(--platform)!important; border:0!important; border-radius:0!important;}
 .meal-card{background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; box-shadow:none;}
 .detail .meal-suggestions.is-empty{padding:12px 16px;}
+
+/* ── 실행 요약·계획 결정·비용 표(5-3e) (CSS 정리로 여러 파일에서 옮겨 옴. 원래 적용 순서 그대로, 출처 파일을 각 묶음 앞에 적음) ── */
+/* from style.css */
+.table-scroll{overflow:auto}
+.total-row{padding:15px 0;display:flex;justify-content:space-between;font-weight:700}
+@media print{.table-scroll{overflow:visible}}
+@media print{.total-row{break-inside:avoid}}
+/* from selle.css */
+.table-scroll{max-width:100%}
+/* from execution-summary.css */
+.execution-summary{background-color:#fff; border:1px solid var(--line); border-radius:20px; padding:22px; margin:20px 0; min-width:0;}
+@media(max-width:480px){.execution-summary{padding:16px; border-radius:16px;}}
+/* from planning-outcomes.css */
+.planning-decision{margin:22px 0 6px; padding:24px; border:1px solid var(--line); border-radius:20px; background-color:#fff;}
+@media(max-width:480px){.planning-decision{padding:18px; border-radius:16px;}}
+/* from readability.css */
+.detail .table-scroll{border:1px solid var(--line); border-radius:14px; margin:16px 0; background-color:#fff;}
+.detail .table-scroll:focus-visible{outline:3px solid var(--hong); outline-offset:3px;}
+.detail .total-row{gap:16px;
+  font-size:16px;
+  padding:14px 18px;
+  margin:8px 0;
+  background-color:#fff;
+  border:1px solid var(--line);
+  border-radius:14px;}
+@media(max-width:480px){.detail .total-row{flex-wrap:wrap; gap:4px 12px;}}
+/* from line.css */
+.total-row{font-variant-numeric:tabular-nums;}
+.execution-summary{background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; padding:20px 0 4px; box-shadow:none;}
+.detail .table-scroll{border:0; border-radius:0;}
+.detail .total-row{background:none; border:0; border-bottom:1px solid var(--line); border-radius:0; padding:12px 0;}
+.planning-decision{background:var(--platform); border:0; border-radius:0; box-shadow:none;}

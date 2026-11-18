@@ -154,6 +154,7 @@ def test_provider_metrics_never_store_query_or_credentials():
     assert 'SECRET' not in json.dumps(rows)
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_common_rate_budget_blocks_direct_api(monkeypatch):
     monkeypatch.setenv('DATEMATE_USER_RECOMMENDATIONS_PER_MINUTE','1')
     with TestClient(app) as client:

@@ -360,6 +360,7 @@ def test_same_search_at_once_calls_the_provider_once(fake):
     assert fake.count("blog") == 2 and results == ["ready"] * 3
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_new_searches_have_their_own_ip_limits(fake, monkeypatch):
     client = TestClient(app)
     monkeypatch.setenv("DATEMATE_IP_POPUP_SEARCHES_PER_MINUTE", "1")

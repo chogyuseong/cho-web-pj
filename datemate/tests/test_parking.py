@@ -220,6 +220,7 @@ def test_permission_problem_from_the_provider(monkeypatch):
     assert 'secret' not in str(result)
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(search, monkeypatch):
     assert any(p.match('GET /api/plans/abc/parking') for p in web_security.EXPENSIVE)
     # 운영은 1초. 전체 테스트를 돌리는 느린 기계에서는 첫 응답과 둘째 요청 사이가 1초를 넘어 막히지 않은 적이 있어,

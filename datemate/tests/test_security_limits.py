@@ -140,6 +140,7 @@ def test_first_api_call_issues_lax_session_and_existing_cookie_is_kept():
         assert client.delete('/api/me/data').status_code == 200
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_new_sessions_are_limited_per_ip_range(monkeypatch):
     monkeypatch.setenv('DATEMATE_IP_SESSIONS_PER_MINUTE', '2')
     with TestClient(app, client=(unique_ip(), 1)) as client:
@@ -171,6 +172,7 @@ def geocode_stub(monkeypatch):
     monkeypatch.setattr(main, 'search_address', lambda query: dict(status='ok', results=[], message=''))
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_owner_limit_cannot_be_reset_by_dropping_cookie(monkeypatch):
     geocode_stub(monkeypatch)
     monkeypatch.setenv('DATEMATE_IP_GEOCODE_PER_MINUTE', '1')
@@ -181,6 +183,7 @@ def test_owner_limit_cannot_be_reset_by_dropping_cookie(monkeypatch):
         assert response.status_code == 429
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_ipv6_clients_in_one_64_share_limits(monkeypatch):
     geocode_stub(monkeypatch)
     monkeypatch.setenv('DATEMATE_IP_GEOCODE_PER_MINUTE', '1')
@@ -202,6 +205,7 @@ def test_ipv4_neighbours_are_limited_separately(monkeypatch):
             assert client.post('/api/locations/search', json={'query': '서울 중구'}).status_code == 200
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_expensive_routes_have_their_own_lower_ip_limit(monkeypatch):
     monkeypatch.setenv('DATEMATE_IP_EXPENSIVE_REQUESTS_PER_MINUTE', '2')
     monkeypatch.delenv('TOUR_API_KEY', raising=False)
@@ -216,6 +220,7 @@ def test_expensive_routes_have_their_own_lower_ip_limit(monkeypatch):
         assert client.get('/api/status').status_code == 200
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_recommendation_ip_limit_applies_across_sessions(monkeypatch):
     from app.execution import recommendation_slot
     monkeypatch.setenv('DATEMATE_IP_RECOMMENDATIONS_PER_MINUTE', '1')
@@ -231,6 +236,7 @@ def test_recommendation_ip_limit_applies_across_sessions(monkeypatch):
         unbind_client(token)
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_chat_ip_limit_applies_across_sessions(monkeypatch):
     monkeypatch.setenv('DATEMATE_IP_CHATS_PER_MINUTE', '1')
     with TestClient(app, client=(unique_ip(), 1)) as client:
@@ -267,6 +273,7 @@ def test_place_blogs_are_cached_and_failures_are_not(monkeypatch):
     assert first == second and first['status'] == 'available' and len(calls) == 3
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_media_refresh_is_limited_per_owner_and_ip(monkeypatch):
     import app.main as main
     monkeypatch.setattr(main, 'media_info', lambda p, **kw: dict(status='not_found', photos=[]))
@@ -283,6 +290,7 @@ def test_media_refresh_is_limited_per_owner_and_ip(monkeypatch):
         assert client.get(url).status_code == 429
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_explore_query_length_and_uncached_search_limit(monkeypatch):
     from app import explore
     monkeypatch.setattr(explore, 'search_enabled', lambda: True)
@@ -349,6 +357,7 @@ def test_festival_detail_only_for_listed_ids(monkeypatch):
         assert client.get(f'/api/festivals/{unlisted}/detail').status_code == 404
 
 
+@pytest.mark.usefixtures('same_rate_window')
 def test_provider_budget_has_a_per_ip_share(monkeypatch):
     from app.telemetry import observed_http
     monkeypatch.setenv('DATEMATE_PROVIDER_CALLS_PER_HOUR', '100')

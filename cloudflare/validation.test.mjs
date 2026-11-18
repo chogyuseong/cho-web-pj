@@ -84,7 +84,7 @@ test("optional container env skips missing values and carries the feedback setti
   });
   assert.deepEqual(env, { FEEDBACK_ADMIN_KEY: "fake-test-value", DATEMATE_FEEDBACK_ENABLED: "0" });
   assert.ok(Object.values(optionalContainerEnv({ GMS_KEY: undefined, NAVER_MAPS_KEY: null })).length === 0);
-  for (const name of ["FEEDBACK_ADMIN_KEY", "DATEMATE_FEEDBACK_ENABLED", "TOUR_API_KEY"]) {
+  for (const name of ["FEEDBACK_ADMIN_KEY", "DATEMATE_FEEDBACK_ENABLED", "TOUR_API_KEY", "TMAP_TRANSIT_APP_KEY", "DATEMATE_TMAP_TRANSIT_CALLS_PER_DAY"]) {
     assert.ok(OPTIONAL_CONTAINER_ENV.includes(name), name);
   }
 });

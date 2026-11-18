@@ -378,6 +378,8 @@ def _status():
         map_tile_attribution=os.getenv("MAP_TILE_ATTRIBUTION", "© OpenStreetMap contributors"),
         # DATEMATE_POPUPS_ENABLED=0 이면 화면이 팝업 전환을 그리지 않는다(API 는 404).
         popups_enabled=popups_enabled(),
+        # TMAP 대중교통 키가 있을 때만 화면이 「지하철·버스 비교하기」 단추를 그린다(static/transit-compare.js).
+        transit_compare_available=bool(os.getenv("TMAP_TRANSIT_APP_KEY", "").strip()),
     )
 
 
@@ -663,6 +665,31 @@ def nearby_parking(id: str, request: Request):
     )
     store.cache(key, True, PARKING_REPEAT_SECONDS)
     return parking_near(plan)
+
+
+# 같은 브라우저가 지하철·버스 비교를 연달아 누를 때 두 번째를 막는 시간(초). 구간마다 TMAP 1건(건당 0.88원)이라 주차장보다 길게.
+TRANSIT_COMPARE_REPEAT_SECONDS = 2
+
+
+@app.get("/api/plans/{id}/transit-compare")
+def transit_compare(id: str, request: Request):
+    """대중교통 구간의 지하철·버스 경로 비교(TMAP). 결과 화면의 단추로만 부르며 코스는 바꾸지 않는다.
+    한도: 같은 브라우저 2초 반복 429, IP 범위 분당 DATEMATE_IP_TRANSIT_COMPARES_PER_MINUTE(기본 10),
+    web_security.EXPENSIVE(분당 120 공용), 하루 전체 DATEMATE_TMAP_TRANSIT_CALLS_PER_DAY(app/transit_compare.py)."""
+    _, plan = plan_row(id)
+    from .transit_compare import compare
+
+    key = "transit-compare-rate:" + request.state.owner
+    if store.cached(key):
+        raise HTTPException(429, "대중교통 비교는 잠시 후 다시 시도해 주세요.")
+    web_security.require_ip(
+        "transit",
+        "DATEMATE_IP_TRANSIT_COMPARES_PER_MINUTE",
+        10,
+        "대중교통 비교는 잠시 후 다시 시도해 주세요.",
+    )
+    store.cache(key, True, TRANSIT_COMPARE_REPEAT_SECONDS)
+    return compare(plan)
 
 
 class ReplaceInput(BaseModel):

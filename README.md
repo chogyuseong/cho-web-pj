@@ -38,6 +38,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 | `NAVER_MAPS_KEY_ID`, `NAVER_MAPS_KEY` | 주소 검색, 자동차 길찾기 | 네이버 클라우드 플랫폼 Maps |
 | `NAVER_MAPS_JS_KEY_ID` | 브라우저 네이버 지도 | 같은 콘솔의 Dynamic Map (접속 주소 등록 필요) |
 | `TOUR_API_KEY` | 축제 조회 | 공공데이터포털 "한국관광공사_국문 관광정보 서비스_GW" 일반 인증키(Decoding) |
+| `TMAP_TRANSIT_APP_KEY` (선택) | 대중교통 지하철·버스 비교(누를 때만, 미리보기) | SK Open API TMAP 대중교통 상품 앱 키(종량제 건당 0.88원) |
 
 테스트까지 돌리려면 `requirements.txt` 대신 `requirements-dev.txt`를 설치하세요. `requirements.txt`는 운영 실행에 필요한 것만 담고 있습니다.
 

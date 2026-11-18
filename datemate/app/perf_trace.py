@@ -24,6 +24,7 @@ KNOWN_PATHS = {
     "/map-direction/v1/driving": "driving_route",
     "/map-reversegeocode/v2/gc": "reverse_geocode",
     "/map-geocode/v2/geocode": "geocode",
+    "/transit/routes": "transit_route",  # TMAP 대중교통(app/transit_compare.py)
 }
 BLOG_HOSTS = ("blog.naver.com", "m.blog.naver.com")
 

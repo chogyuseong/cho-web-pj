@@ -8,7 +8,22 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 c21e6ac(main, 병합 a2cd6d9 = 카드 사진 서버 축소), Worker 버전 76c56205-22bc-41eb-bf51-d1c055bc34bf (마흔일곱 번째 배포, 2026-11-18 오후)
+운영에 올라간 것: 커밋 aa64d78(main 병합, 브랜치 perf/leisure-photo-thumb 커밋 39279cd = 레저 사진 격자도 축소), Worker 버전 af210b71-5682-4b44-b972-91ae150fbbbb (마흔여덟 번째 배포, 2026-11-18 밤)
+  사용자 결정: 레저 격자도 /photo-thumb(폭 960), 크게 보기·원본 링크는 원본 유지. 사용자가 '병합하고 배포해' 로 지시.
+  · leisure.js: 격자에서 loadSafePhoto(…, {thumb: true}), 실패 때 원본. '크게 보기' 링크와 같은 사진 거르기는 원본 주소 기준, 다시 찾기 때 thumb 시험 결과도 지움.
+    서버 동작 변경 없음(레저 사진도 /media·fallback=reviews 로 와서 이미 thumb_url 이 붙음). 새 허용 호스트 없음.
+  · 폭 960 근거: 390px·배율 3 에서 격자 칸 162×162(기기 486px 정사각, 3:2 사진을 채우려면 폭 약 730 필요), 1440px·배율 2 에서 948×632. 카드와 같은 주소라 캐시 공유.
+  · 새 tests/test_leisure_photo_thumb_ui.py 3, test_photo_thumb.py +3. Docker 전체 1276 통과·6 건너뜀·실패 0, CI Run 44312883238 5개 통과.
+  · 운영 확인: 배포 직후엔 깨어 있던 컨테이너가 예전 파일을 줌 → 11분 접속 없이 기다린 뒤 엣지가 leisure.js?v=10adc4152892(thumb 옵션 있음)를 줌.
+    레저 패널을 실제로 열어 사진을 받아 보지는 않았습니다(외부 API 아낌). 사람이 볼 것: 휴대폰에서 레저 격자 사진 선명도.
+  · 문제가 생기면: git revert -m 1 aa64d78.
+  47번째 배포 뒤 측정(2026-11-18 21:48~22:01, 운영 390px 성수 추천 1회, 끝까지 내림):
+    · 카드 사진 8건 32.3MB → 1.09MB(/photo-thumb 8건 39~297KB, 원본 직접 요청 0, 404 대체 0). 지도 타일 34건 약 0.52MB, visitkorea 이미지 6건 0.75MB.
+    · /photo-thumb 첫 변환 서버 0.65~3.19초(브라우저 1.18~5.45초), 메모리 캐시 적중 서버 62~73ms. cf-cache-status 없음.
+    · 컨테이너 메모리: wrangler containers 명령엔 없고 Cloudflare GraphQL containersMetricsAdaptiveGroups(max.memory)로 봄 → 측정 중 최대 468MB,
+      그날 배포 전 5분 최대 560MB. 메모리 한도(instance_type 미지정)는 확인 못 함.
+    · 화면 오류 0, 페이지 가로 넘침 없음. 단 결과 안 표 하나의 오른쪽 끝이 423px(감싼 요소 안 가로 스크롤로 보임, 어느 표인지 미확인).
+(마흔일곱 번째) 운영에 올라간 것: 커밋 c21e6ac(main, 병합 a2cd6d9 = 카드 사진 서버 축소), Worker 버전 76c56205-22bc-41eb-bf51-d1c055bc34bf (마흔일곱 번째 배포, 2026-11-18 오후)
   사용자가 '배포해' 로 지시. 컨테이너 이미지 새로 빌드(pillow-13.0.0 설치 확인), /api/status 19.6초(새 컨테이너).
   운영 확인(자동화 Chromium 390px, 성수역 출발 도보 추천 = 팀홀튼 밴프 타운 성수점·성수다락·크래프트 프랙티스, 코스 2 엠엠블루 포함):
     · /media 응답에 thumb_url(ldb-phinf·clip-service-phinf.pstatic.net), /photo-thumb 첫 변환 1.4~1.9초, image/webp, Cache-Control public 86400.
@@ -71,7 +86,7 @@
     · /api/places/{id}/media 가 허용 사진에 thumb_url 을 붙임(media_info 는 그대로). place-photos.js: 카드는 thumb 먼저 따로, 실패 때만 원본. 크게 보기·레저 격자는 원본.
     · 의존성 pillow==13.0.0(requirements.txt·두 잠금 파일). 처음 넣은 12.3.0 은 알려진 취약점 8건(13.0.0 에서 고침)으로 CI python-audit 실패 → 13.0.0.
     · 새 tests/test_photo_thumb.py 17, tests/test_photo_thumb_ui.py 2. *.workers.dev 는 Cloudflare Cache API 를 못 쓰는 것으로 알아 엣지 캐시는 없음(확인 안 함).
-    · 배포 뒤 할 것: 운영 성수 추천 끝까지 내렸을 때 사진 바이트 합(전 약 32MB) 측정, /photo-thumb 첫 변환 시간·컨테이너 메모리. 레저 사진 격자는 다음 후보.
+    · 배포 뒤 측정은 맨 위 마흔여덟 번째 아래 '47번째 배포 뒤 측정'. 레저 사진 격자는 마흔여덟 번째 배포로 올라감.
   CSS 18개 정리: Fable 설계를 datemate/docs/css-consolidation-plan-2026-11-18.md 에 남김(1063a1b, 아직 적용 안 함, 첫 단계는 계산값 비교 장치). 사용자 지시로 단계별 진행.
   GitHub CLI(gh) 로그인됨(2026-11-18) — CI 결과·실패 로그는 gh run view 로. 로그인 전에는 공개 API 시간당 60회 한도에 걸린 적 있음.
   사용자 할 일: TMAP 무료 요금제면 하루 10건뿐 — 실사용은 종량제로. SK Open API 회원 유형 확인. 휴대폰으로 비교 카드·지도 실선 보기.

@@ -20,8 +20,11 @@ function photoCheckedAt(value){
   return `${at.getFullYear()}-${two(at.getMonth()+1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
 }
 // 촬영·확인 시점, 변경 여부, 이용 조건은 '사진 정보' 접기 안에 둔다(전에는 사진마다 본문 크기 4줄, 2026-11-17 가독성 정리).
+// 네이버 사진의 구분(업체 등록 / 방문자 후기 / 업체 연결 공개 사진 · 등록 주체 미확인, 내용 미검사)도 2026-11-18 부터 여기 첫 줄이다
+// (출처 줄에서 옮김, 사용자 지시 — photoCredits 머리 주석). 접기가 없는 크게 보기 창에서는 '원본' 링크의 이름·title 로만 남는다.
 function photoMetaLines(photo){
   const lines=[node('p',`촬영 ${photo.taken_at||'시점 미확인'} · 자료 확인 ${photoCheckedAt(photo.checked_at)}`,'hint'),node('p',photo.changes||'원본 변경 없음','hint')];
+  if(['search_result','place_public'].includes(photo.kind))lines.unshift(node('p','사진 구분: '+photoLabel(photo,'네이버 공개 사진'),'hint photo-kind'));
   if(['search_result','place_public'].includes(photo.kind))lines.push(node('p','검색 참고 이미지 · 원본 이용 조건 확인 필요','hint'));
   return lines;
 }
@@ -34,10 +37,27 @@ function photoMeta(photo,full){
 }
 // 장소 일치만 확인하고 사진 내용 검사는 하지 않은 사진임을 라벨에 드러낸다.
 function photoLabel(photo,fallback){return (photo.source_label||fallback)+(photo.visual_verification?.status==='unverified'?' · 내용 미검사':'');}
-// 사진 아래 출처 줄. 카드와 큰 보기 창이 같은 표기를 쓴다.
+/* 사진 아래 출처 줄. 카드·크게 보기 창·장소 정보 창의 추가 사진이 같은 표기를 쓴다.
+   네이버 사진(search_result·place_public): '네이버 공개 사진 · 원본 · 검색' 한 줄.
+     2026-11-18 전에는 '네이버 사진 자료 · 업체 연결 공개 사진 · 등록 주체 미확인 · 검색 결과'였는데, 휴대폰 식당 카드에서 여러 줄로 쌓여 줄였다(사용자 지시).
+     빠진 사진 구분(업체 등록 / 방문자 후기 / 등록 주체 미확인, 내용 미검사)은 '사진 정보' 접기로 옮겼다(사용자 지시):
+       · 결과·식당 카드와 장소 정보 창: '사진 정보' 접기 안 첫 줄 '사진 구분: …'(photoMetaLines)
+       · 모든 곳: '원본' 링크의 접근 가능한 이름('사진 원본 (업체 등록 사진)')과 title(마우스를 올리면 보임). 크게 보기 창은 접기가 없어 이것뿐.
+     사진 구분을 다시 줄에 보이게 하려면 photoSourceLink 의 글자(text)에 photoLabel 을 넣으면 된다.
+   위키미디어 등(그 밖의 kind): 촬영자 · 이용 조건 · 사진 원문(이용 조건 표기가 필요해 줄이지 않음). */
+function photoSourceLink(photo,text){
+  const a=link(text,photo.source),kind=photoLabel(photo,'사진 출처');
+  // link 는 안전한 https 주소가 아니면 <span> 을 돌려준다. 그때는 이름을 붙이지 않는다(눌러지는 것이 아님).
+  if(a.tagName==='A'){a.setAttribute('aria-label','사진 원본 ('+kind+')');a.title=kind;}
+  return a;
+}
 function photoCredits(photo){
   const credits=node('figcaption');
-  if(['search_result','place_public'].includes(photo.kind))credits.append(node('span','네이버 사진 자료 · '),link(photoLabel(photo,photo.kind==='place_public'?'장소 사진 출처':'원본 이미지'),photo.source),node('span',' · '),link('검색 결과',photo.search_url));
+  if(['search_result','place_public'].includes(photo.kind)){
+    credits.append(node('span','네이버 공개 사진 · '),photoSourceLink(photo,'원본'));
+    // 검색 주소가 없으면 '검색' 자체를 뺀다(전에는 '검색 결과'가 링크 아닌 글자로 남았다).
+    if(photo.search_url){const search=link('검색',photo.search_url);if(search.tagName==='A')search.setAttribute('aria-label','네이버 검색 결과');credits.append(node('span',' · '),search);}
+  }
   else credits.append(node('span','사진: '+photo.author+' · '),link(photo.license,photo.license_url),node('span',' · '),link('사진 원문',photo.source));
   return credits;
 }
@@ -187,7 +207,8 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       const index=data.photos.indexOf(next);if(index>=0)current=index;
       if(counter)counter.textContent=`${current+1} / ${data.photos.length}`;
       imageLink.setAttribute('aria-label',next.title+' 사진 크게 보기');
-      copy.replaceChildren(node('span',photoLabel(next,next.image_role?next.image_role+' · 제목 기준':'장소 사진'),'photo-eyebrow'),node('h5',next.title),node('p',next.caption||place.description||''));
+      // 머리 글자는 사진의 역할만(예: '외관 · 제목 기준'). 사진 구분(업체 등록 등)은 아래 photoMeta 의 '사진 구분' 줄에 한 번만 둔다.
+      copy.replaceChildren(node('span',next.image_role?next.image_role+' · 제목 기준':'장소 사진','photo-eyebrow'),node('h5',next.title),node('p',next.caption||place.description||''));
       if(place.description&&place.description!==next.caption)copy.append(node('p',place.description,'hint'));
       copy.append(...photoMeta(next,full));
       credits.replaceChildren(...photoCredits(next).childNodes);loading.remove();
@@ -225,7 +246,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       viewport.addEventListener('touchcancel',()=>{touch=null;},{passive:true});
     }
     if(data.photos.length>1&&!full){const more=button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode));copy.append(more);}
-    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(['search_result','place_public'].includes(item.kind))credit.append(link(photoLabel(item,'원본 사진'),item.source));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',item.title+' 사진 크게 보기');open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')));}panel.append(extra);}
+    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(['search_result','place_public'].includes(item.kind))credit.append(node('span','네이버 공개 사진 · '),photoSourceLink(item,'원본'));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',item.title+' 사진 크게 보기');open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')));}panel.append(extra);}
   }catch(error){panel.replaceChildren(node('p','사진 정보를 불러오지 못했습니다. 다시 시도해 주세요.','photo-status'),retry());}}
   // 목록 전체를 한 번에 조회하지 않고 화면 근처의 장소만 불러온다.
   if(eager)load();else if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){observer.disconnect();load();}},{rootMargin:'150px'});observer.observe(panel);}else load();

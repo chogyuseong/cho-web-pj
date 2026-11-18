@@ -116,10 +116,12 @@ def test_explore_photo_opens_large_viewer(audit_page, width):
     assert box['width'] > thumb['width']
     assert '사진 큰보기 카페 사진' == viewer.locator('h2').inner_text()
     assert viewer.locator('.photo-counter').inner_text() == '1 / 3'
-    # 출처 줄이 그대로 보인다.
+    # 출처 줄이 보인다. 2026-11-18 부터 짧은 표기('네이버 공개 사진 · 원본 · 검색')이고, 사진 종류는 '원본' 링크의 이름·title 에 남는다.
     credit = viewer.locator('figcaption')
-    assert credit.is_visible() and '네이버 사진 자료' in credit.inner_text()
-    assert credit.get_by_role('link', name='업체 등록 사진', exact=True).count() == 1
+    assert credit.is_visible() and credit.inner_text() == '네이버 공개 사진 · 원본 · 검색'
+    original = credit.get_by_role('link', name='사진 원본 (업체 등록 사진)', exact=True)
+    assert original.count() == 1 and original.get_attribute('title') == '업체 등록 사진'
+    assert credit.get_by_role('link', name='네이버 검색 결과', exact=True).count() == 1
     # 이전·다음(단추와 화살표 키)
     viewer.get_by_role('button', name='다음 사진', exact=True).click()
     assert viewer.locator('.photo-counter').inner_text() == '2 / 3'

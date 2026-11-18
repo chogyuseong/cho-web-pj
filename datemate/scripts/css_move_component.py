@@ -9,6 +9,9 @@
   · 옮긴 규칙은 원래 순서 그대로, 원래 @media/@supports 조건으로 감싸 대상 파일 끝에 붙인다(선언·!important 는 글자 그대로).
     따라서 옮긴 규칙끼리의 순서는 같다. 바뀌는 것은 '옮기지 않은 다른 규칙'과의 순서뿐 → tests/css_snapshot.py 로 반드시 확인한다.
   · 패턴이 괄호 안(:is(...)·:not(...))에만 있는 선택자는 다른 부품과 섞여 있을 수 있어 옮기지 않고 '남김'으로 알린다.
+  · --subject(5-3c 부터 기본): 선택자의 마지막 대상(맨 끝 결합자 뒤)이 패턴에 맞을 때만 옮긴다. '.detail h3'·'.stop .actions' 처럼 부품 이름이
+    조상에만 있는 선택자는 공통 요소(h3·단추·.hint)를 꾸미므로 '남김'. 이것까지 옮기면 남은 공통 규칙과의 순서가 뒤집혀 화면이 바뀐다(5-3c 첫 시도에서 확인).
+    남긴 것은 그 공통 요소를 평탄화할 때(5-5) 함께 옮긴다.
   · 대상 파일이 없으면 만들고, 이 도구는 index.html 의 <link> 를 고치지 않는다(사람이 line.css 바로 뒤에 넣는다).
 """
 import argparse
@@ -27,7 +30,16 @@ def load_order():
     return [m for m in re.findall(r'href="/static/([\w.-]+\.css)', html)]
 
 
-def plan(css, pattern):
+def subject(selector):
+    """선택자의 마지막 대상(맨 끝 결합자 뒤 부분). '.detail .route-line:hover' → '.route-line:hover'."""
+    text, depth, cut = outside_parens(selector).strip(), 0, 0
+    for i, ch in enumerate(text):
+        if ch in ' >+~':
+            cut = i + 1
+    return text[cut:]
+
+
+def plan(css, pattern, subject_only=False):
     """(바꿀 곳 [(시작, 끝, 새 글자)], 옮길 것 [(조건 목록, 선택자, 선언)], 남김 목록)."""
     edits, moved, kept = [], [], []
 
@@ -46,8 +58,11 @@ def plan(css, pattern):
                 continue
             prelude, body = css[start:brace], css[brace + 1:finish - 1]
             selectors = split_selectors(prelude)
-            hit = [s for s in selectors if re.search(pattern, outside_parens(s))]
-            inside = [s for s in selectors if s not in hit and re.search(pattern, s)]
+            hit = [s for s in selectors if re.search(pattern, subject(s) if subject_only else outside_parens(s))]
+            if subject_only:
+                # 부품 이름이 조상에만 있는 선택자(.detail h3, .stop .actions)는 공통 요소를 꾸미므로 남긴다(5-3c 에서 순서가 뒤집혀 화면이 바뀜).
+                kept.extend(s.strip() for s in selectors if s not in hit and re.search(pattern, outside_parens(s)))
+            inside = [s for s in selectors if s not in hit and re.search(pattern, s) and not re.search(pattern, outside_parens(s))]
             kept.extend(s.strip() for s in inside)
             if not hit:
                 emptied = False
@@ -92,6 +107,8 @@ def main():
     parser.add_argument('--to', required=True)
     parser.add_argument('--title', default='옮긴 규칙')
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--subject', action='store_true',
+                        help='선택자의 마지막 대상이 부품 이름일 때만 옮김(.detail h3 같은 조상만 맞는 규칙은 남김). 5-3c 부터 기본으로 쓴다.')
     args = parser.parse_args()
     target = STATIC / args.to
     moved_by_file, total = [], 0
@@ -100,9 +117,9 @@ def main():
         if not path.exists() or path == target:
             continue
         css = path.read_text(encoding='utf-8')
-        edits, moved, kept = plan(css, args.pattern)
+        edits, moved, kept = plan(css, args.pattern, args.subject)
         if moved or kept:
-            print(f'== {name}: 옮김 {len(moved)}' + (f' · 남김(괄호 안) {len(kept)}' if kept else ''))
+            print(f'== {name}: 옮김 {len(moved)}' + (f' · 남김 {len(kept)}' if kept else ''))
             for chain, selector, _ in moved:
                 print('   ', (' '.join(chain) + ' ' if chain else '') + selector[:120])
             for s in kept:

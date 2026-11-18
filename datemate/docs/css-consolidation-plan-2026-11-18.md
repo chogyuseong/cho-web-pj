@@ -102,3 +102,9 @@
   `#results > :not(#plan-detail):not(.plan-card):not(.condition-differences)`(style.css, 괄호 안)는 그대로. style.css 에서 옮긴 것도 shared·feedback 장면 차이 0.
   검증 장치 보강: id 끝 번호(map-popup-hubs-7/8)를 경로에서 무시, #server-wake(응답 늦을 때만)·.section-indicator(스크롤 관찰 상태)는 비교·스크린샷에서 뺌.
   보강한 장치로 5-3a 상태(git archive 0ec4822)와 5-3b 상태를 같은 컨테이너에서 찍어 비교: 차이 0(위치 선택 창 모서리 몇 픽셀 흔들림만 — 알려진 것, 같은 CSS 로도 실행마다 다름).
+- 2026-11-18 **5-3c 일정(장소 카드·구간 줄·수단·주차·대중교통 비교) → results.css** — `.detail`, `.stop`, `.timeline-*`, `.route-line*`, `.transport-*`, `.transit-*`, `.parking-*` 규칙 196개를
+  style·selle·calm·editorial·readability·line 에서 옮김(results.css 끝 '5-3c' 구역).
+  첫 시도(선택자에 부품 이름이 어디든 있으면 옮김)는 `.detail h3`·`.stop .actions`·`.timeline-card h4` 같은 '조상만 맞는' 규칙까지 옮겨, 남은 공통 규칙(h3·단추·.hint)과의 순서가 뒤집혀 화면이 바뀜.
+  → 도구에 `--subject`(선택자의 마지막 대상이 부품일 때만 옮김)를 더하고 다시 적용. 조상만 맞는 선택자 약 50개(style·place-photos·plan-map·selle·calm·editorial)는 제자리에 남김 — 5-5 공통 요소 평탄화 때 함께.
+  `.detail-header`(머리 줄)는 이번 패턴에 넣지 않음.
+  전후 11장면 × 12폭(5-3b 상태 /snap/b3b 와 비교): 스타일·상자 차이 0, 스크린샷은 location_dialog 560px 모서리 5픽셀(알려진 흔들림)만.

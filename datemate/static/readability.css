@@ -100,8 +100,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 .detail-header h2 { font-size:26px; line-height:1.5; }
 .detail .timeline-card h4 { font-size:25px; line-height:1.5; margin:12px 0 8px; }
 .detail .timeline-card :is(.small,.hint) { font-size:15px; line-height:1.8; }
-.detail .route-line { font-size:15px; line-height:1.8; color:var(--hong); padding:12px 16px; }
-.detail .stop-cost { font-size:15px; line-height:1.65; color:var(--hong); }
 .detail .map-link-list a {
   padding:6px 14px;
   border-radius:999px;
@@ -136,18 +134,10 @@ header .brand-name small { font-size:13px; color:var(--muted); }
   .detail .map-link-list a { width:100%; }
 }
 /* 이동 수단 바꾸기: 구간 줄의 [수단 바꾸기] 하나, 펼치면 수단 4개를 2열 균등으로. 고른 수단은 aria-pressed로 표시. */
-.detail .route-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
-.detail .route-line-text { flex:1 1 14em; min-width:0; }
-.detail .route-line-source { flex-basis:100%; font-size:14px; line-height:1.7; font-weight:500; color:var(--muted); }
 .detail .route-line .route-mode-toggle { flex:0 0 auto; padding:8px 14px; font-size:15px; border:1px solid var(--line); }
-.detail .transport-chooser,.detail .transport-bulk { border:1px solid var(--line); border-radius:14px; padding:4px 14px 12px; margin:8px 0 12px; background-color:#fff; min-width:0; }
 .detail .transport-chooser>legend { padding:0 6px; font-weight:700; }
-.results-area .transport-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 .results-area .transport-options>button { width:100%; }
 .results-area .transport-options>button[aria-pressed=true] { background-color:var(--hong); border-color:var(--hong); color:#fff; }
-.detail .transport-status:empty { display:none; }
-.detail .transport-status { margin:8px 0 0; }
-.detail .transport-notice { border-left:4px solid var(--hong); background-color:#fff; border-radius:0 12px 12px 0; padding:10px 16px; margin:12px 0; }
 .detail .transport-notice p { margin:4px 0; }
 @media(max-width:800px) {
   .detail .route-line .route-mode-toggle { width:100%; }
@@ -243,7 +233,7 @@ footer,footer small { font-size:14px; line-height:1.75; }
   header nav a,header nav button.nav { font-size:14px; min-height:44px; padding:6px 10px; }
   header nav a { display:inline-flex; }
   main .hero .hero-description { font-size:17px!important; }
-  .conditions.panel,.detail.panel{ padding:20px 16px; }
+  .conditions.panel{ padding:20px 16px; }
   .conditions .field-grid { gap:12px; }
   .detail .chat-form { flex-wrap:wrap; }
   .detail .chat-form input { flex-basis:100%; }

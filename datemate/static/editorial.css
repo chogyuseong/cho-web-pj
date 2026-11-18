@@ -122,12 +122,6 @@ input:focus,textarea:focus,select:focus{
 .number{color:var(--ink);font-size:14px;font-weight:750}
 
 /* Detailed Timeline & Stops */
-.detail.panel{
-  border-radius:26px;
-  padding:30px;
-  background-color:#fff;
-  border:1px solid var(--line);
-}
 .detail-header{display:flex;flex-wrap:wrap;align-items:center;gap:16px}
 .detail-header h2{
   flex:1 1 240px;
@@ -138,39 +132,10 @@ input:focus,textarea:focus,select:focus{
 }
 .detail-header>.actions{display:flex;flex-wrap:wrap;gap:8px;min-width:0;max-width:100%}
 .detail-header>.actions button{white-space:normal;min-height:44px;border-radius:999px}
-
-.stop:before{border-left:2px dashed var(--line)}
-.stop .timeline-card{
-  border:1px solid var(--line);
-  border-radius:22px;
-  background-color:#fff;
-  padding:24px;
-}
-.stop-number{
-  background-color:var(--brand-blue);
-  color:#fff;
-  border:2px solid #fff;
-}
 .timeline-stamp strong{color:var(--hong);font-weight:800}
 .timeline-card h4{
   font-size:24px;
   color:var(--ink);
-}
-.route-line{
-  color:var(--hong);
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:12px 16px;
-  font-weight:600;
-}
-.stop-cost{
-  background-color:#fff;
-  border:1px solid var(--line);
-  color:var(--hong);
-  border-radius:999px;
-  padding:6px 14px;
-  font-weight:750;
 }
 
 /* Photos, Evidence, Blogs & Meals */
@@ -416,7 +381,6 @@ input,select,textarea{max-width:100%;min-width:0}
   .workspace-intro h2{font-size:26px}
   .simple-plan-form .simple-form-group{padding:18px}
   .section-heading h2{font-size:22px}
-  .detail.panel{padding:20px;border-radius:20px}
   .option-comparison{padding:16px}
   .timeline-card h4{font-size:21px}
   .plan-photo-preview{grid-template-columns:1fr}
@@ -439,7 +403,6 @@ input,select,textarea{max-width:100%;min-width:0}
   .detail-header h2{flex-basis:100%;font-size:22px}
   .stop .actions{display:flex;flex-wrap:wrap;gap:8px}
   .stop .actions button{font-size:14px;min-height:44px;white-space:normal}
-  .stop-cost{font-size:14px;float:none;max-width:100%;white-space:normal}
   .place-blogs summary{font-size:14px}
   dialog{padding:18px 14px}
 }
@@ -457,7 +420,6 @@ input,select,textarea{max-width:100%;min-width:0}
 @media print{
   .hero-actions{display:none!important}
   body{background:white}
-  .detail.panel{border:0;box-shadow:none}
 }
 
 /* Polish: rose progress banner, clean heading focus, and SVG route accents */

@@ -8,9 +8,12 @@
 ★ 지금 상태 (2026-11-18 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-CSS 정리 5-1·5-2 (main 병합 1e48e53, 브랜치 refactor/css-5-1-5-2 커밋 b7b63a7·f56e002·cc15ab0, 2026-11-19) — 병합만, 아직 배포 안 함
-  · 사용자가 '모든 권한' 으로 남은 작업 진행·기록·종료를 지시. npx wrangler deploy 는 Claude Code 자동 모드 권한 규칙(Production Deploy)에 막혀 실행하지 못함.
-    배포하려면: 저장소 최상위에서 git status 깨끗한지 보고 npx.cmd wrangler deploy (Docker Desktop 켜고). 화면 계산값이 같아 급하지 않음.
+운영에 올라간 것: 커밋 7067629(main, 병합 1e48e53 = CSS 정리 5-1·5-2), Worker 버전 7200fee5-3721-4385-8d84-9a4694abc198 (마흔아홉 번째 배포, 2026-11-19)
+  · 사용자가 '모든 권한' 으로 지시. Claude 의 npx wrangler deploy 는 Claude Code 자동 모드 권한 규칙(Production Deploy)에 막혀, 사용자가 ! npx.cmd wrangler deploy 로 직접 배포.
+    바뀐 정적 파일 6개(location-picker·selle·style·readability·calm·line .css), 컨테이너 이미지는 static 층만 새로.
+  · 운영 확인(배포 직후): 컨테이너가 꺼져 있어 엣지가 새 파일을 줌(Server-Timing 없음) — location-picker.css?v=e97eb6f2c37b 에 @import 없음, line.css 에 main .eyebrow 없음.
+    화면을 사람 눈으로 보지는 않음(계산값 비교 차이 0 으로 갈음).
+CSS 정리 5-1·5-2 상세 (브랜치 refactor/css-5-1-5-2 커밋 b7b63a7·f56e002·cc15ab0)
   · 5-1: location-picker-layout.css 13줄을 location-picker.css 맨 앞에 합치고 파일 삭제(참조는 @import 한 줄뿐).
   · 5-2: html·js·app·tests·scripts·cloudflare 어디에도 없는 클래스 26개 규칙 삭제(hero-art, orbit, ticket*, flower, art-*, route-feature, route-art, feature-tags,
     journal-*(journal-demo 제외), preset-art·preset-copy, data-point, ai-label, big-symbol, empty-tags, eyebrow — 목록 전체는 f56e002 커밋 메시지).

@@ -72,7 +72,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 **2026-11-12에 운영 배포했습니다: <https://datemate.guseong-family.workers.dev>**
 
-마지막 배포는 2026-11-18의 마흔여덟 번째 배포(커밋 `aa64d78`, 레저 사진 격자도 서버 축소 사진으로)입니다. 그 전 배포들로 지하철·버스 비교(TMAP), 지도 겹친 번호 합치기·「일정에서 보기」, 카드 사진 서버 축소가 올라갔습니다. 그 뒤 main 에 CSS 정리 5-0~5-2(계산값 비교 장치 `datemate/tests/css_snapshot.py`, `@import` 합치기, 죽은 규칙 삭제 — 화면 계산값 차이 0)가 병합됐고 아직 배포하지 않았습니다. CSS 정리 계획은 [datemate/docs/css-consolidation-plan-2026-11-18.md](datemate/docs/css-consolidation-plan-2026-11-18.md). 지금 운영에 올라간 버전과 배포 뒤 확인한 것·확인하지 못한 것은 [배포-이어가기.txt](배포-이어가기.txt) 맨 위 ★ 구역에 있습니다.
+마지막 배포는 2026-11-19의 마흔아홉 번째 배포(커밋 `7067629`, CSS 정리 5-1·5-2: `@import` 합치기·죽은 규칙 삭제, 계산값 비교 장치 `datemate/tests/css_snapshot.py` 로 화면 차이 0 확인)입니다. 그 전 배포들로 레저·카드 사진 서버 축소, 지하철·버스 비교(TMAP), 지도 겹친 번호 합치기·「일정에서 보기」가 올라갔습니다. CSS 정리 계획은 [datemate/docs/css-consolidation-plan-2026-11-18.md](datemate/docs/css-consolidation-plan-2026-11-18.md). 지금 운영에 올라간 버전과 배포 뒤 확인한 것·확인하지 못한 것은 [배포-이어가기.txt](배포-이어가기.txt) 맨 위 ★ 구역에 있습니다.
 
 FastAPI 앱은 Cloudflare Containers(Workers Paid 플랜)에서 실행하고 Worker가 공개 요청을 전달합니다. 상시 실행할 개인 Docker 서버는 필요하지 않고, Docker는 배포할 이미지를 만들 때만 씁니다. 10분쯤 접속이 없으면 컨테이너가 꺼지며, 다음 첫 접속은 20~40초 걸립니다.
 

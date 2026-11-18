@@ -51,11 +51,19 @@ def storage():
 # 분·시간 한도는 int(time.time() // 60) 같은 고정 구간으로 센다. 한도를 낮춘 테스트의 요청 사이에 분이 바뀌면
 # 둘째 요청이 새 구간에서 다시 허용돼 429 를 기대한 검사가 가끔 실패한다(2026-11-18 CI postgres, test_parking:258 이 [200, 200]).
 # 이 여유보다 짧게 남았으면 다음 분까지 기다렸다 시작한다. 정시는 분 경계이기도 해서 시간 한도도 함께 지킨다.
+# 15초 = 한도 테스트 하나가 느린 CI(postgres)에서 걸리는 시간보다 넉넉한 값. 테스트가 그보다 길어지면 이 값을 키운다
+# (기다림은 테스트 시작이 분의 마지막 15초에 걸렸을 때만, 최대 15초).
 RATE_WINDOW_MARGIN_SECONDS = 15
 
 
 @pytest.fixture
 def same_rate_window():
+    """한도를 낮추고(monkeypatch.setenv('…_PER_MINUTE'/'…_PER_HOUR', 작은 수)) 429 를 기대하는 테스트에 붙인다:
+    @pytest.mark.usefixtures('same_rate_window'). 한도가 넉넉해 200 만 기대하는 테스트에는 필요 없다.
+
+    시계를 가짜로 바꾸지 않은 까닭: 구간 계산(time.time() // 60)이 web_security·execution·main·popup_api·telemetry 에 흩어져 있고,
+    같은 모듈의 time.time() 을 작업 마감·하트비트도 쓴다. 모듈마다 시계를 멈추면 그 기다림이 끝나지 않을 수 있다.
+    구간 계산을 한 함수로 모으면(app 쪽 변경) 그 함수만 바꿔 끼우는 방식으로 바꿀 수 있다."""
     import time
     left = 60 - time.time() % 60
     if left < RATE_WINDOW_MARGIN_SECONDS:

@@ -11,9 +11,12 @@ from test_functional_audit import audit_page, generate  # noqa: F401
 from test_popup_map_ui import NAVER_STUB
 from test_readability_stage6_ui import FOCUSED, NAVER_MARKERS, release_finished_plan_jobs  # noqa: F401
 
+# 공용 가짜 SDK(test_popup_map_ui.NAVER_STUB)의 Map 정의를 글자 그대로 찾아 투영을 붙인 것으로 바꾼다.
+# 공용 가짜 SDK 의 Map 줄을 고치면 이 assert 가 먼저 실패하므로, 그때 아래 STUB_MAP 을 새 정의에 맞춘다.
 STUB_MAP = "Map:function(){this.fitBounds=()=>{window.__fits++;};this.destroy=()=>{};},"
 assert STUB_MAP in NAVER_STUB
 # 화면 좌표: window.__offsets['lat,lon'] 이 있으면 그 값, 없으면 크게 벌린 좌표(어느 두 장소도 겹치지 않음).
+# 실제 SDK 처럼 '지금 확대 수준'의 좌표를 흉내 내려면 __offsets 를 바꾸고 zoom_to 로 zoom_changed 처리를 부른다.
 NAVER_STUB_WITH_PROJECTION = NAVER_STUB.replace(STUB_MAP, """Map:function(){this.fitBounds=()=>{window.__fits++;};this.destroy=()=>{};
       this.getProjection=()=>({fromCoordToOffset:c=>{const o=(window.__offsets||{})[c.lat()+','+c.lng()];
         return o?new naver.maps.Point(o[0],o[1]):new naver.maps.Point(c.lng()*1e7,-c.lat()*1e7);}});},""")
@@ -100,9 +103,11 @@ def test_merged_marker_text_fits_inside_the_pill(audit_page):
     """합친 표시의 글자가 알약 안에 들어가는지 실제 CSS 로 잰다(두 자리 번호 포함). 가짜 SDK 는 표시 DOM 을 만들지 않아 직접 넣는다."""
     page, base, errors = audit_page
     page.set_viewport_size({'width': 390, 'height': 844})
+    # 너비는 maps.js 의 stopMarkerWidth 를 그대로 써서(공식을 여기 다시 적지 않음) 공식이 바뀌어도 '글자가 들어가는지'만 본다.
+    # 아래 [56, 56, 74, 74] 는 지금 공식의 값이라, 공식을 일부러 바꾸면 이 줄과 위 테스트의 56/74·기준점도 함께 고친다.
     sizes = page.evaluate("""()=>['2·3','10·11','1·2·3','8·9·10'].map(label=>{
       const n=label.split('·').length,box=document.createElement('div');
-      box.innerHTML='<span class="route-marker route-stop-marker'+(n>1?' route-stop-merged" style="width:'+(38+18*(n-1))+'px':'')+'">'+label+'</span>';
+      box.innerHTML='<span class="route-marker route-stop-marker'+(n>1?' route-stop-merged" style="width:'+stopMarkerWidth(n)+'px':'')+'">'+label+'</span>';
       document.body.append(box);const span=box.firstChild,style=getComputedStyle(span);
       const result={label,width:span.getBoundingClientRect().width,height:span.getBoundingClientRect().height,
         overflow:span.scrollWidth>span.clientWidth,radius:style.borderTopLeftRadius,cursor:style.cursor};

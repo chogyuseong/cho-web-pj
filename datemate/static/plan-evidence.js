@@ -11,9 +11,23 @@ function travelMode(plan){
   const countLabel=used.length>1?used.map(mode=>`${TRANSPORT_NAMES[mode]||'이동'} ${modes.filter(m=>m===mode).length}구간`).join('·'):name;
   return {name,basis,label:name+' · '+basis,mixed:used.length>1,modes:used,countLabel};
 }
+// 구간 한 줄의 수단 표시(예: '도보 17분 · 추정', '자동차 12분 · 네이버 길찾기').
+// 대중교통은 실제 노선을 조회하지 않는 추정이라 '(지하철·버스 구분 없음)'을 덧붙인다(2026-11-18 사용자 요청: 지하철인지 버스인지 분명히).
+// 가정값(시속·대기·요금)은 서버가 구간에 넣는 transit_basis 를 일정 위에 한 번 보여 준다(transitBasisNote). 실제 노선 조회가 붙어
+// status==='api' 가 되면 이 덧붙임은 저절로 빠진다. test_leg_modes_ui 가 '· 대중교통 ' 을, test_transit_basis_ui 가 덧붙임을 확인한다.
 function legModeLabel(plan,leg){
-  const name=TRANSPORT_NAMES[legMode(plan,leg)]||'이동';
-  return name+' '+(leg.minutes??'?')+'분 · '+(plan.conditions?.mode==='demo'?'가상 추정':leg.status==='api'?'네이버 길찾기':'추정');
+  const mode=legMode(plan,leg),name=TRANSPORT_NAMES[mode]||'이동';
+  const basis=plan.conditions?.mode==='demo'?'가상 추정':leg.status==='api'?'네이버 길찾기':'추정';
+  return name+' '+(leg.minutes??'?')+'분 · '+basis+(mode==='transit'&&leg.status!=='api'?' (지하철·버스 구분 없음)':'');
+}
+// 대중교통 추정 구간이 하나라도 있으면 그 계산 기준 한 줄(없으면 null). 서버 문장(routes.TRANSIT_BASIS)을 쓰고,
+// 그 키가 없던 예전에 저장한 코스는 숫자 없이 구분 없음만 말한다(없는 가정값을 화면에서 만들지 않음).
+function transitBasisNote(plan){
+  const legs=(plan.legs||[]).filter(leg=>legMode(plan,leg)==='transit'&&leg.status!=='api');
+  if(!legs.length)return null;
+  const basis=legs.find(leg=>leg.transit_basis)?.transit_basis||'지하철·버스를 구분하지 않은 추정이에요.';
+  // 구간 링크(routes.app_link 의 nmap://)는 화면에서 도착지의 네이버 지도 검색으로 바뀐다(app.js normalizeLink). 그래서 '길찾기'는 사용자가 거기서 누른다.
+  return node('p','대중교통: '+basis+' 실제 지하철·버스 노선과 요금은 장소 카드의 「도착지 지도·길찾기 확인」으로 네이버 지도를 열어 길찾기에서 확인해 주세요.','hint transit-basis-note');
 }
 function travelMinutes(plan){return plan.decision_summary?.travel_minutes??plan.legs.reduce((n,x)=>n+(x.minutes||0),0);}
 // 금액 범위를 "23,000원 ~"과 "43,000원" 두 줄로 나눈다. 각 줄 안에서는 줄을 바꾸지 않는다.

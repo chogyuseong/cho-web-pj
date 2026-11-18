@@ -40,6 +40,9 @@ function renderDetail() {
   // 구간마다 같은 설명(예: '직선거리 × 1.35 기반 이동 추정 · 실제 길찾기 미반영')이면 여기서 한 번만 적는다(routeLine 은 생략).
   const legSource = sharedLegSource(p);
   if (legSource) box.append(node('p', '이동 시간: ' + legSource, 'hint route-source-note'));
+  // 대중교통 구간이 있으면 지하철·버스 구분 없는 추정이라는 것과 가정값을 일정 위에 한 번 적는다(plan-evidence.js transitBasisNote).
+  const transitNote = transitBasisNote(p);
+  if (transitNote) box.append(transitNote);
   p.places.forEach((place, i) => {
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
     const stop = node('article', undefined, 'stop');

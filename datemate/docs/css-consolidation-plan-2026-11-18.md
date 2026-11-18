@@ -81,3 +81,6 @@
   민감도: 복사본에서 '일정에서 보기' 단추 여백만 1px 바꾸자 모든 폭에서 스타일·스크린샷 차이를 보고함.
   아직 안 한 것: 규칙 사용률(미사용 규칙 목록, CDP CSS.startRuleUsageTracking) → 5-2 때, :hover·:focus-visible 표본·강제 색상 → 5-5 전에.
   쓰는 법: 같은 Docker 컨테이너에서 `CSS_SNAPSHOT_OUT=/snap/before python -m pytest tests/css_snapshot.py -q -p no:cacheprovider` → CSS 수정 → after 로 다시 → `python scripts/css_snapshot_compare.py /snap/before /snap/after`.
+- 2026-11-18 **5-1 @import 합치기** — `location-picker-layout.css` 내용을 `location-picker.css` 맨 앞(예전 @import 자리)에 넣고 layout 파일 삭제(사용자 확인).
+  검증 장치에 장면 `location_dialog`(출발지 '지도에서 고르기' 대화상자) 추가. 전후 11장면 × 12폭 차이 0(layout 파일을 뺀 상태로 찍음),
+  위치 선택·자산·CSP 관련 테스트 17개, 엣지 테스트 13개 통과.

@@ -1,2 +1,16 @@
-@import url(/static/location-picker-layout.css);
+/* 위치 선택 대화상자 배치(예전 location-picker-layout.css, 2026-11-18 CSS 정리 5-1 에서 @import 를 없애고 이 자리에 합침).
+   @import 는 파일 맨 앞에서 불러오므로 이 자리에 두면 적용 순서가 같다. @import 주소에는 ?v= 가 붙지 않아 고쳐도 캐시가 낡을 수 있었다. */
+/* 지도 확정 버튼은 스크롤 영역 밖에 두어 작은 화면에서도 바로 누를 수 있다. */
+#dialog.location-dialog[open]{display:flex;flex-direction:column;max-height:90vh;max-height:90dvh;overflow:hidden}
+#dialog.location-dialog .dialog-top{flex-shrink:0}
+#dialog.location-dialog #dialog-content{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#dialog.location-dialog #dialog-content>h2{flex-shrink:0;margin:12px 0 4px}
+.location-body{min-height:0;overflow:auto;overscroll-behavior:contain;padding-right:3px}
+.location-body .location-search{margin-top:10px}
+.location-body .location-map{height:290px;min-height:200px}
+.location-footer{flex-shrink:0;background:white;border-top:1px solid var(--line);padding-top:10px;margin-top:8px}
+.location-footer .location-picked{margin:0 0 8px;padding:8px 10px;font-size:12px}
+.location-footer .primary{min-height:44px}
+.location-footer .location-region{display:grid;gap:4px;margin:0 0 8px;font-size:12px}
+@media(max-width:520px){#dialog.location-dialog{padding:18px}.location-body .location-map{height:235px}.location-body .location-search{margin-top:4px}}
 .location-search{display:flex;gap:10px;align-items:flex-end;margin-top:18px}.location-search label{flex:1;margin:0}.location-search button{flex-shrink:0}.location-map{height:340px;width:100%;border-radius:12px;border:1px solid var(--line);margin:14px 0;background:var(--platform);z-index:0}.location-results{display:grid;gap:8px;max-height:220px;overflow:auto}.location-result{display:flex;flex-direction:column;text-align:left;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)}.location-result:hover,.location-result:focus-visible{border-color:var(--green)}.location-result .hint{margin:4px 0 0}.location-picked{padding:12px;background:var(--soft);border-radius:8px;font-size:13px;overflow-wrap:anywhere}.location-map .leaflet-control-attribution{font-size:10px}.location-map .leaflet-control-zoom a{color:var(--ink)}#origin-location input,#home-location input{background:var(--soft);cursor:default}#origin-location,#home-location{margin-bottom:14px}@media(max-width:520px){.location-search{display:block}.location-search button{width:100%;margin-top:9px}.location-map{height:285px}}

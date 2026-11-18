@@ -71,8 +71,15 @@ function renderPlanMapCard(){
   // 휴대폰에서는 지도가 상세('우리 하루, 자세히 보기', h2) 안에 들어가므로 한 단계 낮은 h3. 그래야 뒤의 '비용은 투명하게'가 지도에 속한 것처럼 읽히지 않는다(구역 표시줄·화면 읽기 목차).
   const mapTitle=node(mobile?'h3':'h2','우리 코스 지도','plan-map-title');
   card.append(mapTitle,tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),mapLegend(selected),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
+  // 지도 아래 장소 목록: 한 줄에 네이버 지도 링크('1. 이름')와 「일정에서 보기」 단추(2026-11-18 가독성 8단계).
+  // 단추는 지도 번호 표시와 같은 focusPlanStop(일정의 그 장소 카드로 스크롤 + 제목 포커스). 지도 표시는 키보드 Tab 으로 닿지 않아
+  // 키보드·화면 읽기 사용자가 일정으로 가는 길이 이 단추다. 링크는 test_map_links_ui 가 '.map-place-list a' 로 확인한다.
   const places=node('div',undefined,'map-place-list');
-  selected.places.forEach((place,index)=>places.append(placeMapLink((index+1)+'. '+place.name,place)));
+  selected.places.forEach((place,index)=>{
+    const row=node('div',undefined,'map-place-row'),go=button('일정에서 보기',()=>focusPlanStop(index),'secondary map-place-go');
+    go.setAttribute('aria-label',`${index+1}번 ${place.name} 일정에서 보기`);
+    row.append(placeMapLink((index+1)+'. '+place.name,place),go);places.append(row);
+  });
   card.append(places);(mobile?slot:rail).append(card);planMapCard=card;
 }
 
@@ -227,8 +234,7 @@ function stopMarkerLabel(number){return number+'번 장소 · 눌러서 일정�
      · 표시 지름 38px  = plan-map.css .route-marker width/height = STOP_MERGE_PX = 아래 stopMarkerWidth 의 1개 너비 = 기준점 y(19 = 38/2)
      · 알약 모서리 19px = plan-map.css .route-stop-merged border-radius(높이의 절반)
      · 너비 공식       = stopMarkerWidth, tests/test_readability_stage7_ui.py 가 56px(2개)·74px(3개)·기준점 x 를 확인한다
-   안 한 것: 네이버 지도가 실패했을 때의 대체 지도(Leaflet, 이 파일 fallback())는 묶지 않는다. 하려면 거기서 offsetOf 를
-     map.latLngToContainerPoint 로 주고 'zoomend' 때 다시 그리면 같은 planStopGroups 를 쓸 수 있다(보이는 원·44px 투명 원 둘 다 다시 그려야 함). */
+   대체 지도(Leaflet, 이 파일 fallback()의 drawLeafletStops)도 같은 planStopGroups 로 묶는다(2026-11-18 가독성 8단계). */
 
 // 화면 거리(px)가 이보다 가까운 장소 번호는 한 표시로 합친다. 번호 표시 지름과 같게 둬서 '조금이라도 겹치면 합침'이다.
 // 더 일찍 합치고 싶으면(예: 휴대폰 누름 영역 44px 기준) 이 값만 키우면 된다.
@@ -492,16 +498,40 @@ function drawPlanMap(plan){
         // 보이는 원에만 role=button·이름을 주고, 아래의 투명한 누름 원은 같은 동작만 한다(화면 읽기에 단추가 둘로 읽히지 않게).
         const goToStop=(circle,index,named)=>{if(index<0)return;circle.on('click',()=>focusPlanStop(index));
           const path=named&&circle.getElement?.();if(path){path.setAttribute('role','button');path.setAttribute('aria-label',stopMarkerLabel(index+1));}};
-        if(matchMedia('(max-width:720px),(pointer:coarse)').matches){
-          map.createPane('routeHits').style.zIndex='385';
-          points.forEach(point=>goToStop(L.circleMarker([point.lat,point.lon],{pane:'routeHits',radius:22,stroke:false,fillColor:'#fff',fillOpacity:0,className:'route-hit-area'}).addTo(map),stopIndex(point),false));
-        }
-        points.forEach(point=>{
-          const index=stopIndex(point),origin=point===plan.conditions.origin;
-          const title=node('span',(origin?'출발':index<0?'귀가':String(index+1))+' · '+point.name);
-          const circle=L.circleMarker([point.lat,point.lon],{radius:9,color:origin?'#1f2328':'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3,className:index<0?'':'route-stop-circle'}).addTo(map);
-          circle.bindTooltip(title,{permanent:true,direction:'top'});goToStop(circle,index,true);
+        const touch=matchMedia('(max-width:720px),(pointer:coarse)').matches;
+        if(touch)map.createPane('routeHits').style.zIndex='385';
+        // 출발·귀가 원(누름 동작 없음, 묶지 않음).
+        points.filter(point=>stopIndex(point)<0).forEach(point=>{
+          const origin=point===plan.conditions.origin;
+          if(touch)L.circleMarker([point.lat,point.lon],{pane:'routeHits',radius:22,stroke:false,fillColor:'#fff',fillOpacity:0,className:'route-hit-area'}).addTo(map);
+          L.circleMarker([point.lat,point.lon],{radius:9,color:origin?'#1f2328':'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map)
+            .bindTooltip(node('span',(origin?'출발':'귀가')+' · '+point.name),{permanent:true,direction:'top'});
         });
+        // 장소 번호 원: 네이버 지도(drawStops)와 같은 planStopGroups 로 화면에서 겹치는 번호를 '2·3' 원 하나로 묶는다(2026-11-18 가독성 8단계).
+        // 화면 좌표는 map.latLngToContainerPoint, 확대·축소(zoomend)마다 다시 묶는다. 지도 칸 크기가 0 이면(숨겨진 칸) 모든 점이 한자리로
+        // 계산돼 전부 합쳐지므로 그때는 묶지 않는다(offsetOf 가 던지면 planStopGroups 가 번호마다 하나를 돌려준다).
+        // 원 반지름 9px(지름 18px)이라 묶는 거리는 네이버 표시와 같은 STOP_MERGE_PX(38px)로 둔다 — 여기에 툴팁 글자도 함께 겹치기 때문.
+        const stopLayer=L.layerGroup().addTo(map);
+        const stops=plan.places.map((place,index)=>({place,index})).filter(({place})=>Number.isFinite(place?.lat)&&Number.isFinite(place?.lon));
+        const drawLeafletStops=()=>{
+          if(disposed||activeMap!==map)return;
+          stopLayer.clearLayers();
+          const size=map.getSize();
+          const groups=planStopGroups(stops.map(s=>s.place),place=>{if(!size.x||!size.y)throw Error('지도 크기 없음');return map.latLngToContainerPoint([place.lat,place.lon]);});
+          groups.forEach(members=>{
+            const indexes=members.map(m=>stops[m].index),numbers=indexes.map(i=>i+1),label=numbers.join('·'),merged=indexes.length>1;
+            const at=[indexes.reduce((s,i)=>s+plan.places[i].lat,0)/indexes.length,indexes.reduce((s,i)=>s+plan.places[i].lon,0)/indexes.length];
+            if(touch)goToStop(L.circleMarker(at,{pane:'routeHits',radius:22,stroke:false,fillColor:'#fff',fillOpacity:0,className:'route-hit-area'}).addTo(stopLayer),indexes[0],false);
+            const circle=L.circleMarker(at,{radius:9,color:'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3,className:'route-stop-circle'+(merged?' route-stop-merged-circle':'')}).addTo(stopLayer);
+            // 툴팁은 글자 노드로만(장소 이름은 외부 검색 결과). 합친 원은 '2·3 · 이름A / 이름B'.
+            circle.bindTooltip(node('span',label+' · '+indexes.map(i=>plan.places[i].name).join(' / ')),{permanent:true,direction:'top'});
+            goToStop(circle,indexes[0],true);
+            // 합친 원의 화면 읽기 이름: 네이버 지도와 같은 문구(앞 번호로 간다는 것).
+            if(merged)circle.getElement?.()?.setAttribute('aria-label',label+'번 장소 · 눌러서 일정에서 '+numbers[0]+'번부터 보기');
+          });
+        };
+        drawLeafletStops();
+        map.on('zoomend',drawLeafletStops);
         // 구간마다 수단에 맞는 점선으로 잇는다(공개 지도에는 실제 도로 경로를 그리지 않는다).
         // 이동선은 장소 원 뒤에 그려져 원 가운데를 지나므로, 누름을 받지 않게 해(interactive:false) 원 가운데를 눌러도 장소로 가게 한다.
         for(let i=0;i<coordinates.length-1;i++){const style=legLineStyle(plan,plan.legs[i]);L.polyline([coordinates[i],coordinates[i+1]],{color:'#55606b',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style,interactive:false}).addTo(map);}

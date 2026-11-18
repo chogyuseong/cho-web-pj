@@ -14,7 +14,7 @@
    한 쪽 안에 들어가는 상자(주차장·주변 식당·코스 수치·합계 줄)는 쪽 경계에서 자르지 않는다. 장소 카드(.stop)는 아래 규칙대로 쪽 사이에서 나뉜다. */
 @media print {
   #results > :not(#plan-detail):not(.plan-card):not(.condition-differences),#result-count,#festival-origin-note,#festival-section,#popup-course,#plan-extras,.plan-share,.privacy-controls,.map-link-list,.more-restaurants{display:none!important}
-  .meal-suggestions,.total-row{break-inside:avoid}
+  .total-row{break-inside:avoid}
   .detail h3,.detail h4{break-after:avoid}
   /* 장소 카드(.stop)는 사진·후기·주변 식당까지 들어가 한 쪽 가까이 길어진다. 통째로 넘기면 앞 쪽이 대부분 비므로(2026-11-17 운영 PDF 2·4쪽)
      카드는 쪽 사이에서 나뉘게 두고, 번호·시간·이름 줄(h4)만 바로 아래 내용과 붙여 둔다. 주차장·식당 상자는 위 규칙대로 자르지 않는다. */

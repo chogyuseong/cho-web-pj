@@ -26,4 +26,3 @@
 .route-marker.restaurant-marker{background-color:var(--hong);font-size:11px}
 .restaurant-map-info{padding:14px;max-width:260px;font-size:14px;color:var(--ink)}
 .restaurant-map-info p{margin:6px 0}
-.regional-restaurants>.meal-card{margin:12px 0}

@@ -108,3 +108,6 @@
   → 도구에 `--subject`(선택자의 마지막 대상이 부품일 때만 옮김)를 더하고 다시 적용. 조상만 맞는 선택자 약 50개(style·place-photos·plan-map·selle·calm·editorial)는 제자리에 남김 — 5-5 공통 요소 평탄화 때 함께.
   `.detail-header`(머리 줄)는 이번 패턴에 넣지 않음.
   전후 11장면 × 12폭(5-3b 상태 /snap/b3b 와 비교): 스타일·상자 차이 0, 스크린샷은 location_dialog 560px 모서리 5픽셀(알려진 흔들림)만.
+- 2026-11-18 **5-3d 식당 제안·메뉴·블로그·근거 → results.css** — `--subject --pattern '\.(meal-[\w-]+|restaurant-menu\b|menu-[\w-]+|place-blogs\b|place-evidence\b)'` 로 59개를
+  style·place-photos·plan-map·selle·calm·editorial·readability·line 에서 옮김. 조상만 맞는 선택자 65개(`.meal-actions>a`, `.place-blogs summary`, readability `main :is(...)` 등)는 제자리.
+  전후 11장면 × 12폭(/snap/s3c 와 비교): 차이 없음(스크린샷 포함).

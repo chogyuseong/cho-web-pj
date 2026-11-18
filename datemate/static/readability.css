@@ -25,7 +25,6 @@ main :is(.tag,.step-category) { font-size:13.5px; line-height:1.65; padding:5px 
 main :is(.condition-summary,.condition-differences p,.course-evidence p,.place-evidence p,.map-caption) { font-size:15px; }
 main .service-details summary { font-size:15px; color:var(--muted); }
 main .service-details summary>span { color:var(--hong); }
-main .eyebrow,main :is(.workspace-intro,.curation) .eyebrow { font-size:14px!important; letter-spacing:.09em; color:var(--hong)!important; }
 main .hero .hero-description { font-size:18px!important; line-height:1.9; color:var(--muted); max-width:38em; }
 main .hero-pill { font-size:14px; line-height:1.7; letter-spacing:.06em; color:var(--hong); background-color:var(--platform); }
 main .hero-actions a { font-size:16px; min-height:50px; }
@@ -316,7 +315,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
 }
 @media print { .skip-to-content { display:none; } }
 
-main .data-banner .eyebrow { color:#fff!important; }
 main .hero .hero-pill { font-size:14px!important; }
 h2[tabindex="-1"]:focus { outline:none!important; }
 

@@ -10,9 +10,36 @@
 공개 주소: https://datemate.guseong-family.workers.dev
 운영에 올라간 것: 커밋 541ac82(병합, 브랜치 ui/readability-6 커밋 32c335e·40b94ac·94983cd), Worker 버전 9ab2370c-768f-494e-92d9-3037043a7f77 (마흔 번째 배포, 2026-11-18 새벽)
   배포 전 GitHub Actions 5개 작업이 94983cd(Run 44117166859)에서 통과, Docker 전체(SQLite, chromium) 1227 통과·6 건너뜀·실패 0. 병합 트리는 94983cd 와 같습니다.
-  40b94ac(Run 44113914745)는 test (postgres) 의 test_parking.py::test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(1분 한도 검사) 1개가 실패했고
-  같은 코드의 앞뒤 실행은 통과해 가끔 나는 실패로 봤습니다(확인한 것은 아님). 또 나면 그 테스트의 시간 의존성을 볼 것.
+  40b94ac(Run 44113914745)의 test (postgres) 실패는 원인을 찾아 고쳤습니다(아래 '배포 안 된 것' ①, 테스트만 바뀜).
   (그 전: 커밋 42b8860, Worker a34ba709, 서른아홉 번째)
+
+main 에 들어갔지만 아직 운영에 배포하지 않은 것 (2026-11-18 오전, main 743dc1a). 배포는 사용자가 지시할 때만.
+  ① 가끔 실패하던 한도 테스트 (브랜치 fix/rate-limit-minute-boundary 커밋 6581cef, 병합 09e7d5c, GitHub Actions Run 44205362038 5개 통과)
+    · 원인(확인함): CI 주석(check-runs annotations, 로그인 없이 읽힘)에서 test_parking.py:258 이 [200, 429] 대신 [200, 200].
+      IP·사용자·제공자 한도는 int(time.time() // 60)(또는 // 3600) 고정 구간으로 센다. 한도를 1로 낮춘 테스트의 두 요청 사이에 분이 바뀌면
+      둘째 요청이 새 구간에서 다시 허용된다. 운영 코드 문제가 아니라 테스트의 시간 의존성.
+    · 고침: tests/conftest.py 에 same_rate_window fixture(분의 마지막 15초에 시작하면 다음 분까지 기다림). 한도를 낮추고 429 를 기대하는
+      테스트 16개(test_security_limits 9, test_cloud_operation 3, parking·popup_api·release_hardening·recommendation_speed 각 1)에 붙임.
+      시계를 가짜로 바꾸지 않은 까닭은 fixture 주석에. 운영 코드는 바뀌지 않아 이것만으로는 배포할 필요가 없습니다.
+    · 새 한도 테스트를 쓸 때: @pytest.mark.usefixtures('same_rate_window') 를 붙일 것.
+  ② 가독성 7단계: 겹친 장소 번호를 '2·3' 표시 하나로 (브랜치 ui/readability-7 커밋 38fa068·2588c91, 병합 743dc1a)
+    · 사용자가 '남은 일' 중 이것과 ①을 골라 지시. 합친 표시를 누르면 앞 번호로 가는 것은 메인이 고른 방향입니다.
+    · maps.js: 네이버 지도의 장소 번호 표시를 drawStops 가 그림. planStopGroups 가 map.getProjection().fromCoordToOffset 로 화면 거리를 재
+      38px(표시 지름, STOP_MERGE_PX) 미만이면 한 표시로 묶고, 자리는 평균 좌표, 너비 stopMarkerWidth(2개 56px·3개 74px, 알약형),
+      이름 '2·3번 장소 · 눌러서 일정에서 2번부터 보기', 누르면 앞 번호 장소 카드로. zoom_changed 때마다 다시 묶음(확대하면 다시 나뉨).
+      투영이 없거나 오류면 전처럼 번호마다 하나. 출발·귀가·식당·주차·축제·팝업, 대체 지도(Leaflet)는 그대로(Leaflet 에 넣는 법은 maps.js 주석).
+    · 확인: 운영 페이지에 maps.js·plan-map.css 만 끼우고 실제 네이버 SDK 로 가상 성수 코스(2·3번 33m 거리, 390px)를 그림 →
+      확대 14 에서 '2·3' 56×38 하나, 18 까지 확대하니 2·3 따로. 실제 SDK 는 지도 생성·fitBounds 직후에도 투영 좌표를 주고,
+      zoom_changed 때 이미 새 확대 수준의 좌표를 줌('zooming' 은 바뀌기 전 좌표).
+      (주의: Playwright 로 /static/maps.js 를 바꿔 끼울 때 정규식이 네이버 SDK 주소 openapi/v3/maps.js 까지 잡지 않게 호스트까지 넣을 것)
+    · 검사: 새 tests/test_readability_stage7_ui.py 3개, Docker 전체(SQLite, chromium) 1230 통과·6 건너뜀·실패 0, format_sources --check 통과,
+      GitHub Actions 38fa068(Run 44208212784) container·python-audit·test(sqlite)·test(postgres) 통과(출력에서 security 결과는 빠져 따로 확인 못 함),
+      2588c91(Run 44209633793) 5개 통과. 병합 트리는 2588c91 과 같습니다(git diff 0줄).
+    · 주석: 함께 맞춰야 하는 값(38px·19px·56/74px), 바꾸는 법, 안 한 것을 maps.js·plan-map.css·conftest.py 주석에 자세히 적음(사용자 지시).
+    · 사람이 볼 것(배포 뒤 실기기): 겹쳤던 2·3번 자리에서 '2·3' 표시가 읽히는지, 눌러서 2번 카드로 가는 것이 자연스러운지.
+    · 문제가 생기면: git revert -m 1 743dc1a.
+  다음 후보(사용자 결정 필요): 지도 아래 장소 목록에 '일정에서 보기', 결과 사진 용량 줄이기(축소 서버는 정책 판단), CSS 18개 병합(Fable 권장),
+    대체 지도(Leaflet)에도 번호 합치기.
 마흔 번째 배포로 올라간 것 (main 병합 541ac82): 지도 장소 번호를 누르면 일정의 그 장소로, 결과 사진은 화면 근처에서 받기
   · 사용자가 '모든 권한' 으로 병합·배포·문서·종료까지 지시했습니다. 마커 이동·사진 늦게 받기는 메인이 고른 방향입니다
     (네이버 축소 서버 search.pstatic.net/common/?src= 는 공개 문서 없는 주소라 쓰지 않기로 함).

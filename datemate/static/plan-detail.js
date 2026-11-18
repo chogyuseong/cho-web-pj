@@ -43,8 +43,10 @@ function renderDetail() {
   // 대중교통 구간이 있으면 지하철·버스 구분 없는 추정이라는 것과 가정값을 일정 위에 한 번 적는다(plan-evidence.js transitBasisNote).
   const transitNote = transitBasisNote(p);
   if (transitNote) box.append(transitNote);
+  // TMAP 키가 있으면 「지하철·버스 비교하기」 단추. 누르면 각 대중교통 구간 줄 아래(transitComparePanel)에 선택지가 나온다(transit-compare.js).
+  box.append(transitCompareIntro(p));
   p.places.forEach((place, i) => {
-    box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
+    box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`), transitComparePanel(p, i));
     const stop = node('article', undefined, 'stop');
     const stamp = node('div', undefined, 'timeline-stamp');
     stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'));
@@ -81,7 +83,7 @@ function renderDetail() {
   });
   if (p.conditions.return_home && p.legs.length > p.places.length) {
     const r = p.legs.at(-1);
-    box.append(routeLine(p, p.legs.length - 1, `귀가: ${r.origin} → ${r.destination}`));
+    box.append(routeLine(p, p.legs.length - 1, `귀가: ${r.origin} → ${r.destination}`), transitComparePanel(p, p.legs.length - 1));
   }
   // 휴대폰 지도 자리: 일정을 먼저 읽고 지도를 보도록 일정 바로 뒤에 둔다(2026-11-17 가독성 정리, 전에는 일정 앞).
   // 데스크톱은 오른쪽 패널(#plan-map-rail)에 그린다. 지도는 상세를 문서에 붙인 뒤 renderPlanMapCard 가 채운다.

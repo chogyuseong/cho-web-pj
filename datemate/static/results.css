@@ -126,3 +126,123 @@
 .plan-preview-card .option-label{font-family:var(--font-head); font-weight:800; font-size:15px; color:var(--ink);}
 .plan-preview-card .option-purpose{font-family:var(--font-body); font-weight:600; color:var(--muted);}
 .plan-preview-card .option-route{font-size:16px; line-height:1.6; color:var(--ink);}
+
+/* ── 코스 카드(5-3b) (CSS 정리로 여러 파일에서 옮겨 옴. 원래 적용 순서 그대로, 출처 파일을 각 묶음 앞에 적음) ── */
+/* from style.css */
+.plan-card{background:white;border:1px solid var(--line);border-radius:15px;padding:22px;margin-bottom:14px;position:relative}
+.plan-card.selected{border:2px solid var(--green);padding:21px}
+.plan-card .number{color:var(--orange);font-size:10px;letter-spacing:2px}
+.plan-card h3{font-size:19px;margin:8px 0 10px}
+.path-text{color:var(--muted);font-size:12px;margin:10px 0 18px}
+.stats{display:flex;gap:24px;border-top:1px solid var(--line);padding-top:13px;align-items:center;flex-wrap:wrap}
+.stats b{font-size:17px;display:block}
+.stats small{font-size:10px;color:var(--muted)}
+.stats button{margin-left:auto}
+@media(max-width:1000px){.stats{gap:12px}}
+@media(max-width:1000px){.stats button{width:100%}}
+@media(max-width:720px){.stats button{width:auto}}
+@media print{.plan-card .stats{break-inside:avoid}}
+/* from selle.css */
+.plan-card{border-radius:22px;border-color:var(--line);}
+.plan-card.selected{border:1px solid var(--line);padding:22px;background:var(--platform)}
+.plan-card .number{color:var(--muted);font-weight:800}
+.plan-card h3{font-size:23px;font-weight:800;letter-spacing:-1px}
+.stats b{color:var(--cheong)}
+.stats small{color:var(--muted)}
+@media(max-width:760px){.plan-card,.plan-card.selected{padding:17px}}
+@media(max-width:760px){.plan-card h3{font-size:21px}}
+/* from calm.css */
+.plan-card,.plan-card.selected{border-radius:14px;box-shadow:none;background:#fff;border:1px solid var(--line)}
+.plan-card.selected{border:2px solid var(--hong);background:#fff}
+.plan-card h3{font-size:22px}
+.plan-card .number{color:var(--hong)}
+.stats small{color:var(--muted);font-size:12px}
+.stats small{font-size:14px}
+.plan-card:not(.selected) .plan-photo-preview{display:none}
+.fit-reasons{border-left:3px solid var(--muted);padding-left:12px;line-height:1.7}
+.fit-reasons p{margin:6px 0}
+/* from editorial.css */
+.plan-card{border:1px solid var(--line);
+  border-radius:26px;
+  background-color:#fff;
+  padding:30px;}
+.plan-card.selected{border:2px solid var(--hong);
+  background-color:#fff;}
+.plan-card h3{font-size:26px;
+  color:var(--ink);}
+.fit-reasons{background-color:#fff;
+  border-left:4px solid var(--hong);
+  border-radius:0 14px 14px 0;
+  padding:14px 18px;
+  color:var(--hong);
+  font-size:15px;
+  margin:14px 0;}
+.fit-reasons p{margin:5px 0}
+.stats{padding:20px;
+  background-color:#fff;
+  border:1px solid var(--line);
+  border-radius:18px;
+  gap:20px;}
+.stats b{font-size:24px;color:var(--hong)}
+.stats small{color:var(--muted);font-size:14px}
+.path-text{line-height:1.9;
+  color:var(--ink);
+  font-size:16px;
+  font-weight:600;
+  padding:10px 14px;
+  background-color:#fff;
+  border-radius:12px;
+  border:1px dashed var(--line);}
+.plan-card .hint,.plan-card .small{font-size:14px;line-height:1.8}
+@media(max-width:800px){.plan-card{padding:20px;border-radius:20px}}
+@media(max-width:800px){.plan-card h3{font-size:22px}}
+@media(max-width:800px){.stats{padding:16px;gap:14px}}
+@media(max-width:800px){.stats b{font-size:21px}}
+@media(max-width:800px){.stats small{font-size:14px}}
+@media(max-width:420px){.stats{display:grid;grid-template-columns:1fr;gap:12px}}
+@media(max-width:420px){.stats>div{display:flex;justify-content:space-between;align-items:center;gap:8px}}
+@media(max-width:420px){.stats small{max-width:54%;text-align:right}}
+@media print{.plan-card{box-shadow:none}}
+/* from readability.css */
+.plan-card .number{font-size:14px; letter-spacing:0; color:var(--hong);}
+.plan-card .path-text{font-size:16px; color:var(--ink);}
+.plan-card .stats{gap:20px; padding:20px; background-color:#fff; border:1px solid var(--line);}
+.plan-card .stats b{font-size:25px; line-height:1.4; font-variant-numeric:tabular-nums; color:var(--hong);}
+.plan-card .stats small{display:block; font-size:14px; margin-top:5px; color:var(--muted);}
+@media(max-width:800px){.plan-card .stats b{font-size:23px;}}
+@media(max-width:480px){.plan-card{padding:20px 16px;}}
+/* from clarity.css */
+.plan-card .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
+@media(max-width:420px){.plan-card .stats{grid-template-columns:1fr;}}
+/* from line.css */
+.stats b{font-variant-numeric:tabular-nums;}
+.plan-card,.plan-card.selected{background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow:none;
+  padding:24px;}
+.plan-card.selected{border-left:4px solid var(--hong); padding-left:21px;}
+.plan-card h3{margin:8px 0 12px; color:var(--ink);}
+.plan-card .number{color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; letter-spacing:0;}
+.fit-reasons{background:var(--platform); border:0; border-radius:0; padding:12px 16px; color:var(--ink);}
+.plan-card .stats,.stats{background:none!important; border:0!important; border-top:1px solid var(--line)!important; border-radius:0; padding:16px 0 0!important;}
+.plan-card .stats b,.stats b{color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:24px;}
+.plan-card .stats small,.stats small{color:var(--muted);}
+.path-text{background:none; border:0; padding:0; color:var(--ink);}
+@media(max-width:800px){.plan-card,.plan-card.selected{padding:18px 16px;}}
+@media(max-width:800px){.plan-card.selected{padding-left:13px;}}
+#results .plan-preview{border:1px dashed var(--muted); border-radius:12px; padding:16px; margin:0 0 16px; min-width:0; background:var(--paper);}
+#results .plan-preview h3{margin:0 0 6px; font-size:17px; line-height:1.5; color:var(--ink);}
+#results .plan-preview .hint{margin:0 0 12px; overflow-wrap:anywhere;}
+.plan-preview-list{list-style:none; margin:0; padding:0; display:grid; gap:10px;}
+.plan-preview-card{display:flex; flex-direction:column; gap:2px; min-width:0; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--platform); overflow-wrap:anywhere; word-break:keep-all;}
+.plan-preview-pending{font-size:14px; line-height:1.6; color:var(--muted);}
+.plan-preview-changes{border-left:4px solid var(--hong); background:var(--platform); padding:10px 14px; margin:0 0 16px; overflow-wrap:anywhere;}
+.plan-preview-changes strong{color:var(--ink);}
+.plan-preview-changes ul{margin:6px 0 0; padding-left:20px;}
+@media (max-width:720px){#results .plan-card .stats{display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; align-items:start;}}
+@media (max-width:720px){#results .plan-card .stats > div{display:block; min-width:0; text-align:left;}}
+@media (max-width:720px){#results .plan-card .stats b{display:block; font-size:20px; line-height:1.35; overflow-wrap:anywhere;}}
+@media (max-width:720px){#results .plan-card .stats small{display:block; max-width:none; margin-top:2px; font-size:14px; text-align:left; line-height:1.5;}}
+#results .plan-card.selected > .inspect-plan{display:block; margin-top:14px; min-height:44px;}
+@media print{#results .plan-card.selected > .inspect-plan{display:none !important;}}

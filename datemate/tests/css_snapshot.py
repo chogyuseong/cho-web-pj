@@ -34,8 +34,11 @@ WIDTHS = [320, 390, 450, 560, 700, 740, 780, 900, 1050, 1200, 1440, 1600]
 pytestmark = pytest.mark.skipif(not OUT, reason='CSS_SNAPSHOT_OUT 를 줄 때만 찍는다')
 
 CAPTURE = r"""detail=>{
-  const skip=e=>e.closest('.leaflet-container,.naver-plan-map')&&!e.matches('.leaflet-container,.naver-plan-map');
-  const name=e=>{let s=e.tagName.toLowerCase();if(e.id)return s+'#'+e.id;
+  // 빼는 것: 지도 내부, 서버 깨우기 안내(#server-wake, 응답이 늦을 때만 붙음), 구역 표시(.section-indicator, 스크롤 관찰 상태에 따라 바뀜).
+  // 둘 다 5-3b 비교에서 CSS 와 무관하게 실행마다 달랐다. 스크린샷에서도 가린다.
+  const skip=e=>(e.closest('.leaflet-container,.naver-plan-map')&&!e.matches('.leaflet-container,.naver-plan-map'))||e.closest('#server-wake,.section-indicator');
+  // id 끝 번호(map-popup-hubs-7 처럼 다시 그릴 때마다 올라감)는 경로에서 '#' 로 바꾼다.
+  const name=e=>{let s=e.tagName.toLowerCase();if(e.id)return s+'#'+e.id.replace(/-\d+$/,'-#');
     const cls=[...e.classList].slice(0,2).join('.');if(cls)s+='.'+cls;
     const p=e.parentElement;if(p){const same=[...p.children].filter(c=>c.tagName===e.tagName);if(same.length>1)s+=':'+(same.indexOf(e)+1);}return s;};
   const path=e=>{const parts=[];for(let x=e;x&&x!==document.documentElement;x=x.parentElement){parts.unshift(name(x));if(x.id)break;}return parts.join('>');};
@@ -184,5 +187,6 @@ def test_capture(audit_page, name, prepare):
         #   알림(#toast) — 화면 아래 가운데에 잠깐 뜨고, 사라지는 시점이 실행마다 달랐다(무변경 비교에서 확인).
         #   지도 설명 줄(.plan-map .map-caption) — 테스트는 바깥 타일을 막아 '지도 배경을 불러오지 못했어요' 문구가 뜨는 시점이 실행마다 달랐다.
         page.screenshot(path=str(out / f'{width}.png'), full_page=True, animations='disabled', caret='hide',
-                        mask=[page.locator('.leaflet-container, .naver-plan-map, #toast, .plan-map .map-caption')], mask_color='#ff00ff')
+                        mask=[page.locator('.leaflet-container, .naver-plan-map, #toast, .plan-map .map-caption, #server-wake, .section-indicator')],
+                        mask_color='#ff00ff')
     (out / 'styles.json').write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')

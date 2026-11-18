@@ -119,51 +119,7 @@ input:focus,textarea:focus,select:focus{
 }
 .option-comparison th{color:var(--hong);background-color:#fff;font-weight:750}
 .option-comparison td{color:var(--ink)}
-
-.plan-card{
-  border:1px solid var(--line);
-  border-radius:26px;
-  background-color:#fff;
-  padding:30px;
-}
-.plan-card.selected{
-  border:2px solid var(--hong);
-  background-color:#fff;
-}
-.plan-card h3{
-  font-size:26px;
-  color:var(--ink);
-}
 .number{color:var(--ink);font-size:14px;font-weight:750}
-.fit-reasons{
-  background-color:#fff;
-  border-left:4px solid var(--hong);
-  border-radius:0 14px 14px 0;
-  padding:14px 18px;
-  color:var(--hong);
-  font-size:15px;
-  margin:14px 0;
-}
-.fit-reasons p{margin:5px 0}
-.stats{
-  padding:20px;
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:18px;
-  gap:20px;
-}
-.stats b{font-size:24px;color:var(--hong)}
-.stats small{color:var(--muted);font-size:14px}
-.path-text{
-  line-height:1.9;
-  color:var(--ink);
-  font-size:16px;
-  font-weight:600;
-  padding:10px 14px;
-  background-color:#fff;
-  border-radius:12px;
-  border:1px dashed var(--line);
-}
 
 /* Detailed Timeline & Stops */
 .detail.panel{
@@ -434,7 +390,7 @@ dialog .actions button{white-space:normal;min-height:44px;border-radius:999px}
 .field-grid>*{min-width:0}
 input,select,textarea{max-width:100%;min-width:0}
 .conditions label,.conditions legend{font-size:15px}
-.conditions .hint,.detail .hint,.detail .small,.plan-card .hint,.plan-card .small{font-size:14px;line-height:1.8}
+.conditions .hint,.detail .hint,.detail .small{font-size:14px;line-height:1.8}
 .tag,.step-category{line-height:1.6;white-space:normal;overflow-wrap:anywhere}
 .section-heading{flex-wrap:wrap}
 .section-heading h2{min-width:0;overflow-wrap:anywhere}
@@ -460,11 +416,7 @@ input,select,textarea{max-width:100%;min-width:0}
   .workspace-intro h2{font-size:26px}
   .simple-plan-form .simple-form-group{padding:18px}
   .section-heading h2{font-size:22px}
-  .plan-card,.detail.panel{padding:20px;border-radius:20px}
-  .plan-card h3{font-size:22px}
-  .stats{padding:16px;gap:14px}
-  .stats b{font-size:21px}
-  .stats small{font-size:14px}
+  .detail.panel{padding:20px;border-radius:20px}
   .option-comparison{padding:16px}
   .timeline-card h4{font-size:21px}
   .plan-photo-preview{grid-template-columns:1fr}
@@ -497,9 +449,6 @@ input,select,textarea{max-width:100%;min-width:0}
   .brand{font-size:18px}
   nav .nav{font-size:14px;padding:8px 10px}
   main{padding:0 16px}
-  .stats{display:grid;grid-template-columns:1fr;gap:12px}
-  .stats>div{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .stats small{max-width:54%;text-align:right}
   .simple-plan-form .field-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media(prefers-reduced-motion:reduce){
@@ -509,7 +458,6 @@ input,select,textarea{max-width:100%;min-width:0}
   .hero-actions{display:none!important}
   body{background:white}
   .detail.panel{border:0;box-shadow:none}
-  .plan-card{box-shadow:none}
 }
 
 /* Polish: rose progress banner, clean heading focus, and SVG route accents */

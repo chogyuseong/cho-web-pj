@@ -98,3 +98,7 @@
   `main :is(small,.small,…,.option-label)` 처럼 다른 부품과 괄호 안에 묶인 1개는 그대로 둠(5-5 글자 체계 때).
   화면 차이 0(다시 찍은 두 번 모두 5-2 기준과 같음). 처음 한 번은 레저 추천 응답이 늦어 결과 320px 이 달랐음 → 검증 장치가 '불러오는 중'(.loading-note)이 사라질 때까지 기다리게 고침.
   아직 옮긴 그대로(!important·덮어쓰기 포함). '이기는 선언만 남기기'는 부품을 다 옮긴 뒤 results.css 안에서 한 부품씩.
+- 2026-11-18 **5-3b 코스 카드 → results.css** — `.plan-card`, `.stats`, `.path-text`, `.fit-reasons`, `.plan-preview*` 규칙 85개를 style·selle·calm·editorial·readability·clarity·line 에서 옮김.
+  `#results > :not(#plan-detail):not(.plan-card):not(.condition-differences)`(style.css, 괄호 안)는 그대로. style.css 에서 옮긴 것도 shared·feedback 장면 차이 0.
+  검증 장치 보강: id 끝 번호(map-popup-hubs-7/8)를 경로에서 무시, #server-wake(응답 늦을 때만)·.section-indicator(스크롤 관찰 상태)는 비교·스크린샷에서 뺌.
+  보강한 장치로 5-3a 상태(git archive 0ec4822)와 5-3b 상태를 같은 컨테이너에서 찍어 비교: 차이 0(위치 선택 창 모서리 몇 픽셀 흔들림만 — 알려진 것, 같은 CSS 로도 실행마다 다름).

@@ -93,12 +93,6 @@ header nav a,header nav button.nav { display:inline-flex; align-items:center; fo
 header .brand-name small { font-size:13px; color:var(--muted); }
 /* 코스 카드 요약: 1 코스·목적 / 2 장소 순서(2줄 말줄임, 전체 이름은 DOM에 남김) / 3 서버 제목 / 4 시간·이동·비용 / 5 코스 1과의 차이 */
 
-.plan-card .number { font-size:14px; letter-spacing:0; color:var(--hong); }
-.plan-card .path-text { font-size:16px; color:var(--ink); }
-.plan-card .stats { gap:20px; padding:20px; background-color:#fff; border:1px solid var(--line); }
-.plan-card .stats b { font-size:25px; line-height:1.4; font-variant-numeric:tabular-nums; color:var(--hong); }
-.plan-card .stats small { display:block; font-size:14px; margin-top:5px; color:var(--muted); }
-
 .option-comparison h3 { font-size:20px; }
 .option-comparison th { font-size:14px; color:var(--hong); background-color:#fff; }
 .option-comparison th.travel-time { white-space:nowrap; }
@@ -242,7 +236,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
   .detail-header h2 { font-size:23px; }
   .detail .timeline-card h4 { font-size:23px; }
   .conditions .simple-form-group legend { font-size:19px; }
-  .plan-card .stats b { font-size:23px; }
 }
 @media(max-width:480px) {
   header { gap:10px; }
@@ -250,7 +243,7 @@ footer,footer small { font-size:14px; line-height:1.75; }
   header nav a,header nav button.nav { font-size:14px; min-height:44px; padding:6px 10px; }
   header nav a { display:inline-flex; }
   main .hero .hero-description { font-size:17px!important; }
-  .conditions.panel,.detail.panel,.plan-card { padding:20px 16px; }
+  .conditions.panel,.detail.panel{ padding:20px 16px; }
   .conditions .field-grid { gap:12px; }
   .detail .chat-form { flex-wrap:wrap; }
   .detail .chat-form input { flex-basis:100%; }

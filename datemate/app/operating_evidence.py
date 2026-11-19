@@ -74,6 +74,14 @@ def apply_evidence(place, records=None):
         else:
             verified.discard(field)
     result.update(operations_evidence=details, operations_verified_fields=sorted(verified))
+    # 2026-11-19: 카드의 '영업 정보'(recommendation_summary.py)는 operations_checked_at 만 본다. 예전에는 이 파일로 영업시간을
+    # 확인해도 그 날짜가 들어가지 않아 '최근 영업 정보를 확인하지 못했어요'로 남았다. 지금 유효한 영업시간 자료가 있으면
+    # 그 확인일을 넣는다(더 최근 날짜가 이미 있으면 그대로 둔다).
+    hours_record = details.get("hours")
+    if hours_record and hours_record["current"]:
+        old = str(result.get("operations_checked_at") or "")[:10]
+        if not old or old < hours_record["checked_at"]:
+            result["operations_checked_at"] = hours_record["checked_at"]
     if result.get("hours") and result.get("last_entry_offset") is not None:
         result["last_entry"] = result["hours"][1] - result["last_entry_offset"]
     return result

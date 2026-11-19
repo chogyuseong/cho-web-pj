@@ -98,6 +98,24 @@ function optionComparison(items){
   });scroll.append(table);scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','코스 비교 표 · 가로로 넘겨 확인');wrap.append(node('p','비용과 이동 시간을 비교해 보세요. 도보·대중교통·자전거는 직선거리로 추정한 시간이고, 자동차는 네이버 길찾기로 조회한 구간만 길찾기로 표시해요. 표는 좌우로 넘길 수 있어요.','hint'),scroll);return wrap;
 }
 // 확인 상태를 쉬운 말의 항목으로 보여준다. state: ok(확인됨) · check(확인 필요) · info(참고)
+// '위치' 확인(2026-11-19 규칙 변경): 예전에는 늘 '같은 지점인지 확인하지 못했어요'로 고정이었다.
+// 사진 요청(/media)이 네이버 지도에서 이름이 같고 400m 안·같은 시·도의 업체 하나를 찾으면(app/menus.py identified)
+// naver_place_id_verified 가 오고, app.js rememberVerifiedMapTarget 이 지도 링크를 그 업체로 바꾼다. 그때 이 줄도 '확인됨'으로 바꾼다.
+// 사진 요청은 카드가 화면에 가까워질 때 가므로, 처음에는 '확인 필요'로 그렸다가 확인되면 markIdentityVerified 가 바꾼다.
+const IDENTITY_UNVERIFIED='등록된 주소로 지도 위치를 찾았어요. 같은 지점인지는 확인하지 못했으니 지도 링크에서 확인해 주세요.';
+const IDENTITY_VERIFIED='네이버 지도에서 이름이 같고 400m 안에 있는 업체 하나를 찾아 연결했어요. 지도 링크가 그 업체로 열려요.';
+function identityEvidence(place){
+  const verified=place.naver_place_id_verified===true||(typeof verifiedMapTargets!=='undefined'&&verifiedMapTargets.has(place.id));
+  const item=evidenceItem('위치',verified?'ok':'check',verified?IDENTITY_VERIFIED:IDENTITY_UNVERIFIED);
+  item.dataset.identityPlaceId=place.id;
+  return item;
+}
+function markIdentityVerified(placeId){
+  for(const item of document.querySelectorAll('li[data-identity-place-id]')){
+    if(item.dataset.identityPlaceId!==placeId||item.classList.contains('evidence-ok'))continue;
+    const fresh=evidenceItem('위치','ok',IDENTITY_VERIFIED);fresh.dataset.identityPlaceId=placeId;item.replaceWith(fresh);
+  }
+}
 function evidenceItem(label,state,text){
   const item=node('li',undefined,'evidence-item evidence-'+state);
   item.append(node('span',{ok:'확인됨',check:'확인 필요',info:'참고'}[state],'evidence-badge'),node('strong',label),node('span',text,'evidence-text'));
@@ -114,7 +132,7 @@ function placeEvidencePanel(plan,index){
   details.append(node('p',fact?.address||place.address||'주소 미확인','hint'));
   if(fact){
     const list=node('ul',undefined,'evidence-list');list.setAttribute('aria-label','장소 정보 확인 상태');
-    list.append(evidenceItem('위치','check','등록된 주소로 지도 위치를 찾았어요. 같은 지점인지는 확인하지 못했으니 지도 링크에서 확인해 주세요.'));
+    list.append(identityEvidence(place));
     const current=fact.operating_current??(fact.operating_age_days!=null&&fact.operating_age_days>=0&&fact.operating_age_days<=90);
     list.append(evidenceItem('영업 정보',current?'ok':'check',(current?'최근 90일 안에 확인한 영업 자료가 있어요.':'최근 영업 정보를 확인하지 못했어요. 방문 전 영업시간·휴무를 확인해 주세요.')+(fact.operating_age_days!=null?` (자료 확인 ${fact.operating_age_days}일 전)`:'')));
     list.append(evidenceItem('블로그 언급','info',fact.blog_match?'이번에 찾은 코스 블로그 글에 이 장소가 나와요. 평점이나 방문자 수를 확인한 것은 아니에요.':'이번에 찾은 블로그 글에는 나오지 않았어요. 입력한 조건에 맞춰 함께 추천한 곳이에요.'));

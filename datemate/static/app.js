@@ -169,6 +169,8 @@ function rememberVerifiedMapTarget(place, data) {
   for (const anchor of document.querySelectorAll('a[data-map-place-id]')) {
     if (anchor.dataset.mapPlaceId === place.id) anchor.href = url;
   }
+  // 장소 정보 확인의 '위치' 줄도 '확인됨'으로(plan-evidence.js).
+  if (typeof markIdentityVerified === 'function') markIdentityVerified(place.id);
 }
 
 function normalizeMapQuery(value) {

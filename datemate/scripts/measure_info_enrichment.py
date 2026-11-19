@@ -24,7 +24,7 @@ os.environ['DATEMATE_RUNTIME'] = tempfile.mkdtemp(prefix='datemate-enrich-')
 os.environ['DATABASE_URL'] = ''
 os.environ['DATEMATE_ENV_FILE'] = str(Path(os.environ['DATEMATE_RUNTIME']) / 'absent.env')
 for key in ('GMS_KEY', 'NAVER_SEARCH_CLIENT_ID', 'NAVER_SEARCH_CLIENT_SECRET', 'NAVER_MAPS_KEY_ID', 'NAVER_MAPS_KEY',
-            'DATEMATE_OPERATING_EVIDENCE_FILE', 'TOUR_API_KEY', 'TMAP_TRANSIT_APP_KEY'):
+            'DATEMATE_OPERATING_EVIDENCE_FILE', 'TOUR_API_KEY'):
     os.environ[key] = ''
 os.environ['EMBEDDING_MODE'] = 'demo'
 sys.path.insert(0, str(ROOT))

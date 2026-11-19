@@ -108,8 +108,8 @@
 .map svg { width:100%; height:230px; }
 
 /* 인쇄: 휴대폰 지도 자리(.plan-map-slot)는 #plan-detail 안에 있어 style.css 의 '#results 의 다른 자식 숨김' 규칙에 걸리지 않으므로
-   따로 숨긴다. 지하철·버스 비교 안내(.map-transit-note)는 미리보기 전용이라 종이에 넣지 않는다. */
+   따로 숨긴다. */
 @media print {
   .map { break-inside:avoid; }
-  .detail .map-link-list,.plan-map-slot,.map-transit-note { display:none !important; }
+  .detail .map-link-list,.plan-map-slot { display:none !important; }
 }

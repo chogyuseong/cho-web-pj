@@ -206,15 +206,62 @@ const PopupView = {
     const source = link('블로그 원문 보기 ↗', post.url);
     source.classList.add('popup-source-link');
     quote.append(node('p', meta, 'popup-meta'), node(extra.titleTag || 'h4', post.title || '(제목 없음)', 'popup-title'), node('p', post.description, 'popup-summary'), source);
+    // 대표 사진(서버가 행사명·거점이 맞는 이미지 검색 사진 한 장을 고른 경우만, app/popup_api.post_photos)은 소개 옆 작은 칸에 둔다.
+    const photo = this.photo(post.photo);
+    let intro = quote;
+    if (photo) {
+      intro = node('div', undefined, 'popup-intro');
+      intro.append(quote, photo);
+    }
     const reading = node('div', undefined, 'popup-reading');
     const facts = node('dl', undefined, 'popup-facts');
     facts.append(this.fact('기간', this.periodText(post.period, data), 'period'));
     if (extra.place !== false) facts.append(this.fact('장소', this.placeText(post.place), 'place'));
     facts.append(...(extra.facts || []));
     reading.append(node('p', '데이트메이트가 검색 요약에서 읽은 정보', 'popup-reading-title'), facts);
-    card.append(quote, reading);
+    card.append(intro, reading);
     if (extra.action) card.append(extra.action);
     return card;
+  },
+  // 대표 사진 칸: 작은 사진(누르면 원본) + '검색 사진 · 출처' 줄. 사진 주소는 https 만 쓰고, 검색 결과 제목은 글자로만(alt·title 에 넣지 않음).
+  // 작은 사진이 깨지면 원본을 한 번 시험하고, 그것도 안 되면 칸을 통째로 지운다(깨진 그림·빈칸을 남기지 않음).
+  photo(photo) {
+    const safe = url => {
+      try {
+        const u = new URL(String(url || ''));
+        return u.protocol === 'https:' && !u.username && !u.password ? u.href : null;
+      } catch {
+        return null;
+      }
+    };
+    const src = safe(photo?.image_url);
+    if (!src) return null;
+    const figure = node('figure', undefined, 'popup-photo'),
+      img = node('img');
+    img.alt = '팝업 관련 검색 사진';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.referrerPolicy = 'no-referrer';
+    img.width = 96;
+    img.height = 96;
+    const backup = safe(photo.original_url);
+    img.addEventListener('error', () => {
+      if (backup && img.src !== backup) img.src = backup;
+      else figure.remove();
+    });
+    img.src = src;
+    const open = link('', photo.source);
+    if (open.tagName === 'A') {
+      open.classList.add('popup-photo-open');
+      open.setAttribute('aria-label', '검색 사진 원본 보기');
+      open.append(img);
+    }
+    const caption = node('figcaption', undefined, 'popup-photo-credit');
+    const source = link('출처 ↗', photo.source);
+    if (source.tagName === 'A') source.setAttribute('aria-label', '검색 사진 출처');
+    caption.append(node('span', '검색 사진'), source);
+    figure.append(open.tagName === 'A' ? open : img, caption);
+    return figure;
   },
   // 처음 size 건 + "글 더 보기". options: size, heading(제목 태그), cardOf(항목 만들기).
   list(title, posts, data, options = {}) {

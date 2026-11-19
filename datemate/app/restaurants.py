@@ -60,6 +60,9 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500)
             near=distance(a,r)
             if not district and near*1000>radius_m:continue
             id='food:naver-'+hashlib.sha256((name+address).encode()).hexdigest()[:16]
+            # 지번 주소(동 이름이 있음)는 엄격한 사진 검색이 동네 낱말로 쓴다(app/image_search.locality_words).
+            lot=plain(item.get('address') or '')
+            if lot and lot!=address:r['lot_address']=lot
             r.update(id=id,address=address,cuisine=category,category='카페·미식',region=region,demo=False,review_search_rank=rank,meal=True,setting=None,breaks=None,last_entry=None,
                 recognition=f'네이버 카페·블로그 리뷰순 검색 {rank}번째 결과 · 별점 미제공',source=search_url,source_type='네이버 지역 검색',
                 hours_text='운영시간·메뉴는 지도에서 확인',extra_distance_km=round(extra,1),route_offset_km=round(offset,1),

@@ -349,6 +349,83 @@ def test_four_widths_long_titles_touch_targets_and_keyboard(audit_page):
     assert page.evaluate("getComputedStyle(document.activeElement).outlineStyle") != "none"
 
 
+def photo(name, original=None):
+    """대표 사진(app/popup_api.post_photos 의 post.photo). 사진 서버는 page.route 로 흉내 낸다(외부 호출 없음)."""
+    return dict(
+        image_url=f"https://photos.example.test/{name}-thumb.png",
+        original_url=original or f"https://photos.example.test/{name}-original.png",
+        source=original or f"https://photos.example.test/{name}-original.png",
+        title="<img src=x onerror=window.__xss_photo=1> 검색 결과 제목",
+        provider="네이버 이미지 검색",
+        search_url="https://search.naver.com/search.naver?where=image&query=x",
+    )
+
+
+def test_popup_photo_sits_beside_the_intro_and_disappears_when_broken(audit_page):
+    """2026-11-19 사용자 요청: 팝업 소개 옆 작은 사진 + 출처. 맞는 사진이 없거나 깨지면 사진 칸 없이(깨진 그림·빈칸 없음)."""
+    from test_results_extras_ui import wide_png
+
+    page, base, errors = audit_page
+    png = wide_png(300, 300)
+    ok = {"good-thumb.png", "backup-original.png", "long-thumb.png"}
+    page.route(
+        "https://photos.example.test/**",
+        lambda route: route.fulfill(body=png, content_type="image/png")
+        if route.request.url.rsplit("/", 1)[-1] in ok
+        else route.fulfill(status=404, body=b""),
+    )
+    posts = [
+        post(1, title="더현대 서울 올기 팝업", period=CONFIRMED, place=BUILDING, photo=photo("good")),
+        post(2, title="성수 짱구 팝업", place=AREA, photo=photo("backup")),
+        post(3, title="성수 깨진 팝업", place=AREA, photo=photo("broken")),
+        post(4, title="성수 위험 팝업", place=AREA, photo=dict(photo("x"), image_url="javascript:alert(1)")),
+        post(5, title=LONG_TITLE, place=AREA, photo=photo("long")),
+        post(6, title="사진 없는 팝업", photo=None),
+    ]
+    api = Api(page)
+    api.by_query[""] = (200, payload(posts=posts))
+    # 사진은 loading=lazy 라 모든 글이 화면 안에 들어오게 높은 창에서 시작한다.
+    page.set_viewport_size({"width": 1440, "height": 5000})
+    open_popups(page)
+    page.wait_for_selector(".popup-post")
+    # 정상(1)·작은 사진이 깨져 원본으로 바꾼 것(2)·긴 제목(5)만 사진이 남는다. 둘 다 깨진 것(3)은 칸째 지우고, 위험한 주소(4)는 만들지 않는다.
+    page.wait_for_function("document.querySelectorAll('#popup-results .popup-photo').length===3")
+    cards = page.locator(".popup-post")
+    assert [cards.nth(i).locator(".popup-photo").count() for i in range(6)] == [1, 1, 0, 0, 1, 0]
+    page.wait_for_function(
+        "[...document.querySelectorAll('#popup-results .popup-photo img')].every(i=>i.complete&&i.naturalWidth>0)"
+    )
+    second = cards.nth(1).locator(".popup-photo img")
+    assert second.get_attribute("src") == "https://photos.example.test/backup-original.png"
+    first = cards.nth(0)
+    # 사진은 소개(원문 인용) 옆이고, 원문 인용 안의 링크는 여전히 블로그 원문 하나뿐이다.
+    assert first.locator(".popup-intro > .popup-quote + .popup-photo").count() == 1
+    assert first.locator(".popup-quote a").get_attribute("href") == "https://blog.naver.com/test/1"
+    credit = first.locator(".popup-photo-credit")
+    assert "검색 사진" in credit.inner_text()
+    source = credit.locator("a")
+    assert source.get_attribute("href") == "https://photos.example.test/good-original.png"
+    assert source.get_attribute("rel") == "noopener noreferrer"
+    # 검색 결과 제목은 화면에 넣지 않는다(그림 설명도 고정 문구).
+    assert first.locator(".popup-photo img").get_attribute("alt") == "팝업 관련 검색 사진"
+    assert page.evaluate("typeof window.__xss_photo") == "undefined"
+    assert page.locator("#popup-results img").count() == 3
+    for width, size in ((320, 72), (390, 72), (1440, 96)):
+        page.set_viewport_size({"width": width, "height": 900})
+        page.wait_for_timeout(100)
+        assert no_overflow(page), width
+        check = page.evaluate(
+            """() => [...document.querySelectorAll('#popup-results .popup-post')].filter(c=>c.querySelector('.popup-photo')).map(c=>{
+                const card=c.getBoundingClientRect(),img=c.querySelector('.popup-photo img').getBoundingClientRect(),
+                  quote=c.querySelector('.popup-quote').getBoundingClientRect(),title=c.querySelector('.popup-title');
+                return {inside:img.left>=card.left&&img.right<=card.right+0.5, beside:img.left>=quote.right-0.5,
+                  width:Math.round(img.width), clipped:title.scrollWidth>title.clientWidth+1, quote:Math.round(quote.width)};})"""
+        )
+        assert all(c["inside"] and c["beside"] and not c["clipped"] for c in check), (width, check)
+        assert {c["width"] for c in check} == {size}, (width, check)
+        assert min(c["quote"] for c in check) >= 160, (width, check)
+
+
 def test_switch_off_draws_nothing_and_api_is_404(audit_page, monkeypatch):
     page, base, errors = audit_page
     monkeypatch.setenv("DATEMATE_POPUPS_ENABLED", "0")

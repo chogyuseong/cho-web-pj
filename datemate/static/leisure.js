@@ -220,7 +220,7 @@ function leisurePhotoPanel(place, photoMode) {
             original.setAttribute('aria-label', place.name + ' 사진 ' + (slot.index + 1) + ' 크게 보기');
             original.append(slot.image);
             const credit = node('figcaption');
-            if (['search_result', 'place_public'].includes(photo.kind)) {
+            if (['search_result', 'place_public', 'image_search'].includes(photo.kind)) {
               credit.append(link(photoLabel(photo, '사진 출처') + ' ↗', photo.source));
             } else {
               credit.append(node('span', (photo.author || '') + ' · '), link(photo.license || '이용 조건', photo.license_url), node('span', ' · '), link(photoLabel(photo, '사진 출처') + ' ↗', photo.source));
@@ -274,7 +274,7 @@ function leisurePhotoPanel(place, photoMode) {
         slot.figure.remove();
       }
       if (!count) grid.remove();
-      if (count < 2) panel.append(button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'), link('네이버에서 사진 보기 ↗', data.search_url || 'https://search.naver.com/search.naver?where=image&query=' + encodeURIComponent(placeSearchQuery(place))));
+      if (count < 2) panel.append(button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'), data.map_url ? photoMapLink(place) : link('네이버에서 사진 보기 ↗', data.search_url || 'https://search.naver.com/search.naver?where=image&query=' + encodeURIComponent(placeSearchQuery(place))));
     } catch {
       panel.replaceChildren(node('p', '사진을 불러오지 못했어요.', 'hint'), button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'));
     } finally {

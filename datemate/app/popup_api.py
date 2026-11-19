@@ -13,6 +13,11 @@
 - 요청당 외부 호출: 블로그 2(연·월 검색어 + 예전 검색어, 합쳐서 같은 글은 한 번) + 좌표가 캐시에 없는 거점 최대 3. 재시도 없음. 시간 제한 10초. 모두 observed_http 를 거친다.
 - 같은 캐시 키의 동시 호출은 키별 잠금으로 한 번만 부르고, 잠금은 짧게만 기다린다(image_search 와 같은 2.5초).
 - 외부 호출이 필요한 요청만 IP 대역별 전용 한도(분당 3회·시간당 30회)를 쓴다. 캐시로 답하는 요청은 한도를 쓰지 않는다.
+- 대표 사진(2026-11-19 사용자 결정): 거점이 확인된(단일 거점) 일반 글 중 제목에서 행사명을 읽은 글만, '행사명 거점 팝업'으로
+  공식 이미지 검색 API 를 불러 popups.photo_title_match 를 통과한 첫 사진 한 장을 post.photo 로 싣는다. 못 찾으면 photo=None(화면은 사진 칸 없음).
+  같은 (행사명, 거점, 방문 연도)는 한 번만 찾고 1시간 캐시, 요청당 새로 찾는 수는 MAX_PHOTO_LOOKUPS. 키별 잠금은 기다리지 않고 건너뛴다.
+  거점 좌표 확인과 같은 허락(이번 요청이 이미 검색했거나 allow_new_search 한 번)을 나눠 쓰고, 호출은 observed_http(제공자 시간당 한도)를 거친다.
+  사진 결과는 응답 상태(ready·partial)에 영향을 주지 않는다.
 
 뉴스 검색은 이 Application 에 권한이 없어(0단계 401) 부르지 않는다. 응답의 sources 는 검색원 목록이라 나중에 더할 수 있다.
 """
@@ -25,6 +30,7 @@ import time
 import unicodedata
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
+from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
@@ -41,6 +47,11 @@ router = APIRouter()
 
 BLOG_URL = "https://naverapihub.apigw.ntruss.com/search/v1/blog"
 LOCAL_URL = "https://naverapihub.apigw.ntruss.com/search/v1/local"
+IMAGE_URL = "https://naverapihub.apigw.ntruss.com/search/v1/image"
+# 대표 사진(2026-11-19): 요청당 새로 찾는 사진 수 상한과 캐시 수명(찾음·없음 모두. 실패는 캐시하지 않음).
+MAX_PHOTO_LOOKUPS = 3
+PHOTO_TTL = 3600
+PHOTO_DISPLAY = 20
 DISPLAY = 50
 SORT = "date"
 RAW_TTL = 3600
@@ -140,6 +151,10 @@ def raw_key(region, q, visit):
 
 def point_key(hub_id):
     return f"popup-hub-point:{popups.RULES_VERSION}:{HUBS_VERSION}:{hub_id}"
+
+
+def photo_key(name, hub_id, visit):
+    return "popup-photo:v1:" + _hash([HUBS_VERSION, popups.name_key(name), hub_id, visit.year])
 
 
 # ---------------------------------------------------------------- 잠금·한도
@@ -488,10 +503,12 @@ def find_popups(region, q, visit, basis):
             finally:
                 lock.release()
         shown, counts = judge(raw["posts"], region, visit)
-        verdicts, checks = hub_points(client, shown, may_call=called)
-    for post in shown:
-        post["place"] = place_view(post.pop("_hub"), verdicts)
-    shown.sort(key=order_key)
+        permit = Permit(called)
+        verdicts, checks = hub_points(client, shown, may_call=permit)
+        for post in shown:
+            post["place"] = place_view(post.pop("_hub"), verdicts)
+        shown.sort(key=order_key)
+        photo_checks = post_photos(client, shown, region, visit, permit)
     source = dict(
         id="blog",
         name="네이버 블로그 검색",
@@ -511,7 +528,7 @@ def find_popups(region, q, visit, basis):
         status = "partial"
     else:
         status = "ready"
-    return response(
+    data = response(
         status,
         MESSAGES.get(status),
         region,
@@ -523,10 +540,26 @@ def find_popups(region, q, visit, basis):
         counts,
         checks,
     )
+    data["photo_checks"] = photo_checks
+    return data
+
+
+class Permit:
+    """이번 요청이 외부 검색을 더 불러도 되는지. 이미 블로그를 검색했으면 그대로 허락하고,
+    캐시로 답하는 요청은 처음 물을 때 allow_new_search 를 한 번만 불러(거점 좌표·대표 사진이 같은 한도를 나눠 씀) 그 답을 기억한다."""
+
+    def __init__(self, called):
+        self.answer = True if called else None
+
+    def __call__(self):
+        if self.answer is None:
+            self.answer = allow_new_search(raise_error=False)
+        return self.answer
 
 
 def hub_points(client, shown, may_call):
-    """보여 줄 글의 단일 거점 좌표 판정. 캐시에 없는 거점은 많이 나온 순서로 최대 3곳만 이번 요청에서 확인한다."""
+    """보여 줄 글의 단일 거점 좌표 판정. 캐시에 없는 거점은 많이 나온 순서로 최대 3곳만 이번 요청에서 확인한다.
+    may_call: 외부 호출을 해도 되는지 묻는 함수(Permit)."""
     wanted = Counter(p["_hub"]["hub_id"] for p in shown if p["_hub"]["status"] == "single")
     order = sorted(wanted, key=lambda h: (-wanted[h], h))
     found = store.cached_many([point_key(h) for h in order])
@@ -536,7 +569,7 @@ def hub_points(client, shown, may_call):
     if missing and not search_enabled():
         checks["skipped"] = len(missing)
         return verdicts, checks
-    if missing and not may_call and not allow_new_search(raise_error=False):
+    if missing and not may_call():
         checks["skipped"] = len(missing)
         return verdicts, checks
     for hub_id in missing[:MAX_POINT_LOOKUPS]:
@@ -556,6 +589,91 @@ def hub_points(client, shown, may_call):
             verdicts[hub_id] = verdict
     checks["skipped"] += max(0, len(missing) - MAX_POINT_LOOKUPS)
     return verdicts, checks
+
+
+# ---------------------------------------------------------------- 대표 사진
+
+
+def photo_target(post):
+    """사진을 찾을 글이면 (행사명, 거점), 아니면 None. 모아 보기 글·거점 모르는 글·행사명을 못 읽은 글은 찾지 않는다."""
+    hub_id = post["place"].get("hub_id")
+    if post["roundup"] or not hub_id or hub_id not in HUB_BY_ID:
+        return None
+    name = popups.event_name(post["title"], HUBS)["name"]
+    return (name, HUB_BY_ID[hub_id]) if name else None
+
+
+def lookup_photo(client, name, hub, region, visit):
+    """이미지 검색 한 번. 맞는 첫 사진이면 dict(photo=…), 없으면 dict(photo=None)(둘 다 캐시), 실패는 None."""
+    # 동네 거점 이름의 '일대'는 검색어에서 뺀다('성수 일대' → '성수').
+    query = f"{name} {hub['name'].removesuffix(' 일대')} 팝업"
+    data, reason = _get(
+        client,
+        IMAGE_URL,
+        dict(query=query, display=PHOTO_DISPLAY, start=1, sort="sim", filter="all", format="json"),
+    )
+    if reason:
+        return None
+    from .image_search import safe_https
+
+    photo = None
+    for item in data.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        original, thumb = str(item.get("link") or ""), str(item.get("thumbnail") or "")
+        image = thumb if safe_https(thumb) else original if safe_https(original) else None
+        if not image or not popups.photo_title_match(item.get("title"), name, hub, region, visit, HUBS):
+            continue
+        photo = dict(
+            image_url=image,
+            # 작은 사진이 깨지면 원본을 한 번 더 시험한다(https 만).
+            original_url=original if safe_https(original) else None,
+            source=original if safe_web_url(original) else image,
+            title=popups.normalize_text(item.get("title"))[:160],
+            provider="네이버 이미지 검색",
+            search_url="https://search.naver.com/search.naver?" + urlencode(dict(where="image", query=query)),
+        )
+        break
+    result = dict(photo=photo)
+    store.cache(photo_key(name, hub["id"], visit), result, PHOTO_TTL)
+    return result
+
+
+def post_photos(client, shown, region, visit, permit):
+    """보여 줄 글마다 post['photo'](없으면 None). 캐시에 없는 (행사명, 거점)은 글 순서대로 최대 MAX_PHOTO_LOOKUPS 개만 새로 찾는다."""
+    targets, keys = {}, {}
+    for post in shown:
+        post["photo"] = None
+        target = photo_target(post)
+        if target:
+            key = photo_key(target[0], target[1]["id"], visit)
+            keys[post["id"]] = key
+            targets.setdefault(key, target)
+    found = store.cached_many(list(targets))
+    missing = [key for key in targets if key not in found]
+    checks = dict(requested=0, failed=0, skipped=0)
+    if missing and (not search_enabled() or not permit()):
+        checks["skipped"] = len(missing)
+        missing = []
+    for key in missing[:MAX_PHOTO_LOOKUPS]:
+        lock = _key_lock(key)
+        if not lock.acquire(blocking=False):
+            checks["skipped"] += 1
+            continue
+        try:
+            checks["requested"] += 1
+            result = lookup_photo(client, *targets[key], region, visit)
+        finally:
+            lock.release()
+        if result is None:
+            checks["failed"] += 1
+        else:
+            found[key] = result
+    checks["skipped"] += max(0, len(missing) - MAX_PHOTO_LOOKUPS)
+    for post in shown:
+        hit = found.get(keys.get(post["id"]))
+        post["photo"] = hit.get("photo") if isinstance(hit, dict) else None
+    return checks
 
 
 @router.get("/api/popups")

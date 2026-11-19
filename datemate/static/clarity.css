@@ -21,19 +21,6 @@ header .brand-name .brand-tagline { color:var(--hong); font-weight:650; letter-s
 .festival-map-info p { margin:4px 0; }
 .map-festival-note { margin:6px 0 0; font-size:14px; color:var(--ink); }
 
-/* Place evidence: one row per fact with a status badge instead of one dense line. */
-.evidence-list { list-style:none; margin:10px 0; padding:0; display:grid; gap:8px; }
-.evidence-item { display:grid; grid-template-columns:auto auto minmax(0,1fr); align-items:baseline; gap:4px 10px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:#fff; font-size:15px; line-height:1.6; }
-.evidence-item strong { color:var(--ink); white-space:nowrap; }
-.evidence-text { color:var(--ink); min-width:0; overflow-wrap:anywhere; }
-.evidence-badge { display:inline-block; padding:1px 9px; border-radius:999px; font-size:13px; font-weight:800; white-space:nowrap; }
-.evidence-ok .evidence-badge { background:var(--platform); color:var(--hong); border:1px solid var(--line); }
-.evidence-check { border-color:var(--line); background:var(--warn-bg); }
-.evidence-check .evidence-badge { background:var(--warn-bg); color:var(--ink); border:1px solid var(--line); }
-.evidence-info .evidence-badge { background:#fff; color:var(--cheong); border:1px solid var(--line); }
-.place-evidence>summary { font-weight:750; }
-.evidence-summary-count { display:inline-block; margin-left:8px; padding:0 9px; border-radius:999px; background:var(--warn-bg); color:var(--ink); font-size:13px; font-weight:800; }
-@media(max-width:480px) { .evidence-item { grid-template-columns:auto minmax(0,1fr); } .evidence-text { grid-column:1 / -1; } }
 
 /* Named source links print their address so a paper copy still shows where the fact came from. */
 /* 인쇄: 출처 주소는 근거로 남기되, 장소 이름을 퍼센트 인코딩한 네이버 지도 검색 주소는 여러 줄을 차지하고 따라 칠 수도 없어 뺀다(PDF 에서는 링크가 그대로 눌림). */

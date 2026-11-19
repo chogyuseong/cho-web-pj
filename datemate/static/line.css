@@ -143,7 +143,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select,
 .choice-note.is-adjusted { background:var(--warn-bg); border-left:4px solid var(--ink); padding:8px 12px; font-weight:600; }
 
 /* ---------- 경고 · 안내 ---------- */
-.warning,main .warning,.condition-differences,.evidence-check {
+.warning,main .warning,.condition-differences {
   background:var(--warn-bg)!important;
   color:var(--ink)!important;
   border:0!important;
@@ -344,12 +344,6 @@ body:not(.show-date-plan) .hero-photo {
 .detail .map-link-list a { background:#fff; border:1px solid var(--line); border-radius:999px; color:var(--cheong); }
 .detail { --time:88px; --rail:40px; --band:calc(var(--time) + var(--rail)); }
 .detail .step-category { margin:0 0 4px; }
-/* 블로그 후기 본문에서 읽은 영업시간(참고용). 확인된 운영 정보와 구분되게 회색 꼬리표로 둔다. */
-.review-facts { margin:8px 0; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--platform); overflow-wrap:anywhere; }
-.review-facts p { margin:2px 0; font-size:15px; line-height:1.5; color:var(--ink); }
-.review-facts .review-facts-tag { font-size:14px; background:var(--paper); color:var(--ink); border:1px solid var(--line); }
-.review-facts .hint { font-size:14px; color:var(--muted); }
-.review-facts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
 @media(max-width:800px) {
   .detail { --time:0px; --rail:36px; }
 }
@@ -364,16 +358,12 @@ body:not(.show-date-plan) .hero-photo {
 .photo-arrow:hover { background:var(--hong); }
 .photo-counter { background:var(--ink); }
 .photo-eyebrow { display:block; font-size:14px; letter-spacing:0; color:var(--muted); }
-.place-evidence,.place-blogs,.verified-facts,.experience-panel>details,.experience-controls,.course-search-panel {
+.experience-panel>details,.experience-controls,.course-search-panel {
   background:#fff!important;
   border:1px solid var(--line)!important;
   border-radius:10px!important;
 }
-.place-blogs summary,.place-evidence>summary,.course-evidence>summary,.experience-panel summary { color:var(--ink)!important; }
-.evidence-item { background:#fff; border-color:var(--line); }
-.evidence-ok .evidence-badge { background:var(--platform); color:var(--ink); border-color:var(--line); }
-.evidence-info .evidence-badge { background:#fff; color:var(--cheong); border-color:var(--line); }
-.evidence-check .evidence-badge,.evidence-summary-count { background:var(--warn-bg); color:var(--ink); border-color:var(--ink); }
+.course-evidence>summary,.experience-panel summary { color:var(--ink)!important; }
 .photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
 
 /* ---------- 확인: 네 가지 확인은 2열 정의 목록 ---------- */

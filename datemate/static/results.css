@@ -378,3 +378,88 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .menu-image-gallery { display:grid; gap:16px; }
 .menu-image-gallery img { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:14px; }
 .menu-refresh { margin-top:10px; font-size:14px; min-height:44px; }
+
+
+/* ---------------------------------------------------------------- 블로그 후기 접기·추천 이유와 정보 확인·후기에서 읽은 정보 (5-3d-3)
+   만드는 곳: place-blogs.js — details.place-blogs(summary「블로그 후기 보기」, div.place-blog-content 안 ul.blog-post-list > li.blog-search-post,
+   불러오는 중 .blog-skeleton*, 실패·빈 상태 .blog-state). 일정 장소 칸, 식당 제안 카드, 코스 카드의 사진 미리보기(.plan-photo-preview),
+   장소 정보 대화상자에 들어간다. plan-evidence.js 의 details.place-evidence(ul.evidence-list > li.evidence-item.evidence-ok|check|info),
+   review-facts.js 의 div.review-facts, meal-suggestions.js·recommendation-feedback.js 의 .verified-facts.
+   예전 출처: place-photos·selle·calm·editorial·clarity·line 의 규칙 약 80개(블로그 목록 규칙 대부분은 place-photos.css 에 있었다).
+   남겨 둔 공통 규칙: readability.css 의 main :is(…,.place-blogs) 안 p·a 글자 크기·색(대화상자 안에서는 걸리지 않는다),
+   main :is(…,.place-evidence p,…) 15px. 코스 검색 근거(.course-evidence)와 비용 표의 블로그 근거(.price-blog-evidence)는 뒤 단계. */
+
+/* 접기 상자 공통 모양: 흰 바탕·1px 선·모서리 10px. !important 는 line.css 의 같은 모양 상자 목록과 맞춘 값(5-5 에서 정리). */
+.place-blogs { margin:12px 0; overflow:hidden; font-size:15px; line-height:1.75; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+@media(max-width:800px) { .plan-photo-preview .place-blogs { display:none; } }
+.place-blogs>summary { min-height:44px; box-sizing:border-box; padding:12px; cursor:pointer; font-size:16px; font-weight:750; color:var(--ink)!important; }
+@media(max-width:600px) { .place-blogs>summary { font-size:14px; } }
+.place-blog-content { min-width:0; padding:0 12px 12px; }
+.place-blogs h5 { font-size:14px; margin:14px 0 6px; }
+.blog-post-list { list-style:none; margin:0; padding:0; }
+.place-blogs .blog-search-post { min-width:0; padding:12px 0; border-bottom:1px solid var(--line); }
+.place-blogs .blog-search-post:last-child { border-bottom:0; }
+.blog-search-post>a { display:block; overflow-wrap:anywhere; }
+.blog-search-post a { font-size:16px; font-weight:600; }
+/* 글 제목은 두 줄까지 */
+.blog-search-post a.blog-post-title { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; overflow-wrap:anywhere; }
+.blog-search-post a.blog-read-more { white-space:nowrap; color:var(--cheong); }
+.blog-search-post .source-link-options { display:block; }
+.blog-search-post p { margin:7px 0; font-size:14px; line-height:1.8; }
+.blog-search-post small { display:block; margin-top:5px; font-size:14px; color:var(--muted); }
+.blog-search-post .blog-meta { display:block; margin-top:4px; }
+.place-blog-content .blog-excerpt { font-size:14px; line-height:1.8; color:var(--ink); }
+.blog-preview-label { display:inline-block; margin-right:4px; padding:0 6px; border:1px solid var(--line); border-radius:999px; background:var(--platform);
+  font-size:14px; line-height:1.6; font-weight:600; color:var(--muted); }
+.blog-scope-note { margin:0 0 4px; }
+.blog-state { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 8px; padding:12px; background:var(--platform); }
+.blog-state p { margin:0; flex:1 1 200px; }
+.blog-state .blog-retry { min-height:44px; }
+/* 불러오는 중 자리표시(깜빡임). 동작 줄이기 설정이면 멈춘다. */
+.blog-skeleton-list { display:grid; gap:0; }
+.blog-skeleton { display:grid; gap:8px; padding:12px 0; border-bottom:1px solid var(--line); }
+.blog-skeleton:last-child { border-bottom:0; }
+.blog-skeleton span { display:block; background:var(--platform); animation:blog-skeleton-pulse 1.6s ease-in-out infinite; }
+.blog-skeleton-title { height:22px; width:70%; }
+.blog-skeleton-line { height:16px; width:100%; }
+.blog-skeleton-line.short { width:55%; }
+@keyframes blog-skeleton-pulse { 0%,100% { opacity:1; } 50% { opacity:.45; } }
+@media(prefers-reduced-motion:reduce) { .blog-skeleton span { animation:none; } }
+/* 코스 카드의 사진 미리보기 안에서는 작게(800px 이하에서는 위에서 숨김) */
+.plan-photo-preview .place-blogs>summary { font-size:14px; padding:10px 8px; }
+.plan-photo-preview .place-blog-content { padding:0 8px 10px; }
+.plan-photo-preview .blog-search-post a { font-size:14px; line-height:1.6; }
+.plan-photo-preview .place-blog-content>.hint { font-size:14px; }
+.plan-photo-preview .place-blog-content>a { font-size:14px; }
+
+/* 추천 이유 · 정보 확인 */
+.place-evidence { margin:12px 0; padding:12px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+.place-evidence>summary { cursor:pointer; font-weight:750; color:var(--ink)!important; }
+.place-evidence a { display:block; overflow-wrap:anywhere; color:var(--cheong); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.place-evidence a:focus-visible { outline:2px solid var(--cheong); outline-offset:3px; }
+.evidence-list { list-style:none; margin:10px 0; padding:0; display:grid; gap:8px; }
+/* 항목: [확인 상태 꼬리표 | 항목 이름 | 내용] 3칸, 480px 이하는 내용이 아래 줄. */
+.evidence-item { display:grid; grid-template-columns:auto auto minmax(0,1fr); align-items:baseline; gap:4px 10px; padding:10px 12px;
+  border:1px solid var(--line); border-radius:12px; background:#fff; font-size:15px; line-height:1.6; }
+@media(max-width:480px) { .evidence-item { grid-template-columns:auto minmax(0,1fr); } }
+/* 확인이 필요한 항목은 노란 바탕, 테두리·모서리 없음. 같은 명시도의 .evidence-item 보다 뒤에 있어야 한다.
+   !important 는 line.css 의 경고 상자 목록(.warning 등)과 맞춘 값. */
+.evidence-check { border-radius:0; border:0!important; background:var(--warn-bg)!important; color:var(--ink)!important; }
+.evidence-item strong { color:var(--ink); white-space:nowrap; }
+.evidence-text { min-width:0; color:var(--ink); overflow-wrap:anywhere; }
+@media(max-width:480px) { .evidence-text { grid-column:1 / -1; } }
+.evidence-badge { display:inline-block; padding:1px 9px; border-radius:999px; font-size:13px; font-weight:800; white-space:nowrap; }
+.evidence-ok .evidence-badge { border:1px solid var(--line); background:var(--platform); color:var(--ink); }
+.evidence-info .evidence-badge { border:1px solid var(--line); background:#fff; color:var(--cheong); }
+.evidence-check .evidence-badge { border:1px solid var(--ink); background:var(--warn-bg); color:var(--ink); }
+.evidence-summary-count { display:inline-block; margin-left:8px; padding:0 9px; border-radius:999px; border-color:var(--ink); background:var(--warn-bg); color:var(--ink); font-size:13px; font-weight:800; }
+
+/* 블로그 후기 본문에서 읽은 영업시간 등(참고용): 확인된 운영 정보와 구분되게 옅은 바탕·회색 꼬리표 */
+.review-facts { margin:8px 0; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--platform); overflow-wrap:anywhere; }
+.review-facts p { margin:2px 0; font-size:15px; line-height:1.5; color:var(--ink); }
+.review-facts .review-facts-tag { font-size:14px; background:var(--paper); color:var(--ink); border:1px solid var(--line); }
+.review-facts .hint { font-size:14px; color:var(--muted); }
+.review-facts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
+/* 공식 자료로 확인한 정보 */
+.verified-facts { padding:10px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+.verified-facts a { font-size:12px; }

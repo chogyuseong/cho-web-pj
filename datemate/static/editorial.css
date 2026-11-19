@@ -153,10 +153,6 @@ input:focus,textarea:focus,select:focus{
 .place-photo img{object-fit:cover}
 .photo-choices button{border-radius:999px}
 .photo-choices button[aria-pressed=true]{background-color:var(--brand-soft);border-color:var(--hong);color:var(--hong);font-weight:750}
-.place-evidence{background-color:#fff;border:1px solid var(--line);border-radius:14px}
-.place-blogs{background-color:#fff!important;border:1px solid var(--line)!important;border-radius:14px}
-.place-blogs summary{color:var(--hong)!important;font-weight:750}
-.place-blog-content .blog-excerpt{color:var(--ink);font-size:14px}
 
 /* Sticky Plan Map Card */
 .plan-map-card{
@@ -367,7 +363,7 @@ input,select,textarea{max-width:100%;min-width:0}
   .option-comparison{padding:16px}
   .plan-photo-preview{grid-template-columns:1fr}
   .plan-photo-preview .place-photo img{height:185px}
-  .plan-photo-preview .place-photo-copy,.plan-photo-preview .place-blogs,.plan-photo-preview .photo-choices{display:none}
+  .plan-photo-preview .place-photo-copy,.plan-photo-preview .photo-choices{display:none}
   .plan-photo-preview .place-photo-panel{margin-bottom:10px}
   .plan-photo-name{font-size:16px}
   .photo-choices{grid-column:1/-1}
@@ -384,7 +380,6 @@ input,select,textarea{max-width:100%;min-width:0}
   .leisure-course-panel .actions button{width:100%;white-space:normal}
   .detail-header{align-items:stretch;gap:12px}
   .detail-header h2{flex-basis:100%;font-size:22px}
-  .place-blogs summary{font-size:14px}
   dialog{padding:18px 14px}
 }
 @media(max-width:420px){

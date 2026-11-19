@@ -3,9 +3,7 @@
   --reading-body:16px;
   --reading-note:14px;
 }
-html { scroll-padding-top:24px; }
 #main-content:focus { outline:none; }
-body { font-size:17px; line-height:1.75; letter-spacing:0; color:var(--ink); background-color:#fff; }
 main :is(p,li,dd,dt) { line-height:1.8; overflow-wrap:anywhere; }
 main p { font-size:var(--reading-body); }
 main :is(small,.small,.hint,.muted,.price-basis,.review-meta,.number,.option-label) {
@@ -20,15 +18,13 @@ main :is(summary,button),header nav :is(a,button),dialog :is(summary,button) {
 main summary { display:list-item; padding-block:10px; margin-bottom:0; }
 main :is(th,td) { font-size:14px; line-height:1.75; padding:13px 12px; }
 main .hint,main .muted { color:var(--muted); }
-main .warning { font-size:15px; line-height:1.8; color:var(--ink); background-color:var(--warn-bg); border-color:var(--line); border-radius:14px; }
+main .warning { font-size:15px; line-height:1.8; }
 main :is(.tag,.step-category) { font-size:13.5px; line-height:1.65; padding:5px 11px; color:var(--hong); background-color:var(--platform); }
 main :is(.condition-summary,.condition-differences p,.course-evidence p,.place-evidence p,.map-caption) { font-size:15px; }
 
-.conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) {
-  min-height:48px; font-size:17px; line-height:1.6; border-color:var(--line); background-color:#fff; color:var(--ink);
-}
+.conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) { min-height:48px; font-size:17px; line-height:1.6; }
 .conditions textarea { min-height:116px; padding:14px; }
-.conditions :is(input,textarea)::placeholder { color:var(--muted); opacity:1; }
+.conditions :is(input,textarea)::placeholder { opacity:1; }
 /* 자유 입력: 자주 쓰는 조건 칩과 ‘이렇게 이해했어요’(request-understanding.js) */
 
 header nav a,header nav button.nav { display:inline-flex; align-items:center; font-size:15px; white-space:normal; }
@@ -63,32 +59,16 @@ main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.sm
 main :is(.meal-card,.place-blogs,.place-photo-panel) a { font-size:14px; line-height:1.8; overflow-wrap:anywhere; color:var(--hong); font-weight:650; }
 
 /* Shared Partner Voting Page (shared.html) */
-#shared-places { display:grid; gap:16px; margin:20px 0 24px; }
-#shared-places article {
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:22px;
-}
-#shared-places article h2 {
-  font-size:22px;
-  margin:0 0 6px;
-  color:var(--ink);
-}
-#shared-places article p { color:var(--muted); margin:0 0 14px; }
+#shared-places { display:grid; margin:20px 0 24px; }
 #shared-form button.primary {
-  background-color:var(--hong);
-  color:#fff;
-  border-radius:999px;
   min-height:50px;
   padding:12px 28px;
   font-size:16px;
-  font-weight:750;
 }
 
 dialog :is(p,li,dd,dt,.hint,.small) { font-size:15px; line-height:1.8; }
 dialog :is(label,summary,button,input,select,textarea) { font-size:16px; }
-dialog input::placeholder { color:var(--muted); opacity:1; }
+dialog input::placeholder { opacity:1; }
 dialog :is(button,summary) { min-height:44px; }
 footer,footer small { font-size:14px; line-height:1.75; }
 .skip-to-content {
@@ -97,19 +77,15 @@ footer,footer small { font-size:14px; line-height:1.75; }
   left:16px;
   z-index:1000;
   padding:12px 18px;
-  background-color:#fff;
-  border:2px solid var(--hong);
-  border-radius:999px;
   transform:translateY(-180%);
-  color:var(--hong);
   font-weight:750;
 }
 .skip-to-content:focus { transform:translateY(0); }
 
 @media(max-width:480px) {
   header { gap:10px; }
-  header nav { width:100%; justify-content:space-between; margin-left:0; gap:8px; }
-  header nav a,header nav button.nav { font-size:14px; min-height:44px; padding:6px 10px; }
+  header nav { width:100%; justify-content:space-between; margin-left:0; }
+  header nav a,header nav button.nav { font-size:14px; min-height:44px; }
   header nav a { display:inline-flex; }
 }
 @media print { .skip-to-content { display:none; } }

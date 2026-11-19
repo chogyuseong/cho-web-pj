@@ -154,12 +154,6 @@ main { --gutter:40px; padding-inline:var(--gutter); }
 @media(max-width:800px) { main { --gutter:20px; } }
 @media(max-width:420px) { main { --gutter:16px; } }
 
-/* 예시 노선 띠: 시각 · 역 · 장소 이름. 실제 일정과 같은 그림 문법을 쓴다. */
-/* 역과 역 사이 선은 구간 수단을 따른다(도보는 점선). 역 줄에는 선을 따로 긋지 않고 구간 선이 역 원 아래까지 이어진다. */
-
-/* 홈: 인기 동네 6곳은 승강장 띠 위의 역 이름 목록처럼. */
-/* 테마가 제목, 동네 이름은 보조 정보(사용자 피드백: 무슨 테마인지 먼저 보여야 함). */
-
 .notice { background:var(--platform); border:0; border-radius:0; color:var(--ink); }
 
 /* ---------- 조건 입력 ---------- */

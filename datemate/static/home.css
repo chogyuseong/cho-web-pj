@@ -23,6 +23,7 @@
 .empty-state { text-align:center; }
 .empty-state h3 { letter-spacing:-1px; }
 .empty-state p { font-size:13px; color:var(--muted); }
+/* 검색 중 상자: 취소 버튼이 눌려 글자가 쪼개지지 않게 하고, 적용 조건은 아랫줄로 내린다. */
 #progress { color:var(--green); font-size:13px; margin-bottom:14px; }
 @media(max-width:720px) {
   .hero p:not(.eyebrow) { font-size:11px; }
@@ -313,6 +314,8 @@ main .hero .hero-pill { font-size:14px!important; }
 @media (max-width:720px) {
   .date-subcategories span { display:flex; align-items:center; min-height:44px; }
 }
+/* 예시 노선 띠: 시각 · 역 · 장소 이름. 실제 일정과 같은 그림 문법을 쓴다. */
+/* 역과 역 사이 선은 구간 수단을 따른다(도보는 점선). 역 줄에는 선을 따로 긋지 않고 구간 선이 역 원 아래까지 이어진다. */
 .line-sample time { font-family:var(--font-head); font-weight:800; letter-spacing:0; }
 .line-name { font-family:var(--font-head); font-weight:800; letter-spacing:0; color:var(--ink); }
 #parse { background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px; font-weight:600; box-shadow:none!important; }
@@ -383,6 +386,8 @@ body:not(.show-date-plan) .hero-photo { display:block; grid-area:photo; height:a
 .curation-heading { text-align:left; margin:0 0 20px; }
 .curation-heading h2 { margin:0 0 6px; color:var(--ink); }
 .curation-heading p { margin:0; color:var(--muted); font-size:16px; }
+/* 홈: 인기 동네 6곳은 승강장 띠 위의 역 이름 목록처럼. */
+/* 테마가 제목, 동네 이름은 보조 정보(사용자 피드백: 무슨 테마인지 먼저 보여야 함). */
 .curation-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 32px; border-top:1px solid var(--line); }
 .curation-card { position:relative; display:grid; grid-template-columns:32px minmax(0,1fr); column-gap:12px; align-items:start; width:100%; padding:16px 0; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; color:var(--ink); text-align:left; box-shadow:none; transform:none!important; overflow:visible; }
 .curation-card:hover { background:transparent; box-shadow:none; }

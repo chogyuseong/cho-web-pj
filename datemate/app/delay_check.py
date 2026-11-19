@@ -7,7 +7,11 @@
   마지막 입장, 영업 종료)을 차례로 적용한다. 모든 시각에 같은 지연을 더하지 않는다(개점 전 대기가 지연을 흡수할 수 있다).
 - 이동 시간은 코스에 저장된 구간 값을 그대로 쓴다(새로 조회하지 않는다). 추정 구간이면 근거와 함께 알린다.
 - 귀가가 있으면 귀가 구간을 더하고, 끝으로 일정 종료 시각(conditions.end)과 비교한다.
-- 영업시간·휴무 자료가 없는 장소에 닿으면 판단을 보류하고 확인할 항목을 돌려준다.
+- 영업시간·휴무 자료가 없는 장소는 추천 계산(planner.evaluate, 실제 장소 + 추정 허용)과 같은 규칙으로 '하루 종일 연다'고 가정해
+  계속 계산하고, 그 장소를 pending(먼저 확인할 것)과 그 줄의 state='unchecked' 로 알린다.
+  예전(2026-11-19 오전 배포)에는 그 장소에서 계산을 멈췄는데, 실제 장소는 대부분 영업시간 자료가 없어 첫 장소에서 바로
+  '판단 보류'만 나와 기능이 쓸모없었다(사용자 신고 스크린샷). status: 문제가 있으면 'problem', 문제는 없지만 가정한 곳이 있으면
+  'unknown'(끝나는 시각은 계산함), 모두 자료가 있고 문제가 없으면 'ok'.
 원본 코스·공유본·방문 기록을 바꾸지 않는다(저장하지 않는다). 대체 장소 추천은 하지 않는다.
 """
 
@@ -57,18 +61,10 @@ def delay_check(plan, index, delay):
             if p.get(key) is None
         ]
         if missing:
-            # 이 장소부터는 판단할 근거가 없다. 남은 장소의 시각도 이 장소의 대기·체류에 달려 있으므로 여기서 멈춘다.
+            # 자료가 없으면 planner.evaluate 처럼 '하루 종일 연다·휴무 없음'으로 가정하고 계속 간다(개점 대기·영업 종료 판단 없음).
             pending.append(dict(place=p["name"], fields=missing))
-            rows.append(
-                dict(
-                    name=p["name"],
-                    arrival=clock(now),
-                    state="unknown",
-                    missing=missing,
-                    original_start=timeline[j]["arrival"],
-                )
-            )
-            break
+            if p.get("hours") is None:
+                p["hours"] = [0, 1440]
         stay_assumed = p.get("stay") is None
         p["stay"] = p.get("stay") or c.stay_minutes
         if p.get("last_entry") is None:
@@ -84,7 +80,8 @@ def delay_check(plan, index, delay):
             shift=start - original_start,
             stay=p["stay"],
             stay_assumed=stay_assumed,
-            state="problem" if problem else "ok",
+            state="problem" if problem else "unchecked" if missing else "ok",
+            missing=missing,
         )
         if problem:
             limit = problem["limit"]
@@ -108,7 +105,7 @@ def delay_check(plan, index, delay):
         rows.append(row)
         now = start + p["stay"]
     finish = None
-    if not first_problem and not pending:
+    if not first_problem:
         if c.return_home and len(legs) > len(places):
             now += _leg_minutes(legs[-1], c)
             if legs[-1].get("status") != "api":
@@ -129,7 +126,7 @@ def delay_check(plan, index, delay):
                 limit=c.end,
                 over=now - minutes(c.end),
             )
-    status = "unknown" if pending else "problem" if first_problem else "ok"
+    status = "problem" if first_problem else "unknown" if pending else "ok"
     return dict(
         status=status,
         index=index,

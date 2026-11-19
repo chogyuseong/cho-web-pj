@@ -84,14 +84,16 @@ def test_break_time_pushes_the_next_place_and_the_end_time_is_checked():
     assert delay_check(tight, 1, 15)['first_problem'] == dict(place='일정 종료', time='16:15', reason='정한 종료 시각을 넘겨요', kind='end', limit='16:10', over=5)
 
 
-def test_estimated_legs_are_named_and_missing_hours_defer_the_judgment():
+def test_estimated_legs_are_named_and_missing_hours_are_assumed_open_and_named():
     c = conditions(start='13:30', end='20:00', count=2, return_home=True, home=dict(name='집', lat=37.55, lon=127.06))
     tea = place('t', '찻집', [hm('10:00'), hm('21:00')], 60)
     unknown = dict(place('u', '영업시간 모르는 전시', None, 60), hours=None)
     plan = plan_of(c, [tea, unknown], [20, 10], [('13:50', '14:50'), ('15:00', '16:00')], '16:30', return_leg=30)
     result = delay_check(plan, 0, 10)
+    # 영업시간을 모르는 곳도 '연다'고 가정해 끝까지 계산한다(예전에는 여기서 멈춰 '판단 보류'만 냈다).
     assert result['status'] == 'unknown' and result['pending'] == [dict(place='영업시간 모르는 전시', fields=['영업시간'])]
-    assert result['first_problem'] is None and result['finish'] is None
+    assert result['first_problem'] is None and result['finish'] == '16:40'
+    assert [r['state'] for r in result['rows']] == ['ok', 'unchecked'] and result['rows'][1]['missing'] == ['영업시간']
     assert result['estimated_legs'][0] == dict(leg='출발 → 찻집', minutes=20, basis='직선거리 기반 도보 추정')
     known = plan_of(c, [tea, place('k', '영업시간 아는 전시', [hm('10:00'), hm('21:00')], 60)], [20, 10],
                     [('13:50', '14:50'), ('15:00', '16:00')], '16:30', return_leg=30)
@@ -131,3 +133,19 @@ def test_api_is_read_only_and_owner_only():
         assert other.get('/api/plans/' + plan['id'] + '/delay-check', params=dict(index=0, minutes=10)).status_code == 404
         assert owner.get('/api/plans/' + plan['id'] + '/delay-check', params=dict(index=9, minutes=10)).status_code == 409
         assert json.loads(store.get_plan(plan['id'])['payload']) == json.loads(before)
+
+
+def test_first_place_without_hours_does_not_stop_the_check():
+    """사용자 신고(2026-11-19 스크린샷): 첫 장소의 영업시간 자료가 없으면 그 한 줄만 나오고 멈췄다.
+    이제 그 장소는 연다고 가정하고, 뒤 장소의 실제 문제(영업 종료)까지 찾는다."""
+    c = conditions(start='11:00', end='20:00', count=2)
+    yoga = dict(place('y', '요가 스트레치', None, 60), hours=None, closed_days=None)
+    gallery = place('g', '일찍 닫는 전시', [hm('10:00'), hm('13:30')], 60)
+    plan = plan_of(c, [yoga, gallery], [12, 10], [('11:12', '12:12'), ('12:22', '13:22')], '13:22')
+    fine = delay_check(plan, 0, 0)
+    assert fine['status'] == 'unknown' and fine['finish'] == '13:22', '문제는 없지만 가정한 곳이 있다'
+    late = delay_check(plan, 0, 10)
+    assert [r['name'] for r in late['rows']] == ['요가 스트레치', '일찍 닫는 전시'], '첫 장소에서 멈추지 않는다'
+    assert late['rows'][0]['state'] == 'unchecked' and late['rows'][0]['missing'] == ['영업시간', '휴무일']
+    assert late['status'] == 'problem' and late['first_problem']['place'] == '일찍 닫는 전시'
+    assert late['pending'] == [dict(place='요가 스트레치', fields=['영업시간', '휴무일'])]

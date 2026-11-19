@@ -53,24 +53,28 @@ function delayCheckPanel(plan) {
 
 function delayCheckView(data) {
   const parts = [node('p', data.basis, 'hint delay-check-basis')];
+  // 영업시간·휴무 자료가 없는 곳은 서버가 '연다'고 가정하고 계속 계산한다(app/delay_check.py). 그 사실과 먼저 확인할 곳을 밝힌다.
+  const wait = (data.pending || []).map(p => `${p.place}(${p.fields.join('·')})`).join(', ');
+  const later = data.finish && data.original_finish && data.finish !== data.original_finish;
+  const finishText = later ? `끝나는 시각 ${data.original_finish} → ${data.finish}.` : data.finish ? `끝나는 시각은 ${data.finish} 그대로예요.` : '';
   if (data.status === 'unknown') {
-    const wait = data.pending.map(p => `${p.place}(${p.fields.join('·')})`).join(', ');
-    parts.push(node('p', `판단 보류: ${wait} 자료가 없어 이어지는 시간을 계산할 수 없어요. 먼저 확인할 것: ${wait}.`, 'warning'));
+    parts.push(node('p', `${data.delay}분 늦어도 시간표로는 갈 수 있어요. ${finishText} 다만 ${wait} 자료가 없어 그곳은 문을 연다고 가정했어요. 출발 전에 먼저 확인할 것: ${wait}.`, 'warning delay-check-unchecked'));
   } else if (data.status === 'problem') {
     const p = data.first_problem;
     const what = p.kind === 'last_entry' ? `마지막 입장 ${p.limit}보다 ${p.over}분 늦어요` : p.kind === 'closing' ? `영업 종료 ${p.limit}까지 마치지 못해요(${p.over}분 넘김)` : `정한 종료 시각 ${p.limit}보다 ${p.over}분 늦게 끝나요`;
     parts.push(node('p', `처음 문제가 생기는 곳: ${p.place} · ${p.time} · ${what}. 이 장소에 먼저 연락하거나 순서를 다시 정해 보세요.`, 'warning delay-check-problem'));
+    if (wait) parts.push(node('p', `그 앞에 자료가 없어 문을 연다고 가정한 곳: ${wait}.`, 'hint'));
   } else {
-    const later = data.finish && data.original_finish && data.finish !== data.original_finish;
-    parts.push(node('p', `${data.delay}분 늦어도 그대로 갈 수 있어요.` + (later ? ` 끝나는 시각 ${data.original_finish} → ${data.finish}.` : ` 끝나는 시각은 ${data.finish} 그대로예요.`), 'delay-check-ok'));
+    parts.push(node('p', `${data.delay}분 늦어도 그대로 갈 수 있어요. ${finishText}`, 'delay-check-ok'));
   }
   const list = node('ol', undefined, 'delay-check-rows');
   for (const row of data.rows) {
     const item = node('li');
+    // state='unknown'(자료 없어 멈춤)은 2026-11-19 이전 응답 모양이다. 지금 서버는 보내지 않지만 화면이 깨지지 않게 남긴다.
     if (row.state === 'unknown') item.append(node('strong', row.name), document.createTextNode(` · 도착 ${row.arrival} · 자료 없음(${row.missing.join('·')})`));
     else {
       const shift = row.shift === 0 ? (row.wait ? `개점·휴게 대기 ${row.wait}분으로 흡수, 시작 시각 그대로` : '시작 시각 그대로') : `원래보다 ${row.shift}분 늦게 시작`;
-      item.append(node('strong', row.name), document.createTextNode(` · 도착 ${row.arrival} → 이용 ${row.start}~${row.departure} · ${shift}` + (row.stay_assumed ? ' · 체류 시간은 가정값' : '')));
+      item.append(node('strong', row.name), document.createTextNode(` · 도착 ${row.arrival} → 이용 ${row.start}~${row.departure} · ${shift}` + (row.stay_assumed ? ' · 체류 시간은 가정값' : '') + (row.state === 'unchecked' ? ` · ${row.missing.join('·')} 자료 없음(연다고 가정)` : '')));
       if (row.state === 'problem') item.classList.add('delay-check-bad');
     }
     list.append(item);

@@ -3,6 +3,7 @@
 확인하는 것: pathType 묶음·가장 빠른 것·꼬리표·노선 이름·지도 좌표 파싱, 원화 아닌 요금, 이상한 응답, 키 없음·데모·대중교통 없음(호출 0),
 캐시(두 번째 호출 없음, TTL 이 약관 24시간보다 짧음), 하루 상한, 응답에 키 없음, 코스 불변, 반복·IP 한도."""
 import copy
+import itertools
 import uuid
 from datetime import date
 
@@ -55,9 +56,16 @@ def tmap(monkeypatch):
     return state
 
 
+# 코스마다 좌표를 옮기는 양. 캐시 키는 좌표를 소수점 5자리로 반올림하므로(app/transit_compare.cache_key) 무작위만 쓰면
+# 같은 실행 안의 두 코스가 같은 키가 될 수 있었다(약 1,000칸, PostgreSQL 은 캐시가 실행 내내 남아 CI 에서 가끔 실패).
+# 실행마다 다른 시작점 + 코스마다 1e-4(반올림 칸의 10배)씩 늘리는 순번으로, 같은 실행 안에서는 반드시 다른 키가 되게 한다.
+_SESSION_SHIFT = (uuid.uuid4().int % 500) / 1e4
+_PLAN_SEQ = itertools.count()
+
+
 def make_plan(transport='transit', mode='real', count=2, **fields):
-    """출발지에서 북쪽으로 장소를 둔 코스. 좌표를 테스트마다 조금씩 옮겨 캐시(좌표 기준)가 다른 테스트와 섞이지 않게 한다."""
-    shift = (uuid.uuid4().int % 100000) / 1e7
+    """출발지에서 북쪽으로 장소를 둔 코스. 좌표를 코스마다 옮겨 캐시(좌표 기준)가 다른 코스와 섞이지 않게 한다."""
+    shift = _SESSION_SHIFT + next(_PLAN_SEQ) * 1e-4
     origin = dict(name='출발', lat=37.5 + shift, lon=127.0 + shift)
     picked = copy.deepcopy(places('demo')[:count])
     for i, p in enumerate(picked):

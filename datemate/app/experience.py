@@ -25,7 +25,33 @@ def verification_summary(plan):
         rows.append(dict(id=p['id'],name=p['name'],label=label,pending=p['id'] in pending,source=p.get('operations_source'),checked_at=p.get('operations_checked_at'),current_operating_source=source,coverage=place_coverage(p),field_sources=p.get('operations_evidence',{})))
     return dict(places=rows,coverage=plan_coverage(plan),notes=selection_notes(Conditions.model_validate(plan['conditions'])))
 
-def make_draft(plan,original,owner,kind,summary):
+VOTE_LABELS=dict(must='꼭 가고 싶어요',yes='좋아요',neutral='상관없어요',no='빼주세요')
+
+class VotesChanged(ValueError):
+    """계산에 쓴 의견 집계와 지금 유효한 의견이 다르다. changed 는 화면에 보일 장소별 변화."""
+    def __init__(self,message,changed):
+        super().__init__(message);self.changed=changed
+
+def vote_changes(plan,used,current):
+    """장소별로 계산 때 집계(used)와 지금 집계(current)가 다른 항목을 사람이 읽을 문장으로 돌려준다(코스 순서대로)."""
+    order=[p['id'] for p in plan['places']];names={p['id']:p['name'] for p in plan['places']}
+    rows=[]
+    for pid in sorted(set(used)|set(current),key=lambda x:order.index(x) if x in order else len(order)):
+        before,after=used.get(pid,{}),current.get(pid,{})
+        if before==after:continue
+        parts=[f"{VOTE_LABELS[k]} {before.get(k,0)}→{after.get(k,0)}" for k in ('must','yes','no','neutral') if before.get(k,0)!=after.get(k,0)]
+        rows.append(dict(place_id=pid,name=names.get(pid,pid),change=' · '.join(parts)))
+    return rows
+
+def ensure_votes_unchanged(original,owner,used):
+    """적용 직전 검사. 계산에 쓴 의견과 지금 의견이 다르면 무엇이 바뀌었는지 담아 거절한다(계산 도중 변경·미리보기 후 변경 모두)."""
+    current=vote_status(original,owner)['places']
+    if current==used:return
+    changed=vote_changes(original,used,current)
+    detail=' / '.join(f"{r['name']}: {r['change']}" for r in changed) or '의견 집계'
+    raise VotesChanged('합의 코스를 계산한 뒤 의견이 바뀌었어요('+detail+'). 최신 의견으로 다시 계산해 주세요.',changed)
+
+def make_draft(plan,original,owner,kind,summary,vote_snapshot=None):
     if original.get('recommendation_group_id'):plan['recommendation_group_id']=original['recommendation_group_id']
     c=Conditions.model_validate(plan['conditions'])
     if c.mode=='real' and uses_car(c) and not all(r['status']=='api' for r in plan['legs'] if r.get('mode',c.transport)=='car'):
@@ -44,7 +70,9 @@ def make_draft(plan,original,owner,kind,summary):
     draft=dict(token=token,plan=plan,can_apply=not blocking,blocking=blocking,summary=summary,kind=kind,
                delta=change_delta(original,plan))
     draft['lock_version']=original.get('lock_version',0)
-    if kind=='agreement':draft['vote_snapshot']=vote_status(original,owner)['places']
+    # 합의 초안은 '계산에 실제로 쓴' 집계를 기록한다. 여기서 다시 읽으면 계산 도중 바뀐 의견이 스냅샷에 들어가
+    # 적용 검사가 변경을 놓친다(2026-11-19 재현). 호출한 쪽(agreement_draft)이 쓴 집계를 넘긴다.
+    if kind=='agreement':draft['vote_snapshot']=vote_snapshot if vote_snapshot is not None else vote_status(original,owner)['places']
     store.cache('plan-draft:'+token,dict(owner=owner,parent=original['id'],draft=draft),600)
     return draft
 
@@ -60,8 +88,7 @@ def apply_draft(parent,token,owner):
     current=json.loads(store.get_plan(parent)['payload'])
     if current.get('lock_version',0)!=draft.get('lock_version',0):raise ValueError('미리보기 후 고정 장소가 바뀌었어요. 다시 계산해 주세요.')
     if draft.get('vote_snapshot') is not None:
-        original=json.loads(store.get_plan(parent)['payload'])
-        if vote_status(original,owner)['places']!=draft['vote_snapshot']:raise ValueError('미리보기 후 의견이 바뀌었어요. 합의 코스를 다시 계산해 주세요.')
+        ensure_votes_unchanged(current,owner,draft['vote_snapshot'])
     if hard_blocks(plan):raise ValueError('필수 조건을 충족하지 못해 적용할 수 없어요.')
     plan.update(delta=draft['delta'],change_reason=draft['summary'])
     # 동시 적용 요청도 동일한 일정 한 개만 생성한다 (SQLite 단일 트랜잭션).
@@ -77,7 +104,8 @@ def apply_draft(parent,token,owner):
         original_row=db.execute('SELECT payload FROM plans WHERE id=? AND owner=?',(parent,owner)).fetchone()
         if not original_row:raise PermissionError('원본 일정의 소유자를 확인할 수 없어요.')
         if json.loads(original_row['payload']).get('lock_version',0)!=draft.get('lock_version',0):raise ValueError('고정 장소가 바뀌었어요. 다시 계산해 주세요.')
-        if draft.get('vote_snapshot') is not None and vote_status(json.loads(original_row['payload']),owner)['places']!=draft['vote_snapshot']:raise ValueError('의견이 바뀌었어요. 다시 계산해 주세요.')
+        # 트랜잭션 안에서 한 번 더 확인한다(첫 검사와 이 줄 사이에 의견이 바뀌는 경우). 다르면 아무것도 저장하지 않는다.
+        if draft.get('vote_snapshot') is not None:ensure_votes_unchanged(json.loads(original_row['payload']),owner,draft['vote_snapshot'])
         result=dict(plan,id=uuid.uuid4().hex,parent=parent)
         result['aggregate_key']=store.aggregate_key([p['id'] for p in result['places']])
         db.execute('INSERT INTO plans(id,owner,parent,aggregate_key,payload,created) VALUES(?,?,?,?,?,?)',(result['id'],owner,parent,result['aggregate_key'],store.plan_payload(result),time.time()))
@@ -187,4 +215,4 @@ def agreement_draft(plan,owner,ui_locked=None):
     preserved=[p['name'] for i,p in enumerate(plan['places']) if i in locked]
     removed=[p['name'] for p in plan['places'] if p['id'] in disliked]
     summary=('유지: '+', '.join(preserved)+' · ' if preserved else '')+('제외: '+', '.join(removed)+' · ' if removed else '')+'두 사람의 의견과 필수 조건으로 시간·동선·비용을 다시 계산했어요.'
-    return make_draft(chosen,plan,owner,'agreement',summary)
+    return make_draft(chosen,plan,owner,'agreement',summary,vote_snapshot=status['places'])

@@ -202,7 +202,9 @@ async function showMealChange(food, plan, afterIndex = 0) {
   update();
 }
 
-function showDraft(original, draft) {
+// recompute: 합의 초안일 때만 넘긴다. 적용 중 '계산 뒤 의견이 바뀜'(서버 409 votes_changed)이면 이유와 함께
+// 최신 의견으로 다시 계산하는 단추를 보여 준다. 오래된 초안은 서버가 저장하지 않으므로 확정 단추는 막는다.
+function showDraft(original, draft, recompute) {
   const root = openDialog('변경 전후를 확인해 주세요'),
     generation = dialogGeneration;
   root.append(node('p', draft.summary), node('p', draft.plan.places.map(p => p.name).join(' → '), 'path-text'));
@@ -230,9 +232,21 @@ function showDraft(original, draft) {
         toast('선택한 코스가 바뀌었어요. 현재 코스에서 다시 시도해 주세요.');
         return;
       }
-      const next = await api('/plans/' + original.id + '/draft-apply', {
-        token: draft.token
-      });
+      let next;
+      try {
+        next = await api('/plans/' + original.id + '/draft-apply', {
+          token: draft.token
+        });
+      } catch (error) {
+        if (error.code !== 'votes_changed' || !recompute || generation !== dialogGeneration) throw error;
+        stale.replaceChildren(node('strong', '이 초안은 적용하지 않았어요. '), document.createTextNode(error.message));
+        for (const row of error.detail?.changed || []) stale.append(node('span', row.name + ' — ' + row.change, 'stale-change'));
+        stale.hidden = false;
+        apply.remove();
+        if (!root.contains(again)) root.append(again);
+        again.focus();
+        return;
+      }
       if (!commitPlanChange(original.id, next) || generation !== dialogGeneration) return;
       form.elements.count.value = next.conditions.count;
       $('#dialog').close();
@@ -243,7 +257,18 @@ function showDraft(original, draft) {
     }
   }, 'primary');
   apply.disabled = !draft.can_apply;
-  root.append(node('p', '운영·예약·대기 등 미확인 정보는 확정되지 않습니다. 초안은 10분간 유효해요.', 'hint'), apply);
+  const stale = node('p', undefined, 'warning draft-stale');
+  stale.hidden = true;
+  stale.setAttribute('role', 'alert');
+  const again = button('최신 의견으로 다시 계산', async () => {
+    again.disabled = true;
+    try {
+      await recompute();
+    } finally {
+      again.disabled = false;
+    }
+  }, 'primary');
+  root.append(node('p', '운영·예약·대기 등 미확인 정보는 확정되지 않습니다. 초안은 10분간 유효해요.', 'hint'), stale, apply);
 }
 
 function partnerAgreementPanel(plan) {
@@ -280,14 +305,18 @@ function partnerAgreementPanel(plan) {
         toast('의견을 저장했어요.');
       }, 'primary'), button('상대방 의견 새로고침', loadAgreement));
       if (status.can_replan) {
+        // 지금 저장된 두 사람의 의견으로 합의 초안을 계산해 보여 준다. 적용 때 의견이 바뀌었다고 거절되면 같은 함수로 다시 계산한다.
+        const recompute = async () => {
+          const generation = dialogGeneration;
+          const draft = await api('/plans/' + plan.id + '/agreement-preview', {
+            locked: [...locks]
+          });
+          if (selected?.id === plan.id && generation === dialogGeneration) showDraft(plan, draft, recompute);
+        };
         const replan = button('합의한 취향으로 다시 계산', async () => {
           replan.disabled = true;
           try {
-            const generation = dialogGeneration;
-            const draft = await api('/plans/' + plan.id + '/agreement-preview', {
-              locked: [...locks]
-            });
-            if (selected?.id === plan.id && generation === dialogGeneration) showDraft(plan, draft);
+            await recompute();
           } finally {
             replan.disabled = false;
           }

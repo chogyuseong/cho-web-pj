@@ -21,6 +21,7 @@ def load(pid,owner=None):
 def run(action):
     try:return action()
     except PermissionError as e:raise HTTPException(403,str(e))
+    except service.VotesChanged as e:raise HTTPException(409,dict(code='votes_changed',message=str(e),changed=e.changed))
     except ValueError as e:raise HTTPException(409,str(e))
 
 class MealChange(BaseModel):
@@ -134,3 +135,12 @@ def feedback_summary(request:Request):
     visits=[json.loads(r['payload']) for r in rows if r['kind']=='visit']
     durations=[json.loads(r['payload'])['elapsed_ms'] for r in rows if r['kind']=='recommendation' and 'elapsed_ms' in json.loads(r['payload'])]
     return dict(recommendations=sum(r['kind']=='recommendation' for r in rows),selections=sum(r['kind']=='selection' for r in rows),self_reported_visits=sum(r.get('visited')=='yes' for r in visits),reuse_yes=sum(r.get('reuse')=='yes' for r in visits),average_elapsed_ms=round(sum(durations)/len(durations)) if durations else None,planning_study=study,api_cost_status='not_measured',verification='현재 브라우저 기준 · 자기 신고이며 실제 이용 인증이 아닙니다.')
+
+
+@router.get('/plans/{pid}/delay-check')
+def delay_check(pid:str,request:Request,index:int=0,minutes:int=10):
+    """읽기 전용: 남은 첫 장소(index)에 minutes 분 늦게 도착하면 남은 일정이 어디서 처음 어긋나는지(app/delay_check.py).
+    만든 브라우저만 볼 수 있다(공유 범위는 그대로). 아무것도 저장하지 않는다."""
+    _,plan=load(pid,request.state.owner)
+    from .delay_check import delay_check as check
+    return run(lambda:check(plan,index,minutes))

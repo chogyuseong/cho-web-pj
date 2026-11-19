@@ -55,9 +55,18 @@ const PlanPreview={
   // 실패·취소 때: 확정 전 후보를 지우고, 확정되지 않았다는 것을 실패 안내에 함께 적는다.
   abandon(){const shown=!!document.querySelector('#results .plan-preview');this.reset();return shown;}
 };
+// 검색이 끝나지 못한 이유. 실패 화면(showSearchFailure)이 이 값으로 '실제로 할 수 있는 다음 행동'만 보여 준다.
+//   resumable  작업 ID 가 남아 있고 상태 조회만 일시적으로 실패했다(또는 기다림이 길어졌다) → 같은 ID 로 이어보기
+//   expired    서버가 작업을 찾지 못한다(404·410, 보관 시간 지남) → 같은 조건으로 새로 검색
+//   failed     서버가 실패를 확정했다 → 조건을 확인하고 다시 검색
+//   cancelled  서버가 취소를 확정했다(사용자 취소 포함) → 조건을 확인하고 다시 검색
+//   no_job     첫 생성 요청부터 응답을 받지 못해 ID 가 없다 → 새로 검색(서버에 닿았는지 알 수 없음을 밝힌다)
+//   superseded 같은 탭에서 다른 조회(이어보기·새 검색·취소)가 이 조회를 대신했다 → 화면을 건드리지 않는다
+function searchError(message,kind,cause){const error=Error(message);error.searchKind=kind;if(cause)error.status=cause.status;return error;}
 const PlanSearch={
   key:'datemate-active-search',
   generation:0,
+  resuming:null,
   // 축제 구역용 조건(지역·방문일, 고른 축제)도 같은 탭에 함께 남겨 새로고침 뒤 다시 그린다.
   remember(id,festival){try{sessionStorage.setItem(this.key,id);if(festival)sessionStorage.setItem(this.key+'-festival',JSON.stringify(festival));else sessionStorage.removeItem(this.key+'-festival');}catch{}},
   forget(){try{sessionStorage.removeItem(this.key);sessionStorage.removeItem(this.key+'-festival');}catch{}},
@@ -74,17 +83,19 @@ const PlanSearch={
       const query=seen===null?'':'?wait=8&stage='+encodeURIComponent(seen);
       try{state=await api('/plan-jobs/'+encodeURIComponent(id)+query,undefined,undefined,{signal:controller.signal});failures=0;}
       catch(error){
-        if(generation!==this.generation)throw Error('검색을 취소했어요.');
-        if([404,410].includes(error.status)){this.forget();throw error;}
-        if(++failures>=3)throw error;
+        if(generation!==this.generation)throw searchError('검색을 취소했어요.','superseded');
+        if([404,410].includes(error.status)){this.forget();throw searchError('이 검색은 서버에서 찾을 수 없어요. 결과 보관 시간이 지났거나 서버가 다시 시작됐어요.','expired',error);}
+        // 세 번 연속 실패: 작업 ID 는 지우지 않는다. 서버의 검색은 계속되고 있을 수 있어 같은 ID 로 이어볼 수 있다.
+        if(++failures>=3)throw searchError('연결이 끊겨 검색 상태를 받지 못했어요. 서버의 검색은 계속되고 있을 수 있어요.','resumable',error);
         const copy=document.querySelector('#progress .search-progress-copy');
         if(copy)copy.append(node('small','연결을 다시 확인하고 있어요. 검색 요청은 중복하지 않아요.'));
         await new Promise(resolve=>setTimeout(resolve,1500));continue;
       }
-      if(generation!==this.generation)throw Error('검색을 취소했어요.');
+      // 취소·다른 조회로 대체된 뒤 늦게 온 응답은 버린다(이전 결과를 되살리지 않는다).
+      if(generation!==this.generation)throw searchError('검색을 취소했어요.','superseded');
       if(state.status==='complete'){this.forget();PlanPreview.compare(state.result);return state.result;}
-      if(state.status==='cancelled'){this.forget();throw Error(state.message);}
-      if(state.status==='failed'){this.forget();throw Error(state.message);}
+      if(state.status==='cancelled'){this.forget();throw searchError(state.message,'cancelled');}
+      if(state.status==='failed'){this.forget();throw searchError(state.message,'failed');}
       const options=state.preview_options?.length?state.preview_options:null;
       if(options)PlanPreview.show(options);
       // 진행 안내(role=status)는 내용이 바뀔 때만 다시 그린다. 같은 단계의 응답마다 다시 그리면 화면 낭독기가 같은 말을 되풀이한다.
@@ -100,10 +111,11 @@ const PlanSearch={
       const changed=state.stage!==seen;seen=state.stage;
       if(!changed&&Date.now()-asked<1000)await new Promise(resolve=>setTimeout(resolve,1000));
     }
-    throw Error('검색이 오래 걸리고 있어요. 새로고침하면 진행 중인 검색에 다시 연결합니다.');
+    throw searchError('검색이 오래 걸리고 있어요. 서버의 검색은 계속되고 있을 수 있어요.','resumable');
   },
   async cancel(){
-    this.generation++;this.controller?.abort();
+    // 취소: 진행 중인 조회를 끊고, 확정되지 않은 후보 카드도 지운다(취소된 조회는 실패 화면을 거치지 않으므로 여기서 지운다).
+    this.generation++;this.controller?.abort();PlanPreview.abandon();
     const id=this.pending();if(!id)return;
     await api('/plan-jobs/'+encodeURIComponent(id),null,'DELETE');
     this.forget();
@@ -111,12 +123,21 @@ const PlanSearch={
 };
 async function createPlanWithProgress(data,festival){
   const generation=PlanSearch.generation;
-  const job=await api('/plan-jobs',data);
-  if(generation!==PlanSearch.generation){await api('/plan-jobs/'+encodeURIComponent(job.id),null,'DELETE');throw Error('검색을 취소했어요.');}
+  let job;
+  // 생성 요청은 한 번만 보낸다(재시도하면 서버에 같은 검색이 두 개 생길 수 있다). 응답을 못 받으면 ID 가 없어 이어볼 수 없다.
+  try{job=await api('/plan-jobs',data);}
+  catch(error){if(error.status&&error.status<500)throw error;throw searchError('검색 요청의 응답을 받지 못했어요. 요청이 서버에 닿았는지 알 수 없어 이어볼 검색이 없어요.','no_job',error);}
+  if(generation!==PlanSearch.generation){await api('/plan-jobs/'+encodeURIComponent(job.id),null,'DELETE');throw searchError('검색을 취소했어요.','superseded');}
   PlanSearch.remember(job.id,festival);return PlanSearch.wait(job.id);
 }
 async function resumePlanSearch(){
   const id=PlanSearch.pending();if(!id||new URLSearchParams(location.search).has('plan'))return;
+  // 이어보기 단추를 연달아 눌러도 조회 루프는 하나만 돈다.
+  if(PlanSearch.resuming)return PlanSearch.resuming;
+  PlanSearch.resuming=resumeOnce(id).finally(()=>{PlanSearch.resuming=null;});
+  return PlanSearch.resuming;
+}
+async function resumeOnce(id){
   const submit=document.querySelector('#submit-plan');submit.disabled=true;
   beginPlanSearch();setTab(false);showPlannerPage(true);
   // 새 추천 때처럼 축제는 코스 검색과 나란히 조회한다. 조건이 남아 있지 않으면 받은 코스의 조건으로 조회한다.
@@ -130,12 +151,21 @@ async function resumePlanSearch(){
     try{if(!festival&&selected)FestivalPanel.restore(selected.conditions);}catch{}
     try{if(!festival&&selected&&popups)popups.restore(selected.conditions);}catch{}
     renderResults(result);renderDetail();document.querySelector('#progress').textContent=`검색 복원 완료 · ${plans.length}개 일정`+PlanPreview.summary();
-  }catch(error){showSearchFailure(error);}
+  }catch(error){if(error.searchKind!=='superseded')showSearchFailure(error);}
   finally{submit.disabled=false;document.querySelector('#progress').classList.remove('is-searching');document.querySelector('#results').setAttribute('aria-busy','false');}
 }
 function showSearchFailure(error){
-  const root=document.querySelector('#progress');root.replaceChildren(node('strong','검색을 완료하지 못했어요'),node('p',error.message));
+  if(error.searchKind==='superseded')return;
+  const kind=error.searchKind,root=document.querySelector('#progress'),form=document.querySelector('#conditions');
+  root.replaceChildren(node('strong',kind==='cancelled'?'검색을 취소했어요':'검색을 완료하지 못했어요'),node('p',error.message));
   if(PlanPreview.abandon())root.append(node('p','가격 확인 전에 보여 드린 후보는 확정되지 않아 지웠어요.','hint'));
-  root.append(button('조건 확인하고 다시 검색',()=>showPlannerPage(false)));
+  const again=button('같은 조건으로 다시 검색',()=>form?.requestSubmit(),'primary'),edit=button('조건 확인하고 다시 검색',()=>showPlannerPage(false));
+  if(kind==='resumable'&&PlanSearch.pending()){
+    // 같은 작업 ID 로 기존 복원 경로를 다시 탄다. 서버에서 이미 끝났으면 결과를 바로 보여 준다. 새 검색 요청은 보내지 않는다.
+    const resume=button('이 검색 이어보기',async()=>{resume.disabled=true;await resumePlanSearch();},'primary');
+    root.append(node('p','검색을 새로 보내지 않고, 시작한 검색의 결과를 다시 받아 와요.','hint'),resume,edit);
+  }else if(kind==='expired')root.append(node('p','같은 조건으로 새로 검색하면 처음부터 다시 찾아요.','hint'),again,edit);
+  else if(kind==='no_job')root.append(node('p','다시 검색하면 새 검색을 보내요. 앞 요청이 서버에 닿았더라도 결과는 새 검색으로 받아요.','hint'),again,edit);
+  else root.append(edit);
   document.querySelector('#result-count').textContent='다시 검색할 수 있어요';
 }

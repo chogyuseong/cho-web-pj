@@ -116,7 +116,10 @@ def test_changed_partner_vote_invalidates_existing_preview():
         votes[plan['places'][0]['id']]='no'
         guest.post('/api/shared-plan/vote',headers=headers,json=dict(choices=votes))
         response=owner.post('/api/plans/'+plan['id']+'/draft-apply',json=dict(token=draft['token']))
-        assert response.status_code==409 and '의견이 바뀌' in response.json()['detail']
+        detail=response.json()['detail']
+        assert response.status_code==409 and detail['code']=='votes_changed' and '의견이 바뀌' in detail['message']
+        assert detail['changed'][0]['place_id']==plan['places'][0]['id'] and '빼주세요 0→1' in detail['changed'][0]['change']
+        with store.connect() as db:assert db.execute('SELECT COUNT(*) FROM plans WHERE parent=?',(plan['id'],)).fetchone()[0]==0
 
 
 def test_budget_hard_filter_after_actual_price_calculation(monkeypatch):

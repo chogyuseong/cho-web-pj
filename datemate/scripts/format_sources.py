@@ -34,6 +34,7 @@ PYTHON = [
     "app/public_parking.py",
     "app/seoul_parking_live.py",
     "app/review_facts.py",
+    "app/delay_check.py",
     "app/migrations",
     "scripts/operations_report.py",
     "scripts/operations_check.py",
@@ -58,6 +59,7 @@ JAVASCRIPT = [
     "popups.js",
     "parking.js",
     "review-facts.js",
+    "delay-check.js",
 ]
 
 

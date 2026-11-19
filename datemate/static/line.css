@@ -354,15 +354,6 @@ body:not(.show-date-plan) .hero-photo {
 
 /* ---------- 장소 둘러보기 ---------- */
 .searchbar.panel,.panel.searchbar { background:var(--platform); border:0; border-radius:0; }
-.catalog .place-card,.place-card {
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:10px;
-  box-shadow:none;
-  transform:none!important;
-}
-.catalog .place-card:hover { border-color:var(--ink); box-shadow:none; }
-.catalog .place-card h3 { font-size:19px; color:var(--ink); }
 
 /* ---------- 대화상자 · 알림 · 바닥글 ---------- */
 dialog {

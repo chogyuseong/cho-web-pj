@@ -751,3 +751,26 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 @media print {
   .chat-form,.plan-share,.review-report { display:none!important; }
 }
+
+
+/* ---------------------------------------------------------------- 장소 둘러보기 카드 (5-3g-4)
+   만드는 곳: explore.js — section#explore-section 안 .explore-controls(시·도·활동·검색어, 안내 p), div.catalog 격자의 article.place-card
+   (사진 .place-photo-panel, 분류 .tag, h3 이름, 설명 p·.hint, 「장소 정보」 단추). 「장소 둘러보기」 화면(body.show-explore)에서만 보인다.
+   예전 출처: style·selle·editorial·readability·line 의 규칙 약 20개. 카드 선택자는 .catalog .place-card 로 모았다(카드는 늘 .catalog 안).
+   남겨 둔 것: 카드 안 사진(.catalog .place-photo*)은 사진 단계, 화면 전환(body.show-explore …)은 5-4, readability.css 의 main :is(.place-card,…) 글. */
+
+#explore-section { padding-top:28px; scroll-margin-top:0; }
+.explore-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:24px 0; }
+.explore-controls>p { flex-basis:100%; margin:0; }
+/* 격자: 1001px 이상 3칸, 1000px 이하 2칸, 600px 이하 1칸 */
+.catalog { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:17px; }
+@media(max-width:1000px) { .catalog { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:720px) { .catalog { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } }
+@media(max-width:600px) { .catalog { grid-template-columns:minmax(0,1fr); } }
+/* 카드: 마우스를 올리면 테두리만 진해진다(예전 테마의 떠오르는 효과는 transform:none!important 로 막혀 있다. 5-5 에서 정리). */
+.catalog .place-card { display:flex; flex-direction:column; gap:10px; overflow:hidden; padding:22px; text-align:left; color:var(--ink);
+  background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:none; transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease; transform:none!important; }
+.catalog .place-card:hover { border-color:var(--ink); box-shadow:none; }
+.catalog .place-card h3 { margin:4px 0; font-size:19px; line-height:1.5; color:var(--ink); }
+.catalog .place-card .hint { font-size:14px; overflow-wrap:anywhere; }
+.catalog .place-card>button { margin-top:auto; }

@@ -118,7 +118,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 }
 
 
-.place-card h3 { font-size:20px; line-height:1.5; }
 main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.small,small,.menu-checked,.photo-credit) { font-size:14px; line-height:1.8; color:var(--muted); }
 main :is(.meal-card,.place-blogs,.place-photo-panel) a { font-size:14px; line-height:1.8; overflow-wrap:anywhere; color:var(--hong); font-weight:650; }
 main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; line-height:1; }
@@ -188,7 +187,7 @@ h2[tabindex="-1"]:focus { outline:none!important; }
 
 /* Keep anchored sections and the map below the wrapping sticky navigation. */
 html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
-#planner-section.workspace,#explore-section { scroll-margin-top:0; }
+#planner-section.workspace { scroll-margin-top:0; }
 
 
 

@@ -84,9 +84,12 @@ class Fake:
     def __init__(self, blog=None, locals_=None):
         self.blog = BLOG if blog is None else blog
         self.locals = LOCALS if locals_ is None else locals_
+        # 대표 사진 이미지 검색(2026-11-19): 검색어 → 결과 항목. 없는 검색어는 빈 결과.
+        self.images = {}
         self.calls = []
         self.blog_error = None
         self.local_error = None
+        self.image_error = None
         self.delay = 0
 
     def __call__(self, call, url, params=None, headers=None, **kwargs):
@@ -96,7 +99,7 @@ class Fake:
         if self.delay:
             time.sleep(self.delay)
         request = httpx.Request("GET", url)
-        error = self.blog_error if kind == "blog" else self.local_error
+        error = {"blog": self.blog_error, "image": self.image_error}.get(kind, self.local_error)
         if isinstance(error, Exception):
             raise error
         if isinstance(error, int):
@@ -105,6 +108,10 @@ class Fake:
             return httpx.Response(200, content=b"<html>", request=request)
         if kind == "blog":
             return httpx.Response(200, json={"items": self.blog, "total": 999}, request=request)
+        if kind == "image":
+            return httpx.Response(
+                200, json={"items": self.images.get(params["query"], [])}, request=request
+            )
         return httpx.Response(
             200, json={"items": self.locals.get(params["query"], [])}, request=request
         )
@@ -394,6 +401,78 @@ def test_switch_off_hides_the_api_and_tells_the_page(fake, monkeypatch):
     monkeypatch.delenv("DATEMATE_POPUPS_ENABLED")
     main._status_cache.update(value=None, expires=0)
     assert client.get("/api/status").json()["popups_enabled"] is True
+
+
+def image(title, n):
+    return dict(
+        title=title,
+        link=f"https://postfiles.pstatic.net/popup/{n}.jpg",
+        thumbnail=f"https://search.pstatic.net/popup/{n}.jpg",
+    )
+
+
+def test_popup_photo_needs_the_name_the_hub_and_this_year(fake):
+    """대표 사진(2026-11-19): 행사명 + 거점 + '팝업'이 함께 나오고, 모은 글·다른 거점·지난해가 아닌 첫 사진 한 장."""
+    fake.images["올기 더현대 서울 팝업"] = [
+        image("성수 팝업 5곳 올기 더현대 서울", 1),
+        image("올기 팝업 더현대 대구 오픈", 2),
+        image("2025 올기 팝업 더현대 서울", 3),
+        image("올기 찹쌀떡 더현대 서울", 4),
+        image("<b>올기</b> 팝업 &amp; 더현대 서울 <img src=x onerror=alert(1)>", 5),
+        image("올기 팝업 더현대 서울 두 번째", 6),
+    ]
+    client = TestClient(app)
+    data = get(client).json()
+    posts = {p["url"]: p for p in data["posts"]}
+    photo = posts["https://blog.naver.com/a/1"]["photo"]
+    assert photo["image_url"] == "https://search.pstatic.net/popup/5.jpg"
+    assert photo["original_url"] == photo["source"] == "https://postfiles.pstatic.net/popup/5.jpg"
+    assert "<" not in photo["title"] and photo["title"].startswith("올기 팝업")
+    assert photo["search_url"].startswith("https://search.naver.com/search.naver?where=image")
+    # 행사명을 읽지 못한 글('짱구'는 popups.event_name 이 동네 꼴(…구)로 보고 이름으로 쓰지 않음)·거점 모르는 글·모아 보기 글은 찾지도 않는다.
+    assert posts["https://blog.naver.com/a/2"]["photo"] is None
+    assert posts["https://blog.naver.com/a/8"]["photo"] is None
+    assert posts["https://blog.naver.com/a/5"]["photo"] is None
+    assert [q for k, q in fake.calls if k == "image"] == ["올기 더현대 서울 팝업"]
+    assert data["photo_checks"] == dict(requested=1, failed=0, skipped=0)
+    # 이름 필드를 싣지 않는다(출처 하나 = 항목 하나).
+    assert not {"name", "event_name"} & set(posts["https://blog.naver.com/a/1"])
+    # 찾음·없음 모두 캐시로 다시 답한다.
+    again = {p["url"]: p for p in get(client).json()["posts"]}
+    assert fake.count("image") == 1 and again["https://blog.naver.com/a/1"]["photo"] == photo
+    # 맞는 사진이 없는 경우(다른 거점·'팝업' 없는 제목뿐)도 사진 칸 없이 캐시된다.
+    fake.blog = [item("포켓몬 팝업", "성수동 팝업 운영 11.14~11.30", "https://blog.naver.com/a/poke")]
+    fake.images["포켓몬 성수 팝업"] = [image("포켓몬 팝업 홍대 AK플라자", 7), image("포켓몬 굿즈 성수", 8)]
+    none = get(client, q="포켓몬").json()
+    assert [p["photo"] for p in none["posts"]] == [None] and none["photo_checks"]["requested"] == 1
+    assert get(client, q="포켓몬").json()["photo_checks"]["requested"] == 0
+
+
+def test_popup_photo_lookups_are_capped_failures_retried_and_status_unchanged(fake, monkeypatch):
+    fake.blog = [
+        item(f"{brand} 팝업", "더현대 서울 팝업 운영", f"https://blog.naver.com/p/{i}")
+        for i, brand in enumerate(["올기", "짱구네", "포켓몬", "산리오", "무신사"])
+    ]
+    asked = []
+    real = popup_api.allow_new_search
+    monkeypatch.setattr(
+        popup_api, "allow_new_search", lambda raise_error: (asked.append(raise_error), real(raise_error))[1]
+    )
+    fake.image_error = httpx.ConnectError("down")
+    client = TestClient(app)
+    first = get(client).json()
+    assert first["status"] == "ready" and all(p["photo"] is None for p in first["posts"])
+    assert first["photo_checks"] == dict(requested=3, failed=3, skipped=2)
+    assert fake.count("image") == popup_api.MAX_PHOTO_LOOKUPS == 3
+    # 실패는 캐시하지 않는다. 캐시로 답하는 요청은 외부 호출 허락을 한 번만 묻는다(거점 좌표와 나눠 씀).
+    fake.image_error = None
+    second = get(client).json()
+    assert second["photo_checks"] == dict(requested=3, failed=0, skipped=2) and fake.count("image") == 6
+    third = get(client).json()
+    assert third["photo_checks"] == dict(requested=2, failed=0, skipped=0) and fake.count("image") == 8
+    fourth = get(client).json()
+    assert fourth["photo_checks"] == dict(requested=0, failed=0, skipped=0) and fake.count("image") == 8
+    assert asked == [True, False, False]
 
 
 def test_merge_posts_keeps_order_and_drops_repeats():

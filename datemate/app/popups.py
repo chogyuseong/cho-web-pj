@@ -6,8 +6,8 @@
 - visit_status: 7절 방문일 상태 표
 - match_hubs: 8절 거점 매칭(긴 별칭 우선, 여러 거점이면 단일 장소로 강제하지 않음)
 - classify_roundup: 9절 모아 보기 분류
-- event_name / group_posts: 행사명 식별과 묶기. 0단계 측정용으로 남겨 두며, 운영 경로(API·화면)에서는 쓰지 않는다
-  (1단계 확정 사항: 출처 하나 = 항목 하나).
+- event_name / group_posts: 행사명 식별과 묶기. 0단계 측정용으로 남겨 두며, 운영 경로(API·화면)에서는 글을 묶거나 이름을 싣는 데 쓰지 않는다
+  (1단계 확정 사항: 출처 하나 = 항목 하나). 2026-11-19 부터 event_name 은 대표 사진 검색어를 만드는 데만 쓴다(photo_title_match).
 
 규칙 v1(2026-11-14, 0단계 보고 8절 후보 중 사용자가 고른 것):
 - 기간: 괄호 없는 요일("25일 수요일~"), "11월6일에서 11월19일까지", 두 자리 연도 "26년 11월 13일",
@@ -1147,6 +1147,41 @@ def event_name(title, hubs):
         reason=None,
         candidates=[n["name"]],
     )
+
+
+# ---------------------------------------------------------------- 대표 사진(2026-11-19 사용자 결정)
+# 팝업 글 소개 옆에 작은 대표 사진 한 장을 둔다(app/popup_api.post_photos). 행사명(event_name)은 사진 검색어를 만드는 데만 쓰고
+# 항목에 이름 필드로 싣거나 글을 묶지 않는다(출처 하나 = 항목 하나는 그대로).
+# 사진 제목 거르기(photo_title_match) — 애매하면 쓰지 않는다:
+#   · 행사명이 제목에 있다(공백·기호 무시). 두 글자 이하 이름은 '이름+팝업'처럼 바로 붙어 있어야 한다.
+#   · 제목에 '팝업'(pop-up)이 있다.
+#   · 제목이 말하는 거점이 우리 거점 하나뿐이다(다른 거점·다른 시·도 팝업이면 다른 행사 사진).
+#   · 여러 팝업을 모은 제목(N곳·TOP N·모음·총정리·정리 등)이 아니다.
+#   · 제목의 연도(20NN)는 방문 연도여야 한다(1~2월 방문은 전년도 허용). 같은 이름의 지난 행사 사진을 막는다.
+PHOTO_ROUNDUP = re.compile(r"\d+\s*(?:곳|선|군데|개)|(?<![a-z])(?:top|best)(?![a-z])|베스트|모음|모아|총정리|정리|리스트|일정", re.I)
+_YEAR = re.compile(r"(?<!\d)(20\d\d)(?!\d)")
+
+
+def photo_title_match(title, name, hub, region, visit, hubs):
+    """이미지 검색 결과 제목이 이 팝업(이름·거점)의 사진인지. hub 는 HUBS 의 거점 dict."""
+    t = normalize_text(title)
+    key, compact = name_key(name), name_key(t)
+    if len(key) < 2 or key not in compact:
+        return False
+    if "팝업" not in compact and "popup" not in compact:
+        return False
+    if len(key) <= 2 and key + "팝업" not in compact and key + "popup" not in compact:
+        return False
+    if PHOTO_ROUNDUP.search(t) or _COUNT_PLACES.search(t):
+        return False
+    if title_other_region(t, region):
+        return False
+    current = {m["id"] for m in match_hubs(t, hubs) if m["context"] == "current"}
+    if current != {hub["id"]}:
+        return False
+    years = {int(y) for y in _YEAR.findall(t)}
+    allowed = {visit.year} | ({visit.year - 1} if visit.month <= 2 else set())
+    return years <= allowed
 
 
 # ---------------------------------------------------------------- URL 중복 제거·묶기

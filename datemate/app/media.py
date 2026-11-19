@@ -2,7 +2,7 @@
 
 import json
 import re
-from urllib.parse import urlsplit, urlencode
+from urllib.parse import quote, urlsplit, urlencode
 from .search_address_text import place_query
 from .config import ROOT
 from .image_search import search_enabled
@@ -133,7 +133,9 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
     extend(ordered)
     # 2026-11-19: 네이버 화면(업체 사진·블로그 본문)을 자동으로 읽지 않으므로(app/naver_pages.py) 부족한 사진은
     # 한국관광공사 TourAPI 의 같은 장소 사진(좌표 400m 안 + 이름 같음 + 하나뿐, 공공누리 제1·제3유형만, app/tour_places.py)으로 채운다.
-    # 제목만 맞는 이미지 검색 결과는 여전히 쓰지 않는다(다른 장소 사진이 섞이는 문제, tests/test_photo_source_priority.py).
+    # 그래도 2장이 안 되는 카페·미식(음식점·카페) 장소는 공식 이미지 검색 API 결과 중 제목에 가게 이름(지점 포함)과
+    # 동네·주소 낱말이 함께 나온 사진만 엄격하게 골라 채운다(2026-11-19 사용자 결정, app/image_search.strict_title_match).
+    # 이름만 맞는 이미지 검색 결과는 여전히 쓰지 않는다(다른 가게 사진이 섞이는 문제, tests/test_photo_source_priority.py).
     official = dict(status="not_found", photos=[])
     if len(photos) < 2 and not place.get("demo"):
         from .tour_places import tour_photos
@@ -145,23 +147,38 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
         searched = blog_photos(place, force)
         searched = dict(searched, photos=filter_photos(place, searched["photos"]))
         extend(searched["photos"])
+    images = dict(status="not_found", photos=[])
+    if len(photos) < 2 and not prefer_public and strict_search_applies(place):
+        from . import image_search
+
+        images = image_search.strict_place_images(place, force)
+        extend(images["photos"])
+    map_url = "https://map.naver.com/p/search/" + quote(place_query(place))
     if photos:
         only_registry = (
             bool(registered)
             and not public["photos"]
             and not searched["photos"]
             and not official["photos"]
+            and not images["photos"]
+        )
+        search_note = (
+            " '검색 사진'은 이미지 검색 결과 중 제목에 가게 이름과 동네가 함께 나온 사진이에요. 원본에서 확인해 주세요."
+            if any(p.get("kind") == "image_search" for p in photos[:5])
+            else ""
         )
         result = response(
             public,
             photos[:5],
             "등록된 사진을 먼저 표시하고, 부족한 사진은 한국관광공사가 같은 장소로 등록한 사진에서 보충해요."
+            + search_note
             + (
                 " '내용 미검사' 사진은 장소 일치만 확인했고 사진 내용은 검사하지 않았어요."
                 if unchecked(photos[:5])
                 else ""
             ),
         )
+        result["map_url"] = map_url
         result["photo_source"] = "reviewed_registry" if only_registry else "priority_place_photos"
         result["wikidata_id"] = (
             place["id"] if only_registry and re.fullmatch(r"Q[1-9][0-9]*", place["id"]) else None
@@ -169,7 +186,8 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
         result["photo_lookup_incomplete"] = len(photos) < 2
         if len(photos) < 2:
             result["message"] = (
-                "사진이 없는 것이 아니라 추가 사진을 자동으로 확보하지 못했어요. 업체 사진 원문에서 확인해 주세요."
+                "사진이 없는 것이 아니라 추가 사진을 자동으로 확보하지 못했어요. 네이버 지도에서 확인해 주세요."
+                + search_note
             )
         return result
     return dict(
@@ -181,10 +199,25 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
         status="demo" if place.get("demo") else "not_found",
         photo_source="identity_checked_sources",
         search_status=searched["status"],
+        image_search_status=images["status"],
         description=place.get("description"),
         search_url="https://search.naver.com/search.naver?"
         + urlencode({"where": "image", "query": place_query(place)}),
+        # 사진이 끝내 없으면 화면은 빈칸 대신 이 네이버 지도 링크를 보여 준다(static/place-photos.js).
+        map_url=None if place.get("demo") else map_url,
         message="가상 장소이므로 실제 장소 사진을 제공하지 않습니다."
         if place.get("demo")
-        else "업체 등록 사진이나 해당 장소가 설명에 명시된 후기 사진을 확보하지 못했어요. 관계를 확인할 수 없는 이미지는 표시하지 않아요.",
+        else (
+            "가게 이름과 동네가 함께 확인되는 사진을 찾지 못했어요."
+            if strict_search_applies(place)
+            else "업체 등록 사진이나 해당 장소가 설명에 명시된 후기 사진을 확보하지 못했어요."
+        )
+        + " 관계를 확인할 수 없는 이미지는 표시하지 않아요. 네이버 지도에서 사진을 확인해 주세요.",
+    )
+
+
+def strict_search_applies(place):
+    """엄격한 이미지 검색으로 사진을 채우는 장소: 가상 장소가 아닌 카페·미식(음식점·카페) 장소."""
+    return not place.get("demo") and (
+        place.get("category") == "카페·미식" or bool(place.get("meal"))
     )

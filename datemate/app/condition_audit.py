@@ -58,7 +58,16 @@ def audit_plan(plan,c=None):
     else:
         if over>0:add('budget','예산','unmet',f'확인·추정 비용 상한 {plan["total"][1]:,}원이 예산 {c.budget:,}원보다 {over:,}원 많아요.')
         if cost_unknown:add('budget','예산','unknown',f'알려진 비용은 {plan["total"][0]:,}~{plan["total"][1]:,}원이지만, 미확인 입장료·교통비 등은 빠져 있어 예산 {c.budget:,}원 충족을 보장할 수 없어요.')
-        elif over<=0:add('budget','예산','estimated' if any(r['status']=='estimated' for r in plan['costs']) else 'met',f'계산한 비용 상한 {plan["total"][1]:,}원은 예산 {c.budget:,}원 이내예요.')
+        elif over<=0:
+            # 가격을 못 찾아 '계획용 가정 범위'로 채운 칸이 있으면, 그 상한은 실제 가격이 아니다(2026-11-19 측정: 가정 0~2만 원/인 공방이
+            # 실제 3만 2천 원/인이라 5만 원 예산을 넘었다). 막지는 않되(실제 장소 대부분이 가격 자료가 없어 막으면 결과가 거의 없다)
+            # '예산 이내'라고 단정하지 않고 가정한 장소를 이름으로 밝힌다. 예산을 꼭 지킬 조건으로 골랐으면 보장할 수 없다고 적는다.
+            assumed=[r for r in plan['costs'] if r.get('price_kind')=='planning_assumption']
+            if assumed:
+                assumed_names=', '.join(f"{r['name']}({r['unit'][0]:,}~{r['unit'][1]:,}원/인 가정)" if r.get('unit') else r['name'] for r in assumed)
+                required=' 예산을 꼭 지킬 조건으로 골랐지만, 이 가격을 확인하기 전에는 지킨다고 보장할 수 없어요.' if 'budget' in c.hard_constraints else ''
+                add('budget','예산','estimated',f'계산한 비용 상한 {plan["total"][1]:,}원은 예산 {c.budget:,}원 이내지만, 실제 가격을 못 찾아 가정한 곳이 있어요: {assumed_names}.'+required)
+            else:add('budget','예산','estimated' if any(r['status']=='estimated' for r in plan['costs']) else 'met',f'계산한 비용 상한 {plan["total"][1]:,}원은 예산 {c.budget:,}원 이내예요.')
     assumptions=[r for r in plan['costs'] if r.get('price_kind')=='planning_assumption']
     references=[r for r in plan['costs'] if r.get('price_kind')=='web_reference']
     if assumptions:add('price_data','가격 근거','info',f'{len(assumptions)}곳은 검색에서 실제 단가를 확보하지 못해 사용자가 허용한 계획용 범위를 사용했어요. 실제 청구 가격이 아니에요.')

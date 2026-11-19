@@ -867,3 +867,8 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .delay-check-rows li { margin:4px 0; overflow-wrap:anywhere; }
 .delay-check-bad { color:var(--hong); font-weight:700; }
 @media print { .delay-check { display:none; } }
+
+/* 코스 비교 표 위 '확실한 차이만' 문장(plan-evidence.js courseComparisonNotes). */
+.comparison-notes { margin:0 0 10px; padding-left:20px; font-size:15px; line-height:1.6; color:var(--ink); }
+.comparison-notes li { margin:2px 0; overflow-wrap:anywhere; }
+.comparison-walk { color:var(--ink); }

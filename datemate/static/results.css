@@ -322,7 +322,9 @@
 .detail .meal-suggestions.is-empty h4 { margin:0 0 4px; font-size:16px; }
 .detail .meal-suggestions.is-empty .hint { margin:0 0 8px; }
 
-/* 식당 카드: 721px 이상 [정보 | 사진(165px 이상, 38%)] 2칸, 760px 이하 1칸. 단추 줄과 블로그 접기는 카드 전체 폭. */
+/* 식당 카드: 761px 이상 [정보 | 사진(165px 이상, 38%)] 2칸, 760px 이하 1칸(정보 → 사진 → 단추, 일정 장소 칸과 같은 흐름).
+   2026-11-18 전에는 휴대폰에서도 정보 옆 사진 칸이 100px 라 사진이 작고 출처 줄이 세로로 길게 쌓였다(사용자 신고).
+   휴대폰에서 다시 옆에 두려면 760px 구역의 grid-template-columns 에 사진 칸을 더한다. 단추 줄과 블로그 접기는 카드 전체 폭. */
 .meal-cards { display:grid; gap:12px; grid-template-columns:1fr!important; }
 .meal-card { display:grid!important; grid-template-columns:minmax(0,1fr) minmax(165px,38%); gap:12px 16px; align-items:start; min-width:0;
   margin-bottom:12px; padding:14px; box-shadow:none; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
@@ -348,3 +350,31 @@ main .meal-card h5 { margin:6px 0 9px; color:var(--ink); font-size:20px; line-he
 /* 「식당 더 보기」 단추(.secondary) */
 .more-restaurants { display:flex; align-items:center; justify-content:center; min-height:48px; margin:16px 0 12px; padding:12px 18px; border-radius:10px;
   text-decoration:none; font-size:15px; font-weight:700; text-align:center; line-height:1.6; }
+
+
+/* ---------------------------------------------------------------- 메뉴 가격 상자·메뉴판 사진 (5-3d-2)
+   만드는 곳: meal-suggestions.js restaurantMenuPanel() — div.restaurant-menu(.menu-heading, .menu-price-row 마다 span 이름 + b 가격,
+   네이버 지도 링크, .menu-checked 확인 시점). 일정의 식당 칸(.timeline-card)과 식당 제안 카드(.meal-card) 두 곳에 들어간다.
+   메뉴판 사진은 showMenuImages() 의 .menu-image-preview(2열 미리보기)·.menu-image-gallery(대화상자), 다시 받기 .menu-refresh.
+   예전 출처: selle·calm·editorial·readability·line 의 규칙 약 25개.
+   남겨 둔 공통 규칙: readability.css 의 main :is(.meal-card,…) 안 글·링크 크기(카드 안에서는 .menu-checked·링크가 14px·줄 높이 1.8). */
+
+/* 상자 테두리·바탕·모서리의 !important 는 line.css 의 같은 모양 상자 목록(.place-evidence,.place-blogs 등)과 맞춘 값(5-5 에서 정리). */
+.restaurant-menu { margin:12px 0; padding:16px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+.menu-heading { font-size:11px; font-weight:800; color:var(--ink); }
+.menu-price-row { display:flex; justify-content:space-between; gap:12px; padding:5px 0; font-size:12px; border-bottom:1px dashed var(--line); }
+.menu-price-row span { min-width:0; overflow-wrap:anywhere; }
+.menu-price-row b { white-space:nowrap; color:var(--ink); }
+/* 식당 제안 카드 안에서는 글자를 키운다. */
+main .meal-card .menu-heading { font-size:16px; }
+main .meal-card .menu-price-row { font-size:15px; }
+main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
+.restaurant-menu>a { display:inline-block; margin-top:8px; font-size:14px; line-height:1.75; }
+.menu-checked { display:block; margin-top:5px; font-size:14px; line-height:1.75; color:var(--muted); }
+
+.menu-image-preview { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:12px 0; }
+.menu-image-preview a { display:block; border:1px solid var(--line); border-radius:12px; background-color:#fff; overflow:hidden; }
+.menu-image-preview img { display:block; width:100%; height:180px; object-fit:contain; }
+.menu-image-gallery { display:grid; gap:16px; }
+.menu-image-gallery img { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:14px; }
+.menu-refresh { margin-top:10px; font-size:14px; min-height:44px; }

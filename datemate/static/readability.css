@@ -158,9 +158,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 .place-card h3 { font-size:20px; line-height:1.5; }
 main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.small,small,.menu-checked,.photo-credit) { font-size:14px; line-height:1.8; color:var(--muted); }
 main :is(.meal-card,.place-blogs,.place-photo-panel) a { font-size:14px; line-height:1.8; overflow-wrap:anywhere; color:var(--hong); font-weight:650; }
-main .meal-card .menu-heading { font-size:16px; }
-main .meal-card .menu-price-row { font-size:15px; gap:12px; }
-main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; white-space:nowrap; }
 main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; line-height:1; }
 .place-photo-panel .photo-counter { font-size:14px; }
 .execution-summary>details { margin:10px 0; padding:8px 0; }

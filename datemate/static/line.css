@@ -364,7 +364,7 @@ body:not(.show-date-plan) .hero-photo {
 .photo-arrow:hover { background:var(--hong); }
 .photo-counter { background:var(--ink); }
 .photo-eyebrow { display:block; font-size:14px; letter-spacing:0; color:var(--muted); }
-.place-evidence,.place-blogs,.restaurant-menu,.verified-facts,.experience-panel>details,.experience-controls,.course-search-panel {
+.place-evidence,.place-blogs,.verified-facts,.experience-panel>details,.experience-controls,.course-search-panel {
   background:#fff!important;
   border:1px solid var(--line)!important;
   border-radius:10px!important;
@@ -374,7 +374,6 @@ body:not(.show-date-plan) .hero-photo {
 .evidence-ok .evidence-badge { background:var(--platform); color:var(--ink); border-color:var(--line); }
 .evidence-info .evidence-badge { background:#fff; color:var(--cheong); border-color:var(--line); }
 .evidence-check .evidence-badge,.evidence-summary-count { background:var(--warn-bg); color:var(--ink); border-color:var(--ink); }
-.menu-heading,.menu-price-row b { color:var(--ink); }
 .photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
 
 /* ---------- 확인: 네 가지 확인은 2열 정의 목록 ---------- */

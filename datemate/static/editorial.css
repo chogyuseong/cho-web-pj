@@ -157,10 +157,6 @@ input:focus,textarea:focus,select:focus{
 .place-blogs{background-color:#fff!important;border:1px solid var(--line)!important;border-radius:14px}
 .place-blogs summary{color:var(--hong)!important;font-weight:750}
 .place-blog-content .blog-excerpt{color:var(--ink);font-size:14px}
-.restaurant-menu{background-color:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
-.menu-heading{color:var(--hong);font-weight:800}
-.menu-price-row{border-bottom:1px dashed var(--line)}
-.menu-price-row b{color:var(--hong)}
 
 /* Sticky Plan Map Card */
 .plan-map-card{
@@ -266,12 +262,6 @@ input:focus,textarea:focus,select:focus{
 .plan-photo-preview .photo-prev{left:6px}
 .plan-photo-preview .photo-next{right:6px}
 
-.menu-image-preview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
-.menu-image-preview a{display:block;border:1px solid var(--line);border-radius:12px;background-color:#fff;overflow:hidden}
-.menu-image-preview img{display:block;width:100%;height:180px;object-fit:contain}
-.menu-image-gallery{display:grid;gap:16px}
-.menu-image-gallery img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:14px}
-.menu-refresh{margin-top:10px;font-size:14px;min-height:44px}
 
 /* Explore Catalog */
 .explore-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:24px 0}

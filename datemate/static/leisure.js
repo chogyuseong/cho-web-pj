@@ -63,6 +63,8 @@ function leisureSuggestionPanel(plan, index) {
     }, 'primary');
     select.disabled = plan.can_edit === false || locks.has(index);
     actions.append(select, placeMapLink('지도에서 확인 ↗', place));
+    // 네이버 지역 검색으로 찾은 레저 장소: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2).
+    if (isNaverResult(place)) card.append(naverAttribution('지역 검색', place.source));
     card.append(leisurePhotoPanel(place, plan.conditions.mode), actions);
     return card;
   }

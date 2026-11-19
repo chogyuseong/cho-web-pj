@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 import httpx
 from .telemetry import observed_http, observed_stream, prepaid
-from . import store
+from . import naver_cache as store
 from .image_search import plain, search_enabled
 from .catalog import places
 from .routes import distance

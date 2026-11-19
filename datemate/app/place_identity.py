@@ -18,7 +18,7 @@ API 결과에는 네이버 지도 업체 번호가 없어 지도 링크는 검�
 import hashlib
 import re
 
-from . import store
+from . import naver_cache as store
 from .routes import distance
 
 MAX_KM = 0.4

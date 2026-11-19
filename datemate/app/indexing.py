@@ -58,6 +58,10 @@ def collections(mode):
     return tuple(client().get_or_create_collection(f'{mode}-{kind}-{suffix}',embedding_function=None) for kind in ('places','documents'))
 
 def index_places(rows,mode):
+    # 네이버 검색 API 특약 2.3: 네이버 검색으로 찾은 장소(와 그 파생물)는 임베딩·색인에 넣지 않는다.
+    # 이미 들어간 것은 아래 stale 삭제와 purge_naver_documents 가 지운다.
+    from .naver_terms import is_naver_place
+    rows=[p for p in rows if not is_naver_place(p)]
     metadata,_=collections(mode);ids=[p['id'] for p in rows]
     for offset in range(0,len(rows),40):
         batch=rows[offset:offset+40];texts=[text(p) for p in batch]
@@ -67,13 +71,26 @@ def index_places(rows,mode):
     if stale:metadata.delete(ids=stale)
     return metadata.count()
 
+def purge_naver_documents(mode):
+    """색인에 남은 네이버 검색 장소 문서(장소 메타데이터·문서 청크)를 지운다. 지운 수를 돌려준다."""
+    from .naver_terms import NAVER_ID_PREFIXES
+    removed=0
+    for collection in collections(mode):
+        rows=collection.get(include=['metadatas'])
+        stale=[i for i,meta in zip(rows['ids'],rows['metadatas'] or [None]*len(rows['ids']))
+               if str(i).startswith(NAVER_ID_PREFIXES) or str((meta or {}).get('place_id','')).startswith(NAVER_ID_PREFIXES)]
+        if stale:collection.delete(ids=stale);removed+=len(stale)
+    return removed
+
 def index_documents(docs,mode,size=None,overlap=None):
     size=size or int(os.getenv('CHUNK_SIZE','700'))
     overlap=int(os.getenv('CHUNK_OVERLAP','100')) if overlap is None else overlap
     if size<50 or overlap<0 or overlap>=size:raise ValueError('청크 크기는 50 이상, 중복 길이는 크기 미만이어야 합니다.')
     splitter=RecursiveCharacterTextSplitter(chunk_size=size,chunk_overlap=overlap)
     _,collection=collections(mode)
+    from .naver_terms import NAVER_ID_PREFIXES
     for doc in docs:
+        if str(doc.get('place_id','')).startswith(NAVER_ID_PREFIXES):continue
         owner=doc['place_id']+'::'+doc['id']
         chunks=splitter.split_text(doc['body'])
         ids=[hashlib.sha256(f'{owner}:{i}:{chunk}'.encode()).hexdigest() for i,chunk in enumerate(chunks)]

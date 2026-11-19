@@ -15,7 +15,7 @@ import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
-from . import store
+from . import naver_cache
 
 CACHE_SECONDS = 24 * 3600
 EMPTY_SECONDS = 3600
@@ -169,6 +169,12 @@ def review_facts(place):
         return dict(empty, status="demo")
     if place.get("category") in SKIP_CATEGORIES:
         return dict(empty, status="skipped")
+    from .naver_pages import allowed
+
+    if not allowed():
+        # 후기 본문을 읽지 않으므로(app/naver_pages.py) 블로그 검색 요약만으로는 영업시간·가격을 읽지 않는다.
+        # 2026-11-20: 공용 캐시를 없앤 뒤 사용자마다 나가는 쓸모없는 블로그 검색 호출을 하지 않는다.
+        return dict(empty, status="not_found", read_posts=0)
     from .blog_search import place_blogs
 
     blogs = place_blogs(place)
@@ -181,7 +187,7 @@ def review_facts(place):
             repr([place.get("id"), place.get("name"), [p["url"] for p in posts]]).encode()
         ).hexdigest()
     )
-    cached = store.cached(key)
+    cached = naver_cache.cached(key)
     if cached:
         return cached
     from .course_search import public_body
@@ -220,7 +226,7 @@ def review_facts(place):
     read = sum(1 for b in bodies if b)
     if not votes and not prices:
         result = dict(empty, prices=[], read_posts=read)
-        store.cache(key, result, EMPTY_SECONDS)
+        naver_cache.cache(key, result, EMPTY_SECONDS)
         return result
     result = dict(empty, status="available", prices=prices, read_posts=read)
     if votes:
@@ -238,5 +244,5 @@ def review_facts(place):
                 blogger=post.get("blogger"),
             ),
         )
-    store.cache(key, result, CACHE_SECONDS)
+    naver_cache.cache(key, result, CACHE_SECONDS)
     return result

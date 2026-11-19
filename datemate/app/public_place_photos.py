@@ -4,7 +4,7 @@ import hashlib
 from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlencode, parse_qs, unquote
 import httpx
-from . import store
+from . import naver_cache, store
 from .menus import states, dictionaries, identified, resolve, fetch_page, _limit
 from .image_search import safe_https, LOCK_WAIT_SECONDS
 from .search_address_text import place_query
@@ -238,7 +238,7 @@ def public_place_photos(place, force=False):
     ).hexdigest()
     key = "public-place-photos-v7:" + fingerprint
     if not force:
-        cached = store.cached(key)
+        cached = naver_cache.cached(key)
         if cached:
             return cached
     result = dict(status="not_found", photos=[], photo_source="naver_public_place")
@@ -338,5 +338,5 @@ def public_place_photos(place, force=False):
         result["status"] = "unavailable"
     finally:
         _limit.release()
-    store.cache(key, result, 3600 if result["photos"] else 60)
+    naver_cache.cache(key, result, 3600 if result["photos"] else 60)
     return result

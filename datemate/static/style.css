@@ -16,3 +16,8 @@
   /* 불러오는 중 문구(메뉴 가격·주차장·사진)는 종이에서 뜻이 없다(2026-11-17 운영 PDF 에 '메뉴 가격을 확인하고 있어요…'가 찍힘). */
   .loading-note {display:none!important}
 }
+
+/* 네이버 검색 API 특약 2.1·2.2: '네이버 검색결과' 표시와 원본 링크(static/naver-attribution.js). 본문보다 작게, 항목 바로 아래. */
+.naver-attribution{margin:.25rem 0;font-size:.875rem;line-height:1.5;color:var(--muted,#5b6470);overflow-wrap:anywhere}
+.naver-attribution-label{font-weight:600}
+.naver-attribution a{color:inherit;text-decoration:underline}

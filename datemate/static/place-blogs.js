@@ -57,6 +57,8 @@ function placeBlogPanel(place,blogMode){
       const posts=data.posts.slice(0,3);
       status.textContent=posts.length?place.name+' · 네이버 블로그 관련도순 최대 3개':'블로그 후기를 찾지 못했어요.';
       content.replaceChildren(status);
+      // 네이버 블로그 검색 결과임을 표시한다(특약 2.1). 글마다 원본 링크는 아래 목록.
+      if(posts.length)content.append(naverAttribution('블로그 검색'));
       if(!posts.length){content.append(state(data.message||'다른 이름으로 다시 찾아보거나 네이버에서 직접 검색해 보세요.',key));}
       else{
         // 발췌 안내는 목록 맨 위에 한 번만.

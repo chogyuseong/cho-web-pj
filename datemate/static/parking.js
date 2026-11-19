@@ -73,6 +73,8 @@ function parkingLotItem(lot) {
     item.append(node('p', '요금·운영시간은 네이버 지도에서 바로 볼 수 있어요. 만차 여부는 알 수 없어요.', 'hint parking-unverified'));
   }
   item.append(placeMapLink(info?.fee && info?.hours ? '네이버 지도에서 보기 ↗' : '네이버 지도에서 요금·운영시간 보기 ↗', lot));
+  // 네이버 지역 검색으로 찾은 주차장: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2). 공공데이터만으로 찾은 곳은 표시하지 않는다.
+  if (isNaverResult(lot)) item.append(naverAttribution('지역 검색', placeMapUrl(lot)));
   return item;
 }
 

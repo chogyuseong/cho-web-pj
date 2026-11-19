@@ -3,7 +3,7 @@ import hashlib
 import os
 from urllib.parse import urlsplit,urlencode
 import httpx
-from . import store
+from . import naver_cache as store
 from .telemetry import observed_http
 from .image_search import search_enabled,plain,safe_https,_lock,LOCK_WAIT_SECONDS
 

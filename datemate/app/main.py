@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict, Field
-from . import store
+from . import naver_cache, store
 from .catalog import places, get_place
 from .config import ROOT, REGION, production, public_origin, validate_runtime
 from . import web_security
@@ -133,6 +133,7 @@ async def safety(request: Request, call_next):
     token = None
     session_state = "current"
     client_token = None
+    naver_tokens = None
     try:
         if not web_security.allowed_host(request):
             return finish(
@@ -253,6 +254,8 @@ async def safety(request: Request, call_next):
                 )
             )
         request.state.owner = owner
+        # 네이버 검색 결과 보관(특약 2.4): 이 요청의 사용자별 개인화 보관과 요청 안 메모(app/naver_cache.py).
+        naver_tokens = naver_cache.bind(owner)
         match = re.match(r"^/api/(?:plans/|chat/plan/)([^/]+)", request.url.path)
         if match:
             row = await run_in_threadpool(store.get_plan, match.group(1))
@@ -276,6 +279,8 @@ async def safety(request: Request, call_next):
             status_code=500,
         )
     finally:
+        if naver_tokens is not None:
+            naver_cache.unbind(naver_tokens)
         if client_token is not None:
             unbind_client(client_token)
     if token and request.url.path != "/api/me/data":

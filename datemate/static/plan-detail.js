@@ -68,6 +68,9 @@ function renderDetail() {
     // 읽는 순서: 장소 이름 → 한 줄 요약(분류 · 2인 비용 · 머무는 시간) → 후기에서 읽은 정보. 도착·떠나는 시각은 왼쪽 도장에 있다.
     // 분류·체류·확인 방법·근거 링크를 이은 긴 문장(reasons)은 '정보 출처' 접기 안으로 옮긴다(2026-11-17 가독성 정리).
     body.append(node('h4', place.name));
+    // 네이버 지역 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2). 21일이 지나 지운 장소는 안내만.
+    if (place.naver_expired) body.append(naverExpiredNote());
+    else if (isNaverResult(place)) body.append(naverAttribution('지역 검색', place.place_source || place.source));
     const meta = node('p', undefined, 'stop-meta');
     meta.append(node('span', placeKind(place), 'step-category'));
     const cost = p.costs.find(c => c.name === place.name);
@@ -84,6 +87,17 @@ function renderDetail() {
     const buttons = node('div', undefined, 'actions');
     buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 변경', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)), link('도착지 지도·길찾기 확인', p.legs[i].link));
     body.append(placeEvidencePanel(p, i));
+    // 보관 기간이 지난 네이버 검색 장소는 장소 정보(사진·블로그·메뉴)를 다시 찾지 않는다(이름·주소가 지워짐).
+    if (place.naver_expired) {
+      body.append(buttons);
+      if (p.can_edit === false) {
+        buttons.children[0].disabled = true;
+        buttons.children[1].disabled = true;
+      }
+      stop.append(body);
+      box.append(stop);
+      return;
+    }
     if (p.conditions.mode === 'real' && hasPlaceMenu(place)) body.append(restaurantMenuPanel(place));
     body.append(placePhotoPanel(place, p.conditions.mode, false, true), placeBlogPanel(place, p.conditions.mode), buttons);
     if (p.can_edit === false) {

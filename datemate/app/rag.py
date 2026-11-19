@@ -38,14 +38,20 @@ class State(TypedDict,total=False):
 
 def retrieve_node(state):
     plan=state.get('plan')
-    try:evidence=retrieve(state['ids'],state['question'],state['mode'],int(os.getenv('TOP_K','4')))
+    from .naver_terms import NAVER_ID_PREFIXES,ai_safe_plan
+    # 네이버 검색 API 특약 2.3: 네이버 검색 결과·파생물은 AI 입력에 넣지 않는다. 네이버 검색 장소 id 는 색인을 찾지 않는다.
+    ids=[i for i in state['ids'] if not str(i).startswith(NAVER_ID_PREFIXES)]
+    try:evidence=retrieve(ids,state['question'],state['mode'],int(os.getenv('TOP_K','4'))) if ids else []
     except Exception:
         if not plan:raise
         evidence=[]
+    evidence=[e for e in evidence if not str(e.get('place_id','')).startswith(NAVER_ID_PREFIXES)]
     if plan:
         # 새로 검색된 장소는 미색인 상태일 수 있어 저장한 일정도 근거에 포함한다.
+        # 단 블로그 검색 글·가격 근거·지역 검색 장소의 이름·주소 등 네이버 유래 필드는 뺀다(app/naver_terms.ai_safe_plan).
         evidence.append(dict(number=len(evidence)+1,type='saved_plan',title='現在選択したデートコース',
-            source='/api/plans/'+plan['id'],body=json.dumps(plan,ensure_ascii=False)))
+            source='/api/plans/'+plan['id'],body=json.dumps(ai_safe_plan(plan),ensure_ascii=False)))
+    for i,e in enumerate(evidence,1):e['number']=i
     return dict(evidence=evidence,trace=['retrieve'])
 
 def validate_quotes(answer,evidence):
@@ -73,9 +79,12 @@ def generate_node(state):
         return dict(answer=('\n'.join(facts) if facts else '확보한 자료에서 질문의 답을 확인할 수 없습니다.')+'\n(키 없는 규칙 기반 데모 응답 · 실제 LLM 생성 아님)',
             citations=list({e['number']:e for e in citations}.values()),status='demo',trace=['retrieve','generate'])
     try:
+        from .naver_terms import redact_history
+        # 예전 답변(대화 기록)에 남은 네이버 검색 장소 이름 등도 가린다.
+        history=redact_history(state.get('history',[])[-6:],state.get('plan'))
         result=invoke_model(llm().with_structured_output(Answer),[
             {'role':'system','content':SYSTEM},
-            {'role':'user','content':json.dumps({'question':state['question'],'history':state.get('history',[])[-6:],
+            {'role':'user','content':json.dumps({'question':state['question'],'history':history,
                 'evidence':evidence},ensure_ascii=False)}])
         valid=validate_quotes(result,evidence)
         return dict(answer='\n'.join(f'“{q.quote}” [{q.number}]' for q,e in valid) or '확보한 자료에서 확인되지 않습니다.',
@@ -85,7 +94,7 @@ def generate_node(state):
 
 def cached_generate_node(state):
     # 근거 내용·대화·모델이 바뀌면 자동으로 새 캐시 키를 만든다. 오류는 캐시하지 않는다.
-    material=dict(version=2,owner=state.get('owner'),evidence=state['evidence'],question=state['question'],mode=state['mode'],
+    material=dict(version=3,owner=state.get('owner'),evidence=state['evidence'],question=state['question'],mode=state['mode'],
                   history=state.get('history',[])[-6:],model=os.getenv('GMS_MODEL','gpt-5.4-nano'),llm=bool(os.getenv('GMS_KEY')))
     key='answer:'+hashlib.sha256(json.dumps(material,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
     hit=store.cached(key)

@@ -36,6 +36,22 @@ class Verdict(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
+def naver_origin(place, photo):
+    """네이버에서 온 사진이거나 네이버 검색으로 찾은 장소의 사진이면 True."""
+    from .naver_terms import is_naver_place
+
+    host = ""
+    try:
+        host = (urlsplit(photo.get("image_url") or photo.get("url") or "").hostname or "").lower()
+    except ValueError:
+        pass
+    return (
+        host.endswith((".pstatic.net", ".naver.net", ".naver.com"))
+        or "네이버" in str(photo.get("provider") or "")
+        or is_naver_place(place)
+    )
+
+
 def classify(place, photo):
     url = photo.get("image_url") or photo.get("url", "")
     try:
@@ -44,6 +60,10 @@ def classify(place, photo):
             return dict(status="unverified")
     except ValueError:
         return dict(status="unverified")
+    if naver_origin(place, photo):
+        # 네이버 검색 API 특약 2.3(2026-09): 검색 결과로 얻은 사진·제목·장소(파생물 포함)를 AI(비전 모델) 입력에 쓰지 않는다.
+        # 여기까지 오는 사진은 모두 네이버 사진 서버(.pstatic.net)의 것이라, 키가 있어도 내용 검사는 하지 않는다.
+        return dict(status="unverified", reason="naver_terms_ai_blocked")
     key = (
         "photo-subject-v4:"
         + hashlib.sha256(

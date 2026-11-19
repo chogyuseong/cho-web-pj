@@ -267,11 +267,14 @@ def test_cache_is_reused_and_status_is_recomputed_for_each_visit_date(fake):
     assert ("blog", "2026년 10월 서울 팝업스토어") in fake.calls and fake.count("blog") == 4
     olgi = next(p for p in earlier["posts"] if p["url"].endswith("/a/1"))
     assert olgi["period"]["status"] == "upcoming"
+    # 다른 달 검색은 같은 사용자의 새 질의라 이전 팝업 검색 보관분을 지운다(특약 2.4, app/naver_cache.new_query).
+    # 그래서 처음 조건으로 돌아오면 다시 검색한다(블로그 2건 더).
     assert ids(get(client).json()) == ids(first)  # 같은 입력, 같은 순서
+    assert fake.count("blog") == 6
     # 검색어가 바뀌면 다른 캐시 키. 지역명이 앞에 붙어 있어도 같은 검색으로 본다.
     assert get(client, q="  성수​ ").json()["q"] == "성수"
     assert get(client, q="서울 성수").json()["sources"][0]["cached"] is True
-    assert fake.count("blog") == 6 and ("blog", "2026년 11월 서울 성수 팝업스토어") in fake.calls
+    assert fake.count("blog") == 8 and ("blog", "2026년 11월 서울 성수 팝업스토어") in fake.calls
 
 
 def test_invalid_inputs(fake):
@@ -315,9 +318,12 @@ def test_provider_failures_are_unavailable_and_not_cached(fake, error, reason):
 def test_empty_result_differs_from_failure_and_is_kept_briefly(fake, monkeypatch):
     fake.blog = [item("동네 카페 후기", "맛있어요")]
     saved = []
-    real = store.cache
+    # 네이버 검색 결과는 사용자별 보관(app/naver_cache)을 거친다.
+    from app import naver_cache
+
+    real = naver_cache.cache
     monkeypatch.setattr(
-        store, "cache", lambda k, v, ttl=86400: (saved.append((k, ttl)), real(k, v, ttl))
+        naver_cache, "cache", lambda k, v, ttl=86400: (saved.append((k, ttl)), real(k, v, ttl))
     )
     data = get(TestClient(app)).json()
     assert data["status"] == "empty" and data["message"] and data["sources"][0]["status"] == "ok"
@@ -326,7 +332,8 @@ def test_empty_result_differs_from_failure_and_is_kept_briefly(fake, monkeypatch
     fake.blog = BLOG
     get(TestClient(app), q="정상")
     assert [ttl for k, ttl in saved if k.startswith("popups-raw:")] == [popup_api.RAW_TTL]
-    assert [ttl for k, ttl in saved if k.startswith("popup-hub-point:")] == [7 * 86400] * 2
+    # 거점 좌표 판정도 지역 검색 결과의 파생물이라 사용자별 24시간까지만(예전 공용 7일).
+    assert [ttl for k, ttl in saved if k.startswith("popup-hub-point:")] == [86400] * 2
 
 
 def test_external_calls_per_request_are_capped_and_point_failures_are_partial(fake):
@@ -359,7 +366,10 @@ def test_same_search_at_once_calls_the_provider_once(fake):
     def run():
         results.append(popup_api.find_popups("서울", "동시", TODAY, "today")["status"])
 
-    threads = [threading.Thread(target=run) for _ in range(3)]
+    # 같은 사용자(같은 소유자 문맥)의 동시 요청이다. 다른 사용자끼리는 보관분을 나누지 않아 각자 부른다(app/naver_cache).
+    import contextvars
+
+    threads = [threading.Thread(target=contextvars.copy_context().run, args=(run,)) for _ in range(3)]
     for t in threads:
         t.start()
     for t in threads:

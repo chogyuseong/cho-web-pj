@@ -48,6 +48,35 @@ def storage():
     store.init()
 
 
+# 네이버 검색 결과는 사용자별로만 보관한다(app/naver_cache.py). HTTP 를 거치지 않고 함수를 직접 부르는 테스트는
+# 한 사용자(소유자)의 요청 안에서 부른 것으로 본다. TestClient 요청은 미들웨어가 그 요청의 소유자로 다시 건다.
+# 테스트마다 새 소유자다(다른 테스트가 남긴 보관분을 읽지 않게). 요청 안 메모는 쓰지 않는다(직접 부르기 한 번 = 요청 하나).
+@pytest.fixture(autouse=True)
+def naver_owner():
+    import uuid
+    from app import naver_cache
+    owner = store.owner_of('pytest-naver-' + uuid.uuid4().hex)
+    tokens = naver_cache.bind(owner, memo=False)
+    try:
+        yield owner
+    finally:
+        naver_cache.unbind(tokens)
+
+
+@pytest.fixture
+def naver_dict_cache(monkeypatch):
+    """네이버 결과 보관(app/naver_cache)을 원래 키 그대로의 dict 로 바꾼다. 테스트가 무엇을 보관했는지 키로 본다.
+    (예전에는 store.cached·cache 를 dict 로 바꿨다. 네이버 결과는 이제 store 가 아니라 naver_cache 를 거친다.)"""
+    from app import naver_cache
+    box = {}
+    monkeypatch.setattr(naver_cache, 'cached', lambda key: box.get(key))
+    monkeypatch.setattr(naver_cache, 'cache', lambda key, value, ttl=86400: box.__setitem__(key, value))
+    monkeypatch.setattr(naver_cache, 'cached_many', lambda keys: {k: box[k] for k in keys if k in box})
+    monkeypatch.setattr(naver_cache, 'cache_many', lambda entries: [box.__setitem__(k, v) for k, v, _ in entries])
+    monkeypatch.setattr(naver_cache, 'owned_values', lambda prefix: {k: v for k, v in box.items() if k.startswith(prefix)})
+    return box
+
+
 # 분·시간 한도는 int(time.time() // 60) 같은 고정 구간으로 센다. 한도를 낮춘 테스트의 요청 사이에 분이 바뀌면
 # 둘째 요청이 새 구간에서 다시 허용돼 429 를 기대한 검사가 가끔 실패한다(2026-11-18 CI postgres, test_parking:258 이 [200, 200]).
 # 이 여유보다 짧게 남았으면 다음 분까지 기다렸다 시작한다. 정시는 분 경계이기도 해서 시간 한도도 함께 지킨다.

@@ -187,19 +187,21 @@ def summary(result):
     return [(p.get('option_purpose'), [x['name'] for x in p['places']], p.get('total')) for p in result['plans']]
 
 
-def run(name, naver):
+def run(name, naver, owner=None):
+    # 네이버 검색 결과는 사용자별로만 보관한다(app/naver_cache, 2026-11-20). '캐시가 찬 상태'는 같은 사용자가 같은 조건으로 다시 추천할 때다.
     from app.recommendation_service import generate
     data = SCENARIOS[name]
     naver.region['name'] = data['region']
-    return generate(Conditions(**data), 'golden-' + uuid.uuid4().hex)
+    return generate(Conditions(**data), owner or store.owner_of('golden-' + uuid.uuid4().hex))
 
 
 @pytest.mark.parametrize('name', sorted(SCENARIOS))
 def test_same_input_and_cache_state_give_the_same_recommendation_as_before(name, naver):
     clean_region(SCENARIOS[name]['region'])
-    cold = run(name, naver)
+    owner = store.owner_of('golden-' + uuid.uuid4().hex)
+    cold = run(name, naver, owner)
     cold_calls = list(naver.calls)
-    warm = run(name, naver)
+    warm = run(name, naver, owner)
     got = dict(cold=comparable(cold), warm=comparable(warm), cold_calls=sorted(cold_calls))
     if os.getenv('DATEMATE_WRITE_RECOMMENDATION_GOLDEN'):
         golden = json.loads(GOLDEN.read_text('utf-8')) if GOLDEN.exists() else {}
@@ -293,14 +295,15 @@ def test_discovered_places_are_saved_in_one_write_without_overwriting_richer_row
     import hashlib
     address = existing['roadAddress']
     pid = 'discovered:' + hashlib.sha256((existing['title'] + address).encode()).hexdigest()[:20]
-    store.cache('discovered-place:' + pid, dict(id=pid, name=existing['title'], region='전북', lat=JEONJU['lat'], lon=JEONJU['lon'],
+    from app import naver_cache
+    naver_cache.cache('discovered-place:' + pid, dict(id=pid, name=existing['title'], region='전북', lat=JEONJU['lat'], lon=JEONJU['lon'],
                                                  category='카페·미식', discovery_evidence={'quote': '블로그 인용'}), 600)
     with recording() as trace:
         result = intent_discovery.discover_requested_places(data)
         timing = trace.summary()
     assert result['status'] == 'available' and result['resolved'] >= 5
-    assert store.cached('discovered-place:' + pid)['discovery_evidence'] == {'quote': '블로그 인용'}
-    saved = store.cached_many('discovered-place:' + p for p in [pid])
+    assert naver_cache.cached('discovered-place:' + pid)['discovery_evidence'] == {'quote': '블로그 인용'}
+    saved = naver_cache.cached_many('discovered-place:' + p for p in [pid])
     assert saved
     # 찾은 장소가 여러 곳이어도 DB 사용은 몇 번뿐이다(전에는 장소마다 읽기·쓰기 2번).
     assert timing['db']['count'] <= 8 + 2 * result['lookups'], timing['db']
@@ -426,7 +429,8 @@ def test_price_plans_reads_cache_once_and_saves_new_prices_together(monkeypatch)
     for i, p in enumerate(plan['places']):
         p.update(id=f'speed-price-{uuid.uuid4().hex}-{i}', price=None)
     first = plan['places'][0]
-    store.cache('price-search-v2:' + first['id'], dict(status='available', quotes=[], checked_at='x'), 600)
+    from app import naver_cache
+    naver_cache.cache('price-search-v2:' + first['id'], dict(status='available', quotes=[], checked_at='x'), 600)
     looked = []
     monkeypatch.setattr(pricing, 'lookup_price', lambda p, force=False, writes=None: (
         looked.append((p['id'], force)), writes.append(('price-search-v2:' + p['id'], dict(status='not_found', quotes=[]), 300)),
@@ -436,7 +440,7 @@ def test_price_plans_reads_cache_once_and_saves_new_prices_together(monkeypatch)
         db = trace.summary()['db']['count']
     others = [p['id'] for p in plan['places'][1:]]
     assert sorted(i for i, _ in looked) == sorted(others) and all(force for _, force in looked)
-    assert all(store.cached('price-search-v2:' + i)['status'] == 'not_found' for i in others)
+    assert all(naver_cache.cached('price-search-v2:' + i)['status'] == 'not_found' for i in others)
     # 캐시 읽기 1번 + 새 가격 저장 1번 + 제공자 예산 미리 잡기·남은 몫 돌려주기 2번(조회를 흉내 내 실제 호출이 없음).
     assert db == 4
     # force 는 캐시를 읽지 않고 모두 다시 찾는다.

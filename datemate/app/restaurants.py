@@ -15,14 +15,14 @@ def restaurants():
     return [apply_evidence(p,evidence) for p in json.loads(path.read_text('utf-8'))] if path.exists() else []
 
 def live_restaurant(place_id):
-    from . import store
+    from . import naver_cache as store
     from .operating_evidence import apply_evidence
     place=store.cached('restaurant:'+place_id)
     return apply_evidence(place) if place else None
 
 def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500):
     """권한 활성화 후 바로 쓸 수 있는 주변 업체 검색. 영업·가격 API는 아니다."""
-    from . import store
+    from . import naver_cache as store
     from .image_search import search_enabled,plain
     if plan.get('conditions',{}).get('mode')=='demo':return dict(status='demo',restaurants=[],message='가상 장소에서는 실제 식당을 검색하지 않습니다.')
     if index<0 or index>=len(plan['places']):raise ValueError('식사 추천 장소가 올바르지 않습니다.')
@@ -60,16 +60,20 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500)
             near=distance(a,r)
             if not district and near*1000>radius_m:continue
             id='food:naver-'+hashlib.sha256((name+address).encode()).hexdigest()[:16]
+            # 항목마다 원본(네이버 지도의 같은 업체 검색)으로 가는 링크(특약 2.2 출처·원본 링크).
+            from urllib.parse import quote
+            from .search_address_text import place_query
+            item_url='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address}))
             # 지번 주소(동 이름이 있음)는 엄격한 사진 검색이 동네 낱말로 쓴다(app/image_search.locality_words).
             lot=plain(item.get('address') or '')
             if lot and lot!=address:r['lot_address']=lot
             r.update(id=id,address=address,cuisine=category,category='카페·미식',region=region,demo=False,review_search_rank=rank,meal=True,setting=None,breaks=None,last_entry=None,
-                recognition=f'네이버 카페·블로그 리뷰순 검색 {rank}번째 결과 · 별점 미제공',source=search_url,source_type='네이버 지역 검색',
+                recognition=f'네이버 카페·블로그 리뷰순 검색 {rank}번째 결과 · 별점 미제공',source=item_url,search_url=search_url,source_type='네이버 지역 검색',naver_result=True,
                 hours_text='운영시간·메뉴는 지도에서 확인',extra_distance_km=round(extra,1),route_offset_km=round(offset,1),
                 distance_m=round(near*1000),search_radius_m=radius_m,
                 checked_at=datetime.now(timezone.utc).isoformat(),description=category,tags=[category],photos=[],videos=[],license='검색 결과',
                 price=None,hours=None,closed_days=None,stay=None,reservation=None,rating=None,stay_basis=None,price_unit=None)
-            store.cache('restaurant:'+id,r,604800);rows.append(r)
+            store.cache('restaurant:'+id,r,store.PERSONAL_MAX_SECONDS);rows.append(r)
             if len(rows)==(5 if district else 3):break
         result=dict(status='available' if rows else 'not_found',restaurants=rows,search_url=search_url,
             message='' if rows else ('해당 구의 음식점 검색 결과가 없습니다.' if district else f'이 장소 반경 {radius_m:,}m 안의 음식점 검색 결과가 없습니다.'))
@@ -80,7 +84,7 @@ def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500)
 def meal_rescue(plan):
     """식사 시간대 구성이 불가능한 코스에 주변 리뷰순 음식점 후보를 제시한다."""
     from concurrent.futures import ThreadPoolExecutor
-    from . import store
+    from . import naver_cache as store
     from .models import Conditions
     from .quality import in_area
     if not any(d['condition']=='meal' and d['state']=='unmet' for d in plan.get('deviations',[])):

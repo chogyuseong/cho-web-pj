@@ -136,13 +136,12 @@ def item(title, category, anchor, km, address='서울특별시 종로구 율곡�
 
 
 @pytest.fixture
-def real_search(monkeypatch):
+def real_search(monkeypatch, naver_dict_cache):
     """네이버 지역 검색을 HTTP 단계에서 흉내 낸다(외부 호출 없음). observed_http 를 거쳐 예산에 집계된다."""
     from app import store
     import app.discovery as discovery
-    cache = {}
-    monkeypatch.setattr(store, 'cached', lambda key: cache.get(key))
-    monkeypatch.setattr(store, 'cache', lambda key, value, ttl: cache.__setitem__(key, value))
+    # 네이버 검색 결과 보관(app/naver_cache)을 dict 로(2026-11-20 특약 대응 전에는 store 를 바꿨다).
+    cache = naver_dict_cache
     monkeypatch.setattr('app.intent_discovery.search_enabled', lambda: True)
     plan = fixture_plan()
     anchor = plan['places'][0]

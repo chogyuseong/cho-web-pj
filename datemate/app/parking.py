@@ -15,7 +15,7 @@ import math
 from collections import Counter
 from datetime import date
 
-from . import public_parking, store
+from . import naver_cache, public_parking
 from .image_search import plain, search_enabled
 from .leg_modes import leg_mode, uses_car
 from .models import Conditions
@@ -227,7 +227,7 @@ def parking_near(plan):
         targets.append(
             dict(index=i, place=place, regions=regions, region=region, key=cache_key(place, region))
         )
-    cached = store.cached_many(t["key"] for t in targets)
+    cached = naver_cache.cached_many(t["key"] for t in targets)
     queries, owners = [], []
     for target in targets:
         if target["key"] in cached or not naver:
@@ -275,7 +275,7 @@ def parking_near(plan):
         per_place[key] = row
         writes.append((key, row, CACHE_FOUND_SECONDS if lots else CACHE_EMPTY_SECONDS))
     if writes:
-        store.cache_many(writes)
+        naver_cache.cache_many(writes)
     if naver and targets and not queries:
         diagnostics["cache_hit"] = True
         count_cache_hit("parking_local")

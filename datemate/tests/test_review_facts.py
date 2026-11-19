@@ -46,7 +46,9 @@ def test_place_words_in_the_name_are_not_searched_alone():
 
 
 @pytest.fixture
-def fake(monkeypatch):
+def fake(monkeypatch, naver_pages_allowed):
+    # 본문 읽기(app/naver_pages.py)가 꺼져 있으면 review_facts 는 블로그 검색도 부르지 않는다(2026-11-20).
+    # 남겨 둔 읽기 규칙을 시험하려고 켠다(실제 호출은 아래 가짜가 막는다).
     state = dict(blogs=dict(status='available', posts=[]), bodies={}, fetched=[])
 
     def blogs(p):
@@ -89,6 +91,12 @@ def test_skips_parks_known_hours_demo_and_missing_blogs(fake):
     empty = review_facts.review_facts(place())
     assert empty['status'] == 'not_found' and empty['hours'] is None
     assert fake['fetched'] and all('blog.naver.com' in u for u in fake['fetched'])
+
+
+def test_no_blog_search_when_bodies_are_not_read(monkeypatch):
+    # 본문을 읽지 않으면 결과가 나올 수 없으므로 블로그 검색 API 를 부르지 않는다(사용자마다 나가는 호출 줄이기).
+    monkeypatch.setattr(blog_search, 'place_blogs', lambda p: pytest.fail('블로그 검색 호출'))
+    assert review_facts.review_facts(place())['status'] == 'not_found'
 
 
 def test_route_is_expensive_and_unknown_place_is_404():

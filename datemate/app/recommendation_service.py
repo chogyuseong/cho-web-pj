@@ -8,7 +8,7 @@ import json
 import logging
 import time
 import uuid
-from . import store
+from . import naver_cache, store
 from .execution import recommendation_slot
 from .models import Conditions
 from .planner import recommend
@@ -27,7 +27,15 @@ def generate(data: Conditions, owner: str):
         personalizing(owner, data.use_feedback, data.mode) as profile,
         measure() as usage,
         naver_session(),
+        naver_cache.scope(owner),
     ):
+        # 새 추천 = 같은 사용자의 새 질의: 이전 추천의 네이버 검색 보관분(발견 장소·검색 글·가격 근거 등)을 지운다(특약 2.4).
+        # 같은 조건으로 다시 추천하면 같은 질의로 보고 지우지 않는다(fingerprint).
+        naver_cache.new_query(
+            "plan",
+            owner,
+            fingerprint=data.model_dump_json(exclude={"leg_modes", "planning_session_id"}),
+        )
         started = time.perf_counter()
         try:
             # 구간별 수단은 만든 코스를 바꿀 때만 생긴다. 새 추천은 기본 수단 하나로 찾는다.

@@ -51,6 +51,8 @@ function restaurantCard(food,{badge='',near='',plan=null,index=0}={}){
   if(near)info.append(node('p',near,'hint'));
   if(food.extra_distance_km!=null)info.append(node('p','직선 기준 추가 이동 약 '+food.extra_distance_km+'km','hint'));
   if(food.recognition&&food.source)info.append(link(food.recognition+' ↗',food.source));
+  // 네이버 지역 검색 결과 식당: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2).
+  if(isNaverResult(food))info.append(naverAttribution('지역 검색',food.source));
   const photo=node('div',undefined,'meal-photo');photo.append(placePhotoPanel(food,'real'));
   const actions=node('div',undefined,'actions meal-actions');actions.append(button('사진·장소 정보',()=>showPlace(food.id,'real'),'secondary'),placeMapLink('네이버 지도·메뉴 ↗',food));
   if(plan&&plan.can_edit!==false)actions.append(button('이 식당을 일정에 넣기',()=>showMealChange(food,plan,index),'primary'));card.append(info,photo,actions,placeBlogPanel(food,'real'));return card;

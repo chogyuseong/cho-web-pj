@@ -4,7 +4,7 @@ import hashlib
 import re
 from datetime import datetime,timezone
 from urllib.parse import quote
-from . import store
+from . import naver_cache, store
 from .request_intent import intent,INTENTS
 from .image_search import search_enabled,plain
 from .discovery import local_lookup
@@ -153,7 +153,7 @@ def discover_requested_places(c):
     def kind_key(kind):
         return 'intent-local-v6-kind:'+hashlib.sha256(str([area,center,c.neighborhood_radius_km,kind]).encode()).hexdigest()
     # 결과 캐시와 종류별 '방금 검색함' 표시를 한 번의 DB 조회로 읽는다(운영 DB 왕복을 줄임).
-    known=store.cached_many([cachekey]+([kind_key(k) for k in keys] if supplement else []))
+    known=naver_cache.cached_many([cachekey]+([kind_key(k) for k in keys] if supplement else []))
     cached=known.get(cachekey)
     # 캐시된 결과의 lookups 는 처음 검색했을 때의 건수다. 이번에는 외부 호출이 없다.
     if cached:
@@ -215,7 +215,7 @@ def discover_requested_places(c):
             source='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address}))
             row=dict(id=pid,name=name,address=address,lat=lat,lon=lon,region=c.region,demo=False,
                 category=label,themes=[label],tags=[t for t in (tag,category) if t],meal=meal,
-                description=category,source=source,source_type='네이버 지역 검색 · 요청 활동 유형 연결',
+                description=category,source=source,source_type='네이버 지역 검색 · 요청 활동 유형 연결',naver_result=True,
                 checked_at=datetime.now(timezone.utc).isoformat(),discovery_verification='네이버 업체 분류·상호·주소·좌표 연결 · 영업 여부 별도 확인',
                 price=None,price_unit='person',hours=None,closed_days=None,breaks=None,last_entry=None,
                 reservation=None,stay=None,stay_basis=None,rating=None,setting=None,photos=[],videos=[],license='검색 결과')
@@ -262,15 +262,15 @@ def discover_requested_places(c):
                 kind_stats={k:dict(v) for k,v in stats.items()},adopted=dict(adopted),adopted_reachable=dict(reachable),meal_supply=meal_supply,
                 permission_required='permission_required' in statuses,search_unavailable=bool(statuses) and all(s=='unavailable' for s in statuses))
     # Preserve richer blog evidence for a previously resolved venue: 이미 저장된 장소는 덮어쓰지 않는다.
-    saved=store.cached_many('discovered-place:'+pid for pid in found_rows)
-    writes=[('discovered-place:'+pid,row,604800) for pid,row in found_rows.items() if not saved.get('discovered-place:'+pid)]
+    saved=naver_cache.cached_many('discovered-place:'+pid for pid in found_rows)
+    writes=[('discovered-place:'+pid,row,naver_cache.PERSONAL_MAX_SECONDS) for pid,row in found_rows.items() if not saved.get('discovered-place:'+pid)]
     writes.append((cachekey,result,900 if count else 30))
     if supplement:
         for kind in keys:
             # 검색이 응답했으면(결과 0건 포함) 15분, 실패했으면 30초 뒤 다시 찾을 수 있다.
             ok=any(s=='available' for (k,_,_),(_,s) in zip(queries+fallback,found+fallback_found) if k==kind)
             writes.append((kind_key(kind),True,900 if ok else 30))
-    store.cache_many(writes)
+    naver_cache.cache_many(writes)
     return result
 
 

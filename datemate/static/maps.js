@@ -80,6 +80,8 @@ function renderPlanMapCard(){
     go.setAttribute('aria-label',`${index+1}번 ${place.name} 일정에서 보기`);
     row.append(placeMapLink((index+1)+'. '+place.name,place),go);places.append(row);
   });
+  // 네이버 지역 검색으로 찾은 장소가 있으면 목록 아래에 '네이버 검색결과' 표시(특약 2.1). 장소마다의 원본 링크는 일정 카드에 있다.
+  if(selected.places.some(place=>isNaverResult(place)))places.append(naverAttribution('지역 검색 장소 포함'));
   card.append(places);(mobile?slot:rail).append(card);planMapCard=card;
 }
 
@@ -424,7 +426,7 @@ function drawPlanMap(plan){
             const label=labels.join(' / ');
             const marker=new naver.maps.Marker({map,position:coord(food),title:label+' · '+food.name,
               icon:{content:'<span class="route-marker restaurant-marker">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
-            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),placeMapLink('네이버 지도·메뉴 ↗',food));
+            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),placeMapLink('네이버 지도·메뉴 ↗',food));if(isNaverResult(food))content.append(naverAttribution('지역 검색',food.source));
             const info=new naver.maps.InfoWindow({content});naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
             bounds.extend(coord(food));count++;
           }

@@ -10,6 +10,7 @@ from . import (
     v0002_operational_indexes,
     v0003_hashed_session_owners,
     v0004_user_feedback,
+    v0005_naver_terms_2026_09,
 )
 
 MIGRATIONS = (
@@ -17,6 +18,7 @@ MIGRATIONS = (
     v0002_operational_indexes,
     v0003_hashed_session_owners,
     v0004_user_feedback,
+    v0005_naver_terms_2026_09,
 )
 
 

@@ -81,6 +81,11 @@ def with_thumbs(data):
     photos, allow = [], []
     for photo in data.get("photos") or []:
         url = photo.get("image_url") or photo.get("url")
+        if naver_search_photo(photo):
+            # 네이버 검색 API 특약 2.2·2.3(2026-09): 검색 결과 사진은 줄이거나(가공) 서버 메모리에 담아 두지(캐싱) 않는다.
+            # 화면은 검색 결과가 준 작은 사진(thumbnail_url)을 그대로 쓴다.
+            photos.append(photo)
+            continue
         if url and allowed_source(url):
             photo = dict(photo, thumb_url=thumb_path(url))
             allow.append((allow_key(url), True, ALLOW_SECONDS))
@@ -88,6 +93,14 @@ def with_thumbs(data):
     if allow:
         store.cache_many(allow)
     return dict(data, photos=photos) if "photos" in data else data
+
+
+NAVER_SEARCH_KINDS = ("image_search", "search_result")
+
+
+def naver_search_photo(photo):
+    """네이버 검색 API(이미지·블로그 검색)에서 온 사진인지."""
+    return photo.get("kind") in NAVER_SEARCH_KINDS or photo.get("source_type") in ("image_search", "blog_review")
 
 
 def _remember(key, body):

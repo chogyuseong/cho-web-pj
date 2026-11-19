@@ -278,8 +278,9 @@ def test_migration_on_an_empty_database(tmp_path):
 
 def test_migration_on_an_existing_database_keeps_data(tmp_path):
     connect = sqlite_connect(tmp_path / 'existing.sqlite')
-    assert MIGRATIONS[-1] is v0004_user_feedback
-    upgrade(connect, 'sqlite', MIGRATIONS[:-1])
+    # v0004 앞까지만 올린 DB 에 나머지(v0004, 그 뒤 v0005 네이버 특약 정리)를 올린다.
+    before = MIGRATIONS.index(v0004_user_feedback)
+    upgrade(connect, 'sqlite', MIGRATIONS[:before])
     with connect() as db:
         db.execute('INSERT INTO sessions(token,created,last_used) VALUES(?,?,?)', ('a' * 64, 1.0, 1.0))
     assert columns(connect) == set()

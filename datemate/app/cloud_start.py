@@ -11,8 +11,10 @@ def prepare_runtime():
     store.init()
     if os.getenv('DATEMATE_BOOTSTRAP_INDEX','0')=='1':
         from .catalog import places
-        from .indexing import index_places, index_documents
+        from .indexing import index_places, index_documents, purge_naver_documents
         for mode in ('demo','real'):
+            # 네이버 검색 장소는 색인하지 않고, 예전에 들어간 것은 지운다(특약 2.3, app/naver_terms.py).
+            purge_naver_documents(mode)
             index_places(places(mode),mode)
             path = ROOT/'data'/f'{mode}_documents.json'
             if path.is_file():

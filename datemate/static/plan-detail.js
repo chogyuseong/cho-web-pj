@@ -35,6 +35,9 @@ function renderDetail() {
   if (p.delta) box.append(node('p', `${p.change_reason} 시간 ${p.delta.minutes>=0?'+':''}${p.delta.minutes}분 · ${costChangeText(totalBefore(p), p.total)}`, 'warning'));
   if (p.conditions.mode === 'demo') box.append(node('p', '모든 장소와 운영·가격 조건은 가상입니다. 이동선은 직선거리로 만든 개략도이며 실제 경로가 아닙니다.', 'warning'));
   if (p.conditions.mode === 'real' && p.conditions.allow_estimates) box.append(estimatedPlanNotice());
+  // 보관 기한(21일)이 지나 좌표까지 지운 네이버 검색 장소가 있으면 다시 계산하는 기능(바꾸기·주변 찾기·가격 재검색)을 그리지 않는다.
+  const expired = planHistoryExpired(p);
+  if (expired) box.append(planHistoryExpiredNote());
   if (p.parent && p.can_edit !== false) {
     const undo = node('div', undefined, 'actions undo-actions');
     undo.append(button(p.transport_change ? '수단 변경 되돌리기' : '교체 되돌리기', async () => {
@@ -46,7 +49,10 @@ function renderDetail() {
   box.append(transportOverview(p));
   const links = node('div', undefined, 'map-link-list');
   links.append(node('span', '네이버 지도에서 찾기', 'map-link-label'));
-  p.places.forEach((place, i) => links.append(placeMapLink(`${i+1}. ${place.name}`, place)));
+  // 이름·주소를 지운 장소(보관 기간 지남)는 지도에서 찾을 말이 없어 빼고, 번호는 일정 순서 그대로 둔다.
+  p.places.forEach((place, i) => {
+    if (!place.naver_expired) links.append(placeMapLink(`${i+1}. ${place.name}`, place));
+  });
   box.append(links);
   // 구간마다 같은 설명(예: '직선거리 × 1.35 기반 이동 추정 · 실제 길찾기 미반영')이면 여기서 한 번만 적는다(routeLine 은 생략).
   const legSource = sharedLegSource(p);
@@ -85,25 +91,25 @@ function renderDetail() {
       body.append(source);
     }
     const buttons = node('div', undefined, 'actions');
-    buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 변경', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)), link('도착지 지도·길찾기 확인', p.legs[i].link));
+    buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 변경', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)));
+    // 길찾기 링크가 없는 구간(보관 기간이 지나 좌표를 지운 장소)은 링크 자리를 두지 않는다.
+    if (p.legs[i].link) buttons.append(link('도착지 지도·길찾기 확인', p.legs[i].link));
     body.append(placeEvidencePanel(p, i));
+    if (p.can_edit === false) {
+      buttons.children[0].disabled = true;
+      buttons.children[1].disabled = true;
+    }
+    // 보관 기간이 지난 장소가 있는 코스는 장소를 바꿀 수 없다(서버가 409, 위 planHistoryExpiredNote).
+    if (expired) buttons.children[1].disabled = true;
     // 보관 기간이 지난 네이버 검색 장소는 장소 정보(사진·블로그·메뉴)를 다시 찾지 않는다(이름·주소가 지워짐).
     if (place.naver_expired) {
       body.append(buttons);
-      if (p.can_edit === false) {
-        buttons.children[0].disabled = true;
-        buttons.children[1].disabled = true;
-      }
       stop.append(body);
       box.append(stop);
       return;
     }
     if (p.conditions.mode === 'real' && hasPlaceMenu(place)) body.append(restaurantMenuPanel(place));
     body.append(placePhotoPanel(place, p.conditions.mode, false, true), placeBlogPanel(place, p.conditions.mode), buttons);
-    if (p.can_edit === false) {
-      buttons.children[0].disabled = true;
-      buttons.children[1].disabled = true;
-    }
     stop.append(body);
     // 자동차로 도착하는 장소는 바로 아래에 근처 주차장을 둔다(일정·비용에는 넣지 않음).
     box.append(stop, parkingPanel(p, i), mealSuggestionPanel(p, i));

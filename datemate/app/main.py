@@ -332,6 +332,18 @@ def plan_row(id, owner):
     return row, plan
 
 
+def changeable_plan_row(id, owner):
+    """plan_row + 경로·주변 검색을 다시 하는 요청의 검사.
+
+    21일 보관 기한이 지나 네이버 검색 장소의 좌표를 지운 코스(app/naver_terms.strip_plan)는 다시 계산할 수 없어 409 로 거절한다.
+    """
+    from .naver_terms import ensure_changeable
+
+    row, plan = plan_row(id, owner)
+    ensure_changeable(plan)
+    return row, plan
+
+
 @app.delete("/api/me/data")
 def delete_my_data(request: Request, response: Response):
     owner = request.state.owner
@@ -641,7 +653,7 @@ def get_plan(id: str, request: Request):
 
 @app.post("/api/plans/{id}/prices")
 def refresh_prices(id: str, request: Request):
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     refresh_allowed("price", request.state.owner, "단가 검색은 잠시 후 다시 시도해 주세요.")
     from .pricing import price_plans
 
@@ -663,7 +675,7 @@ def refresh_prices(id: str, request: Request):
 
 @app.get("/api/plans/{id}/restaurant-matches")
 def matched_restaurants(id: str, request: Request):
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     from .restaurants import restaurant_matches
 
     return restaurant_matches(plan)
@@ -671,7 +683,7 @@ def matched_restaurants(id: str, request: Request):
 
 @app.get("/api/plans/{id}/restaurants")
 def nearby_restaurants(id: str, request: Request, after_index: int = Query(default=0, ge=0, le=4)):
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     from .restaurants import search_nearby
 
     key = "local-rate:" + request.state.owner
@@ -697,7 +709,7 @@ PARKING_REPEAT_SECONDS = 1
 @app.get("/api/plans/{id}/parking")
 def nearby_parking(id: str, request: Request):
     """자동차로 도착하는 장소 근처 주차장. 결과 화면에서만 부르며 계획은 바꾸지 않는다."""
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     from .parking import parking_near
 
     key = "parking-rate:" + request.state.owner
@@ -721,7 +733,7 @@ class ReplaceInput(BaseModel):
 
 @app.get("/api/plans/{id}/meal-rescue")
 def recommend_meal_rescue(id: str, request: Request):
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     from .restaurants import meal_rescue
 
     return meal_rescue(plan)
@@ -729,7 +741,7 @@ def recommend_meal_rescue(id: str, request: Request):
 
 @app.post("/api/plans/{id}/alternatives")
 def alternatives(id: str, data: ReplaceInput, request: Request):
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     try:
         from .pricing import price_plans
 
@@ -758,7 +770,7 @@ def route_refresh_allowed(plan, kind, owner, message):
 
 @app.post("/api/plans/{id}/replace")
 def replace(id: str, data: ReplaceInput, request: Request):
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     route_refresh_allowed(
         plan,
         "replace",
@@ -810,7 +822,7 @@ def change_transport(id: str, data: TransportInput, request: Request):
         raise HTTPException(422, "바꿀 구간이나 이동 수단을 골라 주세요.")
     if len({leg.index for leg in data.legs}) != len(data.legs):
         raise HTTPException(422, "같은 구간을 두 번 골랐어요.")
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     try:
         prepared = prepare_change(plan, data.default, [(leg.index, leg.mode) for leg in data.legs])
     except NoChange as exc:
@@ -984,7 +996,7 @@ app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 @app.post("/api/plans/{id}/leisure-options")
 def leisure_options(id: str, data: ReplaceInput, request: Request):
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     from .leisure import options, message as leisure_message
 
     try:
@@ -1010,7 +1022,7 @@ def leisure_options(id: str, data: ReplaceInput, request: Request):
 
 @app.post("/api/plans/{id}/leisure-select")
 def leisure_select(id: str, data: ReplaceInput, request: Request):
-    _, plan = plan_row(id, request.state.owner)
+    _, plan = changeable_plan_row(id, request.state.owner)
     from .leisure import options
 
     try:

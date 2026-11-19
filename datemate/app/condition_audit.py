@@ -28,7 +28,9 @@ def audit_plan(plan,c=None):
     names=lambda rows:', '.join(p['name'] for p in rows)
     from .quality import in_area,meal_due,meal_time_matches
     if c.area_center:
-        test('neighborhood','동네 범위',all(in_area(p,c) for p in venues),f'{c.area_center.name} 반경 {c.neighborhood_radius_km:g}km 안의 장소로 구성했어요.','선택한 동네 범위 밖 장소가 있어요.')
+        # 21일 보관 기한이 지나 좌표를 지운 네이버 검색 장소(app/naver_terms.strip_plan)는 범위를 다시 잴 수 없어 빼고 본다(만들 때는 범위 안이었다).
+        located=[p for p in venues if p.get('lat') is not None and p.get('lon') is not None]
+        test('neighborhood','동네 범위',all(in_area(p,c) for p in located),f'{c.area_center.name} 반경 {c.neighborhood_radius_km:g}km 안의 장소로 구성했어요.','선택한 동네 범위 밖 장소가 있어요.')
     if meal_due(c):
         timed=meal_time_matches(plan)
         add('meal','식사 구성','met' if timed else 'unmet','식사 시간대에 음식점 방문을 포함했어요.' if timed else '조건에 맞는 식사 시간대의 음식점 구성을 찾지 못했어요. 식사 후보 또는 시간 조건을 확인해 주세요.')

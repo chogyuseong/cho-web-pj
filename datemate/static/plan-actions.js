@@ -129,7 +129,8 @@ function routeLine(plan, index, label) {
     line.append(anchor);
   }
   wrap.append(line);
-  if (plan.can_edit !== false) {
+  // 보관 기간(21일)이 지나 좌표를 지운 장소가 있는 코스는 수단을 바꿀 수 없다(서버 409, naver-attribution.js planHistoryExpired).
+  if (plan.can_edit !== false && !planHistoryExpired(plan)) {
     const id = 'transport-chooser-' + index,
       toggle = button('수단 바꾸기', () => {
         const open = toggle.getAttribute('aria-expanded') === 'true';
@@ -169,7 +170,7 @@ function transportOverview(plan) {
   }
   for (const check of plan.condition_checks || [])
     if (check.condition === 'car_position') box.append(node('p', check.message, 'hint car-position-note'));
-  if (plan.can_edit !== false && plan.legs.length) {
+  if (plan.can_edit !== false && plan.legs.length && !planHistoryExpired(plan)) {
     const modes = new Set(plan.legs.map(leg => legMode(plan, leg))),
       current = modes.size === 1 ? [...modes][0] : null;
     const bulk = node('details', undefined, 'transport-bulk'),

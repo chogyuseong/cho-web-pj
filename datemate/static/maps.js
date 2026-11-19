@@ -317,9 +317,14 @@ function drawPlanMap(plan){
       canvas.replaceChildren();
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])];
       const coord=p=>new naver.maps.LatLng(p.lat,p.lon);
-      const map=new naver.maps.Map(canvas,{center:coord(points[0]),zoom:14,zoomControl:true,scrollWheel:true});activeMap=map;
+      // 보관 기간(21일)이 지나 좌표를 지운 네이버 검색 장소(lat·lon 이 null)는 표시·이동선에서 뺀다(공개 지도 fallback 과 같은 기준).
+      const located=p=>Number.isFinite(p?.lat)&&Number.isFinite(p?.lon);
+      const start=points.find(located);
+      if(!start){fallback('지도에 표시할 위치가 없어요.');return;}
+      const map=new naver.maps.Map(canvas,{center:coord(start),zoom:14,zoomControl:true,scrollWheel:true});activeMap=map;
       const bounds=new naver.maps.LatLngBounds();
       points.forEach((point,i)=>{
+        if(!located(point))return;
         bounds.extend(coord(point));
         // 장소 번호(1..N)는 아래 drawStops 가 화면 거리에 따라 묶어 그린다. 여기서는 출발·귀가만(누름 동작 없음).
         if(i>0&&i<=plan.places.length)return;
@@ -340,8 +345,11 @@ function drawPlanMap(plan){
         // 지도를 다시 그렸거나(코스 탭 전환·다시 연결) 정리했으면 예전 지도의 늦은 zoom_changed 는 무시한다.
         if(disposed||activeMap!==map)return;
         stopMarkers.forEach(marker=>quietly(()=>marker.setMap(null)));stopMarkers=[];
-        planStopGroups(plan.places,place=>map.getProjection().fromCoordToOffset(coord(place))).forEach(members=>{
+        // 좌표 있는 장소만 묶는다. planStopGroups 는 넘긴 배열의 순번을 돌려주므로 일정 순번(stops[m])으로 바꿔 쓴다.
+        const stops=plan.places.map((place,index)=>({place,index})).filter(({place})=>located(place));
+        planStopGroups(stops.map(s=>s.place),place=>map.getProjection().fromCoordToOffset(coord(place))).forEach(grouped=>{
           // members: 이 표시에 묶인 장소 순번(0부터). 화면 번호는 +1. '·'(가운뎃점)으로 잇는다.
+          const members=grouped.map(m=>stops[m].index);
           const numbers=members.map(i=>i+1),label=numbers.join('·'),width=stopMarkerWidth(members.length);
           // 합친 표시의 자리는 묶인 장소 좌표의 평균(한 장소면 그 장소 그대로).
           const lat=members.reduce((sum,i)=>sum+plan.places[i].lat,0)/members.length,lon=members.reduce((sum,i)=>sum+plan.places[i].lon,0)/members.length;
@@ -363,6 +371,8 @@ function drawPlanMap(plan){
       let actual=0;
       for(let i=0;i<points.length-1;i++){
         const leg=plan.legs[i],style=legLineStyle(plan,leg);
+        // 한쪽 끝의 좌표가 없는 구간(보관 기간이 지난 장소)은 선을 그리지 않는다.
+        if(!located(points[i])||!located(points[i+1]))continue;
         const isRoad=style==='road';
         const path=isRoad?leg.path.map(([lon,lat])=>new naver.maps.LatLng(lat,lon)):[coord(points[i]),coord(points[i+1])];
         if(isRoad){actual++;path.forEach(p=>bounds.extend(p));}
@@ -410,7 +420,7 @@ function drawPlanMap(plan){
       if(plan.conditions.mode==='real'){
         const originalCaption=caption.textContent;
         // 반경은 각 방문 장소 중심의 직선거리이며 추천 식당은 경로선에 포함하지 않는다.
-        plan.places.forEach(place=>new naver.maps.Circle({map,center:coord(place),radius:500,
+        plan.places.filter(located).forEach(place=>new naver.maps.Circle({map,center:coord(place),radius:500,
           strokeColor:'#8758c7',strokeOpacity:.4,strokeWeight:1,fillColor:'#8758c7',fillOpacity:.06}));
         fetchRestaurantMatches(plan).then(data=>{
           if(!wrap.isConnected||!canvas.isConnected)return;
@@ -519,7 +529,10 @@ function drawPlanMap(plan){
         map.on('zoomend',drawLeafletStops);
         // 구간마다 수단에 맞는 점선으로 잇는다(공개 지도에는 실제 도로 경로를 그리지 않는다).
         // 이동선은 장소 원 뒤에 그려져 원 가운데를 지나므로, 누름을 받지 않게 해(interactive:false) 원 가운데를 눌러도 장소로 가게 한다.
-        for(let i=0;i<coordinates.length-1;i++){const style=legLineStyle(plan,plan.legs[i]);L.polyline([coordinates[i],coordinates[i+1]],{color:'#55606b',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style,interactive:false}).addTo(map);}
+        // 구간 i 는 (출발지·장소·귀가지 순서의) i 번째와 i+1 번째 점을 잇는다. 좌표 없는 점(보관 기간이 지난 장소)에 닿는 구간은 그리지 않는다.
+        const ordered=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])];
+        const hasPoint=point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon);
+        for(let i=0;i<ordered.length-1;i++){if(!hasPoint(ordered[i])||!hasPoint(ordered[i+1]))continue;const style=legLineStyle(plan,plan.legs[i]);L.polyline([[ordered[i].lat,ordered[i].lon],[ordered[i+1].lat,ordered[i+1].lon]],{color:'#55606b',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style,interactive:false}).addTo(map);}
         wrap.updateFestivals=()=>{
           if(disposed||!mapCanvas.isConnected)return;
           clearFestivals();const items=festivalMapItems();

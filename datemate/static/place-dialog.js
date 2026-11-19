@@ -8,15 +8,19 @@ function drawMap(p) {
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', '장소 좌표 개략도. 실제 도로 경로 아님');
   const points = [p.conditions.origin, ...p.places, ...(p.conditions.return_home ? [p.conditions.home] : [])];
-  const lats = points.map(x => x.lat),
-    lons = points.map(x => x.lon),
+  // 보관 기간(21일)이 지나 좌표를 지운 장소(lat·lon 이 null)는 개략도에서 빼고, 그 장소에 닿는 구간 선도 그리지 않는다.
+  const located = x => Number.isFinite(x?.lat) && Number.isFinite(x?.lon);
+  const known = points.filter(located);
+  const lats = known.map(x => x.lat),
+    lons = known.map(x => x.lon),
     minLat = Math.min(...lats),
     minLon = Math.min(...lons),
     dy = Math.max(.002, Math.max(...lats) - minLat),
     dx = Math.max(.002, Math.max(...lons) - minLon);
-  const coords = points.map(x => [60 + (x.lon - minLon) / dx * 480, 180 - (x.lat - minLat) / dy * 130]);
+  const coords = points.map(x => located(x) ? [60 + (x.lon - minLon) / dx * 480, 180 - (x.lat - minLat) / dy * 130] : null);
   // 구간마다 수단에 맞는 점선(도보 짧은 점선, 그 밖 긴 점선)으로 잇는다. 개략도라 실제 도로는 그리지 않는다.
   coords.slice(1).forEach((end, i) => {
+    if (!end || !coords[i]) return;
     const path = document.createElementNS(ns, 'polyline');
     path.setAttribute('points', [coords[i], end].map(x => x.join(',')).join(' '));
     path.setAttribute('fill', 'none');
@@ -25,7 +29,9 @@ function drawMap(p) {
     path.setAttribute('stroke-dasharray', LINE_DASH.svg[legLineStyle(p, p.legs?.[i]) === 'short' ? 'short' : 'long']);
     svg.append(path);
   });
-  coords.forEach(([x, y], i) => {
+  coords.forEach((at, i) => {
+    if (!at) return;
+    const [x, y] = at;
     const circle = document.createElementNS(ns, 'circle');
     circle.setAttribute('cx', x);
     circle.setAttribute('cy', y);

@@ -57,6 +57,9 @@ def update_locks(pid:str,data:Locks,request:Request):
 @router.post('/plans/{pid}/meal-preview')
 def meal_preview(pid:str,data:MealChange,request:Request):
     _,plan=load(pid,request.state.owner)
+    # 21일이 지나 좌표를 지운 네이버 검색 장소가 있으면 경로를 다시 계산할 수 없다(app/naver_terms.ensure_changeable).
+    from .naver_terms import ensure_changeable
+    ensure_changeable(plan)
     return run(lambda:service.meal_draft(plan,request.state.owner,data.restaurant_id,data.after_index,data.replace_index,data.locked,data.menu_index))
 
 @router.post('/plans/{pid}/draft-apply')
@@ -124,6 +127,8 @@ def vote(pid:str,data:Votes,request:Request):
 @router.post('/plans/{pid}/agreement-preview')
 def replan_agreement(pid:str,request:Request,data:dict|None=None):
     _,plan=load(pid,request.state.owner)
+    from .naver_terms import ensure_changeable
+    ensure_changeable(plan)
     locked=(data or {}).get('locked',[])
     if not isinstance(locked,list) or len(locked)>5 or any(type(i) is not int for i in locked):raise HTTPException(422,'고정 장소 번호를 확인해 주세요.')
     return run(lambda:service.agreement_draft(plan,request.state.owner,locked))

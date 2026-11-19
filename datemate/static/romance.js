@@ -28,4 +28,22 @@ document.getElementById('conditions').addEventListener('change',event=>{
   measure();
   if ('ResizeObserver' in window) new ResizeObserver(measure).observe(header);
   else window.addEventListener('resize', measure);
+  // compactHeader: 800px 이하에서 아래로 읽는 동안 소개 문구를 숨겨 머리말을 낮춘다(shell.css header.is-compact).
+  // 160px 넘게 내려가면 붙이고 40px 이내로 돌아오면 뗀다. 두 값 사이에서는 그대로 둬 경계에서 깜빡이지 않는다.
+  const narrow = window.matchMedia('(max-width:800px)');
+  let ticking = false;
+  const compact = () => {
+    ticking = false;
+    const y = window.scrollY;
+    if (!narrow.matches || y < 40) header.classList.remove('is-compact');
+    else if (y > 160) header.classList.add('is-compact');
+  };
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(compact);
+    }
+  }, {passive: true});
+  narrow.addEventListener?.('change', compact);
+  compact();
 })();

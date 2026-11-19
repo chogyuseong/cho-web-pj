@@ -25,6 +25,13 @@ function lastDepartureNote(plan) {
   return `종료 ${plan.conditions.end}에 맞추려면 마지막 장소에서 늦어도 ${dayClock(Math.max(0, latest))}에 출발해야 해요(귀가 ${home.minutes}분 · ${basis}). ` + (slack >= 0 ? `지금 계획은 ${last.departure} 출발 · 여유 ${slack}분.` : `지금 계획(${last.departure} 출발)은 ${-slack}분 늦어요.`);
 }
 
+// 구간 한 줄: legModeLabel(plan-evidence.js)이 이미 '도보 8분 · 추정'처럼 분과 근거를 붙인다. 여기서 다시 붙이지 않는다
+// (2026-11-19 모바일 점검에서 '도보 2분 · 가상 추정 2분(추정)'으로 겹쳐 보이던 것을 고침).
+function dayLegText(plan, leg) {
+  if (typeof legModeLabel === 'function') return legModeLabel(plan, leg);
+  return `${leg.mode || '이동'} ${leg.minutes}분${leg.status === 'api' ? '' : ' · 추정'}`;
+}
+
 function shortAddress(place) {
   return typeof streetAddressText === 'function' ? streetAddressText(place.address) || place.address || '' : place.address || '';
 }
@@ -34,7 +41,7 @@ function fieldItineraryText(plan) {
   plan.places.forEach((place, i) => {
     const leg = plan.legs?.[i],
       t = plan.timeline[i];
-    if (leg && Number.isFinite(leg.minutes)) lines.push(`  ↓ ${typeof legModeLabel === 'function' ? legModeLabel(plan, leg) : leg.mode} ${leg.minutes}분${leg.status === 'api' ? '' : '(추정)'}`);
+    if (leg && Number.isFinite(leg.minutes)) lines.push('  ↓ ' + dayLegText(plan, leg));
     lines.push(`${i + 1}. ${t.arrival}~${t.departure} ${place.name}` + (shortAddress(place) ? ` · ${shortAddress(place)}` : ''));
   });
   const home = plan.conditions.return_home && plan.legs?.length > plan.places.length ? plan.legs.at(-1) : null;
@@ -81,7 +88,7 @@ function showStepDialog(plan, start = 0) {
       node('h3', place.name, 'step-name'),
       node('p', `도착 ${t.arrival} · ${t.departure}까지`, 'step-time'),
       node('p', shortAddress(place) || '주소 정보 없음', 'step-address'),
-      node('p', leg && Number.isFinite(leg.minutes) ? `여기까지 ${typeof legModeLabel === 'function' ? legModeLabel(plan, leg) : leg.mode} ${leg.minutes}분${leg.status === 'api' ? '' : '(추정)'}` : '', 'hint'),
+      node('p', leg && Number.isFinite(leg.minutes) ? '여기까지 ' + dayLegText(plan, leg) : '', 'hint'),
       placeMapLink('지도에서 열기 ↗', place));
     prev.disabled = index === 0;
     next.disabled = index === plan.places.length - 1;

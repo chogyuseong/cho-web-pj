@@ -42,6 +42,8 @@ async function openLocationPicker(kind){
   const confirm=button(kind==='origin'?'이 지역에서 데이트하기':'이 위치를 귀가지로 사용',()=>{
     if(!candidate||confirm.disabled)return;
     locationState[kind]={name:candidate.name,lat:candidate.lat,lon:candidate.lon};form.elements[kind+'_name'].value=candidate.name;
+    // 장소 이름으로 찾은 결과(네이버 지역 검색)는 받은 시각을 들고 간다(form-state.js NaverDeviceRetention, 기기 보관 24시간).
+    if(NaverDeviceRetention.isNaver(candidate))Object.assign(locationState[kind],{naver_at:candidate.naver_at,naver_query:candidate.naver_query});
     if(kind==='origin'){
       // change 이벤트를 보내지 않는다. 보내면 방금 고른 출발지가 초기화된다.
       const region=candidate.region||regionFromAddress(candidate.name);
@@ -66,6 +68,7 @@ async function openLocationPicker(kind){
   function choose(point,recenter=true){
     regionCheck++;regionBox.hidden=true;regionSelect.value='';
     candidate={name:point.name,lat:Number(point.lat),lon:Number(point.lon),region:regionFromAddress(point.name)};
+    if(point.place_name)candidate=NaverDeviceRetention.mark(candidate,'local',point.received_at);
     picked.textContent='선택한 위치: '+candidate.name;confirm.disabled=false;
     if(map){if(marker)marker.setLatLng([candidate.lat,candidate.lon]);else marker=L.circleMarker([candidate.lat,candidate.lon],{radius:10,color:'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3}).addTo(map);if(recenter)map.setView([candidate.lat,candidate.lon],17,{animate:false});}
     if(naverMap){const coord=new naver.maps.LatLng(candidate.lat,candidate.lon);if(naverMarker)naverMarker.setPosition(coord);else naverMarker=new naver.maps.Marker({map:naverMap,position:coord});if(recenter)naverMap.setCenter(coord);}
@@ -100,11 +103,13 @@ async function openLocationPicker(kind){
   root.append(content,footer);
   searchForm.onsubmit=async event=>{
     event.preventDefault();searchButton.disabled=true;results.replaceChildren();message.textContent='주소를 검색하고 있어요…';
+    // 새 질의: 앞서 지역 검색으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 2.4, form-state.js).
+    LastConditions.newQuery('local');
     try{
-      const data=await api('/locations/search',{query:query.value.trim()});
+      const data=await api('/locations/search',{query:query.value.trim()}),at=Date.now();
       if(!canvas.isConnected||!$('#dialog').open)return;
       message.textContent=data.message||'검색 결과에서 원하는 주소를 선택하세요. 도로명 주소를 우선 표시합니다.';
-      for(const point of data.results){const option=button('',()=>choose(point),'location-result');option.append(node('strong',point.road_address||point.name));if(point.jibun_address)option.append(node('span','지번: '+point.jibun_address,'hint'));results.append(option);if(point.place_name)results.append(naverAttribution('지역 검색',placeMapUrl({name:point.place_name,address:point.road_address||point.jibun_address||point.name})));}
+      for(const found of data.results){const point={...found,received_at:at};const option=button('',()=>choose(point),'location-result');option.append(node('strong',point.road_address||point.name));if(point.jibun_address)option.append(node('span','지번: '+point.jibun_address,'hint'));results.append(option);if(point.place_name)results.append(naverAttribution('지역 검색',placeMapUrl({name:point.place_name,address:point.road_address||point.jibun_address||point.name})));}
     }catch(error){message.textContent=error.message;}finally{searchButton.disabled=false;}
   };
   // 키가 있으면 네이버 지도를 우선 사용하고, 없거나 로딩 실패면 공개 지도 사용.

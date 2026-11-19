@@ -8,7 +8,23 @@
 ★ 지금 상태 (2026-11-19 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 076be94(main, 병합 = clarity.css 를 shell.css 끝으로 합침), Worker 버전 dfc854ba-56f3-4457-8b43-352628ed9a58 (쉰한 번째 배포, 2026-11-19)
+운영에 올라간 것: 커밋 637acad(main, 병합 = 합의 의견 검사·검색 이어보기·정보 보강 측정·지각 확인), Worker 버전 5e9a7732-9405-42be-9597-53628b4a10bd (쉰두 번째 배포, 2026-11-19)
+  · 사용자 요청(docs/product-priorities-deep-review.ko.md 의 네 단계)을 구현·검증한 뒤 '진행해' 로 병합·배포 지시. 브랜치 feat/trust-agreement-resume-delay.
+  · 1 합의 계산(1decc85): 초안에 '계산에 실제로 쓴' 의견 집계를 남기고 적용 때 지금 의견과 비교. 다르면 409 {code:'votes_changed', changed:[장소별 변화]},
+    아무것도 저장하지 않음. 화면은 바뀐 의견을 보여 주고 '최신 의견으로 다시 계산'. 변경 전 코드는 계산 도중 상대가 A 를 빼도 A 가 든 초안을 저장했다(재현 확인).
+  · 2 검색 이어보기(800da30): 작업 ID 를 받은 뒤 상태 조회가 세 번 실패하면 '이 검색 이어보기'(같은 ID, 새 생성 요청 없음). 만료(404·410)·생성 응답 유실은
+    '같은 조건으로 다시 검색', 서버 실패·취소는 '조건 확인하고 다시 검색'. 연속 탭이 새로 나타난 '검색 취소'를 누르던 문제도 고침(0.6초 무시).
+  · 3 정보 보강 측정(48c1d44): scripts/measure_info_enrichment.py, 결과 docs/info-enrichment-measure-2026-11-19.md(고정 후보 결과, 실제 장소 정확도 아님).
+    발견: 가격 모르는 장소가 예산 필수 조건을 통과한 것으로 처리됨 — 동작은 바꾸지 않고 기록(다음 개선 후보).
+  · 4 지각 확인(fabe50d): 일정 위 '늦어지면 어디서 문제가 생길까?'. 남은 첫 장소의 원래 도착 예정 시각 + 지연으로 남은 시간표를 기존 규칙(planner.visit_window:
+    개점 대기·휴게·마지막 입장·영업 종료, 귀가·종료 시각)으로 다시 평가. GET /api/plans/{id}/delay-check 는 만든 브라우저만, 저장하지 않음.
+  · 테스트 수정(09c3e3f): test_transit_compare 의 좌표 이동이 캐시 키 반올림 때문에 가끔 겹쳐 PostgreSQL CI 에서 실패 → 코스마다 순번으로 다르게.
+  · 검증: Docker 전체 1296 통과·6 건너뜀·실패 0, CI Run 44463584586 5개 통과(첫 실행 44460942978 은 위 간헐 실패), format_sources --check 통과.
+    운영 확인: 12분 접속 없이 기다린 뒤(curl) 첫 화면이 experience.js?v=bb2940be43e1·plan-progress.js?v=0341c11f024b·delay-check.js?v=7be41e3dbf73 을 줌 =
+    로컬 sha256 앞 12자리와 같음. /api/plans/(없는 id)/delay-check 는 앱의 안내 문구로 404(일정 없음). 운영 DB 에 코스를 만들지 않으려고 실제 코스로는 눌러 보지 않음.
+  · 확인하지 못한 것: 실제 휴대폰(Chromium 390px 로만), 실제 두 사람의 브라우저(테스트 클라이언트 두 개로만), 운영에서 실제 코스로 지각 확인을 눌러 보지 않음.
+  · 문제가 생기면: git revert -m 1 637acad 후 재배포.
+(쉰한 번째) 운영에 올라간 것: 커밋 076be94(main, 병합 = clarity.css 를 shell.css 끝으로 합침), Worker 버전 dfc854ba-56f3-4457-8b43-352628ed9a58 (쉰한 번째 배포, 2026-11-19)
   · 사용자가 '모든 권한 … 배포 진행' 으로 지시. 바뀐 정적 파일 3개(shell.css·index.html·feedback.html), clarity.css 삭제. CSS 파일 14 → 13개.
   · 이기는 쪽이 바뀌는 곳은 800px 이하 html 의 scroll-padding-top 하나뿐이라 그 규칙만 :root 로 씀. css_snapshot 180캡처 계산값·상자·스크린샷 차이 0.
   · 같은 날 main 에 CI 액션 v7(Node 24) 병합 7ef9aee(배포 불필요): checkout·setup-python·setup-node v4/v5 → v7, CI Run 44445459692 5개 통과, Node 20 경고 사라짐.

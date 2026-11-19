@@ -1,4 +1,4 @@
-# CSS 18개 정리 설계 (2026-11-18, Fable 설계 · 아직 적용 안 함)
+# CSS 18개 정리 설계 (2026-11-18, Fable 설계 · 2026-11-19 5-0~5-7 적용, 5-5 는 축소 적용)
 
 사용자가 'Fable로 설계부터'를 골라 fable-designer 가 코드를 읽기만 하고 낸 설계다(실행 확인 없음). 적용은 단계별로 사용자 지시를 받아 한다.
 적용할 때마다 이 문서 아래 '진행 기록'에 날짜·커밋을 적는다.
@@ -77,3 +77,15 @@
 - 2026-11-18 5-0 검증 장치: 커밋 b36a76f(브랜치 test/css-snapshot, `datemate/tests/css_snapshot.py`, CSS·HTML·JS 변경 없음). Docker(Playwright 1.64.1 chromium, --jobs 4)에서 15장면×12폭=180캡처 1회 약 16분(약 140MB, runtime/ 아래·Git 제외). 무변경 2회 비교 차이 0 / line.css `.curation-card::before` margin-top 3→4px 임시 변경(커밋 안 함) 시 144캡처 차이(그 속성만, 스크린샷 34캡처) / 규칙 사용 1585/2181(72.7%), 한 번도 안 맞은 규칙 596개(server-wake.css 0/6, popups.css 52/123 등). Docker 전체 1270 통과·6 건너뜀·실패 0. 설계와 다른 점: hover 는 CDP forcePseudoState, 지도 이동 칸 안의 자리 값·타일 제외, 지도 칸은 스크린샷에서 가림, 모달 장면은 보이는 화면만 찍음, 인쇄 장면은 상태 표본 없음.
 - 2026-11-19 5-1 @import 합치기: 커밋 b7b63a7(브랜치 refactor/css-5-1-5-2). location-picker-layout.css 내용을 location-picker.css 앞에 옮기고 파일 삭제(링크·import 는 location-picker.css 의 @import 하나뿐). 전체 캡처 180개 before(8670ad4) 대비 차이 0.
 - 2026-11-19 5-2 죽은 것 지우기: 커밋 f56e002. 어디서도 만들지 않는 클래스(hero-art·orbit·ticket·flower·art-*·route-feature·route-art·feature-tags·journal-*(journal-demo 제외)·preset-*·data-point(data-points 제외)·ai-label·big-symbol·empty-tags·eyebrow) 선택자와 selle 의 .mode-badge 중복 삭제(목록은 커밋 메시지). 규칙 2181→2082. planner-layout [hidden] 은 selle 의 display:grid!important 보다 뒤에서 이기는 역할이 있어 남김. 5-1 after 대비 차이 0. Docker 전체 1276 통과·6 건너뜀·실패 0, format_sources --check 통과.
+- 2026-11-19 5-3 결과 화면 평탄화(브랜치 refactor/css-5-3): 새 `results.css`(index.html 에서 line.css 바로 뒤). 하위 단계 커밋 3a ad66a7e(코스 탭) / 3b b1270d2(코스 카드·수치·검색 중 미리보기) / 3c-1 f6ce06d(장소 칸) / 3c-2 f8378af(구간 줄·교통 선택·지하철 비교) / 3c-3 0d07ddb(주차장, 값 그대로 이동) / 3d-1 7883ed0(주변 식당) / 3d-2 5197bec(메뉴) / 3d-3 e7613f0(블로그·근거·후기 정보) / 3e 0b77012(비교 표·비용 표·실행 요약·결정 상자, execution-summary.css·planning-outcomes.css 비움) / 3f 6481777(지도 → plan-map.css, 링크를 results.css 뒤로) / 3g-1 56c982d(축제) / 3g-2 6fd2221(레저) / 3g-3 dddcbef(더 보기 묶음) / 3g-4 7b6cfea(둘러보기 카드) / 3g-5 7881303(구역 제목·상세 패널·조건 차이 상자) / 3h dc736a7(사진 → place-photos.css, 링크를 results.css 뒤로).
+  방법: 3a·3b 는 손으로, 3c~3g 는 캐스케이드 계산 도구(폭 구간마다 중요도·명시도·순서로 이기는 선언을 고름)로, 사진·홈은 같은 요소에 범위가 다른 선택자가 겹쳐 '원래 순서 유지 + 같은 선택자가 뒤에서 덮어쓴 선언만 삭제' 방식.
+  검증 중 고친 것: f3e91a1(장소 단추 줄 위 여백 — 선택자 명시도를 올리자 .results-area .actions 를 새로 이김) / 4a6339b(도구가 한 규칙 안 'border:0; border-top:…' 의 뒤 선언을 무시해 테두리 6곳이 빠짐 — 도구 수정) / f0b8c03(공유 화면도 축제 구역·.section-heading 을 써서 공유 화면 전용 shared.css 추가) / 1bcf99e(결정 상자 단추 줄 — 같은 명시도의 .results-area .actions 가 원래 이기던 값).
+  교훈: 규칙을 뒤 파일로 옮기면 '원래 자리보다 뒤에 있던 같은 명시도의 공통 규칙'을 새로 이긴다. 도구에 경쟁 규칙 경고를 넣었다. 다른 화면(공유·피드백)이 같은 class 를 쓰는지 먼저 확인해야 한다.
+- 2026-11-19 5-4 홈·조건 → 새 `home.css`(line.css 뒤, results.css 앞): 커밋 504208e. date-categories.css 비움, planner-layout.css 는 [hidden] 만 남김. 원래 순서 유지 + 같은 선택자 죽은 선언 318개 삭제. 조건 입력칸(.conditions input·select·textarea 와 :is() 목록)은 공통 입력 규칙과 묶여 있어 옮기지 않음.
+- 2026-11-19 5-5 공통(축소 적용): 커밋 98f10fa(selle → calm → planner-layout [hidden] → editorial 을 순서 그대로 `shell.css` 로 이음, 죽은 선언 127개 삭제, index·feedback 링크 교체) / b38d86b(style·readability·line 안에서 같은 선택자가 뒤에서 덮어쓴 선언 86개를 제자리에서 삭제).
+  설계와 다른 점: 4개 화면 공통을 style.css 하나로 합치지 않았다. 공유·관리 화면은 style → readability → line 만 읽고 홈·피드백은 그 사이에 selle·calm·editorial·clarity 가 끼어 있어, 한 파일로 합치면 어느 한쪽 화면에서 이기는 순서가 바뀐다(화면 구분 class·@layer 는 금지). clarity.css 는 html 규칙이 있어 따로 둠. 더 합치려면 화면별 캐스케이드를 따로 계산하는 설계가 필요하다(다음 과제).
+- 2026-11-19 5-6 빈 파일: index.html·feedback.html 에서 링크를 빼고(98f10fa) 비워진 selle·calm·editorial·date-categories·planner-layout·execution-summary·planning-outcomes 7개 파일 삭제(9fb277b, 사용자가 '모든 권한'으로 지시). CSS 파일 20 → 14개. 머리 주석 순서 설명 9a409d1.
+- 2026-11-19 5-7 재발 방지: 커밋 8f85f95 `tests/test_css_structure.py` — 화면별 CSS 순서 고정 / 부품 파일 선택자를 공통 테마 파일에 다시 쓰지 않기(style.css 인쇄 목록 7개 예외) / 파일별 !important 상한 / 새 파일 머리 주석.
+- 수치(주석 제외, 최종 9fb277b 기준): 규칙 2063 → 1843, !important 326 → 318, 코드 163KB → 145KB(주석 포함 전체는 설명 주석 때문에 186KB → 198KB). CSS 파일 20 → 14개, index.html CSS 링크 18 → 12개.
+- 5-5 뒤 전체 비교에서 나온 6가지(비용 표 마지막 칸 폭, .detail h3 여백, 식당 더 보기 굵기, legend 색, 바로가기 단추 줄바꿈, 지도 코스 제목 크기) 고침: 1e1c204. 모두 '예전에는 뒤의 같은 명시도 규칙에 지던 값이 옮긴 뒤 이김'.
+- 검증(1e1c204, base = 리팩터 시작 커밋 f311179 의 캡처): 180캡처 모두 계산값·상자·스크린샷 차이 0. 남은 표시는 <head> 안 link·script 순번 차이(CSS 링크 수가 줄어 생김)뿐.

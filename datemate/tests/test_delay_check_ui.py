@@ -18,7 +18,7 @@ def test_delay_check_answers_on_a_phone_and_changes_nothing(audit_page):
     text = result.inner_text()
     second = page.evaluate('selected.places[1].name')
     assert f'{second}의 원래 도착 예정 시각' in text and '10분을 더해' in text
-    assert any(word in text for word in ('그대로 갈 수 있어요', '처음 문제가 생기는 곳', '판단 보류'))
+    assert any(word in text for word in ('그대로 갈 수 있어요', '처음 문제가 생기는 곳', '시간표로는 갈 수 있어요'))
     assert result.locator('li').count() >= 1
     # 범위 밖 값은 서버에 보내지 않고 바로 알려 준다.
     box.locator('input[type=number]').fill('500')

@@ -162,6 +162,10 @@ function placeMapLink(label, place) {
 
 function rememberVerifiedMapTarget(place, data) {
   if (data.place_id && data.place_id !== place.id) return;
+  // 공식 지역 검색 API 로 같은 업체를 확인했으면(app/place_identity.py) '위치' 줄을 '확인됨'으로. 지도 링크는 그대로(업체 번호가 없음).
+  if (data.identity?.verified === true && typeof markIdentityVerified === 'function') markIdentityVerified(place.id);
+  // 한국관광공사 영업 안내가 있으면 '영업 정보' 줄에 덧붙인다(plan-evidence.js markTourHours).
+  if (data.tour_hours && typeof markTourHours === 'function') markTourHours(place.id, data.tour_hours);
   const id = String(data.naver_place_id || '');
   if (data.naver_place_id_verified !== true || !/^\d+$/.test(id)) return;
   const url = 'https://map.naver.com/p/entry/place/' + id;
@@ -169,6 +173,8 @@ function rememberVerifiedMapTarget(place, data) {
   for (const anchor of document.querySelectorAll('a[data-map-place-id]')) {
     if (anchor.dataset.mapPlaceId === place.id) anchor.href = url;
   }
+  // 장소 정보 확인의 '위치' 줄도 '확인됨'으로(plan-evidence.js).
+  if (typeof markIdentityVerified === 'function') markIdentityVerified(place.id);
 }
 
 function normalizeMapQuery(value) {

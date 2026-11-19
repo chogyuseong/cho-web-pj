@@ -131,17 +131,31 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
             photos.append(photo)
 
     extend(ordered)
+    # 2026-11-19: 네이버 화면(업체 사진·블로그 본문)을 자동으로 읽지 않으므로(app/naver_pages.py) 부족한 사진은
+    # 한국관광공사 TourAPI 의 같은 장소 사진(좌표 400m 안 + 이름 같음 + 하나뿐, 공공누리 제1·제3유형만, app/tour_places.py)으로 채운다.
+    # 제목만 맞는 이미지 검색 결과는 여전히 쓰지 않는다(다른 장소 사진이 섞이는 문제, tests/test_photo_source_priority.py).
+    official = dict(status="not_found", photos=[])
+    if len(photos) < 2 and not place.get("demo"):
+        from .tour_places import tour_photos
+
+        official = dict(status="available", photos=tour_photos(place))
+        extend(official["photos"])
     searched = empty
     if len(photos) < 2 and not prefer_public:
         searched = blog_photos(place, force)
         searched = dict(searched, photos=filter_photos(place, searched["photos"]))
         extend(searched["photos"])
     if photos:
-        only_registry = bool(registered) and not public["photos"] and not searched["photos"]
+        only_registry = (
+            bool(registered)
+            and not public["photos"]
+            and not searched["photos"]
+            and not official["photos"]
+        )
         result = response(
             public,
             photos[:5],
-            "업체 사진을 먼저 표시하고, 부족한 사진은 같은 업체로 확인된 공개·후기 자료에서 보충해요."
+            "등록된 사진을 먼저 표시하고, 부족한 사진은 한국관광공사가 같은 장소로 등록한 사진에서 보충해요."
             + (
                 " '내용 미검사' 사진은 장소 일치만 확인했고 사진 내용은 검사하지 않았어요."
                 if unchecked(photos[:5])

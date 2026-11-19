@@ -153,6 +153,11 @@ def extract_blog_images(html, place, review_title=""):
 
 
 def read_post(post, place):
+    # 2026-11-19: 블로그 글 본문을 자동으로 읽지 않는다(네이버 약관, app/naver_pages.py). 글 속 사진도 가져오지 않는다.
+    from .naver_pages import allowed
+
+    if not allowed():
+        return []
     try:
         parsed = urlsplit(post.get("url", ""))
     except ValueError:

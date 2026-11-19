@@ -7,7 +7,7 @@ from test_public_place_photos import fixture
 from test_photo_source_priority import PLACE
 
 
-def test_single_representative_does_not_stop_next_query(monkeypatch):
+def test_single_representative_does_not_stop_next_query(monkeypatch, naver_pages_allowed):
     from app import public_place_photos as module
     cache={};queries=[]
     monkeypatch.setattr(module.store,'cached',lambda key:cache.get(key))

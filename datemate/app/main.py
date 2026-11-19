@@ -509,11 +509,21 @@ def place_media(
     from .photo_thumb import with_thumbs
 
     # 사진마다 thumb_url(카드용 줄인 사진, /photo-thumb)을 붙이고 그 원본을 허용 목록에 올린다(app/photo_thumb.py).
-    return with_thumbs(
+    data = with_thumbs(
         media_info(
             p, prefer_public=fallback == "place", force=refresh, review_only=fallback == "reviews"
         )
     )
+    # 같은 업체 확인(공식 지역 검색 API, app/place_identity.py). 화면의 '위치' 줄이 이 값으로 '확인됨'이 된다.
+    # 후기 사진만 다시 찾는 요청(fallback=reviews)에는 붙이지 않는다(첫 요청에서 이미 받음).
+    if fallback != "reviews":
+        from .place_identity import verify_identity
+        from .tour_places import tour_hours
+
+        data["identity"] = verify_identity(p)
+        # 한국관광공사 영업 안내(글 그대로, app/tour_places.py). 없으면 None.
+        data["tour_hours"] = tour_hours(p)
+    return data
 
 
 @app.get("/photo-thumb", include_in_schema=False)

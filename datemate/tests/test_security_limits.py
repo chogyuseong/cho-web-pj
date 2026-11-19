@@ -430,7 +430,7 @@ def test_busy_blog_slot_fails_fast(monkeypatch):
         blog_search._lock.release()
 
 
-def test_busy_menu_and_photo_slots_fail_fast(monkeypatch):
+def test_busy_menu_and_photo_slots_fail_fast(monkeypatch, naver_pages_allowed):
     from app import menus, public_place_photos
     monkeypatch.setattr(menus, 'LOCK_WAIT_SECONDS', 0.05)
     monkeypatch.setattr(public_place_photos, 'LOCK_WAIT_SECONDS', 0.05)

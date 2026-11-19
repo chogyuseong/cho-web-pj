@@ -62,7 +62,7 @@ def test_price_formats_and_ranges():
     assert price_row('시가','시가')['amount'] is None
     assert not cost_menu_options({'items':[{'name':'배달 메뉴','amount':10000,'price_scope':'delivery'}]})
 
-def test_menu_retry_and_cache_upgrade(monkeypatch):
+def test_menu_retry_and_cache_upgrade(monkeypatch, naver_pages_allowed):
     from app import menus
     calls=[]
     def fetch(client,query):

@@ -29,11 +29,16 @@ def price_name(place):
     return place['name']
 
 def extract_quote(place,item):
+    from .course_search import without_branch
     title=plain(item.get('title',''));description=plain(item.get('description',''));text=title+' '+description
     compact=re.sub(r'\s+','',text).casefold()
     if place.get('image_keywords'):
         if not all(re.sub(r'\s+','',word).casefold() in compact for word in place['image_keywords']):return None
-    elif not any(re.sub(r'\s+','',name).casefold() in compact for name in [price_name(place),place['name']]):return None
+    # 지점 이름('OO 성수점')은 글에서 지점 없이 쓰이는 일이 많아 지점을 뗀 이름도 본다(course_search.without_branch, 2026-11-19).
+    else:
+        short=without_branch(place['name'])
+        names=[price_name(place),place['name']]+([short] if len(re.sub(r'\s+','',short))>=3 else [])
+        if not any(re.sub(r'\s+','',name).casefold() in compact for name in names):return None
     url=item.get('link','')
     if not safe_https(url):return None
     posted=str(item.get('postdate',''))
@@ -42,11 +47,13 @@ def extract_quote(place,item):
     if not 0<=(today()-posted_date).days<=365:return None
     category=place['category']
     keywords=r'성인(?:\s*입장료)?|일반(?:\s*관람료)?|입장료|관람료|1인\s*이용료'
-    if category=='카페·미식':keywords=r'아메리카노|칼국수|국밥|냉면|돈까스|돈가스|파스타|보이차|우롱차|녹차|홍차|말차|대추차|유자차|쌍화차'
-    elif category in ('체험·제작','레저·활동','오락·놀이'):keywords+=r'|1인\s*체험비|1인\s*체험료|1인\s*이용권'
+    # 2026-11-19 넓힘: 예전 목록은 카페에서 아메리카노·칼국수 등 몇 개, 체험·레저에서 1인 체험비 정도라 대부분의 글을 놓쳤다
+    # (요가 '원데이 클래스 25,000원', 카페 '라떼 6,000원'). 낱말 바로 뒤의 금액만 읽는 규칙과 500~30만 원 범위는 그대로라 엉뚱한 숫자는 걸러진다.
+    if category=='카페·미식':keywords=r'아메리카노|카페\s*라떼|라떼|플랫화이트|콜드브루|핸드드립|커피|에이드|케이크|디저트|브런치|칼국수|국밥|냉면|돈까스|돈가스|파스타|보이차|우롱차|녹차|홍차|말차|대추차|유자차|쌍화차'
+    elif category in ('체험·제작','레저·활동','오락·놀이'):keywords+=r'|1인\s*체험비|1인\s*체험료|1인\s*이용권|체험비|체험료|원데이\s*클래스|원데이|1회\s*체험|1회권|1회\s*이용|수강료|이용료|이용권|1시간'
     free=re.search(r'(상설전시(?:\s*관람료)?|입장료|관람료)\s*(?:은|는|:|：|이|가)?\s*무료(?!\s*(?:아니|아닌|아닙))',text)
     if free and category!='카페·미식':return dict(amount=0,item=free[1],source=url,posted_at=posted_date.isoformat(),evidence=text[max(0,free.start()-30):free.end()+40])
-    match=re.search(r'('+keywords+r')\s*(?:은|는|:|：|이|가)?\s*(?:1인(?:당)?\s*)?(\d[\d,]*(?:\.\d+)?)\s*(만|천)?\s*원',text)
+    match=re.search(r'('+keywords+r')\s*(?:은|는|:|：|이|가)?\s*(?:(?:1인|1회)(?:당)?\s*)?(\d[\d,]*(?:\.\d+)?)\s*(만|천)?\s*원',text)
     if not match:return None
     value=int(float(match[2].replace(',',''))*({'만':10000,'천':1000}.get(match[3],1)))
     if not 500<=value<=300000:return None
@@ -87,7 +94,8 @@ def lookup_price(place,force=False,writes=None,client=None):
             keys=place.get('image_keywords') or []
             search_name=' '.join(keys) if len(keys)>=2 else price_name(place)
             if len(keys)<2 and ' ' in search_name:search_name='"'+search_name+'"'
-            query=search_name+' '+('메뉴 가격' if place['category']=='카페·미식' else '입장료')
+            # 체험·레저·오락은 '입장료'보다 '가격'으로 찾을 때 수업·이용 요금 글이 나온다(2026-11-19).
+            query=search_name+' '+('메뉴 가격' if place['category']=='카페·미식' else '가격' if place['category'] in ('체험·제작','레저·활동','오락·놀이') else '입장료')
             response=observed_http(client.get if client is not None else httpx.get,BLOG_SEARCH_URL,params=dict(query=query,display=30,start=1,sort='sim',format='json'),
                 headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=7)
             response.raise_for_status();quotes=[];seen=set()

@@ -120,6 +120,25 @@ def fetch_page(client,query):
             if len(body)>4*1024*1024:raise ValueError('page_too_large')
     return body.decode('utf-8',errors='replace')
 
+def blog_menu(place,empty,force=False):
+    """네이버 화면 대신 공식 블로그 검색 API 요약문의 가격으로 만든 메뉴(가격이 있는 것만). 지금 가격은 원문·지도에서 확인."""
+    from .pricing import lookup_price
+    from urllib.parse import quote
+    map_url='https://map.naver.com/p/search/'+quote(place_query(place))
+    base=dict(empty,status='not_found',source_kind='blog_search_quote',search_url=map_url,source_url=map_url,source_label='네이버 지도에서 메뉴 보기',
+        reason='not_published',message='블로그 글 요약에서 이 식당의 메뉴 가격을 찾지 못했어요. 메뉴와 가격은 네이버 지도에서 확인해 주세요.')
+    try:quotes=lookup_price(dict(place,category=place.get('category') or '카페·미식'),force=force).get('quotes',[])
+    except (KeyError,TypeError,ValueError):quotes=[]
+    items,seen=[],set()
+    for q in quotes:
+        name=q.get('item') or '메뉴'
+        if name in seen or q.get('amount') is None:continue
+        seen.add(name)
+        items.append(dict(name=name,amount=q['amount'],display_price=f"{q['amount']:,}원",representative=not items,price_scope='store',source=q.get('source'),posted_at=q.get('posted_at')))
+    if not items:return base
+    return dict(base,status='available',items=items,reason=None,source_label='블로그 글에 나온 가격',
+        message='',note='블로그 글 요약에 나온 가격이에요(글 작성일 기준). 지금 가격과 다를 수 있어 네이버 지도 메뉴에서 확인해 주세요.')
+
 def restaurant_menu(place,force=False):
     empty=dict(status='not_found',items=[],menu_images=[],checked_at=datetime.now(timezone.utc).isoformat(),source_kind='naver_public_menu')
     if place.get('demo'):return dict(empty,status='demo',message='가상 장소는 실제 메뉴를 조회하지 않아요.')
@@ -129,6 +148,11 @@ def restaurant_menu(place,force=False):
     if evidence.get('current') and local.get('menus'):
         rows=[dict(item,display_price=f"{item['amount']:,}원",price_scope='store') for item in local['menus']]
         return dict(empty,status='available',items=rows,source_kind='operator_reviewed_menu',source_url=evidence['source'],source_label='운영자가 확인한 제공 메뉴',checked_at=evidence['checked_at'],note=evidence['scope']+' · 제공 자료 기준이며 현재 가격은 원문 확인',reason=None)
+    # 2026-11-19: 네이버 검색 결과 화면을 자동으로 읽지 않는다(약관·robots.txt, app/naver_pages.py).
+    # 대신 공식 블로그 검색 API 요약문에 나온 가격(app/pricing.py lookup_price)을 '블로그 글에 나온 가격'으로 보여 주고,
+    # 실제 메뉴판은 네이버 지도 링크로 안내한다.
+    from .naver_pages import allowed
+    if not allowed():return blog_menu(place,empty,force)
     # New parser must not reuse old false-negative entries.
     key='restaurant-menu-v4:'+place['id']
     if not force:

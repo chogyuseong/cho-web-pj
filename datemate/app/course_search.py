@@ -34,6 +34,9 @@ class BlogText(HTMLParser):
 
 def public_body(url):
     """고정 네이버 호스트의 공개 문서만 조회. 로그인·차단 우회 없음."""
+    # 2026-11-19: 네이버 약관상 글 본문 자동 수집을 하지 않는다(app/naver_pages.py). 판정은 API 의 제목·요약문으로만 한다.
+    from .naver_pages import allowed
+    if not allowed():return ''
     parsed=urlsplit(url)
     if parsed.scheme!='https' or parsed.hostname not in ('blog.naver.com','m.blog.naver.com'):return ''
     # 외부 리디렉션 및 임의 URL 접속 방지.
@@ -148,12 +151,28 @@ def match_places(posts,rows):
         names=[place['name'],*(place.get('search_aliases') or [])]
         wiki=urlsplit(place.get('wikipedia') or '')
         if wiki.hostname=='ko.wikipedia.org':names.append(unquote(wiki.path.rsplit('/',1)[-1]).replace('_',' '))
-        names=[compact(re.sub(r'\s*\([^)]*\)$','',n)) for n in names]
+        names=[re.sub(r'\s*\([^)]*\)$','',n) for n in names]
+        # 2026-11-19: 지점 이름('OO카페 성수점', 'OO 강남본점')은 글에서 흔히 지점 없이 쓰여 일치하지 않았다.
+        # 띄어 쓴 마지막 낱말이 …점/…지점/…본점이면 그것을 뗀 이름도 찾는다. 붙여 쓴 '서점'·'백화점'은 건드리지 않는다.
+        # 뗀 이름이 3자 미만이면(아래 길이 조건) 쓰지 않아 너무 흔한 이름으로 잘못 맞추지 않는다.
+        names+=[without_branch(n) for n in names]
+        names=list(dict.fromkeys(compact(n) for n in names))
         hits=[]
         for post,raw,text in texts:
             if any(len(n)>=3 and n in text for n in names) and not any(negative_mention(raw,n) for n in [place['name'],*(place.get('search_aliases') or [])]):hits.append(post['rank'])
         if hits:matches[place['id']]={'ranks':hits,'score':sum(rank_ceiling-rank for rank in hits)}
     return matches
+
+
+# 지점 낱말이 아니라 업종을 뜻하는 '…점'. 이 낱말로 끝나면 떼지 않는다('책방 서점'을 '책방'으로 줄이지 않게).
+NOT_BRANCH=('서점','백화점','편의점','상점','매점','주점','문구점','할인점','전문점','음식점','제과점','정육점','과일점')
+
+
+def without_branch(name):
+    '''OO카페 성수점 -> OO카페. 띄어 쓴 마지막 낱말이 …점(지점·본점 포함)이고 업종 낱말이 아닐 때만 뗀다.'''
+    head,sep,last=name.rstrip().rpartition(' ')
+    if not sep or not head.strip() or not last.endswith('점') or len(last)<2 or last in NOT_BRANCH:return name
+    return head.strip()
 
 
 def search_courses(c):

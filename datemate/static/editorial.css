@@ -30,40 +30,14 @@ main{max-width:1440px;padding:0 40px}
 button,a,input,select,textarea,summary{-webkit-tap-highlight-color:transparent}
 
 /* 홈 첫 화면 */
-body:not(.show-date-plan) .romance-hero{display:block;min-height:0}
-.hero-copy{position:relative;max-width:none!important;width:100%}
 
 .tag,.step-category{
   border-radius:999px;
   padding:4px 12px;
   font-weight:600;
 }
-.service-details{font-size:14px}
 
 /* 조건 입력 */
-.simple-plan-form{max-width:none;margin:0;gap:22px}
-.simple-form-intro{
-  font-size:16px;
-  color:var(--muted);
-  padding:14px 18px;
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:16px;
-}
-.simple-plan-form .simple-form-group{
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:24px;
-  margin-top:16px;
-}
-.simple-plan-form .simple-form-group legend{
-  padding:0 6px;
-  margin-bottom:12px;
-  font-size:19px;
-  color:var(--ink);
-  font-weight:800;
-}
 input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select{
   background-color:#fff;
   border:1.5px solid var(--line);
@@ -77,31 +51,7 @@ input:focus,textarea:focus,select:focus{
   background-color:#fff;
   border-color:var(--hong);
 }
-.simple-activity-ideas button{
-  border-radius:999px;
-  min-height:44px;
-  padding:8px 18px;
-  background-color:#fff;
-  color:var(--hong);
-  border:1px solid var(--line);
-  font-weight:700;
-}
-.simple-activity-ideas button:hover{
-  background-color:var(--platform);
-  border-color:var(--line);
-}
-.simple-extra-options{
-  background-color:#fff!important;
-  border:1px solid var(--line)!important;
-  border-radius:18px!important;
-}
-.simple-extra-options>summary{color:var(--hong);font-weight:750}
 .hint{color:var(--muted);line-height:1.78}
-.simple-plan-form #submit-plan{
-  min-height:58px;
-  font-size:18px;
-  border-radius:18px;
-}
 
 /* Results Area, Option Tabs, Comparison & Course Cards */
 
@@ -114,11 +64,9 @@ input:focus,textarea:focus,select:focus{
 
 
 /* 홈 인기 동네(승강장 띠)는 line.css */
-.curation{margin-top:0}
 
 /* Explore Catalog */
 #search-info{line-height:1.8}
-body.show-explore .hero,body.show-explore .workspace-intro,body.show-explore .service-details,body.show-explore .curation{display:none}
 
 /* Footer, Toast & Dialogs */
 footer{max-width:1360px;padding:32px 28px 44px;font-size:14px;color:var(--muted);border-top:1px solid var(--line)}
@@ -161,17 +109,10 @@ dialog .actions button{white-space:normal;min-height:44px;border-radius:999px}
 #dialog.location-dialog .location-search label{min-width:0}
 #dialog.location-dialog .location-body{padding-inline:6px;scroll-padding:6px}
 
-.field-grid>*{min-width:0}
 input,select,textarea{max-width:100%;min-width:0}
-.conditions label,.conditions legend{font-size:15px}
-.conditions .hint,.detail .hint,.detail .small,.plan-card .hint,.plan-card .small{font-size:14px;line-height:1.8}
+.detail .hint,.detail .small,.plan-card .hint,.plan-card .small{font-size:14px;line-height:1.8}
 .tag,.step-category{line-height:1.6;white-space:normal;overflow-wrap:anywhere}
-.service-details summary>span{color:var(--hong);font-weight:750}
 
-@media(min-width:801px){
-  body:not(.show-date-plan) .workspace{max-width:880px;margin:0 auto}
-  .show-date-plan .workspace{column-gap:26px}
-}
 @media(max-width:1000px) and (min-width:801px){
   header{padding-inline:24px;gap:20px}
   .nav-cta{font-size:13px}
@@ -184,10 +125,6 @@ input,select,textarea{max-width:100%;min-width:0}
   header .nav-cta{display:none}
   nav .nav{font-size:14px}
   main{padding:0 20px}
-  .hero-copy{display:block;padding-bottom:0}
-  .workspace-intro{display:block}
-  .workspace-intro h2{font-size:26px}
-  .simple-plan-form .simple-form-group{padding:18px}
 }
 @media(max-width:600px){
   dialog{padding:18px 14px}
@@ -198,39 +135,16 @@ input,select,textarea{max-width:100%;min-width:0}
   .brand{font-size:18px}
   nav .nav{font-size:14px;padding:8px 10px}
   main{padding:0 16px}
-  .simple-plan-form .field-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media(prefers-reduced-motion:reduce){
   button{transition:none}
 }
 @media print{
-  .hero-actions{display:none!important}
   body{background:white}
 }
 
 /* Polish: rose progress banner, clean heading focus, and SVG route accents */
 h2[tabindex="-1"]:focus,h3[tabindex="-1"]:focus{outline:none!important}
-#progress:not(:empty){
-  background-color:#fff!important;
-  color:var(--hong)!important;
-  border:1px solid var(--line);
-  border-radius:16px;
-  padding:14px 20px;
-  font-weight:700;
-}
-#progress.is-searching{
-  background-color:#fff!important;
-  border:1px solid var(--line)!important;
-  color:var(--hong)!important;
-}
-.search-progress-copy strong{color:var(--hong)!important}
-.search-progress-copy p{color:var(--hong)!important}
-.search-progress-copy small{color:var(--muted)!important}
-.search-spinner{
-  border-color:var(--line)!important;
-  border-top-color:var(--hong)!important;
-  border-right-color:var(--hong)!important;
-}
 
 /* 표 규칙(코스 비교 표 · 상세 비용표): 글은 왼쪽, 금액·시간은 오른쪽 정렬과 고정폭 숫자. 줄은 낱말·항목 사이에서만 바뀐다. */
 .visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
@@ -238,46 +152,7 @@ h2[tabindex="-1"]:focus,h3[tabindex="-1"]:focus{outline:none!important}
 .range-lines{display:inline-flex;flex-direction:column;align-items:flex-end}
 
 /* 조건 화면: 지역 칩, 기본 조건 요약 한 줄, ‘바꾸기’ 안의 조건 칩, 지난번처럼 추천 */
-.quick-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
-.quick-chip{
-  min-height:44px;
-  padding:8px 16px;
-  border-radius:999px;
-  background-color:#fff;
-  color:var(--hong);
-  border:1.5px solid var(--line);
-  font-size:15px;
-  font-weight:700;
-  word-break:keep-all;
-}
-.quick-chip:hover{background-color:#fff;border-color:var(--line)}
 /* 색만으로 구분하지 않도록 안쪽 테두리와 밑줄을 함께 쓴다. */
-.quick-chip[aria-pressed=true]{background-color:var(--hong);border-color:var(--hong);color:#fff;text-decoration:underline;text-underline-offset:4px}
-.quick-chip:disabled{opacity:1;background-color:#fff;color:var(--muted);border-style:dashed;text-decoration:line-through;cursor:not-allowed}
-.quick-chip.current-location{background-color:#fff;border-style:dashed}
-.quick-chip.current-location:disabled{text-decoration:none;cursor:wait}
 .area-status:empty,.date-note:empty{display:none}
-.quick-summary{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px 14px;
-  flex-wrap:wrap;
-  margin-top:16px;
-  padding:14px 18px;
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:18px;
-}
-.quick-summary-text{margin:0;flex:1 1 220px;min-width:0;font-size:16px;line-height:1.7;color:var(--ink);overflow-wrap:anywhere}
-.quick-summary-label{display:block;font-size:14px;font-weight:700;color:var(--muted)}
-.quick-summary-text strong{font-size:17px;color:var(--hong)}
 .condition-toggle{flex:0 0 auto}
 .condition-details{display:grid;gap:4px;padding:6px 18px 12px;border:1px solid var(--line);border-top:0;border-radius:0 0 18px 18px;background-color:#fff;margin-top:-6px}
-.condition-details .quick-field{margin:12px 0 0;padding:0;border:0}
-.condition-details .quick-field legend{padding:0;margin-bottom:8px;font-size:16px;font-weight:800;color:var(--ink)}
-.last-conditions{display:grid;gap:4px}
-.last-conditions .again-button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;min-height:58px;border-radius:18px}
-.last-conditions .again-summary{font-size:15px;font-weight:500;overflow-wrap:anywhere}
-.last-conditions .hint{margin:0}
-.last-conditions .again-button span{margin-left:0}

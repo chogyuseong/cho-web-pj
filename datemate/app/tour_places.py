@@ -33,6 +33,9 @@ LIST_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/searchKeyword2"
 DETAIL_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/detailIntro2"
 RADIUS_M = 400
 CACHE_SECONDS = 86400
+# 못 찾은 결과는 짧게 둔다. v1 키는 위치 기반 목록이 놓친 없음을 하루 붙들어 두어 고친 뒤에도 안 보였다(2026-11-19).
+# 찾는 방법을 바꾸면 cache_key 의 버전(v2)도 올린다.
+MISS_SECONDS = 6 * 3600
 # 관광 타입(contentTypeId)별 detailIntro2 의 영업시간·쉬는 날 필드(TourAPI 4.0 매뉴얼).
 HOURS_FIELDS = {
     "12": ("usetime", "restdate"),  # 관광지
@@ -100,7 +103,7 @@ def tour_info(place):
     key = _key()
     if not key:
         return dict(status="key_missing")
-    cache_key = "tour-place-v1:" + hashlib.sha256(
+    cache_key = "tour-place-v2:" + hashlib.sha256(
         repr([place.get("id"), place.get("name"), place.get("lat"), place.get("lon")]).encode()
     ).hexdigest()
     cached = store.cached(cache_key)
@@ -124,7 +127,7 @@ def tour_info(place):
             row = same_place(place, _items(listing))
             if row is None:
                 result = dict(status="not_found")
-                store.cache(cache_key, result, CACHE_SECONDS)
+                store.cache(cache_key, result, MISS_SECONDS)
                 return result
             content_id, type_id = str(row.get("contentid") or ""), str(row.get("contenttypeid") or "")
             hours = rest = None

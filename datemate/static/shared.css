@@ -1,0 +1,42 @@
+/* 공유 화면(shared.html) 전용: 축제 구역과 구역 제목 (CSS 정리 5-3 뒷정리)
+
+   왜 따로 있나: 축제 구역(.festival-*)과 구역 제목(.section-heading) 규칙은 5-3 단계에서 index.html 전용 results.css 로 옮겼다.
+   그런데 공유 화면도 festivals.js 로 같은 축제 구역을 그린다. 공유 화면은 style.css·readability.css·line.css 만 읽으므로
+   (selle·calm·editorial·clarity 는 읽지 않는다) 결과 화면과 이기는 값이 다르다. 그래서 예전에 공유 화면에 실제로 적용되던
+   style.css·line.css 의 해당 규칙을 그 순서 그대로 여기 옮겼다(같은 선택자가 뒤에서 덮어쓴 선언만 뺐다).
+   불러오는 순서: shared.html 에서 line.css 바로 뒤, server-wake.css 앞.
+   고칠 때: 축제 카드 모양을 바꾸면 results.css 의 축제 구역도 함께 본다(두 화면이 같은 모양이어야 하면 둘 다 고친다).
+   5-5 단계(공통 규칙 정리)에서 공유 화면용 파일 구성을 다시 볼 때 이 파일도 함께 정리한다. */
+
+.section-heading { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.section-heading h2 { margin:0; font-size:18px; letter-spacing:-.5px; }
+.section-heading .small { margin-left:auto; }
+.festival-card { padding:1rem; display:grid; gap:.35rem; min-width:0; overflow-wrap:anywhere; }
+.festival-photo { margin:0 0 .25rem; display:grid; gap:.25rem; min-width:0; }
+.festival-photo-frame { aspect-ratio:4/3; width:100%; }
+.festival-photo-frame img { display:block; width:100%; height:100%; }
+#festival-results { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr)); gap:1rem; margin-top:1rem; }
+@media print { #festival-origin-note { display:none!important; } }
+@media print { #festival-section { display:none!important; } }
+.festival-panel { margin-top:24px; min-width:0; scroll-margin-top:100px; }
+.festival-jump { padding:6px 14px; font-size:13px; white-space:nowrap; }
+.festival-panel .section-heading h3 { margin:0; font-size:18px; letter-spacing:-.5px; }
+.festival-demo-note { padding:8px 12px; }
+#festival-more { margin-top:1rem; }
+.festival-card>.tag { justify-self:start; }
+.festival-card>button { justify-self:start; max-width:100%; white-space:normal; }
+#festival-origin-note { margin:0 0 12px; }
+.section-heading .step { display:none; }
+#festival-section { background:#fff; border:0; border-top:8px solid var(--cheong); border-radius:0; box-shadow:none; padding:20px 0 8px; }
+.festival-panel { background:#fff; border:0; border-top:8px solid var(--cheong); border-radius:0; box-shadow:none; padding:20px 0 8px; }
+.festival-panel .section-heading h3 { color:var(--cheong); }
+.festival-demo-note { background:var(--platform); color:var(--ink); border-radius:0; }
+.festival-card { border:1px solid var(--line); border-radius:10px; background:#fff; box-shadow:none; }
+.festival-card>strong { font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
+.festival-card a { color:var(--cheong); }
+.festival-chosen { border-color:var(--line); border-left:4px solid var(--hong); box-shadow:none; }
+.festival-photo-frame { background:var(--platform); }
+.festival-photo-frame img { object-fit:contain; }
+.festival-photo-credit { font-size:14px; color:var(--muted); text-align:left; }
+.festival-origin-note { background:var(--platform); border:0; border-left:8px solid var(--cheong); border-radius:0; color:var(--ink); }
+.festival-origin-note .festival-origin-title { color:var(--ink)!important; }

@@ -161,26 +161,6 @@ input:focus,textarea:focus,select:focus{
 .menu-heading{color:var(--hong);font-weight:800}
 .menu-price-row{border-bottom:1px dashed var(--line)}
 .menu-price-row b{color:var(--hong)}
-.meal-suggestions{
-  background-color:#fff!important;
-  border:1px solid var(--line)!important;
-  border-radius:22px!important;
-}
-.meal-card{
-  background-color:#fff!important;
-  border:1px solid var(--line)!important;
-  border-radius:16px!important;
-}
-.meal-card h5{font-size:19px;color:var(--ink)}
-.meal-actions>button,.meal-actions>a{
-  border:1px solid var(--line)!important;
-  border-radius:999px!important;
-  background-color:#fff!important;
-  color:var(--hong)!important;
-  font-size:14px!important;
-  min-height:44px;
-}
-.meal-actions>a{background-color:#fff!important}
 
 /* Sticky Plan Map Card */
 .plan-map-card{

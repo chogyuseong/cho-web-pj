@@ -296,3 +296,55 @@
 .parking-panel button { min-height:44px; font-size:15px; }
 .parking-panel .parking-live { font-weight:700; color:var(--ink); }
 .parking-panel .parking-note { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+
+
+/* ---------------------------------------------------------------- 주변 식당 제안 (5-3d-1)
+   만드는 곳: meal-suggestions.js — 장소 칸 아래 section.meal-suggestions(일정 안 .detail 직속, 비면 .is-empty),
+   식사 조건을 못 지켰을 때의 section.meal-rescue, 「더 보기」의 지역 맛집 section.meal-suggestions.regional-restaurants.
+   카드: article.meal-card.meal-card-with-photo = div.meal-info(분류 .tag, h5 이름, 주소·영업시간·거리 p, 메뉴 상자)
+   + div.meal-photo(사진) + div.actions.meal-actions(「사진·장소 정보」 .secondary, 네이버 지도 링크, 「일정에 넣기」 .primary) + 블로그 접기.
+   예전 출처: style·place-photos·plan-map·selle·calm·editorial·readability·line 의 규칙 약 60개.
+   남겨 둔 공통 규칙: readability.css 의 main :is(.place-card,.meal-card,…) 안 p·a 글자 크기·색(카드 안 글은 모두 이 규칙이 정한다),
+   line.css 의 :is(…,.meal-actions>…):hover 테두리, .primary/.primary:hover(일정에 넣기 단추의 바탕·테두리·마우스 올림 색),
+   style.css 의 인쇄 목록(.meal-suggestions 쪼개짐 방지, .more-restaurants 숨김), 카드 안 사진(.meal-photo .place-photo*)은 사진 단계.
+   지운 죽은 값: .meal-card p·.meal-card .small·.meal-info>a·.meal-info .hint 의 글자 크기(위 readability 규칙에 늘 졌다). */
+
+/* 제안 상자: 옅은 바탕, 테두리 없음. 일정 안에서는 노선 레일 오른쪽 같은 열(--band, 800px 이하 --rail)에 놓고
+   ::before 로 레일을 상자 옆까지 잇는다. margin-left·padding 의 !important 는 예전 값 그대로(selle 덮어쓰기의 흔적, 5-5 에서 정리). */
+.meal-suggestions { margin:20px 0; padding:20px; margin-left:0!important; border:0!important; background:var(--platform)!important; border-radius:0!important; }
+@media(max-width:760px) { .meal-suggestions { padding:13px!important; } }
+.detail>.meal-suggestions { position:relative; margin:0 0 16px var(--band)!important; }
+@media(max-width:800px) { .detail>.meal-suggestions { margin-left:var(--rail)!important; } }
+.detail>.meal-suggestions::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
+.meal-suggestions>h4 { margin:0 0 8px; }
+/* 찾은 식당이 없을 때: 제목·한 줄 안내·검색 링크만 작게(760px 이하는 위 13px 여백이 이긴다). */
+.detail .meal-suggestions.is-empty { padding:12px 16px; }
+.detail .meal-suggestions.is-empty h4 { margin:0 0 4px; font-size:16px; }
+.detail .meal-suggestions.is-empty .hint { margin:0 0 8px; }
+
+/* 식당 카드: 721px 이상 [정보 | 사진(165px 이상, 38%)] 2칸, 760px 이하 1칸. 단추 줄과 블로그 접기는 카드 전체 폭. */
+.meal-cards { display:grid; gap:12px; grid-template-columns:1fr!important; }
+.meal-card { display:grid!important; grid-template-columns:minmax(0,1fr) minmax(165px,38%); gap:12px 16px; align-items:start; min-width:0;
+  margin-bottom:12px; padding:14px; box-shadow:none; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+@media(max-width:760px) { .meal-card { grid-template-columns:minmax(0,1fr); gap:10px; padding:12px!important; } }
+.regional-restaurants>.meal-card { margin:12px 0; }
+.meal-info { min-width:0; }
+main .meal-card h5 { margin:6px 0 9px; color:var(--ink); font-size:20px; line-height:1.5; }
+.meal-photo { min-width:0; }
+.meal-card-with-photo>.place-blogs { grid-column:1/-1; margin:0; }
+
+/* 단추 줄: 2칸, 「일정에 넣기」(.primary)는 한 줄 전체. 여백·글자 크기·모양의 !important 는 공통 단추 규칙(!important)을 이기던 값. */
+.meal-card .meal-actions { grid-column:1/-1; display:grid!important; grid-template-columns:1fr 1fr; gap:10px!important; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+@media(max-width:760px) { .meal-card .meal-actions { gap:6px!important; } }
+.meal-card .meal-actions>button:not(.primary),.meal-card .meal-actions>a { display:flex; justify-content:center; align-items:center; min-height:44px; text-align:center; text-decoration:none; font-weight:600;
+  padding:9px 10px!important; font-size:14px!important; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; color:var(--ink)!important; }
+/* 「일정에 넣기」: 바탕·글자·테두리 색은 line.css 의 .primary(!important)·.primary:hover 가 정한다(여기서 정하면 마우스 올림 색이 죽는다). */
+.meal-card .meal-actions>button.primary { grid-column:1/-1; display:flex; justify-content:center; align-items:center; min-height:44px; text-align:center; text-decoration:none; font-weight:700;
+  padding:9px 10px!important; font-size:14px!important; border-radius:999px!important; }
+
+/* 식사 조건을 못 지켰을 때의 대신 들를 식당 */
+.meal-rescue { padding:14px 0 0; }
+.meal-rescue>h4 { font-size:15px; }
+/* 「식당 더 보기」 단추(.secondary) */
+.more-restaurants { display:flex; align-items:center; justify-content:center; min-height:48px; margin:16px 0 12px; padding:12px 18px; border-radius:10px;
+  text-decoration:none; font-size:15px; font-weight:700; text-align:center; line-height:1.6; }

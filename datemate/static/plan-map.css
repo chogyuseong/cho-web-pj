@@ -28,7 +28,6 @@
 .plan-map-card .map-option-tabs button { min-height:44px; padding:8px 4px; font-size:15px; border-radius:999px!important; }
 .plan-map-card .map-option-tabs button[aria-pressed=true] { box-shadow:none; text-decoration:underline; text-underline-offset:4px;
   background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; }
-.plan-map-card .map-course-title { margin:14px 0 0; font-size:16px; font-weight:700; color:var(--ink); overflow-wrap:anywhere; }
 .map-travel-mode { margin:4px 0 8px; font-size:14px; }
 
 /* 지도 칸. 네이버 지도 높이: 기본 360px(720px 이하 290px), 지도 카드 안에서는 화면 높이의 40%(240~440px), 800px 이하 300px. */
@@ -46,6 +45,8 @@
 .map-place-list { display:grid; gap:8px; margin-top:12px; }
 .map-place-list a { font-size:14px; overflow-wrap:anywhere; }
 .plan-map-card :is(p,summary,.hint,.map-place-list) { font-size:14px; line-height:1.8; }
+/* 코스 제목(p)은 위 카드 글 규칙과 명시도가 같아 그보다 뒤에 있어야 16px 가 된다. */
+.plan-map-card .map-course-title { margin:14px 0 0; font-size:16px; font-weight:700; color:var(--ink); overflow-wrap:anywhere; }
 /* 지도 아래 장소 줄: [네이버 지도 링크(줄바꿈 허용) | 「일정에서 보기」 단추(44px)]. 2026-11-18 가독성 8단계.
    인쇄에서는 단추가 모두 숨겨지므로(style.css) 링크만 남는다. */
 .map-place-row { display:flex; align-items:center; justify-content:space-between; gap:8px 12px; min-width:0; }

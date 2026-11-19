@@ -305,12 +305,16 @@ def expire_cookie(response, name, secure):
     response.delete_cookie(name, path="/", secure=secure, httponly=True, samesite="lax")
 
 
-def plan_row(id, owner=None):
+def plan_row(id, owner):
+    """만든 브라우저(owner)의 코스만 연다. 공유받은 사람은 공유 토큰 경로(app/sharing.py)만 쓴다.
+
+    safety 미들웨어도 /api/plans/{id}… 와 /api/chat/plan/{id} 를 같은 기준으로 먼저 막는다. 여기서 한 번 더
+    확인해, 미들웨어의 주소 규칙이 바뀌어도 코스 내용이 다른 브라우저에 나가지 않게 한다.
+    남의 코스와 없는 코스는 구별하지 않고 둘 다 404 로 답한다(존재 여부를 드러내지 않는다).
+    """
     row = store.get_plan(id)
-    if not row:
+    if not row or not owner or row["owner"] != owner:
         raise HTTPException(404, "일정을 찾을 수 없습니다.")
-    if owner is not None and row["owner"] != owner:
-        raise HTTPException(403, "이 브라우저에서 만든 일정만 수정할 수 있습니다.")
     from .condition_audit import audit_plan
 
     plan = audit_plan(json.loads(row["payload"]))
@@ -624,8 +628,9 @@ def create(data: Conditions, request: Request):
 
 @app.get("/api/plans/{id}")
 def get_plan(id: str, request: Request):
-    row, plan = plan_row(id)
-    plan["can_edit"] = row["owner"] == request.state.owner
+    _, plan = plan_row(id, request.state.owner)
+    # 만든 브라우저만 받으므로 늘 True. 예전 화면 코드가 이 값을 읽어 남겨 둔다.
+    plan["can_edit"] = True
     return plan
 
 
@@ -652,8 +657,8 @@ def refresh_prices(id: str, request: Request):
 
 
 @app.get("/api/plans/{id}/restaurant-matches")
-def matched_restaurants(id: str):
-    _, plan = plan_row(id)
+def matched_restaurants(id: str, request: Request):
+    _, plan = plan_row(id, request.state.owner)
     from .restaurants import restaurant_matches
 
     return restaurant_matches(plan)
@@ -661,7 +666,7 @@ def matched_restaurants(id: str):
 
 @app.get("/api/plans/{id}/restaurants")
 def nearby_restaurants(id: str, request: Request, after_index: int = Query(default=0, ge=0, le=4)):
-    _, plan = plan_row(id)
+    _, plan = plan_row(id, request.state.owner)
     from .restaurants import search_nearby
 
     key = "local-rate:" + request.state.owner
@@ -687,7 +692,7 @@ PARKING_REPEAT_SECONDS = 1
 @app.get("/api/plans/{id}/parking")
 def nearby_parking(id: str, request: Request):
     """자동차로 도착하는 장소 근처 주차장. 결과 화면에서만 부르며 계획은 바꾸지 않는다."""
-    _, plan = plan_row(id)
+    _, plan = plan_row(id, request.state.owner)
     from .parking import parking_near
 
     key = "parking-rate:" + request.state.owner
@@ -710,8 +715,8 @@ class ReplaceInput(BaseModel):
 
 
 @app.get("/api/plans/{id}/meal-rescue")
-def recommend_meal_rescue(id: str):
-    _, plan = plan_row(id)
+def recommend_meal_rescue(id: str, request: Request):
+    _, plan = plan_row(id, request.state.owner)
     from .restaurants import meal_rescue
 
     return meal_rescue(plan)
@@ -844,13 +849,13 @@ def undo(id: str, request: Request):
 
 @app.get("/api/plans/{id}/reviews")
 def reviews(id: str, request: Request):
-    row, _ = plan_row(id)
+    row, _ = plan_row(id, request.state.owner)
     return store.reviews(row["aggregate_key"], request.state.owner)
 
 
 @app.put("/api/plans/{id}/review")
 def review(id: str, data: ReviewInput, request: Request):
-    row, _ = plan_row(id)
+    row, _ = plan_row(id, request.state.owner)
     web_security.require_ip(
         "review", "DATEMATE_IP_REVIEWS_PER_MINUTE", 20, "후기 작성은 잠시 후 다시 시도해 주세요."
     )
@@ -895,15 +900,16 @@ def report(id: str, data: ReportInput, request: Request):
     }
 
 
-def scope_ids(kind, id, mode):
+def scope_ids(kind, id, mode, owner):
+    """질문 범위의 장소 id 와, 코스 질문이면 그 코스(만든 브라우저 것만)를 돌려준다."""
     if kind == "place":
         if not get_place(id, mode):
             raise HTTPException(404, "장소를 찾을 수 없습니다.")
-        return [id]
-    _, plan = plan_row(id)
+        return [id], None
+    _, plan = plan_row(id, owner)
     if plan["conditions"]["mode"] != mode:
         raise HTTPException(422, "일정 데이터 모드가 일치하지 않습니다.")
-    return [p["id"] for p in plan["places"]]
+    return [p["id"] for p in plan["places"]], plan
 
 
 @app.get("/api/chat/{kind}/{id}")
@@ -913,7 +919,7 @@ def chat_history(
     request: Request,
     mode: Literal["demo", "real"] = "demo",
 ):
-    scope_ids(kind, id, mode)
+    scope_ids(kind, id, mode, request.state.owner)
     return {"messages": store.history(request.state.owner, f"{mode}:{kind}:{id}")}
 
 
@@ -929,11 +935,10 @@ def chat(kind: Literal["place", "plan"], id: str, data: ChatInput, request: Requ
     web_security.require_ip(
         "chat", "DATEMATE_IP_CHATS_PER_MINUTE", 12, "질문이 많아요. 잠시 후 다시 시도해 주세요."
     )
-    ids = scope_ids(kind, id, data.mode)
+    ids, plan = scope_ids(kind, id, data.mode, request.state.owner)
     scope = f"{data.mode}:{kind}:{id}"
     from .plan_chat import answer_plan
 
-    plan = plan_row(id)[1] if kind == "plan" else None
     result = answer_plan(plan, data.question) if plan else None
     if result is None:
         result = ask(

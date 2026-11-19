@@ -14,7 +14,7 @@ def test_discovery_date_is_not_operating_evidence():
     assert len(place_coverage(place)['missing'])==4
 
 
-def test_menu_block_stops_repeated_requests_even_when_refreshing(monkeypatch):
+def test_menu_block_stops_repeated_requests_even_when_refreshing(monkeypatch, naver_pages_allowed):
     from app import menus,store
     calls=[]
     def blocked(*args):

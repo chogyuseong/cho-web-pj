@@ -34,6 +34,9 @@ class BlogText(HTMLParser):
 
 def public_body(url):
     """고정 네이버 호스트의 공개 문서만 조회. 로그인·차단 우회 없음."""
+    # 2026-11-19: 네이버 약관상 글 본문 자동 수집을 하지 않는다(app/naver_pages.py). 판정은 API 의 제목·요약문으로만 한다.
+    from .naver_pages import allowed
+    if not allowed():return ''
     parsed=urlsplit(url)
     if parsed.scheme!='https' or parsed.hostname not in ('blog.naver.com','m.blog.naver.com'):return ''
     # 외부 리디렉션 및 임의 URL 접속 방지.

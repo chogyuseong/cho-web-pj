@@ -66,3 +66,21 @@ def test_location_line_turns_verified_when_the_naver_place_matches(audit_page):
     item = page.locator(f'#plan-detail li[data-identity-place-id="{first}"]').first
     assert 'evidence-ok' in item.get_attribute('class') and '400m 안' in item.text_content()
     assert page.locator(f'#plan-detail a[data-map-place-id="{first}"]').first.get_attribute('href').endswith('/place/123456')
+
+
+def test_official_identity_and_tour_hours_reach_the_card(audit_page):
+    """공식 지역 검색 API 로 같은 업체가 확인되면 '위치'가 확인됨, 관광공사 영업 안내는 '영업 정보' 줄에 글로 덧붙는다."""
+    page, _, _ = audit_page
+    generate(page)
+    wait_for_selected_detail(page)
+    page.evaluate("selected.conditions.mode='real';selected.places.forEach(p=>p.demo=false);renderDetail()")
+    first = page.evaluate('selected.places[0].id')
+    page.evaluate("rememberVerifiedMapTarget(selected.places[0],{identity:{verified:true},tour_hours:{hours:'10:00~22:00',rest:'연중무휴',source_url:'https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=1'}})")
+    item = page.locator(f'#plan-detail li[data-identity-place-id="{first}"]').first
+    assert 'evidence-ok' in item.get_attribute('class') and '공식 API' in item.text_content()
+    hours = page.locator(f'#plan-detail li[data-operating-place-id="{first}"] .tour-hours').first
+    assert '한국관광공사 안내: 10:00~22:00 · 쉬는 날 연중무휴' in hours.text_content()
+    assert hours.locator('a').get_attribute('href').startswith('https://korean.visitkorea.or.kr/')
+    # 같은 응답이 두 번 와도 한 번만 붙는다.
+    page.evaluate("markTourHours(selected.places[0].id,{hours:'10:00~22:00'})")
+    assert page.locator(f'#plan-detail li[data-operating-place-id="{first}"] .tour-hours').count() == 1

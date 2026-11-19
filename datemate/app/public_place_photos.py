@@ -244,6 +244,12 @@ def public_place_photos(place, force=False):
     result = dict(status="not_found", photos=[], photo_source="naver_public_place")
     if place.get("demo"):
         return result
+    # 2026-11-19: 네이버 검색 결과·플레이스 화면을 자동으로 읽지 않는다(약관·robots.txt, app/naver_pages.py).
+    # 사진은 media.py 가 공식 이미지 검색 API(app/image_search.py)로 대신 찾는다.
+    from .naver_pages import allowed
+
+    if not allowed():
+        return result
     if store.cached("public-place-photo-cooldown"):
         return dict(result, status="unavailable")
     district = area_words(place)

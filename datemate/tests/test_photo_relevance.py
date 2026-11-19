@@ -108,7 +108,7 @@ def test_area_words_and_queries_never_assume_seoul():
     assert street_address('미확인 주소')==''
 
 
-def test_public_photo_queries_use_place_region(monkeypatch):
+def test_public_photo_queries_use_place_region(monkeypatch, naver_pages_allowed):
     import app.public_place_photos as module
     queries=[]
     monkeypatch.setattr(module.store,'cached',lambda key:None)

@@ -84,3 +84,10 @@ def pytest_runtest_logreport(report):
         detail = detail.replace(old, new)
     # pytest 진행 표시(.F) 뒤에 붙으면 GitHub 가 명령으로 읽지 않으므로 줄을 바꿔 시작한다.
     print(f'\n::error title=pytest {report.when} failed::{report.nodeid} :: {detail}', file=sys.__stdout__, flush=True)
+
+
+@pytest.fixture
+def naver_pages_allowed(monkeypatch):
+    """네이버 화면 자동 조회(app/naver_pages.py)는 운영에서 꺼져 있다. 남겨 둔 파서·제한 로직을 시험하는 테스트만 켠다
+    (실제 호출은 하지 않는다 — 각 테스트가 가짜 응답을 쓴다)."""
+    monkeypatch.setattr('app.naver_pages.ALLOWED', True)

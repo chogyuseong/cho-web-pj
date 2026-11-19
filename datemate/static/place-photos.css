@@ -3,7 +3,6 @@
 .photo-extra{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .option-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:12px}#plan-detail{scroll-margin-top:65px}.price-basis{display:block;font-size:11px;line-height:1.6;margin:5px 0}@media(max-width:600px){.option-heading{align-items:flex-start}}
 .meal-card>a{font-size:11px;overflow-wrap:anywhere}
-.condition-differences{margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--warn-bg);font-size:13px;line-height:1.7}.condition-differences ul{padding-left:20px;margin:8px 0}.condition-differences li{margin:5px 0}
 .plan-photo-preview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}.plan-photo-preview:empty{display:none}.plan-photo-item{min-width:0}.plan-photo-name{display:block;font-size:12px;margin-bottom:6px;overflow-wrap:anywhere}.plan-photo-preview .place-photo-panel{display:block;padding:0;margin:0;border:0;background:transparent}.plan-photo-preview .place-photo-copy{display:none}.plan-photo-preview .place-photo img{height:145px}.plan-photo-preview .place-photo figcaption{font-size:9px}.plan-photo-preview .photo-status{font-size:11px;padding:8px}.photo-retry{font-size:11px;margin:6px 0}@media(max-width:600px){.plan-photo-preview{gap:6px}.plan-photo-preview .place-photo img{height:105px}}
 
 

@@ -4,7 +4,6 @@ body:not(.show-date-plan) .plan-map-rail{display:none}
 [hidden]{display:none!important}
 #planner-section.workspace{grid-template-columns:minmax(0,1fr);max-width:1000px;margin-inline:auto;scroll-margin-top:100px}
 #planner-section .conditions.panel{width:100%;position:static;max-height:none;overflow:visible}
-#planner-section .results-area{min-width:0}
 #edit-conditions{margin-bottom:24px}
 body.show-date-plan .hero,body.show-date-plan .service-details,body.show-date-plan .workspace-intro,body.show-date-plan #curation{display:none}
 body.show-date-plan #planner-section{padding-top:32px}

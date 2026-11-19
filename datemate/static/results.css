@@ -774,3 +774,67 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .catalog .place-card h3 { margin:4px 0; font-size:19px; line-height:1.5; color:var(--ink); }
 .catalog .place-card .hint { font-size:14px; overflow-wrap:anywhere; }
 .catalog .place-card>button { margin-top:auto; }
+
+
+/* ---------------------------------------------------------------- 결과 화면의 틀: 구역 제목·상세 패널·조건 차이 상자 (5-3g-5)
+   만드는 곳: index.html·plan-results.js 의 .section-heading(h2, #result-count, .small), plan-detail.js 의 section#plan-detail.detail.panel
+   (.detail-header 의 h2 와 .actions 단추 줄, 출처 접기 .stop-source·사진 정보 .photo-meta, .route-source-note),
+   recommendation-feedback.js 의 #results > .condition-differences(조건과 달라진 점, 노란 상자).
+   .detail 의 --time·--rail·--band 는 일정의 [시각 | 노선 레일 | 내용] 칸 폭이다(장소 칸·구간 줄·주차장·식당 제안이 함께 쓴다).
+   예전 출처: style·place-photos·selle·calm·editorial·readability·line 의 규칙 약 60개.
+   남겨 둔 공통 규칙: readability.css 의 .results-area .actions 와 그 단추 규칙(결과 화면 모든 단추 줄의 display·gap·800px 이하 격자),
+   .hint·.small·.warning 공통 규칙(5-5), style.css 인쇄 숨김 목록. */
+
+/* 구역 제목: 결과 수(#result-count)·보조 글(.small)은 오른쪽 */
+.section-heading { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:20px; }
+.section-heading h2 { min-width:0; margin:0; font-size:20px; letter-spacing:-.5px; color:var(--ink); overflow-wrap:anywhere; }
+@media(max-width:800px) { .section-heading h2 { font-size:22px; } }
+.results-area .section-heading h2 { margin:0; }
+.section-heading .small { margin-left:auto; font-size:10px; }
+@media(max-width:760px) { .section-heading .small { font-size:9px; } }
+.section-heading #result-count { font-size:14px; color:var(--muted); }
+.section-heading .step { display:none; }
+.results-area { min-width:0; }
+#planner-section .results-area { min-width:0; }
+
+/* 상세 패널. 일정 칸 폭 변수: 데스크톱 시각 88px + 레일 40px, 800px 이하 시각 칸 없음 + 레일 36px. */
+.detail { margin-top:30px; --time:88px; --rail:40px; --band:calc(var(--time) + var(--rail)); }
+@media(max-width:800px) { .detail { --time:0px; --rail:36px; } }
+.detail.panel { margin:0 0 32px; padding:24px 0; background:#fff; border:0; border-radius:0; box-shadow:none; }
+.detail h3 { margin:15px 0; }
+.detail .step-category { margin:0 0 4px; }
+/* 머리글: [제목 | 단추들], 720px 이하 세로, 600px 이하 단추 줄 폭 전체 */
+.detail-header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; }
+@media(max-width:720px) { .detail-header { flex-direction:column; } }
+@media(max-width:600px) { .detail-header { align-items:stretch; gap:12px; } }
+.detail-header h2 { flex:1 1 240px; margin:0; font-size:26px; line-height:1.5; letter-spacing:-1px; color:var(--ink); }
+@media(max-width:800px) { .detail-header h2 { font-size:23px; } }
+@media(max-width:600px) { .detail-header h2 { flex-basis:100%; } }
+/* 단추 줄의 display·gap 은 .results-area .actions 가 정한다(800px 이하 격자). 같은 명시도라 여기서 정하면 그 값을 덮는다. */
+.detail-header>.actions { min-width:0; max-width:100%; }
+.detail-header>.actions button { min-height:44px; white-space:normal; border-radius:999px; }
+/* 출처·사진 정보 접기: 테두리 없는 작은 회색 접기 */
+.detail :is(.stop-source,.photo-meta) { margin:8px 0 0; padding:0; border:0; }
+.detail :is(.stop-source,.photo-meta)>summary { margin:0; cursor:pointer; font-size:14px; font-weight:600; color:var(--muted); }
+.detail :is(.stop-source,.photo-meta)[open]>summary { margin-bottom:4px; }
+.detail :is(.stop-source,.photo-meta) .hint { margin:2px 0; font-size:14px; }
+.detail .route-source-note { margin:0 0 12px; font-size:14px; }
+
+/* 조건과 달라진 점: 노란 상자. 바탕·글자·테두리 !important 는 line.css 의 경고 상자 목록(.warning)과 맞춘 값. */
+.condition-differences { margin:14px 0; padding:14px; font-size:13px; line-height:1.7; border-radius:0;
+  border:0!important; background:var(--warn-bg)!important; color:var(--ink)!important; }
+.condition-differences ul { margin:8px 0; padding-left:20px; }
+.condition-differences li { margin:5px 0; }
+/* 결과 맨 위의 상자: 여백을 줄여 접힌 줄 사이 간격을 좁힌다(2026-11-17 가독성 3단계). */
+#results>.condition-differences { padding:14px 16px!important; }
+#results>.condition-differences>strong { display:block; margin:0 0 4px; }
+#results>.condition-differences .condition-summary { margin:0 0 6px; }
+#results>.condition-differences ul { margin:4px 0; padding-left:18px; }
+#results>.condition-differences details { margin:4px 0; padding:8px 0; }
+#results>.condition-differences details>summary { margin:0; }
+
+@media print {
+  .detail { margin:0; }
+  .detail h3 { break-after:avoid; }
+  .detail.panel { border:0; box-shadow:none; }
+}

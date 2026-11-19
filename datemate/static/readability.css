@@ -95,7 +95,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 
 
 
-.detail-header h2 { font-size:26px; line-height:1.5; }
 .detail .timeline-card :is(.small,.hint) { font-size:15px; line-height:1.8; }
 
 /* 버튼 체계: 결과 화면의 모든 버튼과 버튼처럼 쓰는 링크.
@@ -168,7 +167,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
 .skip-to-content:focus { transform:translateY(0); }
 
 @media(max-width:800px) {
-  .detail-header h2 { font-size:23px; }
   .conditions .simple-form-group legend { font-size:19px; }
 }
 @media(max-width:480px) {
@@ -177,7 +175,7 @@ footer,footer small { font-size:14px; line-height:1.75; }
   header nav a,header nav button.nav { font-size:14px; min-height:44px; padding:6px 10px; }
   header nav a { display:inline-flex; }
   main .hero .hero-description { font-size:17px!important; }
-  .conditions.panel,.detail.panel { padding:20px 16px; }
+  .conditions.panel { padding:20px 16px; }
   .conditions .field-grid { gap:12px; }
 }
 @media print { .skip-to-content { display:none; } }

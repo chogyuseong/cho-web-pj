@@ -93,11 +93,6 @@ header nav a,header nav button.nav { display:inline-flex; align-items:center; fo
 header .brand-name small { font-size:13px; color:var(--muted); }
 
 
-.plan-card .number { font-size:14px; letter-spacing:0; color:var(--hong); }
-.plan-card .path-text { font-size:16px; color:var(--ink); }
-.plan-card .stats { gap:20px; padding:20px; background-color:#fff; border:1px solid var(--line); }
-.plan-card .stats b { font-size:25px; line-height:1.4; font-variant-numeric:tabular-nums; color:var(--hong); }
-.plan-card .stats small { display:block; font-size:14px; margin-top:5px; color:var(--muted); }
 
 .option-comparison h3 { font-size:20px; }
 .option-comparison th { font-size:14px; color:var(--hong); background-color:#fff; }
@@ -133,7 +128,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 .detail .actions button { border:1px solid var(--line); }
 .stop .actions>a { border:1px solid var(--line); border-radius:10px; background-color:#fff; color:var(--hong); font-weight:650; text-decoration:none; }
 .detail .map-link-list { font-size:15px; }
-.plan-card .option-heading .inspect-plan { font-size:15px; padding:10px 16px; }
 @media(max-width:800px) {
   .results-area .actions { display:grid; grid-template-columns:minmax(0,1fr); }
   .results-area .actions:has(>:nth-child(3)) { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -141,8 +135,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
   .results-area .actions>:is(button,a) { width:100%; }
   .detail .map-link-list { display:grid; grid-template-columns:minmax(0,1fr); }
   .detail .map-link-list a { width:100%; }
-  .plan-card .option-heading { flex-direction:column; align-items:stretch; }
-  .plan-card .option-heading .inspect-plan { width:100%; }
 }
 /* 이동 수단 바꾸기: 구간 줄의 [수단 바꾸기] 하나, 펼치면 수단 4개를 2열 균등으로. 고른 수단은 aria-pressed로 표시. */
 .detail .route-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
@@ -244,7 +236,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
   .detail-header h2 { font-size:23px; }
   .detail .timeline-card h4 { font-size:23px; }
   .conditions .simple-form-group legend { font-size:19px; }
-  .plan-card .stats b { font-size:23px; }
 }
 @media(max-width:480px) {
   header { gap:10px; }
@@ -252,7 +243,7 @@ footer,footer small { font-size:14px; line-height:1.75; }
   header nav a,header nav button.nav { font-size:14px; min-height:44px; padding:6px 10px; }
   header nav a { display:inline-flex; }
   main .hero .hero-description { font-size:17px!important; }
-  .conditions.panel,.detail.panel,.plan-card { padding:20px 16px; }
+  .conditions.panel,.detail.panel { padding:20px 16px; }
   .conditions .field-grid { gap:12px; }
   .detail .chat-form { flex-wrap:wrap; }
   .detail .chat-form input { flex-basis:100%; }

@@ -79,3 +79,69 @@
 #results .plan-option-tabs button[aria-pressed=true] .option-line i { background:var(--hong); }
 /* 강제 색상(고대비) 모드에서도 선 색을 지키게 한다. */
 @media(forced-colors:active) { #results .plan-option-tabs .option-line::before { forced-color-adjust:none; } }
+
+
+/* ---------------------------------------------------------------- 선택한 코스 카드·수치 상자·검색 중 미리보기 (5-3b)
+   만드는 곳: plan-results.js renderResults() 의 article.plan-card(선택한 코스, .selected) — h3 제목, .fit-reasons(맞는 이유 p 들),
+   .hint, .stats(div 3개, 각 b 값 + small 설명), 사진 접힘, 「일정 살펴보기」 .inspect-plan.
+   place-dialog.js 의 대체 후보 카드도 .plan-card 를 쓴다(.selected 없음). .path-text 는 experience.js 의 변경 전후 대화상자.
+   .plan-preview* 는 plan-progress.js 가 검색 중에 보여 주는 후보 미리보기.
+   예전 출처: style·selle·calm·editorial·readability·clarity·line 의 규칙 약 70개.
+   남겨 둔 공통 규칙: style.css 인쇄(.plan-card .stats 쪼개짐 방지), editorial.css 의 .plan-card .hint/.small 글자 크기,
+   readability.css 의 main :is(small,...,.number) 줄 높이, line.css 의 .stats b 숫자 폭 고정, calm.css 의 사진 미리보기 숨김. */
+
+/* 카드 상자. 801px 이상 안쪽 여백 24px, 800px 이하 18px 16px. */
+.plan-card { position:relative; margin-bottom:14px; padding:24px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:none; }
+/* 선택한 코스: 왼쪽 굵은 홍색 선. 선 두께가 늘어난 만큼 왼쪽 안쪽 여백을 줄여 글자 자리를 맞춘다(24-3=21, 16-3=13). */
+.plan-card.selected { border-left:4px solid var(--hong); padding-left:21px; }
+@media(max-width:800px) {
+  .plan-card { padding:18px 16px; }
+  .plan-card.selected { padding-left:13px; }
+}
+.plan-card h3 { margin:8px 0 12px; font-size:26px; font-weight:800; letter-spacing:-1px; color:var(--ink); }
+@media(max-width:800px) { .plan-card h3 { font-size:22px; } }
+.plan-card .number { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; letter-spacing:0; }
+.plan-card .path-text { font-size:16px; color:var(--ink); }
+#results .plan-card.selected > .inspect-plan { display:block; margin-top:14px; min-height:44px; }
+
+/* 이 코스가 맞는 이유: 옅은 바탕 상자. */
+.fit-reasons { margin:14px 0; padding:12px 16px; background:var(--platform); border:0; border-radius:0; color:var(--ink); font-size:15px; line-height:1.7; }
+.fit-reasons p { margin:5px 0; }
+
+/* 수치 상자(비용·이동 시간·전체 시간): 위쪽 선 하나. 721px 이상은 칸 폭 140px 이상으로 자동 열, 720px 이하는 2열. */
+.plan-card .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:20px; align-items:center; flex-wrap:wrap;
+  padding:16px 0 0; background:none; border:0; border-top:1px solid var(--line); border-radius:0; }
+.plan-card .stats b { display:block; font-family:var(--font-head); font-weight:800; font-size:24px; line-height:1.4; color:var(--ink); font-variant-numeric:tabular-nums; }
+.plan-card .stats small { display:block; margin-top:5px; font-size:14px; color:var(--muted); }
+/* .stats 안 단추는 지금 만드는 곳이 없다(예전 화면의 규칙). 다시 넣는다면 이 값을 쓴다. */
+.stats button { margin-left:auto; }
+@media(max-width:1000px) { .stats button { width:100%; } }
+@media(max-width:720px) {
+  .stats button { width:auto; }
+  #results .plan-card .stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; align-items:start; }
+  #results .plan-card .stats > div { display:block; min-width:0; text-align:left; }
+  #results .plan-card .stats b { font-size:20px; line-height:1.35; overflow-wrap:anywhere; }
+  #results .plan-card .stats small { max-width:none; margin-top:2px; text-align:left; line-height:1.5; }
+}
+/* 420px 이하: 칸은 block 이라 효과가 없지만 예전 계산값(가운데 맞춤·간격)을 그대로 둔다. */
+@media(max-width:420px) { #results .plan-card .stats > div { justify-content:space-between; align-items:center; gap:8px; } }
+
+/* 변경 전후 대화상자의 바뀐 경로 한 줄. */
+.path-text { margin:10px 0 18px; padding:0; background:none; border:0; border-radius:12px; color:var(--ink); font-size:16px; font-weight:600; line-height:1.9; }
+
+/* 검색 중 후보 미리보기(점선 상자) */
+#results .plan-preview { border:1px dashed var(--muted); border-radius:12px; padding:16px; margin:0 0 16px; min-width:0; background:var(--paper); }
+#results .plan-preview h3 { margin:0 0 6px; font-size:17px; line-height:1.5; color:var(--ink); }
+#results .plan-preview .hint { margin:0 0 12px; overflow-wrap:anywhere; }
+.plan-preview-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.plan-preview-card { display:flex; flex-direction:column; gap:2px; min-width:0; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--platform); overflow-wrap:anywhere; word-break:keep-all; }
+.plan-preview-card .option-label { font-family:var(--font-head); font-weight:800; font-size:15px; color:var(--ink); }
+.plan-preview-card .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
+.plan-preview-card .option-route { font-size:16px; line-height:1.6; color:var(--ink); }
+.plan-preview-pending { font-size:14px; line-height:1.6; color:var(--muted); }
+.plan-preview-changes { border-left:4px solid var(--hong); background:var(--platform); padding:10px 14px; margin:0 0 16px; overflow-wrap:anywhere; }
+.plan-preview-changes strong { color:var(--ink); }
+.plan-preview-changes ul { margin:6px 0 0; padding-left:20px; }
+
+/* 인쇄: 「일정 살펴보기」 단추 숨김(style.css 의 인쇄 button 숨김과 같은 결과, 명시적으로 둔다). */
+@media print { #results .plan-card.selected > .inspect-plan { display:none !important; } }

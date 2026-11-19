@@ -5,10 +5,29 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
-★ 지금 상태 (2026-11-18 기준)
+★ 지금 상태 (2026-11-19 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 7067629(main, 병합 1e48e53 = CSS 정리 5-1·5-2), Worker 버전 7200fee5-3721-4385-8d84-9a4694abc198 (마흔아홉 번째 배포, 2026-11-19)
+운영에 올라간 것: 커밋 aa37057(main, 병합 = CSS 정리 5-3~5-7), Worker 버전 99c9184a-d5c9-46ca-9277-9f1bd23e6e00 (쉰 번째 배포, 2026-11-19)
+  · 사용자가 '모든 권한 … 배포 진행' 으로 지시. 이번에는 Claude 의 npx wrangler deploy 가 막히지 않고 바로 배포됨(정적 파일 14개 올림, 컨테이너 이미지 새로).
+  · 운영 확인(배포 직후, curl): 첫 화면 CSS 링크 12개(style·location-picker·shell·readability·clarity·line·home·results·place-photos·plan-map·popups·server-wake),
+    공유 화면 5개(style·readability·line·shared·server-wake), results·home·shell·location-picker 의 ?v= 해시가 로컬 파일 sha256 앞 12자리와 같음, 지운 selle.css 는 404.
+    화면을 사람 눈으로 보지는 않음(계산값 비교 차이 0 으로 갈음). 사람이 볼 것: 휴대폰에서 결과 화면·홈·공유 화면 한 번씩.
+  · 문제가 생기면: git revert -m 1 aa37057 후 재배포(파일 7개 삭제·링크 변경까지 함께 되돌아감).
+CSS 정리 5-3~5-7 상세 (브랜치 refactor/css-5-3, 커밋 목록·방법·교훈은 datemate/docs/css-consolidation-plan-2026-11-18.md '진행 기록')
+  · 새 파일: results.css(결과 화면 부품), home.css(홈·조건·화면 전환), shell.css(예전 selle→calm→planner-layout [hidden]→editorial 을 순서 그대로 이음),
+    shared.css(공유 화면 전용 축제·구역 제목). place-photos.css·plan-map.css 는 내용을 모아 다시 쓰고 링크를 results.css 뒤로 옮김.
+    지운 파일 7개: selle·calm·editorial·date-categories·planner-layout·execution-summary·planning-outcomes. CSS 파일 20 → 14, index CSS 링크 18 → 12.
+  · 수치(주석 제외): 규칙 2063 → 1843, !important 326 → 318, 코드 163KB → 145KB. 설명 주석을 자세히 달아 주석 포함 크기는 186KB → 198KB.
+  · 설계와 다른 점: 5-5(4개 화면 공통을 style.css 하나로)는 축소 적용 — 공유·관리 화면은 style→readability→line 만, 홈·피드백은 그 사이에 shell·clarity 가 끼어
+    한 파일로 합치면 한쪽 화면의 이기는 순서가 바뀐다. 대신 늘 연이어 읽히는 세 파일만 shell.css 로 잇고, style·readability·line 에서 같은 선택자가 뒤에서 덮어쓴
+    죽은 선언 86개를 제자리에서 지움. !important 를 크게 줄이려면 화면별 캐스케이드를 따로 계산하는 다음 설계가 필요.
+  · 검증: css_snapshot 180캡처를 리팩터 시작 커밋 f311179 와 비교 — 계산값·상자·스크린샷 차이 0(남은 표시는 <head> 의 link·script 순번 차이뿐).
+    중간 비교에서 나온 차이(단추 줄 여백·테두리 6곳·공유 화면 축제 스타일·비용 표 칸 폭 등 10여 건)는 모두 고친 뒤 확인. Docker 전체 1280 통과·6 건너뜀·실패 0,
+    format_sources --check 통과, npm run test:security 24 통과. 새 재발 방지 테스트 tests/test_css_structure.py(화면별 CSS 순서·부품 선택자 중복·!important 상한·머리 주석).
+  · 정리 도구(캐스케이드 계산·순서 보존 죽은 선언 삭제)는 세션 임시 폴더에서만 썼고 저장소에 넣지 않음. 다음에 비슷한 정리를 하면: 규칙을 뒤 파일로 옮기면
+    '원래 자리보다 뒤에 있던 같은 명시도 공통 규칙'을 새로 이긴다 — 옮긴 뒤 반드시 css_snapshot 전체 비교. 다른 화면이 같은 class 를 쓰는지도 먼저 확인.
+(마흔아홉 번째) 운영에 올라간 것: 커밋 7067629(main, 병합 1e48e53 = CSS 정리 5-1·5-2), Worker 버전 7200fee5-3721-4385-8d84-9a4694abc198 (마흔아홉 번째 배포, 2026-11-19)
   · 사용자가 '모든 권한' 으로 지시. Claude 의 npx wrangler deploy 는 Claude Code 자동 모드 권한 규칙(Production Deploy)에 막혀, 사용자가 ! npx.cmd wrangler deploy 로 직접 배포.
     바뀐 정적 파일 6개(location-picker·selle·style·readability·calm·line .css), 컨테이너 이미지는 static 층만 새로.
   · 운영 확인(배포 직후): 컨테이너가 꺼져 있어 엣지가 새 파일을 줌(Server-Timing 없음) — location-picker.css?v=e97eb6f2c37b 에 @import 없음, line.css 에 main .eyebrow 없음.
@@ -21,7 +40,7 @@ CSS 정리 5-1·5-2 상세 (브랜치 refactor/css-5-1-5-2 커밋 b7b63a7·f56e0
   · 남긴 것: planner-layout 의 [hidden]{display:none!important} — 설계는 '완전 중복'으로 봤으나 selle 의 클래스 하나짜리 display:grid!important 를 이기는 역할이라 유지.
     :not(.eyebrow) 안의 선택자 7곳(명시도가 바뀌어 유지), .journal-demo·.data-points(사용 중).
   · 검증: 두 단계 모두 css_snapshot 전체 비교 180캡처 차이 0. Docker 전체 1276 통과·6 건너뜀·실패 0, format_sources --check 통과, CI Run 44369886957 5개 통과.
-  · 다음 단계 5-3(결과 화면 평탄화 → results.css)은 위험이 크고 단계가 많음 — Fable 권장, 하위 단계마다 css_snapshot 비교. 문제가 생기면: git revert -m 1 1e48e53.
+  · (이 뒤 5-3~5-7 은 위 쉰 번째 배포로 올라감.) 5-1·5-2 만 되돌리려면: git revert -m 1 1e48e53.
 CSS 정리 5-0 검증 장치(main 병합 de3bd3f, 브랜치 test/css-snapshot 커밋 b36a76f·1bded94, 2026-11-19, 테스트 도구라 배포 불필요)
   · 새 datemate/tests/css_snapshot.py: capture --out DIR / compare A B. 15장면 × 12폭 = 180캡처, 전 요소·가상 요소 getComputedStyle·상자·스크린샷·상태 표본(Tab·hover).
     Docker 안 datemate 폴더에서 DATEMATE_BROWSER_CHANNEL=chromium python tests/css_snapshot.py capture --out runtime/css-snapshots/before --jobs 4 (산출물 runtime/, Git 제외).

@@ -1,0 +1,854 @@
+/* 결과 화면 부품 (CSS 정리 5-3, docs/css-consolidation-plan-2026-11-18.md)
+
+   맡는 범위: 추천 결과(#results) 안의 부품. 부품마다 여러 테마 파일(selle·calm·editorial·readability·line 등)에 흩어져
+   덧칠되던 규칙을 모아, 실제로 화면에 이기던 값만 한 번씩 적었다. 옮기기 전후 계산값은 tests/css_snapshot.py 로 비교해
+   차이 0 을 확인했다.
+   불러오는 순서: index.html 에서 line.css → home.css 뒤, place-photos.css 앞. 그래서 같은 명시도라면 line.css 보다 뒤에서 이긴다
+   (반대로, 예전에 line.css 보다 앞 파일에 있던 규칙이 여기로 오면 원래 지던 line·readability 규칙을 새로 이길 수 있다. 옮길 때 주의).
+
+   고칠 때 지킬 것
+   - 다른 파일에 같은 부품 규칙을 다시 만들지 말고 여기서 고친다(덧칠이 다시 쌓이면 이 정리가 무의미해진다).
+   - !important 는 아래에 이유를 적은 곳에만 있다. 대부분 line.css 의 공통 단추 규칙(.primary/.secondary 의
+     background·color·border !important)을 이기기 위한 것이다. 그 공통 규칙을 5-5 단계에서 정리하면 함께 뗄 수 있다.
+   - 선택자 앞의 #results 는 원래 line.css 가 쓰던 명시도를 그대로 따른 것이다. 빼면 readability.css 의
+     main button.primary 같은 공통 규칙에 질 수 있다.
+   - 값을 바꾼 뒤에는 css_snapshot 비교로 의도한 곳만 달라졌는지 본다. */
+
+
+/* 상세 패널 안 h3 기본 여백. 예전에는 style.css 맨 앞에 있어 아래 부품 규칙(실행 요약·결정 상자·레저·공유 h3)이 같은 명시도로 이겼다.
+   그 관계를 지키려고 부품 규칙보다 앞에 둔다. */
+.detail h3 { margin:15px 0; }
+
+/* ---------------------------------------------------------------- 코스 탭 (5-3a)
+   만드는 곳: plan-results.js 의 optionTabContent()·renderResults(). #results 바로 아래 div.plan-option-tabs 안에
+   코스마다 button(선택된 것은 .primary + aria-pressed=true, 나머지는 .secondary) 하나.
+   단추 안: .option-label(코스 n + .selection-indicator + .option-purpose + .option-relaxed), .option-line(정류장 점 노선),
+   strong.option-route, .option-title, .option-facts(.range-lines), .option-difference.
+   예전 출처: place-photos·selle·calm·editorial·readability·line 의 .plan-option-tabs 규칙 63개(대부분 서로 덮어씀).
+   남겨 둔 공통 규칙: readability.css 의 main :is(...,.option-label) 줄 높이 1.75, line.css 의 .option-facts 숫자 폭 고정. */
+
+/* 탭 묶음. 위치를 고정(sticky)하던 예전 규칙은 모두 position:static 에 졌다. 배경·테두리·안쪽 여백은 없다(노선 테마).
+   z-index:4 는 static 이라 효과가 없지만 계산값을 그대로 두려고 남겼다. 필요 없다고 판단되면 지워도 화면은 같다. */
+#results>.plan-option-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; flex-wrap:wrap; align-items:stretch;
+  position:static; top:auto; z-index:4; margin-bottom:22px; padding:0; border:0; border-radius:0; background:none;
+  box-shadow:none; backdrop-filter:none; scroll-margin-top:12px; }
+/* 열 수: 1280px 이상만 3열. 지도 패널이 옆에 서는 801~1279px 에서는 탭이 좁아 이름이 잘리므로 1열, 800px 이하도 1열.
+   (두 구간의 값 표기가 달라 따로 둔다. 계산값은 같다.) */
+@media(min-width:801px) and (max-width:1279px) { #results>.plan-option-tabs { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:800px) { #results>.plan-option-tabs { grid-template-columns:1fr; } }
+
+/* 탭 단추. background·color·border 의 !important 는 line.css 의 .primary/.secondary(!important)를 이기기 위한 것. */
+#results .plan-option-tabs button { display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:8px;
+  flex:1; min-width:0; min-height:48px; padding:16px; border:1px solid var(--line)!important; border-radius:10px;
+  background:#fff!important; color:var(--ink)!important; box-shadow:none; outline:0;
+  text-align:left; white-space:normal; overflow-wrap:anywhere; font-size:15px; line-height:1.6; }
+#results .plan-option-tabs button:hover { border-color:var(--ink)!important; }
+/* 선택된 탭: 왼쪽 굵은 홍색 선. 마우스를 올려도 이 규칙이 뒤에 있어 테두리 색은 그대로다.
+   outline-offset 2px 는 키보드 포커스 테두리(line.css :focus-visible)의 간격도 정한다. */
+#results .plan-option-tabs button[aria-pressed=true] { border-color:var(--line)!important; border-left:4px solid var(--hong)!important;
+  padding-left:13px; outline-offset:2px; }
+@media(max-width:800px) { #results .plan-option-tabs button { width:100%; } }
+
+/* 단추 안 글줄. style.css 의 .primary span{margin-left:12px} 를 0 으로 되돌린다. */
+#results .plan-option-tabs button span { margin-left:0; }
+#results .plan-option-tabs button>span,#results .plan-option-tabs button>strong { display:block; width:100%; min-width:0; }
+#results .plan-option-tabs .option-label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; letter-spacing:0;
+  font-family:var(--font-head); font-weight:800; font-size:16px; color:var(--ink); }
+#results .plan-option-tabs .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
+#results .plan-option-tabs .option-relaxed { font-size:13px; font-weight:750; padding:1px 8px; border-radius:999px;
+  border:1px solid var(--line); color:var(--ink); }
+/* 코스 경로(가게 이름 → …)는 두 줄까지만 보이고 나머지는 잘린다. */
+#results .plan-option-tabs .option-route { font-size:16px; font-weight:700; line-height:1.5; color:var(--ink); word-break:keep-all;
+  overflow-wrap:anywhere; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; }
+#results .plan-option-tabs :is(.option-title,.option-facts,.option-difference) { font-size:14px; line-height:1.55; color:var(--muted);
+  font-weight:500; word-break:keep-all; }
+#results .plan-option-tabs .option-facts .range-lines { display:inline; }
+#results .plan-option-tabs .option-facts .range-lines>span+span { margin-left:.3em; }
+#results .plan-option-tabs .option-facts .range-lines>span { display:inline-block; }
+
+/* 선택된 탭의 글자 색. 먼저 모든 글줄을 진한 색으로 두고, 목적·설명줄은 회색, '선택됨' 표시는 흰 글자로 되돌린다.
+   (.range-lines 안의 span 은 첫 규칙에 걸려 선택된 탭에서만 진한 색이 된다. 예전 화면 그대로다.) */
+#results .plan-option-tabs button[aria-pressed=true] :is(strong,span) { color:var(--ink); }
+#results .plan-option-tabs button[aria-pressed=true] .option-purpose { color:var(--muted); }
+#results .plan-option-tabs button[aria-pressed=true] :is(.option-title,.option-facts,.option-difference) { color:var(--muted); }
+#results .plan-option-tabs button[aria-pressed=true] .selection-indicator { color:#fff; }
+
+/* '선택됨' 알약. 선택된 탭의 .option-label 안에만 생긴다. */
+.selection-indicator { font-size:12px; font-weight:750; padding:2px 8px; border:0; border-radius:999px; background:var(--hong); color:#fff; }
+
+/* 정류장 점 노선: 점 개수는 JS 가 넣는 --stops(코스 장소 수). 가운데 홍색 선 위에 흰 점, 선택된 탭은 점을 채운다. */
+#results .plan-option-tabs .option-line { position:relative; display:flex; justify-content:space-between; align-items:center;
+  width:calc(var(--stops,3) * 26px); height:16px; margin:2px 0; }
+#results .plan-option-tabs .option-line::before { content:''; position:absolute; left:6px; right:6px; top:calc(50% - 2px); height:4px; background:var(--hong); }
+#results .plan-option-tabs .option-line i { position:relative; width:14px; height:14px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
+#results .plan-option-tabs button[aria-pressed=true] .option-line i { background:var(--hong); }
+/* 강제 색상(고대비) 모드에서도 선 색을 지키게 한다. */
+@media(forced-colors:active) { #results .plan-option-tabs .option-line::before { forced-color-adjust:none; } }
+
+
+/* ---------------------------------------------------------------- 선택한 코스 카드·수치 상자·검색 중 미리보기 (5-3b)
+   만드는 곳: plan-results.js renderResults() 의 article.plan-card(선택한 코스, .selected) — h3 제목, .fit-reasons(맞는 이유 p 들),
+   .hint, .stats(div 3개, 각 b 값 + small 설명), 사진 접힘, 「일정 살펴보기」 .inspect-plan.
+   place-dialog.js 의 대체 후보 카드도 .plan-card 를 쓴다(.selected 없음). .path-text 는 experience.js 의 변경 전후 대화상자.
+   .plan-preview* 는 plan-progress.js 가 검색 중에 보여 주는 후보 미리보기.
+   예전 출처: style·selle·calm·editorial·readability·clarity·line 의 규칙 약 70개.
+   남겨 둔 공통 규칙: style.css 인쇄(.plan-card .stats 쪼개짐 방지), editorial.css 의 .plan-card .hint/.small 글자 크기,
+   readability.css 의 main :is(small,...,.number) 줄 높이, line.css 의 .stats b 숫자 폭 고정, calm.css 의 사진 미리보기 숨김. */
+
+/* 카드 상자. 801px 이상 안쪽 여백 24px, 800px 이하 18px 16px. */
+.plan-card { position:relative; margin-bottom:14px; padding:24px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:none; }
+/* 선택한 코스: 왼쪽 굵은 홍색 선. 선 두께가 늘어난 만큼 왼쪽 안쪽 여백을 줄여 글자 자리를 맞춘다(24-3=21, 16-3=13). */
+.plan-card.selected { border-left:4px solid var(--hong); padding-left:21px; }
+@media(max-width:800px) {
+  .plan-card { padding:18px 16px; }
+  .plan-card.selected { padding-left:13px; }
+}
+.plan-card h3 { margin:8px 0 12px; font-size:26px; font-weight:800; letter-spacing:-1px; color:var(--ink); }
+@media(max-width:800px) { .plan-card h3 { font-size:22px; } }
+.plan-card .number { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; letter-spacing:0; }
+.plan-card .path-text { font-size:16px; color:var(--ink); }
+#results .plan-card.selected > .inspect-plan { display:block; margin-top:14px; min-height:44px; }
+
+/* 이 코스가 맞는 이유: 옅은 바탕 상자. */
+.fit-reasons { margin:14px 0; padding:12px 16px; background:var(--platform); border:0; border-radius:0; color:var(--ink); font-size:15px; line-height:1.7; }
+.fit-reasons p { margin:5px 0; }
+
+/* 수치 상자(비용·이동 시간·전체 시간): 위쪽 선 하나. 721px 이상은 칸 폭 140px 이상으로 자동 열, 720px 이하는 2열. */
+.plan-card .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:20px; align-items:center; flex-wrap:wrap;
+  padding:16px 0 0; background:none; border:0; border-top:1px solid var(--line); border-radius:0; }
+.plan-card .stats b { display:block; font-family:var(--font-head); font-weight:800; font-size:24px; line-height:1.4; color:var(--ink); font-variant-numeric:tabular-nums; }
+.plan-card .stats small { display:block; margin-top:5px; font-size:14px; color:var(--muted); }
+/* .stats 안 단추는 지금 만드는 곳이 없다(예전 화면의 규칙). 다시 넣는다면 이 값을 쓴다. */
+.stats button { margin-left:auto; }
+@media(max-width:1000px) { .stats button { width:100%; } }
+@media(max-width:720px) {
+  .stats button { width:auto; }
+  #results .plan-card .stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; align-items:start; }
+  #results .plan-card .stats > div { display:block; min-width:0; text-align:left; }
+  #results .plan-card .stats b { font-size:20px; line-height:1.35; overflow-wrap:anywhere; }
+  #results .plan-card .stats small { max-width:none; margin-top:2px; text-align:left; line-height:1.5; }
+}
+/* 420px 이하: 칸은 block 이라 효과가 없지만 예전 계산값(가운데 맞춤·간격)을 그대로 둔다. */
+@media(max-width:420px) { #results .plan-card .stats > div { justify-content:space-between; align-items:center; gap:8px; } }
+
+/* 변경 전후 대화상자의 바뀐 경로 한 줄. */
+.path-text { margin:10px 0 18px; padding:0; background:none; border:0; border-radius:12px; color:var(--ink); font-size:16px; font-weight:600; line-height:1.9; }
+
+/* 검색 중 후보 미리보기(점선 상자) */
+#results .plan-preview { border:1px dashed var(--muted); border-radius:12px; padding:16px; margin:0 0 16px; min-width:0; background:var(--paper); }
+#results .plan-preview h3 { margin:0 0 6px; font-size:17px; line-height:1.5; color:var(--ink); }
+#results .plan-preview .hint { margin:0 0 12px; overflow-wrap:anywhere; }
+.plan-preview-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.plan-preview-card { display:flex; flex-direction:column; gap:2px; min-width:0; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--platform); overflow-wrap:anywhere; word-break:keep-all; }
+.plan-preview-card .option-label { font-family:var(--font-head); font-weight:800; font-size:15px; color:var(--ink); }
+.plan-preview-card .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
+.plan-preview-card .option-route { font-size:16px; line-height:1.6; color:var(--ink); }
+.plan-preview-pending { font-size:14px; line-height:1.6; color:var(--muted); }
+.plan-preview-changes { border-left:4px solid var(--hong); background:var(--platform); padding:10px 14px; margin:0 0 16px; overflow-wrap:anywhere; }
+.plan-preview-changes strong { color:var(--ink); }
+.plan-preview-changes ul { margin:6px 0 0; padding-left:20px; }
+
+/* 인쇄: 「일정 살펴보기」 단추 숨김(style.css 의 인쇄 button 숨김과 같은 결과, 명시적으로 둔다). */
+@media print { #results .plan-card.selected > .inspect-plan { display:none !important; } }
+
+
+/* ---------------------------------------------------------------- 일정의 장소 칸 (5-3c-1)
+   만드는 곳: plan-detail.js renderDetail() — #plan-detail(.detail) 안의 article.stop 마다
+   .timeline-stamp(strong 도착 시각, small 떠나는 시각, .stop-number 순번) + .timeline-card(h4 장소 이름,
+   p.stop-meta(.step-category · .stop-cost · .stop-stay), 후기·출처·사진·블로그, div.actions 단추와 링크).
+   배치: 데스크톱은 [시각 | 노선 레일 | 내용] 3칸(--time·--rail 은 line.css 의 .detail 변수), 800px 이하는 [레일 | 내용] 2칸이고
+   시각은 내용 위 한 줄. 레일은 .stop::before 의 굵은 홍색 세로선, 순번 동그라미가 그 위에 올라간다.
+   예전 출처: style·place-photos·selle·calm·editorial·readability·line 의 규칙 약 160개.
+   남겨 둔 공통 규칙: line.css 의 :is(.detail .actions button:not(.primary),.stop .actions>a,…):hover 테두리,
+   .detail .actions button:not(.primary) 단추 모양, calm.css 의 .stop p 글자 크기, 분류 표시(.step-category) 공통 모양,
+   사진(.stop .place-photo*)·출처 접기(.stop-source)·안내 글(.timeline-card .hint)은 다음 단계에서 정리. */
+
+.detail .stop { position:relative; display:grid; grid-template-columns:var(--time) var(--rail) minmax(0,1fr); gap:0; margin:0; padding:0 0 28px; border:0; }
+@media(max-width:800px) { .detail .stop { grid-template-columns:var(--rail) minmax(0,1fr); padding-bottom:24px; } }
+.detail .stop:last-of-type { padding-bottom:12px; }
+/* 노선 레일(세로선). 위·오른쪽·아래 테두리 색은 계산값 보존용(두께가 0 이라 보이지 않는다). */
+.detail .stop::before { content:''; display:block; position:absolute; top:0; bottom:0; left:calc(var(--time) + var(--rail) / 2 - 4px);
+  border-color:var(--line); border-left:8px solid var(--hong); }
+@media(max-width:800px) { .detail .stop::before { left:calc(var(--rail) / 2 - 4px); } }
+
+/* 시각 도장 */
+.detail .timeline-stamp { grid-column:1 / 3; grid-row:1; position:static; display:grid; grid-template-columns:var(--time) var(--rail); align-content:start;
+  min-width:0; padding:0; text-align:left; font-variant-numeric:tabular-nums; }
+@media(max-width:800px) { .detail .timeline-stamp { grid-column:2; grid-row:1; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; padding:4px 0 2px; } }
+.detail .timeline-stamp strong { grid-column:1; display:block; padding-right:8px; font-family:var(--font-head); font-weight:800; font-size:24px; line-height:1.3; letter-spacing:0; color:var(--ink); }
+@media(max-width:800px) { .detail .timeline-stamp strong { font-size:19px; padding:0; } }
+.detail .timeline-stamp small { grid-column:1; display:block; padding-right:8px; font-size:14px; line-height:1.5; color:var(--muted); }
+@media(max-width:800px) { .detail .timeline-stamp small { padding:0; } }
+/* 순번 동그라미: 레일 가운데(폭 34px 의 절반 17px 만큼 왼쪽으로). background·color 의 !important 는 calm.css 의
+   공통 규칙을 이기던 값을 그대로 둔 것이다(5-5 에서 공통 규칙을 정리하면 뗄 수 있다). */
+.detail .stop-number { position:absolute; top:0; right:auto; left:calc(var(--time) + var(--rail) / 2 - 17px); z-index:1; order:0;
+  display:grid; place-items:center; width:34px; height:34px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; box-shadow:none;
+  font-family:var(--font-head); font-size:15px; font-weight:800; background:#fff!important; color:var(--hong)!important; }
+@media(max-width:800px) { .detail .stop-number { top:0; left:calc(var(--rail) / 2 - 17px); } }
+
+/* 내용 칸 */
+.detail .stop .timeline-card { grid-column:3; grid-row:1; min-width:0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; }
+@media(max-width:800px) { .detail .stop .timeline-card { grid-column:2; grid-row:2; padding-left:0; } }
+.detail .timeline-card>h4 { margin:2px 0 6px; font-size:21px; line-height:1.4; letter-spacing:-.7px; color:var(--ink); overflow-wrap:anywhere; }
+/* 한 줄 요약: 분류 · 비용 · 머무는 시간 */
+.detail .stop-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:0 0 10px; font-size:15px; line-height:1.6; color:var(--ink); }
+.detail .stop-meta .step-category { margin:0; font-size:14px; padding:3px 10px; }
+/* 비용: 예전 알약 모양의 흔적(width·border-radius·float)은 테두리·바탕이 없어 보이지 않지만 계산값 보존용으로 둔다.
+   !important 는 line.css 공통 규칙 정리(5-5) 전까지 유지. */
+.detail .stop-meta .stop-cost { display:inline; width:fit-content; margin:0; border-radius:999px; font-size:15px; font-weight:700; line-height:1.65;
+  white-space:nowrap; font-variant-numeric:tabular-nums; background:none!important; border:0!important; padding:0!important; color:var(--ink)!important; }
+@media(max-width:600px) { .detail .stop-meta .stop-cost { float:none; max-width:100%; } }
+.detail .stop-meta .stop-stay { color:var(--muted); white-space:nowrap; }
+
+/* 장소 단추·링크 줄: 점선 위 구분, 글자 길이만큼의 단추. display:flex!important 는 예전 값 그대로(5-5 에서 확인 후 뗀다).
+   위 여백(12px)은 readability.css 의 .results-area .actions 가 정한다. 여기서 정하면 명시도가 높아 그 값을 덮으니 넣지 않는다. */
+.detail .stop .actions { display:flex!important; flex-wrap:wrap; gap:8px; padding-top:13px; border-top:1px dashed var(--line); }
+.detail .stop .actions>button { flex:0 1 auto; width:auto!important; min-height:44px; padding:8px 14px; font-size:14px; white-space:nowrap; }
+/* 링크(네이버 지도 등)는 단추처럼 보이게. 테두리·바탕·글자색 !important 는 공통 단추 규칙과 같은 값. */
+.detail .stop .actions>a { flex:0 1 auto; width:auto!important; min-height:44px; padding:8px 14px; font-size:14px; font-weight:600; white-space:nowrap;
+  text-decoration:none; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; color:var(--ink)!important; }
+
+@media(forced-colors:active) { .stop::before { forced-color-adjust:none; } }
+@media print {
+  .stop { break-inside:auto; }
+  .detail .stop::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+}
+
+
+/* ---------------------------------------------------------------- 이동 구간 줄·교통수단 선택·지하철/버스 비교 (5-3c-2)
+   만드는 곳: plan-actions.js routeLine() — 장소 사이마다 div.route-line-block(.route-leg-short|long) 안에 div.route-line
+   (span.route-line-text, 교통수단 바꾸기 단추 .route-mode-toggle, small.route-line-source), 펼치면 fieldset.transport-chooser
+   (legend, div.actions.transport-options 단추들, p.hint.transport-status), 공지 div.transport-notice, 일괄 바꾸기 details.transport-bulk.
+   지하철·버스 비교는 transit-compare.js(.transit-compare-intro, 구간 아래 .transit-compare-panel, .transit-option 카드).
+   레일: .route-line-block::before 가 장소 칸(.stop::before)과 같은 자리에 같은 굵기로 이어진다. 짧은 도보는 점선, 먼 거리는 파선.
+   예전 출처: style·selle·calm·editorial·readability·line 의 규칙 약 50개. transit-* 는 line.css 에만 있던 것을 그대로 옮겼다.
+   남겨 둔 공통 규칙: style.css 인쇄 숨김 목록의 .transport-bulk, line.css 의 .map-transit-note 인쇄 숨김. */
+
+.detail .route-line-block { position:relative; padding:4px 0 16px var(--band); }
+@media(max-width:800px) { .detail .route-line-block { padding-left:var(--rail); } }
+.detail .route-line-block::before { content:''; display:block; position:absolute; top:0; bottom:0; left:calc(var(--time) + var(--rail) / 2 - 4px); border-left:8px solid var(--hong); }
+@media(max-width:800px) { .detail .route-line-block::before { left:calc(var(--rail) / 2 - 4px); } }
+.detail .route-line-block.route-leg-short::before { border-left-style:dotted; }
+.detail .route-line-block.route-leg-long::before { border-left-style:dashed; }
+.detail .route-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:0; padding:8px 0; background:none; border:0; border-radius:0;
+  color:var(--muted); font-size:15px; font-weight:500; line-height:1.8; }
+.detail .route-line-text { flex:1 1 14em; min-width:0; color:var(--muted); }
+.detail .route-line-source { flex-basis:100%; font-size:14px; line-height:1.7; font-weight:500; color:var(--muted); }
+.detail .route-line .route-mode-toggle { flex:0 0 auto; padding:8px 14px; font-size:15px; border:1px solid var(--line); }
+@media(max-width:800px) { .detail .route-line .route-mode-toggle { width:100%; } }
+
+/* 교통수단 고르기(구간별 fieldset, 전체 일괄 details) */
+.detail .transport-chooser,.detail .transport-bulk { min-width:0; margin:8px 0 12px; padding:4px 14px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.detail .transport-chooser>legend { padding:0 6px; font-weight:700; }
+.results-area .transport-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.results-area .transport-options>button { width:100%; }
+/* 고른 수단: 홍색 칠 + 밑줄(색만으로 구분하지 않게). !important 는 공통 .secondary(!important)를 이기기 위한 것. */
+.results-area .transport-options>button[aria-pressed=true] { box-shadow:none; text-decoration:underline; text-underline-offset:4px;
+  background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; }
+.detail .transport-status { margin:8px 0 0; }
+.detail .transport-status:empty { display:none; }
+.detail .transport-notice { margin:12px 0; padding:10px 16px; border-left:4px solid var(--ink); border-radius:0; background:var(--platform); color:var(--ink); }
+.detail .transport-notice p { margin:4px 0; }
+
+/* 지하철·버스 비교(TMAP). 비교 상자는 노선 레일 오른쪽(--band)에 붙고, ::before 로 레일을 상자 옆까지 잇는다. */
+.transit-compare-intro { margin:0 0 16px; padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; }
+.transit-compare-intro .transit-compare-start { min-height:44px; }
+.transit-compare-intro p { margin:6px 0 0; font-size:14px; line-height:1.6; }
+.detail>.transit-compare-panel { position:relative; margin:0 0 16px var(--band); padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow-wrap:anywhere; }
+@media(max-width:720px) { .detail>.transit-compare-panel { margin-left:var(--rail); } }
+.detail>.transit-compare-panel::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
+.transit-options { display:grid; gap:8px; }
+/* 선택지 카드(단추). 바탕·글자·테두리·여백의 !important 는 예전 값 그대로(공통 단추 규칙 정리 5-5 때 다시 본다).
+   고른 카드는 테두리 2px 청색, 두꺼워진 1px 만큼 안쪽 여백을 줄여 글자가 움직이지 않게 한다. */
+.transit-option { display:grid; gap:4px; width:100%; min-height:44px; text-align:left; font-weight:500;
+  padding:10px 12px!important; background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+.transit-option[aria-pressed="true"] { border:2px solid var(--cheong)!important; padding:9px 11px!important; }
+.transit-option-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; font-size:16px; }
+/* 색 점의 색은 transit-compare.js TRANSIT_LINE_COLORS 가 style 로 준다(지도 선 색과 같게). */
+.transit-kind-dot { width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
+.transit-option .transit-badge { font-size:13px; padding:2px 8px; }
+.transit-option-facts,.transit-option-lines { font-size:14px; line-height:1.5; color:var(--muted); }
+.transit-option-missing { margin:0; font-size:14px; }
+.transit-preview { margin:10px 0 0; font-size:15px; line-height:1.6; color:var(--ink); }
+
+@media(forced-colors:active) { .route-line-block::before { forced-color-adjust:none; } }
+@media print {
+  .route-line-block { break-after:avoid; }
+  .detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  /* 지하철·버스 비교는 미리보기 전용이라 인쇄·저장본에는 넣지 않는다(저장 코스는 추정 그대로라는 사용자 결정). */
+  .transit-compare-intro,.transit-compare-panel { display:none!important; }
+}
+
+
+/* ---------------------------------------------------------------- 근처 주차장 상자 (5-3c-3)
+   만드는 곳: parking.js parkingPanel() — 자동차로 도착하는 장소 바로 아래 section.parking-panel(h4, ul.parking-lots > li.parking-lot …,
+   .parking-note). 노선 레일 오른쪽 같은 열에 두고 ::before 로 레일을 상자 옆까지 잇는다(주변 식당 제안·지하철 비교 상자와 같은 방식).
+   line.css 에만 있던 규칙을 값 그대로 옮겼다. 이 상자는 css_snapshot 장면에 나오지 않아(자동차 + 외부 API 필요) 계산값 비교로는
+   확인되지 않는다. 그래서 값은 바꾸지 않았고, 뒤에 오는 규칙 중 이 요소들에 걸리는 것이 없음을 확인한 뒤 자리만 옮겼다.
+   남겨 둔 것: 지도 위 주차장 표시(.parking-marker 등)는 지도 단계(5-3f), 인쇄 쪼개짐 방지는 style.css 인쇄 목록. */
+
+.detail>.parking-panel { position:relative; margin:0 0 16px var(--band); }
+.detail>.parking-panel::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
+@media(max-width:800px) { .detail>.parking-panel { margin-left:var(--rail); } }
+.parking-panel { min-width:0; padding:12px 16px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); box-shadow:none; color:var(--ink); font-size:15px; overflow-wrap:anywhere; }
+.parking-panel h4 { margin:0 0 8px; font-size:17px; line-height:1.4; color:var(--ink); }
+.parking-panel p { margin:4px 0; font-size:15px; line-height:1.5; }
+.parking-panel .hint { font-size:14px; color:var(--muted); }
+.parking-lots { list-style:none; margin:0; padding:0; }
+.parking-lot { padding:10px 0; border-top:1px solid var(--line); }
+.parking-lot:first-child { border-top:0; padding-top:0; }
+.parking-lot-title { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
+.parking-lot-title strong { font-size:16px; color:var(--ink); }
+.parking-panel .parking-public { font-size:14px; background:var(--platform); color:var(--ink); border:1px solid var(--line); }
+.parking-panel a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
+.parking-panel button { min-height:44px; font-size:15px; }
+.parking-panel .parking-live { font-weight:700; color:var(--ink); }
+.parking-panel .parking-note { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+
+
+/* ---------------------------------------------------------------- 주변 식당 제안 (5-3d-1)
+   만드는 곳: meal-suggestions.js — 장소 칸 아래 section.meal-suggestions(일정 안 .detail 직속, 비면 .is-empty),
+   식사 조건을 못 지켰을 때의 section.meal-rescue, 「더 보기」의 지역 맛집 section.meal-suggestions.regional-restaurants.
+   카드: article.meal-card.meal-card-with-photo = div.meal-info(분류 .tag, h5 이름, 주소·영업시간·거리 p, 메뉴 상자)
+   + div.meal-photo(사진) + div.actions.meal-actions(「사진·장소 정보」 .secondary, 네이버 지도 링크, 「일정에 넣기」 .primary) + 블로그 접기.
+   예전 출처: style·place-photos·plan-map·selle·calm·editorial·readability·line 의 규칙 약 60개.
+   남겨 둔 공통 규칙: readability.css 의 main :is(.place-card,.meal-card,…) 안 p·a 글자 크기·색(카드 안 글은 모두 이 규칙이 정한다),
+   line.css 의 :is(…,.meal-actions>…):hover 테두리, .primary/.primary:hover(일정에 넣기 단추의 바탕·테두리·마우스 올림 색),
+   style.css 의 인쇄 목록(.meal-suggestions 쪼개짐 방지, .more-restaurants 숨김), 카드 안 사진(.meal-photo .place-photo*)은 사진 단계.
+   지운 죽은 값: .meal-card p·.meal-card .small·.meal-info>a·.meal-info .hint 의 글자 크기(위 readability 규칙에 늘 졌다). */
+
+/* 제안 상자: 옅은 바탕, 테두리 없음. 일정 안에서는 노선 레일 오른쪽 같은 열(--band, 800px 이하 --rail)에 놓고
+   ::before 로 레일을 상자 옆까지 잇는다. margin-left·padding 의 !important 는 예전 값 그대로(selle 덮어쓰기의 흔적, 5-5 에서 정리). */
+.meal-suggestions { margin:20px 0; padding:20px; margin-left:0!important; border:0!important; background:var(--platform)!important; border-radius:0!important; }
+@media(max-width:760px) { .meal-suggestions { padding:13px!important; } }
+.detail>.meal-suggestions { position:relative; margin:0 0 16px var(--band)!important; }
+@media(max-width:800px) { .detail>.meal-suggestions { margin-left:var(--rail)!important; } }
+.detail>.meal-suggestions::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
+.meal-suggestions>h4 { margin:0 0 8px; }
+/* 찾은 식당이 없을 때: 제목·한 줄 안내·검색 링크만 작게(760px 이하는 위 13px 여백이 이긴다). */
+.detail .meal-suggestions.is-empty { padding:12px 16px; }
+.detail .meal-suggestions.is-empty h4 { margin:0 0 4px; font-size:16px; }
+.detail .meal-suggestions.is-empty .hint { margin:0 0 8px; }
+
+/* 식당 카드: 761px 이상 [정보 | 사진(165px 이상, 38%)] 2칸, 760px 이하 1칸(정보 → 사진 → 단추, 일정 장소 칸과 같은 흐름).
+   2026-11-18 전에는 휴대폰에서도 정보 옆 사진 칸이 100px 라 사진이 작고 출처 줄이 세로로 길게 쌓였다(사용자 신고).
+   휴대폰에서 다시 옆에 두려면 760px 구역의 grid-template-columns 에 사진 칸을 더한다. 단추 줄과 블로그 접기는 카드 전체 폭. */
+.meal-cards { display:grid; gap:12px; grid-template-columns:1fr!important; }
+.meal-card { display:grid!important; grid-template-columns:minmax(0,1fr) minmax(165px,38%); gap:12px 16px; align-items:start; min-width:0;
+  margin-bottom:12px; padding:14px; box-shadow:none; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+@media(max-width:760px) { .meal-card { grid-template-columns:minmax(0,1fr); gap:10px; padding:12px!important; } }
+.regional-restaurants>.meal-card { margin:12px 0; }
+.meal-info { min-width:0; }
+main .meal-card h5 { margin:6px 0 9px; color:var(--ink); font-size:20px; line-height:1.5; }
+.meal-photo { min-width:0; }
+.meal-card-with-photo>.place-blogs { grid-column:1/-1; margin:0; }
+
+/* 단추 줄: 2칸, 「일정에 넣기」(.primary)는 한 줄 전체. 여백·글자 크기·모양의 !important 는 공통 단추 규칙(!important)을 이기던 값. */
+.meal-card .meal-actions { grid-column:1/-1; display:grid!important; grid-template-columns:1fr 1fr; gap:10px!important; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+@media(max-width:760px) { .meal-card .meal-actions { gap:6px!important; } }
+.meal-card .meal-actions>button:not(.primary),.meal-card .meal-actions>a { display:flex; justify-content:center; align-items:center; min-height:44px; text-align:center; text-decoration:none; font-weight:600;
+  padding:9px 10px!important; font-size:14px!important; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; color:var(--ink)!important; }
+/* 「일정에 넣기」: 바탕·글자·테두리 색은 line.css 의 .primary(!important)·.primary:hover 가 정한다(여기서 정하면 마우스 올림 색이 죽는다). */
+.meal-card .meal-actions>button.primary { grid-column:1/-1; display:flex; justify-content:center; align-items:center; min-height:44px; text-align:center; text-decoration:none; font-weight:700;
+  padding:9px 10px!important; font-size:14px!important; border-radius:999px!important; }
+
+/* 식사 조건을 못 지켰을 때의 대신 들를 식당 */
+.meal-rescue { padding:14px 0 0; }
+.meal-rescue>h4 { font-size:15px; }
+/* 「식당 더 보기」 단추(.secondary) */
+.more-restaurants { display:flex; align-items:center; justify-content:center; min-height:48px; margin:16px 0 12px; padding:12px 18px; border-radius:10px;
+  text-decoration:none; font-size:15px; text-align:center; line-height:1.6; }
+
+
+/* ---------------------------------------------------------------- 메뉴 가격 상자·메뉴판 사진 (5-3d-2)
+   만드는 곳: meal-suggestions.js restaurantMenuPanel() — div.restaurant-menu(.menu-heading, .menu-price-row 마다 span 이름 + b 가격,
+   네이버 지도 링크, .menu-checked 확인 시점). 일정의 식당 칸(.timeline-card)과 식당 제안 카드(.meal-card) 두 곳에 들어간다.
+   메뉴판 사진은 showMenuImages() 의 .menu-image-preview(2열 미리보기)·.menu-image-gallery(대화상자), 다시 받기 .menu-refresh.
+   예전 출처: selle·calm·editorial·readability·line 의 규칙 약 25개.
+   남겨 둔 공통 규칙: readability.css 의 main :is(.meal-card,…) 안 글·링크 크기(카드 안에서는 .menu-checked·링크가 14px·줄 높이 1.8). */
+
+/* 상자 테두리·바탕·모서리의 !important 는 line.css 의 같은 모양 상자 목록(.place-evidence,.place-blogs 등)과 맞춘 값(5-5 에서 정리). */
+.restaurant-menu { margin:12px 0; padding:16px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+.menu-heading { font-size:11px; font-weight:800; color:var(--ink); }
+.menu-price-row { display:flex; justify-content:space-between; gap:12px; padding:5px 0; font-size:12px; border-bottom:1px dashed var(--line); }
+.menu-price-row span { min-width:0; overflow-wrap:anywhere; }
+.menu-price-row b { white-space:nowrap; color:var(--ink); }
+/* 식당 제안 카드 안에서는 글자를 키운다. */
+main .meal-card .menu-heading { font-size:16px; }
+main .meal-card .menu-price-row { font-size:15px; }
+main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
+.restaurant-menu>a { display:inline-block; margin-top:8px; font-size:14px; line-height:1.75; }
+.menu-checked { display:block; margin-top:5px; font-size:14px; line-height:1.75; color:var(--muted); }
+
+.menu-image-preview { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:12px 0; }
+.menu-image-preview a { display:block; border:1px solid var(--line); border-radius:12px; background-color:#fff; overflow:hidden; }
+.menu-image-preview img { display:block; width:100%; height:180px; object-fit:contain; }
+.menu-image-gallery { display:grid; gap:16px; }
+.menu-image-gallery img { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:14px; }
+.menu-refresh { margin-top:10px; font-size:14px; min-height:44px; }
+
+
+/* ---------------------------------------------------------------- 블로그 후기 접기·추천 이유와 정보 확인·후기에서 읽은 정보 (5-3d-3)
+   만드는 곳: place-blogs.js — details.place-blogs(summary「블로그 후기 보기」, div.place-blog-content 안 ul.blog-post-list > li.blog-search-post,
+   불러오는 중 .blog-skeleton*, 실패·빈 상태 .blog-state). 일정 장소 칸, 식당 제안 카드, 코스 카드의 사진 미리보기(.plan-photo-preview),
+   장소 정보 대화상자에 들어간다. plan-evidence.js 의 details.place-evidence(ul.evidence-list > li.evidence-item.evidence-ok|check|info),
+   review-facts.js 의 div.review-facts, meal-suggestions.js·recommendation-feedback.js 의 .verified-facts.
+   예전 출처: place-photos·selle·calm·editorial·clarity·line 의 규칙 약 80개(블로그 목록 규칙 대부분은 place-photos.css 에 있었다).
+   남겨 둔 공통 규칙: readability.css 의 main :is(…,.place-blogs) 안 p·a 글자 크기·색(대화상자 안에서는 걸리지 않는다),
+   main :is(…,.place-evidence p,…) 15px. 코스 검색 근거(.course-evidence)와 비용 표의 블로그 근거(.price-blog-evidence)는 뒤 단계. */
+
+/* 접기 상자 공통 모양: 흰 바탕·1px 선·모서리 10px. !important 는 line.css 의 같은 모양 상자 목록과 맞춘 값(5-5 에서 정리). */
+.place-blogs { margin:12px 0; overflow:hidden; font-size:15px; line-height:1.75; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+@media(max-width:800px) { .plan-photo-preview .place-blogs { display:none; } }
+.place-blogs>summary { min-height:44px; box-sizing:border-box; padding:12px; cursor:pointer; font-size:16px; font-weight:750; color:var(--ink)!important; }
+@media(max-width:600px) { .place-blogs>summary { font-size:14px; } }
+.place-blog-content { min-width:0; padding:0 12px 12px; }
+.place-blogs h5 { font-size:14px; margin:14px 0 6px; }
+.blog-post-list { list-style:none; margin:0; padding:0; }
+.place-blogs .blog-search-post { min-width:0; padding:12px 0; border-bottom:1px solid var(--line); }
+.place-blogs .blog-search-post:last-child { border-bottom:0; }
+.blog-search-post>a { display:block; overflow-wrap:anywhere; }
+.blog-search-post a { font-size:16px; font-weight:600; }
+/* 글 제목은 두 줄까지 */
+.blog-search-post a.blog-post-title { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; overflow-wrap:anywhere; }
+.blog-search-post a.blog-read-more { white-space:nowrap; color:var(--cheong); }
+.blog-search-post .source-link-options { display:block; }
+.blog-search-post p { margin:7px 0; font-size:14px; line-height:1.8; }
+.blog-search-post small { display:block; margin-top:5px; font-size:14px; color:var(--muted); }
+.blog-search-post .blog-meta { display:block; margin-top:4px; }
+.place-blog-content .blog-excerpt { font-size:14px; line-height:1.8; color:var(--ink); }
+.blog-preview-label { display:inline-block; margin-right:4px; padding:0 6px; border:1px solid var(--line); border-radius:999px; background:var(--platform);
+  font-size:14px; line-height:1.6; font-weight:600; color:var(--muted); }
+.blog-scope-note { margin:0 0 4px; }
+.blog-state { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 8px; padding:12px; background:var(--platform); }
+.blog-state p { margin:0; flex:1 1 200px; }
+.blog-state .blog-retry { min-height:44px; }
+/* 불러오는 중 자리표시(깜빡임). 동작 줄이기 설정이면 멈춘다. */
+.blog-skeleton-list { display:grid; gap:0; }
+.blog-skeleton { display:grid; gap:8px; padding:12px 0; border-bottom:1px solid var(--line); }
+.blog-skeleton:last-child { border-bottom:0; }
+.blog-skeleton span { display:block; background:var(--platform); animation:blog-skeleton-pulse 1.6s ease-in-out infinite; }
+.blog-skeleton-title { height:22px; width:70%; }
+.blog-skeleton-line { height:16px; width:100%; }
+.blog-skeleton-line.short { width:55%; }
+@keyframes blog-skeleton-pulse { 0%,100% { opacity:1; } 50% { opacity:.45; } }
+@media(prefers-reduced-motion:reduce) { .blog-skeleton span { animation:none; } }
+/* 코스 카드의 사진 미리보기 안에서는 작게(800px 이하에서는 위에서 숨김) */
+.plan-photo-preview .place-blogs>summary { font-size:14px; padding:10px 8px; }
+.plan-photo-preview .place-blog-content { padding:0 8px 10px; }
+.plan-photo-preview .blog-search-post a { font-size:14px; line-height:1.6; }
+.plan-photo-preview .place-blog-content>.hint { font-size:14px; }
+.plan-photo-preview .place-blog-content>a { font-size:14px; }
+
+/* 추천 이유 · 정보 확인 */
+.place-evidence { margin:12px 0; padding:12px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+.place-evidence>summary { cursor:pointer; font-weight:750; color:var(--ink)!important; }
+.place-evidence a { display:block; overflow-wrap:anywhere; color:var(--cheong); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.place-evidence a:focus-visible { outline:2px solid var(--cheong); outline-offset:3px; }
+.evidence-list { list-style:none; margin:10px 0; padding:0; display:grid; gap:8px; }
+/* 항목: [확인 상태 꼬리표 | 항목 이름 | 내용] 3칸, 480px 이하는 내용이 아래 줄. */
+.evidence-item { display:grid; grid-template-columns:auto auto minmax(0,1fr); align-items:baseline; gap:4px 10px; padding:10px 12px;
+  border:1px solid var(--line); border-radius:12px; background:#fff; font-size:15px; line-height:1.6; }
+@media(max-width:480px) { .evidence-item { grid-template-columns:auto minmax(0,1fr); } }
+/* 확인이 필요한 항목은 노란 바탕, 테두리·모서리 없음. 같은 명시도의 .evidence-item 보다 뒤에 있어야 한다.
+   !important 는 line.css 의 경고 상자 목록(.warning 등)과 맞춘 값. */
+.evidence-check { border-radius:0; border:0!important; background:var(--warn-bg)!important; color:var(--ink)!important; }
+.evidence-item strong { color:var(--ink); white-space:nowrap; }
+.evidence-text { min-width:0; color:var(--ink); overflow-wrap:anywhere; }
+@media(max-width:480px) { .evidence-text { grid-column:1 / -1; } }
+.evidence-badge { display:inline-block; padding:1px 9px; border-radius:999px; font-size:13px; font-weight:800; white-space:nowrap; }
+.evidence-ok .evidence-badge { border:1px solid var(--line); background:var(--platform); color:var(--ink); }
+.evidence-info .evidence-badge { border:1px solid var(--line); background:#fff; color:var(--cheong); }
+.evidence-check .evidence-badge { border:1px solid var(--ink); background:var(--warn-bg); color:var(--ink); }
+.evidence-summary-count { display:inline-block; margin-left:8px; padding:0 9px; border-radius:999px; border-color:var(--ink); background:var(--warn-bg); color:var(--ink); font-size:13px; font-weight:800; }
+
+/* 블로그 후기 본문에서 읽은 영업시간 등(참고용): 확인된 운영 정보와 구분되게 옅은 바탕·회색 꼬리표 */
+.review-facts { margin:8px 0; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--platform); overflow-wrap:anywhere; }
+.review-facts p { margin:2px 0; font-size:15px; line-height:1.5; color:var(--ink); }
+.review-facts .review-facts-tag { font-size:14px; background:var(--paper); color:var(--ink); border:1px solid var(--line); }
+.review-facts .hint { font-size:14px; color:var(--muted); }
+.review-facts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
+/* 공식 자료로 확인한 정보 */
+.verified-facts { padding:10px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+.verified-facts a { font-size:12px; }
+
+
+/* ---------------------------------------------------------------- 비교 표·비용 표·실행 요약·결정 상자 (5-3e)
+   만드는 곳: plan-evidence.js optionComparison() — #results 의 details.comparison-details > section.option-comparison(h3, div.table-scroll > table:
+   thead th 열 제목, tbody th 코스 이름 + .comparison-course-title, td 숫자 칸 .num).
+   plan-detail.js — details.cost-table-details > (가격 다시 조회 .price-refresh-control, div.table-scroll > table.cost-table, div.total-row 합계).
+   price-controls.js 의 칸 안 .price-basis·.price-blog-evidence, execution-summary.js 의 section.execution-summary(.execution-grid 항목,
+   details.verification-places > .verification-place 줄, details.route-assumptions), planning-outcomes.js 의 section.planning-decision,
+   recommendation-feedback.js 의 details.verification-notes.
+   예전 출처: style·place-photos·selle·calm·editorial·readability·line 과 execution-summary.css·planning-outcomes.css(이제 비어 있다) 규칙 약 140개.
+   남겨 둔 공통 규칙: style.css 의 table·th·td 기본값과 인쇄 table, readability.css 의 main :is(th,td)·main :is(…,.price-basis,…). */
+
+/* 표를 감싼 가로 넘김 상자(비교 표·비용 표 공통). 인쇄에서는 잘리지 않게 넘김을 푼다. */
+.table-scroll { overflow:auto; max-width:100%; }
+.table-scroll td:last-child { min-width:220px; max-width:350px; overflow-wrap:anywhere; }
+.table-scroll td details { font-size:11px; }
+.table-scroll td a { display:block; font-size:11px; }
+
+/* 코스 비교 표 */
+.comparison-details { margin:16px 0; }
+.option-comparison { margin:20px 0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; }
+.comparison-details>.option-comparison { margin:8px 0 0; }
+.option-comparison h3 { margin:0 0 10px; color:var(--ink); font-size:20px; }
+.option-comparison table { width:100%; min-width:0; white-space:normal; border-collapse:collapse; }
+/* 칸 공통. th 의 바탕·글자색 !important 는 style.css 의 th 기본값(!important 아님)보다는 line.css 예전 목록과 맞춘 값(5-5 에서 정리). */
+.option-comparison th { padding:10px 8px; line-height:1.5; vertical-align:top; text-align:left; word-break:keep-all; overflow-wrap:normal; font-size:14px;
+  border-bottom:1px solid var(--line); font-weight:700; color:var(--muted)!important; background:#fff!important; }
+.option-comparison td { padding:10px 8px; line-height:1.5; vertical-align:top; text-align:left; word-break:keep-all; overflow-wrap:normal; border-bottom:1px solid var(--line); color:var(--ink); }
+.option-comparison thead th { white-space:normal; border-bottom:2px solid var(--ink); }
+/* 코스 이름 칸은 가로로 넘겨도 왼쪽에 붙어 있게(sticky). */
+.option-comparison tbody th { position:sticky; left:0; z-index:1; white-space:nowrap; font-weight:750; color:var(--ink)!important; background:#fff!important; }
+.option-comparison thead th:first-child { position:sticky; left:0; z-index:2; }
+.option-comparison :is(th,td).num { text-align:right; font-variant-numeric:tabular-nums; }
+.option-comparison th.travel-time { white-space:nowrap; }
+.option-comparison td:nth-child(4) { min-width:7em; }
+.option-comparison td:nth-child(5) { min-width:7em; }
+.comparison-course-title { display:block; font-weight:600; white-space:normal; color:var(--muted); }
+@media(max-width:800px) { .comparison-course-title { display:none; } }
+.option-comparison .comparison-basis { display:block; font-size:14px; line-height:1.5; color:var(--muted); }
+.comparison-details>summary,.cost-table-details>summary,.plan-photo-details>summary { font-weight:700; color:var(--ink); }
+
+/* 장소·구간별 비용 표(일정 안). 표는 700px 이상 폭을 유지하고 좁은 화면에서는 상자 안에서 가로로 넘긴다. */
+.cost-table-details { margin:8px 0 12px; }
+.price-refresh-control { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:12px 0; }
+.detail .table-scroll { margin:16px 0; background-color:#fff; border:0; border-radius:0; }
+.detail .table-scroll:focus-visible { outline:3px solid var(--hong); outline-offset:3px; }
+.detail table { white-space:normal; min-width:700px; }
+.cost-table thead th { padding:10px 8px; line-height:1.5; vertical-align:top; text-align:left; word-break:keep-all; overflow-wrap:normal; font-weight:700;
+  border-bottom:2px solid var(--ink); background:#fff!important; color:var(--muted)!important; }
+/* 칸 최소 폭 85px 는 명시도가 낮은 .detail td 로 둔다. 마지막 칸은 위 .table-scroll td:last-child(220px)가 이겨야 한다(예전 그대로). */
+.detail td { min-width:85px; }
+.detail .cost-table td { padding:10px 8px; line-height:1.5; vertical-align:top; text-align:left; word-break:keep-all; overflow-wrap:normal; color:var(--ink); }
+.detail .cost-table td:first-child { min-width:160px; font-weight:650; }
+.detail .cost-table td:last-child { overflow-wrap:anywhere; }
+.cost-table :is(th,td).num { text-align:right; font-variant-numeric:tabular-nums; }
+/* 비용 칸 안의 블로그 가격 근거 */
+.price-blog-evidence { display:grid; gap:6px; margin-top:12px; min-width:200px; max-width:340px; white-space:normal; }
+.price-blog-evidence strong { font-size:14px; color:var(--ink); }
+.price-blog-evidence a { display:block; font-size:14px; line-height:1.7; overflow-wrap:anywhere; word-break:break-word; color:var(--cheong); }
+/* 합계 줄 */
+.detail .total-row { display:flex; justify-content:space-between; gap:16px; margin:8px 0; padding:12px 0; background:none; border:0; border-bottom:1px solid var(--line); border-radius:0;
+  font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; }
+@media(max-width:480px) { .detail .total-row { gap:4px 12px; flex-wrap:wrap; } }
+.detail .total-row>span:last-child { flex-shrink:0; font-variant-numeric:tabular-nums; font-weight:800; color:var(--ink); }
+
+/* 방문 전 확인할 사항 */
+.verification-notes { margin:12px 0; }
+.verification-notes>summary { cursor:pointer; font-weight:600; padding:8px 0; }
+
+/* 실행 요약: 항목마다 [이름 6.5em | 내용] 두 칸, 위아래 선. grid-template-columns 는 display:block 이라 쓰이지 않지만 계산값 보존용. */
+.execution-summary { min-width:0; margin:20px 0; padding:20px 0 4px; background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; box-shadow:none; }
+.execution-summary h3 { margin:0; font-size:19px; letter-spacing:-0.4px; color:var(--ink); }
+.execution-summary .execution-grid { display:block; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:12px 0 16px; }
+@media(max-width:480px) { .execution-summary .execution-grid { grid-template-columns:1fr; } }
+.execution-summary .execution-grid>div { display:grid; grid-template-columns:6.5em minmax(0,1fr); gap:0 16px; align-items:baseline; min-width:0; padding:10px 0;
+  background:none; border:0; border-bottom:1px solid var(--line); border-radius:0; box-shadow:none; }
+.execution-summary .execution-grid>div:first-child { border-top:1px solid var(--line); }
+.execution-summary .execution-grid strong { display:inline-block; margin:0; color:var(--muted); font-size:15px; font-weight:700; }
+.execution-summary .execution-grid p { margin:0; font-size:16px; line-height:1.75; color:var(--ink); overflow-wrap:anywhere; }
+.execution-summary .hint { margin:4px 0 0; font-size:14px; line-height:1.75; color:var(--muted); overflow-wrap:anywhere; }
+.execution-summary>details { margin:10px 0; padding:8px 0; }
+.execution-summary summary { cursor:pointer; padding:10px 0; font-weight:700; color:var(--ink); }
+.execution-summary>details>summary { font-size:15px; }
+.execution-summary .verification-place { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:14px 0; border-top:1px solid var(--line); font-size:14px; }
+.execution-summary .verification-place>strong,.execution-summary .verification-place>p { flex-basis:100%; margin:0; color:var(--ink); }
+.execution-summary .verification-place>a { min-width:0; overflow-wrap:anywhere; font-size:14px; font-weight:600; color:var(--cheong); }
+.execution-summary .verification-place>button { margin-left:auto; font-size:14px; }
+@media(max-width:480px) { .execution-summary .verification-place>button { margin-left:0; } }
+.execution-summary .route-assumptions p { overflow-wrap:anywhere; }
+
+/* 결정 상자(이 코스로 할지, 함께 고르기, 짧은 설문) */
+.planning-decision { margin:22px 0 6px; padding:24px; border:0; border-radius:0; background:var(--platform); box-shadow:none; }
+@media(max-width:480px) { .planning-decision { padding:18px; } }
+.planning-decision h3 { margin:0 0 8px; font-size:21px; line-height:1.5; letter-spacing:-0.5px; color:var(--ink); }
+/* 단추 줄의 display·gap·위 여백과 단추 안쪽 여백은 readability.css 의 .results-area .actions(…>:is(button,a))가 정한다
+   (같은 명시도, 예전에도 그쪽이 뒤에 있어 이겼다). 여기서 정하면 그 값을 덮으므로 넣지 않는다. */
+@media(max-width:480px) { .planning-decision>.actions { flex-direction:column; align-items:stretch; } }
+.planning-decision .actions button { min-height:46px; font-weight:700; border-radius:10px; }
+.planning-decision>.partner-agreement { margin:18px 0 0; padding-top:14px; padding-bottom:0; border-top:1px solid var(--line); }
+.planning-decision label { font-size:15px; color:var(--ink); }
+.planning-decision select,.planning-decision input { min-height:46px; font-size:16px; background-color:#fff; border-color:var(--line); border-radius:12px; }
+.planning-decision .decision-survey { margin:12px 0; }
+.planning-study .check { align-items:flex-start; }
+.planning-study input[type=checkbox] { flex:0 0 18px; margin-top:5px; accent-color:var(--hong); }
+.planning-decision p[role=status] { overflow-wrap:anywhere; }
+
+@media print {
+  .table-scroll { overflow:visible; }
+  .total-row { break-inside:avoid; }
+}
+
+
+/* ---------------------------------------------------------------- 축제 (5-3g-1)
+   만드는 곳: festivals.js — 결과 아래 section#festival-section.festival-panel(제목 .section-heading h3, 데모 안내 .festival-demo-note,
+   #festival-results 격자 안 article.festival-card(사진 .festival-photo, 분류 .tag, strong 이름, 링크, 「이 축제에서 출발」 단추,
+   고른 카드는 .festival-chosen), 「더 보기」 #festival-more), 출발지로 고른 축제 안내 #festival-origin-note.festival-origin-note,
+   코스 카드의 .festival-course-tag, 일정의 .festival-context.
+   예전 출처: style·clarity·line 의 규칙 약 35개. 선택자는 예전 그대로라 명시도는 바뀌지 않았다.
+   남겨 둔 공통 규칙: style.css 인쇄의 '#results 의 다른 자식 숨김' 목록(#festival-section·#festival-origin-note 포함). */
+
+/* 축제 구역은 위쪽 굵은 청색 띠로 일정과 구분한다. */
+#festival-section { padding:20px 0 8px; background:#fff; border:0; border-top:8px solid var(--cheong); border-radius:0; box-shadow:none; }
+.festival-panel { min-width:0; margin-top:24px; padding:20px 0 8px; scroll-margin-top:100px; background:#fff; border:0; border-top:8px solid var(--cheong); border-radius:0; box-shadow:none; }
+.festival-panel .section-heading h3 { margin:0; font-size:18px; letter-spacing:-.5px; color:var(--cheong); }
+.festival-jump { padding:6px 14px; font-size:13px; }
+.festival-demo-note { padding:8px 12px; background:var(--platform); border-radius:0; color:var(--ink); }
+/* 카드 격자: 칸 폭 250px 이상(화면이 더 좁으면 한 칸). */
+#festival-results { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr)); gap:1rem; margin-top:1rem; }
+#festival-more { margin-top:1rem; }
+.festival-card { display:grid; gap:.35rem; min-width:0; padding:1rem; overflow-wrap:anywhere; border:1px solid var(--line); border-radius:10px; background:#fff; box-shadow:none; }
+/* 고른 축제: 왼쪽 굵은 홍색 선(같은 명시도의 .festival-card 보다 뒤에 있어야 한다). */
+.festival-chosen { border-color:var(--line); border-left:4px solid var(--hong); box-shadow:none; }
+.festival-card>.tag { justify-self:start; }
+.festival-card>strong { font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
+.festival-card a { color:var(--cheong); }
+.festival-card>button { justify-self:start; max-width:100%; white-space:normal; }
+/* 사진은 자르지 않고(contain) 4:3 틀 안에, 출처는 사진 아래. */
+.festival-photo { display:grid; gap:.25rem; min-width:0; margin:0 0 .25rem; }
+.festival-photo-frame { aspect-ratio:4/3; width:100%; background:var(--platform); }
+.festival-photo-frame img { display:block; width:100%; height:100%; object-fit:contain; }
+.festival-photo-credit { font-size:14px; color:var(--muted); text-align:left; }
+
+/* 출발지로 고른 축제 안내 */
+.festival-origin-note { display:grid; gap:6px; margin:12px 0; padding:14px 16px; border:0; border-left:8px solid var(--cheong); border-radius:0; background:var(--platform); color:var(--ink); }
+.festival-origin-note[hidden] { display:none; }
+#festival-origin-note { margin:0 0 12px; }
+/* 제목·축제 설명 글자색 !important 는 예전 값 그대로(line.css 공통 규칙 정리 5-5 에서 다시 본다). */
+.festival-origin-note .festival-origin-title { font-size:17px; overflow-wrap:anywhere; color:var(--ink)!important; }
+.festival-context { color:var(--ink)!important; }
+.festival-origin-note button { justify-self:start; min-height:44px; white-space:normal; }
+/* 코스 카드의 「축제 장소에서 출발」 꼬리표: 청색 테두리 알약 */
+.festival-course-tag { display:inline-block; margin:4px 0 10px; padding:4px 12px; border:1px solid var(--cheong); border-radius:999px!important; background:#fff;
+  color:var(--cheong); font-size:14px; font-weight:700; overflow-wrap:anywhere; }
+
+
+/* ---------------------------------------------------------------- 레저(코스 주변 즐길 거리) (5-3g-2)
+   만드는 곳: leisure.js — 「더 보기」 안 section.leisure-course-panel(h3, .hint, 고르기 details.leisure-choices, 결과 details.leisure-results
+   안 .leisure-filter 단추와 .leisure-setting(h4) 묶음의 .leisure-result-card(분류 .leisure-sport-tag, 사진 .leisure-photo-panel > .leisure-photo-grid,
+   .actions 단추·링크)).
+   예전 출처: editorial·readability·clarity·line 의 규칙 약 50개. 선택자는 예전 그대로라 명시도는 바뀌지 않았다.
+   남겨 둔 공통 규칙: readability.css 의 .results-area .actions(단추 줄의 display·gap·위 여백, 800px 이하 격자)와
+   .results-area .actions>:is(button,a)(800px 이하 폭 100%). 레저 단추 줄은 이 규칙이 정하던 값을 그대로 따른다
+   (예전 editorial 의 gap:10px, 600px 이하 display:flex 는 이 규칙에 늘 졌으므로 옮기지 않았다). */
+
+.leisure-course-panel { box-sizing:border-box; min-width:0; margin:22px 0; padding:24px 0; border:0; border-top:1px solid var(--line); border-radius:0; background:#fff; box-shadow:none; }
+.leisure-course-panel>h3 { margin:0 0 8px; font-size:22px; line-height:1.5; overflow-wrap:anywhere; color:var(--ink); }
+@media(max-width:600px) { .leisure-course-panel>h3 { font-size:20px; } }
+.leisure-course-panel>.hint { margin:0 0 16px; }
+
+/* 고르기·결과 접기 상자 */
+.leisure-choices { margin:12px 0 18px; padding:14px 18px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.leisure-choices>summary { min-height:28px; cursor:pointer; font-weight:750; color:var(--ink); }
+.leisure-choices .simple-activity-ideas button { min-height:44px; }
+/* 고른 활동: 홍색 칠 + 밑줄. !important 는 공통 칩 규칙(!important)을 이기기 위한 것(같은 명시도라 위 규칙보다 뒤). */
+.leisure-choices button[aria-pressed=true] { box-shadow:none; text-decoration:underline; text-underline-offset:4px;
+  background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; }
+.leisure-results { margin:16px 0 24px; padding:18px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.leisure-results>summary { min-height:36px; cursor:pointer; font-size:17px; font-weight:750; color:var(--ink); }
+.leisure-course-panel .leisure-results { min-width:0; margin:10px 0; padding:14px 16px; }
+@media(max-width:600px) { .leisure-course-panel .leisure-results { padding:12px; } }
+.leisure-course-panel .leisure-results>summary { line-height:1.6; overflow-wrap:anywhere; }
+@media(max-width:600px) { .leisure-course-panel .leisure-results>summary { font-size:15px; } }
+
+/* 종류 거르기 단추: 600px 이하는 2칸 격자 */
+.leisure-filter { display:flex; flex-wrap:wrap; gap:8px; min-width:0; margin:12px 0 4px; }
+@media(max-width:600px) { .leisure-filter { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.leisure-filter button { min-height:44px; padding:8px 14px; white-space:normal; overflow-wrap:anywhere; border-radius:999px!important; }
+@media(max-width:600px) { .leisure-filter button { width:100%; } }
+.leisure-filter button[aria-pressed=true] { box-shadow:none; text-decoration:underline; text-underline-offset:4px;
+  background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; }
+.leisure-filter-empty[hidden] { display:none; }
+.leisure-setting { min-width:0; margin:18px 0 0; }
+.leisure-setting>h4 { margin:0 0 6px; font-size:17px; line-height:1.5; color:var(--ink); }
+
+/* 결과 카드 */
+.leisure-result-card { padding:16px 0; border-top:1px solid var(--line); }
+.leisure-result-card[hidden] { display:none; }
+.leisure-course-panel .leisure-result-card { min-width:0; }
+.leisure-result-card p { overflow-wrap:anywhere; }
+.leisure-result-card button { min-height:44px; }
+.leisure-result-card .actions { flex-wrap:wrap; }
+/* 분류 꼬리표: 옅은 바탕 알약. !important 는 공통 .tag 규칙(!important)과 맞춘 값. */
+.leisure-sport-tag { display:inline-block; max-width:100%; margin:6px 0 2px; padding:3px 10px; font-size:14px; font-weight:600; overflow-wrap:anywhere;
+  border-radius:999px!important; background:var(--platform)!important; color:var(--ink)!important; border:0!important; }
+/* 단추 줄: 600px 이하는 세로로 쌓고 단추를 줄 폭만큼(줄의 display·gap 은 위 머리 주석의 공통 규칙). */
+@media(max-width:600px) {
+  .leisure-course-panel .actions { flex-direction:column; align-items:stretch; }
+  .leisure-course-panel .actions button { width:100%; white-space:normal; }
+}
+.leisure-course-panel .actions>a { overflow-wrap:anywhere; }
+/* 단추·링크 모양은 일정의 보조 단추와 같게(흰 바탕·1px 선). !important 는 공통 .secondary 규칙과 맞춘 값. */
+.leisure-course-panel .actions>:is(button,a):not(.primary) { font-weight:600;
+  background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+
+/* 사진 두 장 격자(480px 이하는 정사각형). 사진이 한 장이면 줄 전체(최대 480px). */
+.leisure-photo-panel { min-width:0; margin:14px 0; }
+.leisure-photo-panel>button { margin:10px 10px 0 0; }
+.leisure-photo-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+@media(max-width:480px) { .leisure-photo-grid { gap:8px; } }
+.leisure-photo-grid figure { margin:0; min-width:0; }
+.leisure-photo-grid>figure:only-child { grid-column:1 / -1; width:100%; max-width:480px; }
+.leisure-photo-grid figure>a { display:block; overflow:hidden; border-radius:0; }
+.leisure-photo-grid img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:cover; background:var(--platform); border-color:var(--line); border-radius:0; }
+@media(max-width:480px) { .leisure-photo-grid img { aspect-ratio:1/1; } }
+.leisure-photo-grid figcaption { padding-top:6px; font-size:14px; overflow-wrap:anywhere; }
+.leisure-photo-empty { display:grid; place-items:center; box-sizing:border-box; aspect-ratio:3/2; margin:0; padding:12px; text-align:center; color:var(--muted);
+  border:1px dashed var(--line); border-radius:0; background:var(--platform); }
+@media(max-width:480px) { .leisure-photo-empty { aspect-ratio:1/1; } }
+
+
+/* ---------------------------------------------------------------- 「더 보기」 묶음: 코스 검색 근거·대화·후기·함께 고르기 (5-3g-3)
+   만드는 곳: plan-detail.js 의 section.detail.panel.plan-extras-panel(#plan-extras 안) — 레저, 지역 맛집, details.course-evidence(.course-search-panel),
+   experience.js 의 section.experience-panel(details 들, fieldset.experience-controls), 장소 정보·질문 대화(.chat-box, form.chat-form),
+   후기(.review, .review-body, .review-meta, 신고 .review-report), 공유(.plan-share).
+   예전 출처: style·place-photos·selle·calm·editorial·readability·line 의 규칙 약 40개. 선택자는 예전 그대로다.
+   지운 죽은 규칙: .plan-extras-panel(같은 요소의 .detail.panel 이 더 구체적이라 늘 졌다),
+   .experience-controls .hint(이 상자는 .detail 안이라 .detail .hint 가 늘 이겼다).
+   남겨 둔 공통 규칙: style.css 인쇄 숨김 목록(.review-form, #plan-extras 등), readability.css 의 main :is(…,.review-meta,…) 글자 크기. */
+
+#plan-extras>.plan-extras-panel { margin-top:24px; }
+
+/* 코스 검색 근거(추천에 참고한 블로그·장소 정보). 상자 모양 !important 는 line.css 의 같은 모양 상자 목록과 맞춘 값. */
+.course-evidence { padding-bottom:0; }
+.course-evidence>summary { color:var(--ink)!important; }
+.course-search-panel { margin-bottom:22px; padding:23px; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+.course-evidence .course-search-panel { margin-bottom:0; }
+.course-search-panel h3 { margin:6px 0; font-size:22px; }
+
+/* 둘이 함께 고르기·반드시 지킬 조건·다녀온 뒤 피드백 */
+.experience-panel { margin:25px 0; }
+.experience-panel>details { padding:20px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+@media(max-width:760px) { .experience-panel>details { padding:15px; } }
+.experience-panel summary { font-size:14px; color:var(--ink)!important; }
+.experience-panel button { margin:5px; }
+@media(max-width:760px) { .experience-panel button { margin:5px 0; width:100%; } }
+.experience-panel select { background:white; }
+.experience-controls { margin-top:18px; padding:16px; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+
+/* 장소 정보·질문 대화 */
+.chat-box { max-height:280px; overflow:auto; margin:10px 0; padding:15px; white-space:pre-wrap; font-size:12px; background:var(--platform); border:0; border-radius:0; }
+.detail .chat-box { font-size:16px; line-height:1.85; }
+.chat-box .message { white-space:pre-wrap; overflow-wrap:anywhere; }
+.chat-form { display:flex; gap:8px; }
+.chat-form input { flex:1; min-width:0; }
+.detail .chat-form button { font-size:16px; }
+/* 480px 이하: 입력칸 한 줄, 단추는 아래 줄 전체 */
+@media(max-width:480px) {
+  .detail .chat-form { flex-wrap:wrap; }
+  .detail .chat-form input { flex-basis:100%; }
+  .detail .chat-form button { width:100%; min-height:46px; }
+}
+
+/* 후기 */
+.review { padding:15px 0; border-top:1px solid var(--line); }
+.review-body { max-height:250px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
+.review-meta { font-size:11px; color:var(--muted); }
+/* 후기 신고 사유 입력칸(reviews.js, prompt() 대신). */
+.review-report { display:grid; gap:8px; margin-top:10px; }
+.review-report label { margin:0; }
+.review-report button { justify-self:start; }
+
+/* 공유 */
+.plan-share { margin-top:28px; }
+.plan-share>h3 { margin:20px 0 0; font-size:19px; }
+
+@media print {
+  .chat-form,.plan-share,.review-report { display:none!important; }
+}
+
+
+/* ---------------------------------------------------------------- 장소 둘러보기 카드 (5-3g-4)
+   만드는 곳: explore.js — section#explore-section 안 .explore-controls(시·도·활동·검색어, 안내 p), div.catalog 격자의 article.place-card
+   (사진 .place-photo-panel, 분류 .tag, h3 이름, 설명 p·.hint, 「장소 정보」 단추). 「장소 둘러보기」 화면(body.show-explore)에서만 보인다.
+   예전 출처: style·selle·editorial·readability·line 의 규칙 약 20개. 카드 선택자는 .catalog .place-card 로 모았다(카드는 늘 .catalog 안).
+   남겨 둔 것: 카드 안 사진(.catalog .place-photo*)은 사진 단계, 화면 전환(body.show-explore …)은 5-4, readability.css 의 main :is(.place-card,…) 글. */
+
+#explore-section { padding-top:28px; scroll-margin-top:0; }
+.explore-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:24px 0; }
+.explore-controls>p { flex-basis:100%; margin:0; }
+/* 격자: 1001px 이상 3칸, 1000px 이하 2칸, 600px 이하 1칸 */
+.catalog { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:17px; }
+@media(max-width:1000px) { .catalog { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:720px) { .catalog { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } }
+@media(max-width:600px) { .catalog { grid-template-columns:minmax(0,1fr); } }
+/* 카드: 마우스를 올리면 테두리만 진해진다(예전 테마의 떠오르는 효과는 transform:none!important 로 막혀 있다. 5-5 에서 정리). */
+.catalog .place-card { display:flex; flex-direction:column; gap:10px; overflow:hidden; padding:22px; text-align:left; color:var(--ink);
+  background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:none; transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease; transform:none!important; }
+.catalog .place-card:hover { border-color:var(--ink); box-shadow:none; }
+.catalog .place-card h3 { margin:4px 0; font-size:19px; line-height:1.5; color:var(--ink); }
+.catalog .place-card .hint { font-size:14px; overflow-wrap:anywhere; }
+.catalog .place-card>button { margin-top:auto; }
+
+
+/* ---------------------------------------------------------------- 결과 화면의 틀: 구역 제목·상세 패널·조건 차이 상자 (5-3g-5)
+   만드는 곳: index.html·plan-results.js 의 .section-heading(h2, #result-count, .small), plan-detail.js 의 section#plan-detail.detail.panel
+   (.detail-header 의 h2 와 .actions 단추 줄, 출처 접기 .stop-source·사진 정보 .photo-meta, .route-source-note),
+   recommendation-feedback.js 의 #results > .condition-differences(조건과 달라진 점, 노란 상자).
+   .detail 의 --time·--rail·--band 는 일정의 [시각 | 노선 레일 | 내용] 칸 폭이다(장소 칸·구간 줄·주차장·식당 제안이 함께 쓴다).
+   예전 출처: style·place-photos·selle·calm·editorial·readability·line 의 규칙 약 60개.
+   남겨 둔 공통 규칙: readability.css 의 .results-area .actions 와 그 단추 규칙(결과 화면 모든 단추 줄의 display·gap·800px 이하 격자),
+   .hint·.small·.warning 공통 규칙(5-5), style.css 인쇄 숨김 목록. */
+
+/* 구역 제목: 결과 수(#result-count)·보조 글(.small)은 오른쪽 */
+.section-heading { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:20px; }
+.section-heading h2 { min-width:0; margin:0; font-size:20px; letter-spacing:-.5px; color:var(--ink); overflow-wrap:anywhere; }
+@media(max-width:800px) { .section-heading h2 { font-size:22px; } }
+.results-area .section-heading h2 { margin:0; }
+.section-heading .small { margin-left:auto; font-size:10px; }
+@media(max-width:760px) { .section-heading .small { font-size:9px; } }
+.section-heading #result-count { font-size:14px; color:var(--muted); }
+.section-heading .step { display:none; }
+.results-area { min-width:0; }
+#planner-section .results-area { min-width:0; }
+
+/* 상세 패널. 일정 칸 폭 변수: 데스크톱 시각 88px + 레일 40px, 800px 이하 시각 칸 없음 + 레일 36px. */
+.detail { margin-top:30px; --time:88px; --rail:40px; --band:calc(var(--time) + var(--rail)); }
+@media(max-width:800px) { .detail { --time:0px; --rail:36px; } }
+.detail.panel { margin:0 0 32px; padding:24px 0; background:#fff; border:0; border-radius:0; box-shadow:none; }
+.detail .step-category { margin:0 0 4px; }
+/* 머리글: [제목 | 단추들], 720px 이하 세로, 600px 이하 단추 줄 폭 전체 */
+.detail-header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; }
+@media(max-width:720px) { .detail-header { flex-direction:column; } }
+@media(max-width:600px) { .detail-header { align-items:stretch; gap:12px; } }
+.detail-header h2 { flex:1 1 240px; margin:0; font-size:26px; line-height:1.5; letter-spacing:-1px; color:var(--ink); }
+@media(max-width:800px) { .detail-header h2 { font-size:23px; } }
+@media(max-width:600px) { .detail-header h2 { flex-basis:100%; } }
+/* 단추 줄의 display·gap 은 .results-area .actions 가 정한다(800px 이하 격자). 같은 명시도라 여기서 정하면 그 값을 덮는다. */
+.detail-header>.actions { min-width:0; max-width:100%; }
+.detail-header>.actions button { min-height:44px; white-space:normal; border-radius:999px; }
+/* 출처·사진 정보 접기: 테두리 없는 작은 회색 접기 */
+.detail :is(.stop-source,.photo-meta) { margin:8px 0 0; padding:0; border:0; }
+.detail :is(.stop-source,.photo-meta)>summary { margin:0; cursor:pointer; font-size:14px; font-weight:600; color:var(--muted); }
+.detail :is(.stop-source,.photo-meta)[open]>summary { margin-bottom:4px; }
+.detail :is(.stop-source,.photo-meta) .hint { margin:2px 0; font-size:14px; }
+.detail .route-source-note { margin:0 0 12px; font-size:14px; }
+
+/* 조건과 달라진 점: 노란 상자. 바탕·글자·테두리 !important 는 line.css 의 경고 상자 목록(.warning)과 맞춘 값. */
+.condition-differences { margin:14px 0; padding:14px; font-size:13px; line-height:1.7; border-radius:0;
+  border:0!important; background:var(--warn-bg)!important; color:var(--ink)!important; }
+.condition-differences ul { margin:8px 0; padding-left:20px; }
+.condition-differences li { margin:5px 0; }
+/* 결과 맨 위의 상자: 여백을 줄여 접힌 줄 사이 간격을 좁힌다(2026-11-17 가독성 3단계). */
+#results>.condition-differences { padding:14px 16px!important; }
+#results>.condition-differences>strong { display:block; margin:0 0 4px; }
+#results>.condition-differences .condition-summary { margin:0 0 6px; }
+#results>.condition-differences ul { margin:4px 0; padding-left:18px; }
+#results>.condition-differences details { margin:4px 0; padding:8px 0; }
+#results>.condition-differences details>summary { margin:0; }
+
+@media print {
+  .detail { margin:0; }
+  .detail h3 { break-after:avoid; }
+  .detail.panel { border:0; box-shadow:none; }
+}
+
+
+/* ---------------------------------------------------------------- 사진 단계(5-3h)에서 place-photos.css 에서 옮겨 온 결과 화면 규칙
+   place-photos.css 에 섞여 있던 사진이 아닌 규칙. 지운 죽은 규칙: .option-heading(만드는 곳 없음), .meal-card>a(카드 바로 아래 링크 없음). */
+#plan-detail { scroll-margin-top:65px; }
+.price-basis { display:block; margin:5px 0; font-size:11px; line-height:1.6; }
+.timeline-card .hint { overflow-wrap:anywhere; }

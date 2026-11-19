@@ -4,39 +4,7 @@
 header .brand-name .brand-tagline { color:var(--hong); font-weight:650; letter-spacing:-.2px; white-space:nowrap; }
 @media(max-width:360px) { header .brand-name .brand-tagline { font-size:11px; } }
 
-/* Course card stats: four short facts wrap instead of squeezing. */
-.plan-card .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); }
-@media(max-width:420px) { .plan-card .stats { grid-template-columns:1fr; } }
-.map-travel-mode { margin:4px 0 8px; font-size:14px; }
 
-/* Festival-based course */
-.festival-origin-note { display:grid; gap:6px; margin:12px 0; padding:14px 16px; border:1px solid var(--line); border-left:5px solid var(--cheong); border-radius:14px; background:#fff; color:var(--ink); }
-.festival-origin-note[hidden] { display:none; }
-.festival-origin-note .festival-origin-title { font-size:17px; color:var(--ink); overflow-wrap:anywhere; }
-.festival-origin-note button { justify-self:start; min-height:44px; white-space:normal; }
-.festival-course-tag { display:inline-block; margin:4px 0 10px; padding:4px 12px; border-radius:999px; background:var(--platform); border:1px solid var(--line); color:var(--ink); font-size:14px; font-weight:700; overflow-wrap:anywhere; }
-.festival-context { color:var(--ink)!important; }
-
-/* Festival markers on the course map (Naver HTML marker). */
-.route-marker.festival-marker { width:auto; min-width:0; padding:0 8px; height:26px; line-height:24px; border-radius:999px; background:#f2b632; background-image:none; color:#3d2800; border:2px dashed #8a5a00; font-size:12px; font-weight:800; white-space:nowrap; }
-.route-marker.festival-marker-chosen { background:#c58a00; background-image:none; color:#fff; border:3px solid #5c3d00; font-size:13px; }
-.festival-map-info { max-width:240px; padding:10px 12px; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
-.festival-map-info p { margin:4px 0; }
-.map-festival-note { margin:6px 0 0; font-size:14px; color:var(--ink); }
-
-/* Place evidence: one row per fact with a status badge instead of one dense line. */
-.evidence-list { list-style:none; margin:10px 0; padding:0; display:grid; gap:8px; }
-.evidence-item { display:grid; grid-template-columns:auto auto minmax(0,1fr); align-items:baseline; gap:4px 10px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:#fff; font-size:15px; line-height:1.6; }
-.evidence-item strong { color:var(--ink); white-space:nowrap; }
-.evidence-text { color:var(--ink); min-width:0; overflow-wrap:anywhere; }
-.evidence-badge { display:inline-block; padding:1px 9px; border-radius:999px; font-size:13px; font-weight:800; white-space:nowrap; }
-.evidence-ok .evidence-badge { background:var(--platform); color:var(--hong); border:1px solid var(--line); }
-.evidence-check { border-color:var(--line); background:var(--warn-bg); }
-.evidence-check .evidence-badge { background:var(--warn-bg); color:var(--ink); border:1px solid var(--line); }
-.evidence-info .evidence-badge { background:#fff; color:var(--cheong); border:1px solid var(--line); }
-.place-evidence>summary { font-weight:750; }
-.evidence-summary-count { display:inline-block; margin-left:8px; padding:0 9px; border-radius:999px; background:var(--warn-bg); color:var(--ink); font-size:13px; font-weight:800; }
-@media(max-width:480px) { .evidence-item { grid-template-columns:auto minmax(0,1fr); } .evidence-text { grid-column:1 / -1; } }
 
 /* Named source links print their address so a paper copy still shows where the fact came from. */
 /* 인쇄: 출처 주소는 근거로 남기되, 장소 이름을 퍼센트 인코딩한 네이버 지도 검색 주소는 여러 줄을 차지하고 따라 칠 수도 없어 뺀다(PDF 에서는 링크가 그대로 눌림). */
@@ -53,12 +21,3 @@ header .brand-name .brand-tagline { color:var(--hong); font-weight:650; letter-s
 @media(max-width:800px) { html { scroll-padding-top:calc(var(--site-header-height,88px) + 52px); } }
 @media(prefers-reduced-motion:reduce) { .section-indicator,.section-indicator.is-visible { transition:none; transform:none; } }
 
-/* Leisure options: indoor/outdoor sections, sport label per venue and a sport filter (chips). */
-.leisure-filter { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; min-width:0; }
-.leisure-filter button { min-height:44px; padding:8px 14px; border-radius:999px; white-space:normal; overflow-wrap:anywhere; }
-.leisure-filter button[aria-pressed=true] { background-color:var(--hong); border-color:var(--hong); color:#fff; }
-.leisure-setting { margin:18px 0 0; min-width:0; }
-.leisure-setting>h4 { margin:0 0 6px; font-size:17px; line-height:1.5; color:var(--hong); }
-.leisure-sport-tag { display:inline-block; max-width:100%; margin:6px 0 2px; padding:3px 10px; border-radius:999px; background-color:var(--platform); color:var(--hong); font-size:14px; font-weight:700; overflow-wrap:anywhere; }
-.leisure-result-card[hidden],.leisure-filter-empty[hidden] { display:none; }
-@media(max-width:600px) { .leisure-filter { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } .leisure-filter button { width:100%; } }

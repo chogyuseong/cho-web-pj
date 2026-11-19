@@ -3,9 +3,7 @@
   --reading-body:16px;
   --reading-note:14px;
 }
-html { scroll-padding-top:24px; }
 #main-content:focus { outline:none; }
-body { font-size:17px; line-height:1.75; letter-spacing:0; color:var(--ink); background-color:#fff; }
 main :is(p,li,dd,dt) { line-height:1.8; overflow-wrap:anywhere; }
 main p { font-size:var(--reading-body); }
 main :is(small,.small,.hint,.muted,.price-basis,.review-meta,.number,.option-label) {
@@ -20,147 +18,22 @@ main :is(summary,button),header nav :is(a,button),dialog :is(summary,button) {
 main summary { display:list-item; padding-block:10px; margin-bottom:0; }
 main :is(th,td) { font-size:14px; line-height:1.75; padding:13px 12px; }
 main .hint,main .muted { color:var(--muted); }
-main .warning { font-size:15px; line-height:1.8; color:var(--ink); background-color:var(--warn-bg); border-color:var(--line); border-radius:14px; }
+main .warning { font-size:15px; line-height:1.8; }
 main :is(.tag,.step-category) { font-size:13.5px; line-height:1.65; padding:5px 11px; color:var(--hong); background-color:var(--platform); }
 main :is(.condition-summary,.condition-differences p,.course-evidence p,.place-evidence p,.map-caption) { font-size:15px; }
-main .service-details summary { font-size:15px; color:var(--muted); }
-main .service-details summary>span { color:var(--hong); }
-main .hero .hero-description { font-size:18px!important; line-height:1.9; color:var(--muted); max-width:38em; }
-main .hero-pill { font-size:14px; line-height:1.7; letter-spacing:.06em; color:var(--hong); background-color:var(--platform); }
-main .hero-actions a { font-size:16px; min-height:50px; }
-main .workspace-intro>p { font-size:16px; color:var(--muted); }
 
-.conditions .simple-form-intro { color:var(--ink); font-size:16px; margin-bottom:8px; }
-.conditions .simple-form-group { padding-bottom:26px; margin-top:22px; }
-.conditions .simple-form-group legend { font-size:20px; line-height:1.5; font-weight:800; margin-bottom:14px; color:var(--ink); }
-.conditions .simple-form-group label { font-size:16px; font-weight:650; gap:8px; color:var(--ink); }
-.conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) {
-  min-height:48px; font-size:17px; line-height:1.6; border-color:var(--line); background-color:#fff; color:var(--ink);
-}
+.conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) { min-height:48px; font-size:17px; line-height:1.6; }
 .conditions textarea { min-height:116px; padding:14px; }
-.conditions :is(input,textarea)::placeholder { color:var(--muted); opacity:1; }
-.conditions .simple-activity-ideas { gap:10px; margin-bottom:16px; }
-.conditions .simple-activity-ideas button {
-  min-height:44px;
-  font-size:15px;
-  background-color:#fff!important;
-  color:var(--hong)!important;
-  border:1px solid var(--line)!important;
-}
-.conditions .simple-extra-options { border:1px solid var(--line); border-radius:16px; padding:12px 18px; }
-.conditions .simple-extra-options>summary { font-size:16px; color:var(--hong); }
-.conditions #submit-plan { min-height:58px; font-size:18px; }
-.field-requirement {
-  display:inline-block;
-  margin-left:10px;
-  vertical-align:middle;
-  font-size:13px;
-  line-height:1.6;
-  color:var(--hong);
-  background-color:var(--platform);
-  border:1px solid var(--line);
-  padding:2px 9px;
-  border-radius:999px;
-  font-weight:750;
-}
+.conditions :is(input,textarea)::placeholder { opacity:1; }
 /* 자유 입력: 자주 쓰는 조건 칩과 ‘이렇게 이해했어요’(request-understanding.js) */
-.conditions .request-quick-title { margin:0 0 8px; font-size:15px; font-weight:700; color:var(--ink); }
-.conditions .request-quick-chips { margin-bottom:16px; }
-.conditions #parse { margin-top:10px; }
-.conditions .request-understanding { margin:14px 0 4px; padding:14px 16px; border:1px solid var(--line); border-radius:14px; background-color:#fff; }
-.conditions .request-understanding[hidden] { display:none; }
-.conditions .request-understanding-title { margin:0 0 10px; font-size:16px; line-height:1.5; color:var(--ink); }
-.conditions .understood-chips { margin-bottom:6px; }
-.conditions .understood-chip { display:inline-flex; align-items:center; gap:8px; max-width:100%; text-align:left; overflow-wrap:anywhere; }
-.conditions .understood-chip.is-removed { text-decoration:line-through; border-style:dashed!important; color:var(--muted)!important; }
-.conditions .understood-estimated { font-size:14px; font-weight:700; padding:0 8px; border-radius:999px; border:1px solid currentColor; line-height:1.6; }
-.conditions .understood-mark { font-size:15px; }
-.conditions :is(.understood-notes,.request-gaps) { margin:8px 0 0; padding-left:20px; }
-.conditions :is(.understood-notes,.request-gaps) li { font-size:15px; line-height:1.7; color:var(--ink); }
-.conditions .request-gaps li { color:var(--hong); }
-.conditions .request-understanding-status:empty { display:none; }
-#parse-notice:empty { display:none; }
-#parse-notice:not(:empty) {
-  padding:12px 16px;
-  border-left:4px solid var(--hong);
-  background-color:#fff;
-  color:var(--hong);
-  font-size:15px;
-  border-radius:0 12px 12px 0;
-}
 
 header nav a,header nav button.nav { display:inline-flex; align-items:center; font-size:15px; white-space:normal; }
 header .brand-name small { font-size:13px; color:var(--muted); }
 
-.plan-option-tabs button {
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  justify-content:flex-start;
-  gap:8px;
-  padding:16px;
-  text-align:left;
-}
-.plan-option-tabs .option-label {
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  gap:8px;
-  font-size:14px;
-  letter-spacing:0;
-  font-weight:700;
-  color:var(--hong);
-}
-/* 코스 카드 요약: 1 코스·목적 / 2 장소 순서(2줄 말줄임, 전체 이름은 DOM에 남김) / 3 서버 제목 / 4 시간·이동·비용 / 5 코스 1과의 차이 */
-.plan-option-tabs button>span,.plan-option-tabs button>strong { display:block; width:100%; min-width:0; }
-.plan-option-tabs button span { margin-left:0; }
-.plan-option-tabs .option-purpose { font-weight:700; }
-.plan-option-tabs .option-relaxed { font-size:13px; font-weight:750; padding:1px 8px; border-radius:999px; border:1px solid currentColor; }
-.plan-option-tabs .option-route {
-  font-size:17px; line-height:1.5; color:var(--ink); word-break:keep-all; overflow-wrap:anywhere;
-  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden;
-}
-.plan-option-tabs :is(.option-title,.option-facts,.option-difference) { font-size:14px; line-height:1.55; color:var(--muted); font-weight:500; word-break:keep-all; }
-.plan-option-tabs .option-facts { font-variant-numeric:tabular-nums; }
-.plan-option-tabs .option-facts .range-lines { display:inline; }
-.plan-option-tabs .option-facts .range-lines>span+span { margin-left:.3em; }
-.plan-option-tabs .option-facts .range-lines>span { display:inline-block; }
-.plan-option-tabs button[aria-pressed=true] :is(strong,span,.option-label) { color:var(--ink)!important; }
-.selection-indicator {
-  font-size:12px;
-  font-weight:750;
-  padding:2px 8px;
-  border:1px solid #fff;
-  border-radius:999px;
-  background-color:var(--hong);
-  color:#fff;
-}
 
-.plan-card .number { font-size:14px; letter-spacing:0; color:var(--hong); }
-.plan-card .path-text { font-size:16px; color:var(--ink); }
-.plan-card .stats { gap:20px; padding:20px; background-color:#fff; border:1px solid var(--line); }
-.plan-card .stats b { font-size:25px; line-height:1.4; font-variant-numeric:tabular-nums; color:var(--hong); }
-.plan-card .stats small { display:block; font-size:14px; margin-top:5px; color:var(--muted); }
 
-.option-comparison h3 { font-size:20px; }
-.option-comparison th { font-size:14px; color:var(--hong); background-color:#fff; }
-.option-comparison th.travel-time { white-space:nowrap; }
 
-.detail-header h2 { font-size:26px; line-height:1.5; }
-.detail .timeline-card h4 { font-size:25px; line-height:1.5; margin:12px 0 8px; }
 .detail .timeline-card :is(.small,.hint) { font-size:15px; line-height:1.8; }
-.detail .route-line { font-size:15px; line-height:1.8; color:var(--hong); padding:12px 16px; }
-.detail .stop-cost { font-size:15px; line-height:1.65; color:var(--hong); }
-.detail .map-link-list a {
-  padding:6px 14px;
-  border-radius:999px;
-  background-color:#fff;
-  border:1px solid var(--line);
-  color:var(--hong);
-  font-weight:650;
-  text-decoration:none;
-}
-.detail .map-link-list a:hover { background-color:var(--platform); }
 
 /* 버튼 체계: 결과 화면의 모든 버튼과 버튼처럼 쓰는 링크.
    - 최소 높이 44px, 글자와 화살표 세로 가운데, 긴 문구는 낱말 단위로 줄바꿈.
@@ -171,106 +44,31 @@ header .brand-name small { font-size:13px; color:var(--muted); }
   display:inline-flex; align-items:center; justify-content:center; gap:6px;
   min-height:44px; white-space:normal; word-break:keep-all; text-align:center;
 }
-.results-area .plan-option-tabs button { display:flex; justify-content:flex-start; text-align:left; }
-.results-area .actions,.detail .map-link-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.results-area .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .results-area .actions>:is(button,a) { padding:10px 16px; font-size:15px; }
 .detail .actions button { border:1px solid var(--line); }
-.stop .actions>a { border:1px solid var(--line); border-radius:10px; background-color:#fff; color:var(--hong); font-weight:650; text-decoration:none; }
-.detail .map-link-list { font-size:15px; }
-.plan-card .option-heading .inspect-plan { font-size:15px; padding:10px 16px; }
 @media(max-width:800px) {
   .results-area .actions { display:grid; grid-template-columns:minmax(0,1fr); }
   .results-area .actions:has(>:nth-child(3)) { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .results-area .actions:has(>:nth-child(3))>:last-child:nth-child(odd) { grid-column:1 / -1; }
   .results-area .actions>:is(button,a) { width:100%; }
-  .detail .map-link-list { display:grid; grid-template-columns:minmax(0,1fr); }
-  .detail .map-link-list a { width:100%; }
-  .plan-card .option-heading { flex-direction:column; align-items:stretch; }
-  .plan-card .option-heading .inspect-plan { width:100%; }
 }
-/* 이동 수단 바꾸기: 구간 줄의 [수단 바꾸기] 하나, 펼치면 수단 4개를 2열 균등으로. 고른 수단은 aria-pressed로 표시. */
-.detail .route-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
-.detail .route-line-text { flex:1 1 14em; min-width:0; }
-.detail .route-line-source { flex-basis:100%; font-size:14px; line-height:1.7; font-weight:500; color:var(--muted); }
-.detail .route-line .route-mode-toggle { flex:0 0 auto; padding:8px 14px; font-size:15px; border:1px solid var(--line); }
-.detail .transport-chooser,.detail .transport-bulk { border:1px solid var(--line); border-radius:14px; padding:4px 14px 12px; margin:8px 0 12px; background-color:#fff; min-width:0; }
-.detail .transport-chooser>legend { padding:0 6px; font-weight:700; }
-.results-area .transport-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-.results-area .transport-options>button { width:100%; }
-.results-area .transport-options>button[aria-pressed=true] { background-color:var(--hong); border-color:var(--hong); color:#fff; }
-.detail .transport-status:empty { display:none; }
-.detail .transport-status { margin:8px 0 0; }
-.detail .transport-notice { border-left:4px solid var(--hong); background-color:#fff; border-radius:0 12px 12px 0; padding:10px 16px; margin:12px 0; }
-.detail .transport-notice p { margin:4px 0; }
-@media(max-width:800px) {
-  .detail .route-line .route-mode-toggle { width:100%; }
-}
-/* 코스 카드: 1280px 이상만 3열. 지도 패널이 옆에 서는 801~1279px에서는 카드가 좁아 이름이 잘리므로 1열로 쌓는다. */
-@media(min-width:801px) and (max-width:1279px) {
-  #results>.plan-option-tabs { grid-template-columns:minmax(0,1fr)!important; }
-}
-.detail .table-scroll { border:1px solid var(--line); border-radius:14px; margin:16px 0; background-color:#fff; }
-.detail .table-scroll:focus-visible { outline:3px solid var(--hong); outline-offset:3px; }
-.detail table { white-space:normal; min-width:700px; }
-.detail th { background-color:#fff; color:var(--hong); font-weight:750; }
-.detail td { vertical-align:top; min-width:85px; overflow-wrap:anywhere; color:var(--ink); }
-.detail td:first-child { min-width:160px; font-weight:650; }
-.detail .chat-box { font-size:16px; line-height:1.85; }
-.detail .chat-form button { font-size:16px; }
-.detail .total-row {
-  gap:16px;
-  font-size:16px;
-  padding:14px 18px;
-  margin:8px 0;
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:14px;
-}
-.detail .total-row>span:last-child { flex-shrink:0; font-variant-numeric:tabular-nums; color:var(--hong); font-weight:800; }
 
-.plan-map-card .map-option-tabs button { font-size:15px; min-height:44px; border-radius:999px; }
-.plan-map-card :is(p,summary,.hint,.map-place-list) { font-size:14px; line-height:1.8; }
-.plan-map-card .map-course-title { font-size:16px; color:var(--ink); }
 
-.place-card h3 { font-size:20px; line-height:1.5; }
 main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.small,small,.menu-checked,.photo-credit) { font-size:14px; line-height:1.8; color:var(--muted); }
 main :is(.meal-card,.place-blogs,.place-photo-panel) a { font-size:14px; line-height:1.8; overflow-wrap:anywhere; color:var(--hong); font-weight:650; }
-main .meal-card h5 { font-size:20px; line-height:1.5; }
-main .meal-card .menu-heading { font-size:16px; }
-main .meal-card .menu-price-row { font-size:15px; gap:12px; }
-main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; white-space:nowrap; }
-main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; line-height:1; }
-.place-photo-panel .photo-counter { font-size:14px; }
-.execution-summary>details { margin:10px 0; padding:8px 0; }
-.execution-summary>details>summary { font-size:15px; }
 
 /* Shared Partner Voting Page (shared.html) */
-#shared-places { display:grid; gap:16px; margin:20px 0 24px; }
-#shared-places article {
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:22px;
-}
-#shared-places article h2 {
-  font-size:22px;
-  margin:0 0 6px;
-  color:var(--ink);
-}
-#shared-places article p { color:var(--muted); margin:0 0 14px; }
+#shared-places { display:grid; margin:20px 0 24px; }
 #shared-form button.primary {
-  background-color:var(--hong);
-  color:#fff;
-  border-radius:999px;
   min-height:50px;
   padding:12px 28px;
   font-size:16px;
-  font-weight:750;
 }
 
 dialog :is(p,li,dd,dt,.hint,.small) { font-size:15px; line-height:1.8; }
 dialog :is(label,summary,button,input,select,textarea) { font-size:16px; }
-dialog input::placeholder { color:var(--muted); opacity:1; }
+dialog input::placeholder { opacity:1; }
 dialog :is(button,summary) { min-height:44px; }
 footer,footer small { font-size:14px; line-height:1.75; }
 .skip-to-content {
@@ -279,78 +77,27 @@ footer,footer small { font-size:14px; line-height:1.75; }
   left:16px;
   z-index:1000;
   padding:12px 18px;
-  background-color:#fff;
-  border:2px solid var(--hong);
-  border-radius:999px;
   transform:translateY(-180%);
-  color:var(--hong);
   font-weight:750;
 }
 .skip-to-content:focus { transform:translateY(0); }
 
-@media(max-width:800px) {
-  .plan-option-tabs button { display:flex; }
-  .plan-option-tabs strong { font-size:17px; }
-  .detail-header h2 { font-size:23px; }
-  .detail .timeline-card h4 { font-size:23px; }
-  .conditions .simple-form-group legend { font-size:19px; }
-  .plan-card .stats b { font-size:23px; }
-}
 @media(max-width:480px) {
   header { gap:10px; }
-  header nav { width:100%; justify-content:space-between; margin-left:0; gap:8px; }
-  header nav a,header nav button.nav { font-size:14px; min-height:44px; padding:6px 10px; }
+  header nav { width:100%; justify-content:space-between; margin-left:0; }
+  header nav a,header nav button.nav { font-size:14px; min-height:44px; }
   header nav a { display:inline-flex; }
-  main .hero .hero-description { font-size:17px!important; }
-  .conditions.panel,.detail.panel,.plan-card { padding:20px 16px; }
-  .conditions .field-grid { gap:12px; }
-  .detail .chat-form { flex-wrap:wrap; }
-  .detail .chat-form input { flex-basis:100%; }
-  .detail .chat-form button { width:100%; min-height:46px; }
-  .detail .total-row { flex-wrap:wrap; gap:4px 12px; }
-}
-@media(forced-colors:active) {
-  .plan-option-tabs button[aria-pressed=true] { border:3px solid Highlight; }
-  .selection-indicator { border:1px solid currentColor; }
 }
 @media print { .skip-to-content { display:none; } }
 
-main .hero .hero-pill { font-size:14px!important; }
 h2[tabindex="-1"]:focus { outline:none!important; }
 
 /* Keep anchored sections and the map below the wrapping sticky navigation. */
 html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
-#planner-section.workspace,#explore-section { scroll-margin-top:0; }
-@media(min-width:801px) {
-  .plan-map-card {
-    top:calc(var(--site-header-height,88px) + 16px);
-    max-height:calc(100dvh - var(--site-header-height,88px) - 32px);
-  }
-}
 
-/* Each nearby leisure venue shows two compact photos without hiding its actions. */
-.leisure-photo-panel { min-width:0; margin:14px 0; }
-.leisure-photo-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.leisure-photo-grid figure { margin:0; min-width:0; }
-.leisure-photo-grid figure>a { display:block; border-radius:12px; overflow:hidden; }
-.leisure-photo-grid img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:cover; background:var(--platform); }
-.leisure-photo-grid figcaption { font-size:14px; padding-top:6px; overflow-wrap:anywhere; }
-.leisure-photo-empty { display:grid; place-items:center; aspect-ratio:3/2; margin:0; padding:12px; box-sizing:border-box; border:1px dashed var(--line); border-radius:12px; background:#fff; text-align:center; color:var(--muted); }
-.leisure-photo-panel>button { margin:10px 10px 0 0; }
-@media(max-width:480px) { .leisure-photo-grid { gap:8px; } .leisure-photo-grid img,.leisure-photo-empty { aspect-ratio:1/1; } }
 
-.leisure-photo-grid>figure:only-child { grid-column:1 / -1; width:100%; max-width:480px; }
 
-/* 결과 화면 구역 간격(사용자 흐름 순서: 코스 카드 → 지도 → 일정 → 확인 → 결정·공유 → 축제 → 부가 정보) */
-.plan-map-slot { margin:16px 0; }
-.plan-map-slot .plan-map-card { position:static; max-height:none; overflow:visible; }
-.plan-share { margin-top:28px; }
-.plan-share>h3 { font-size:19px; margin:20px 0 0; }
-#plan-extras>.plan-extras-panel { margin-top:24px; }
-.plan-photo-details { margin-top:14px; }
-.cost-table-details { margin:8px 0 12px; }
 /* 휴대폰: 조건 칩·소분류 칩을 손가락으로 누르기 쉽게 44px 높이로(전 34~38px). 넓은 화면은 그대로. */
 @media (max-width:720px) {
   .chips label > span { display:inline-flex; align-items:center; min-height:44px; }
-  .date-subcategories span { display:flex; align-items:center; min-height:44px; }
 }

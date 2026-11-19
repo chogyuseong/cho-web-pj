@@ -22,7 +22,7 @@ body {
   word-break:keep-all;
   overflow-wrap:anywhere;
 }
-h1,h2,h3,h4,h5,.brand-name,.timeline-stamp strong,.line-sample time,.line-name {
+h1,h2,h3,h4,h5,.brand-name {
   font-family:var(--font-head);
   font-weight:800;
   letter-spacing:0;
@@ -37,7 +37,7 @@ h4,h5 { font-size:19px; line-height:1.45; }
   h3 { font-size:24px; }
 }
 main a { color:var(--cheong); }
-.nowrap,.option-facts,.stats b,.total-row,.timeline-stamp,.num,time { font-variant-numeric:tabular-nums; }
+.nowrap,.option-facts,.stats b,.num,time { font-variant-numeric:tabular-nums; }
 main :is(.hint,.muted,small,.small) { color:var(--muted); }
 
 /* 포커스 표시는 그대로 두고 색만 청색으로. */
@@ -59,7 +59,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
   transform:none!important;
 }
 .primary:hover { background:#951c4c!important; border-color:#951c4c!important; }
-.secondary,#parse {
+.secondary {
   background:#fff!important;
   color:var(--ink)!important;
   border:1px solid var(--line)!important;
@@ -67,8 +67,8 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
   font-weight:600;
   box-shadow:none!important;
 }
-.secondary:hover,#parse:hover { border-color:var(--ink)!important; background:#fff!important; }
-.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary),dialog .actions button:not(.primary),.leisure-course-panel .actions>:is(button,a):not(.primary) {
+.secondary:hover { border-color:var(--ink)!important; background:#fff!important; }
+.detail .actions button:not(.primary),dialog .actions button:not(.primary) {
   background:#fff!important;
   color:var(--ink)!important;
   border:1px solid var(--line)!important;
@@ -77,40 +77,19 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 }
 :is(.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary)):hover { border-color:var(--ink)!important; }
 .text-link { color:var(--ink); font-weight:700; text-decoration:underline; text-underline-offset:4px; }
-.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.leisure-filter button,.photo-choices button,.map-option-tabs button,.date-subcategories span,.tag,.step-category,.leisure-sport-tag,.festival-course-tag,.field-requirement {
+.tag,.step-category {
   border-radius:999px!important;
 }
-.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button {
-  background:#fff!important;
-  color:var(--ink)!important;
-  border:1px solid var(--line)!important;
-  font-weight:600;
-}
-.quick-chip:hover,.simple-activity-ideas button:hover { border-color:var(--ink)!important; }
 /* 선택 표시는 홍. 색만으로 구분하지 않도록 밑줄을 함께 쓴다. */
-.quick-chip[aria-pressed=true],.leisure-filter button[aria-pressed=true],.photo-choices button[aria-pressed=true],
-.map-option-tabs button[aria-pressed=true],.results-area .transport-options>button[aria-pressed=true],.leisure-choices button[aria-pressed=true] {
-  background:var(--hong)!important;
-  border-color:var(--hong)!important;
-  color:#fff!important;
-  text-decoration:underline;
-  text-underline-offset:4px;
-  box-shadow:none;
-}
-.quick-chip:disabled { background:var(--platform)!important; color:var(--muted)!important; border-style:dashed!important; }
-.quick-chip.current-location { border-style:dashed!important; }
-.date-category-tabs { background:var(--platform); border-radius:10px; }
-.date-category-tab[aria-pressed=true],.date-subcategories input:checked+span,.chips input:checked+span {
+.chips input:checked+span {
   background:var(--hong)!important; color:#fff!important; border-color:var(--hong)!important; box-shadow:none;
 }
-.tag,.step-category,.leisure-sport-tag {
+.tag,.step-category {
   background:var(--platform)!important;
   color:var(--ink)!important;
   border:0!important;
   font-weight:600;
 }
-.field-requirement { background:var(--hong); color:#fff; border:0; }
-.selection-indicator { background:var(--hong)!important; color:#fff!important; border:0!important; }
 
 /* ---------- 입력 ---------- */
 input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select,
@@ -121,20 +100,8 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select,
   color:var(--ink);
 }
 .conditions :is(input,textarea)::placeholder,dialog input::placeholder { color:var(--muted); }
-#origin-location input,#home-location input { background:var(--platform); }
+#origin-location input { background:var(--platform); }
 /* 조건 화면 ‘데이트할 지역’ 칸은 바로 검색하는 입력칸이다. */
-#origin-location .origin-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; align-items:end; }
-#origin-location .origin-search>label { margin:0; min-width:0; }
-#origin-location .origin-search input { background:#fff; min-height:44px; }
-#origin-location .origin-search-button { min-height:44px; min-width:64px; margin:0; }
-.origin-search-status:empty { display:none; }
-.origin-search-results { list-style:none; margin:8px 0; padding:0; border:1px solid var(--line); border-radius:10px; background:#fff; max-height:320px; overflow-y:auto; }
-.origin-search-option { display:flex; flex-direction:column; gap:2px; min-height:44px; box-sizing:border-box; padding:10px 12px; border-bottom:1px solid var(--line); border-left:4px solid transparent; cursor:pointer; font-size:16px; color:var(--ink); overflow-wrap:anywhere; }
-.origin-search-option:last-child { border-bottom:0; }
-.origin-search-option .hint { font-size:14px; margin:0; }
-.origin-search-option:hover,.origin-search-option[aria-selected=true] { background:var(--platform); border-left-color:var(--hong); }
-.origin-search-option[aria-disabled=true] { cursor:not-allowed; color:var(--muted); }
-.origin-search-option[aria-disabled=true]:hover,.origin-search-option[aria-disabled=true][aria-selected=true] { border-left-color:var(--line); }
 .location-choice { margin:8px 0; }
 .location-choice-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .location-choice-actions button { min-height:44px; }
@@ -144,29 +111,12 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select,
 .choice-note.is-adjusted { background:var(--warn-bg); border-left:4px solid var(--ink); padding:8px 12px; font-weight:600; }
 
 /* ---------- 경고 · 안내 ---------- */
-.warning,main .warning,.condition-differences,.evidence-check {
+.warning,main .warning {
   background:var(--warn-bg)!important;
   color:var(--ink)!important;
   border:0!important;
   border-radius:0;
 }
-#parse-notice:not(:empty),.detail .transport-notice {
-  background:var(--platform);
-  color:var(--ink);
-  border-left:4px solid var(--ink);
-  border-radius:0;
-}
-#progress:not(:empty),#progress.is-searching {
-  background:var(--platform)!important;
-  color:var(--ink)!important;
-  border:0!important;
-  border-left:8px solid var(--hong)!important;
-  border-radius:0;
-  box-shadow:none!important;
-}
-.search-progress-copy :is(strong,p) { color:var(--ink)!important; }
-.search-progress-copy small { color:var(--muted)!important; }
-.search-spinner { border-color:var(--line)!important; border-top-color:var(--hong)!important; border-right-color:var(--hong)!important; }
 
 /* ---------- 머리글 ---------- */
 body > header {
@@ -203,440 +153,17 @@ header nav .nav.active,header nav a[aria-current=page] { color:var(--ink); backg
 main { --gutter:40px; padding-inline:var(--gutter); }
 @media(max-width:800px) { main { --gutter:20px; } }
 @media(max-width:420px) { main { --gutter:16px; } }
-body:not(.show-date-plan) .romance-hero { padding:40px 0 48px; }
-.hero-copy {
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  grid-template-areas:'title photo' 'desc photo' 'line photo' 'actions photo';
-  column-gap:64px;
-  align-items:start;
-  padding-bottom:0;
-}
-.hero h1 { grid-area:title; margin:0 0 16px; font-size:44px!important; line-height:1.2; color:var(--ink); }
-.hero .hero-description { grid-area:desc; margin:0 0 28px; font-size:19px!important; line-height:1.6; color:var(--ink); max-width:none; }
-.hero-actions { grid-area:actions; display:flex; flex-wrap:wrap; align-items:center; gap:12px 24px; margin-top:28px; }
-.hero-actions .primary { display:inline-flex; align-items:center; justify-content:center; min-height:52px; padding:12px 32px; font-size:17px; text-decoration:none; }
-.hero-actions .text-link { display:inline-flex; align-items:center; min-height:44px; font-size:16px; }
-body:not(.show-date-plan) .hero-photo {
-  display:block;
-  grid-area:photo;
-  height:auto;
-  margin:0;
-  border:0;
-  border-radius:0;
-  background:none;
-  overflow:visible;
-}
-.hero-photo img { display:block; width:100%; height:420px; object-fit:cover; object-position:center 55%; filter:none; transform:none; transition:none; }
-.hero-photo figcaption { position:static; margin-top:8px; padding:0!important; background:none!important; color:var(--muted); font-size:14px; border:0; }
-.hero-photo:after { content:none; }
 
-/* 예시 노선 띠: 시각 · 역 · 장소 이름. 실제 일정과 같은 그림 문법을 쓴다. */
-.line-sample { grid-area:line; list-style:none; margin:0; padding:0; --time:4.6em; --rail:32px; }
-.line-sample li { position:relative; display:grid; grid-template-columns:var(--time) var(--rail) minmax(0,1fr); align-items:center; }
-.line-sample .line-stop { min-height:44px; }
-.line-sample time { grid-column:1; font-size:19px; line-height:1.3; color:var(--ink); }
-.line-sample .line-name { grid-column:3; font-size:19px; line-height:1.3; color:var(--ink); }
-.line-sample .line-leg { grid-column:3; min-height:36px; }
-.line-sample .line-leg span { grid-column:3; font-size:14px; color:var(--muted); }
-.line-sample li::before { content:''; position:absolute; left:calc(var(--time) + var(--rail) / 2 - 4px); top:0; bottom:0; border-left:8px solid var(--hong); }
-.line-sample .line-leg.walk::before { border-left-style:dotted; }
-/* 역과 역 사이 선은 구간 수단을 따른다(도보는 점선). 역 줄에는 선을 따로 긋지 않고 구간 선이 역 원 아래까지 이어진다. */
-.line-sample .line-stop::before { content:none; }
-.line-sample .line-leg::before { top:-22px; bottom:-22px; }
-.line-sample .line-stop::after { z-index:1; content:''; position:absolute; left:calc(var(--time) + var(--rail) / 2 - 11px); top:calc(50% - 11px); width:22px; height:22px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
-
-/* 홈: 인기 동네 6곳은 승강장 띠 위의 역 이름 목록처럼. */
-.curation,#curation.curation {
-  margin:0 calc(-1 * var(--gutter)) 0;
-  padding:40px var(--gutter) 48px;
-  background:var(--platform);
-  border-radius:0;
-}
-.curation-heading { text-align:left; margin:0 0 20px; }
-.curation-heading h2 { margin:0 0 6px; color:var(--ink); }
-.curation-heading p { margin:0; color:var(--muted); font-size:16px; }
-.curation-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 32px; border-top:1px solid var(--line); }
-.curation-card {
-  position:relative;
-  display:grid;
-  grid-template-columns:32px minmax(0,1fr);
-  column-gap:12px;
-  align-items:start;
-  width:100%;
-  padding:16px 0;
-  border:0;
-  border-bottom:1px solid var(--line);
-  border-radius:0;
-  background:transparent;
-  color:var(--ink);
-  text-align:left;
-  box-shadow:none;
-  transform:none!important;
-  overflow:visible;
-}
-.curation-card:hover { background:transparent; box-shadow:none; }
-.curation-card:hover .curation-mood { text-decoration:underline; text-underline-offset:4px; }
-.curation-card::before { content:''; grid-row:1 / span 2; width:22px; height:22px; margin:3px 0 0 5px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
-/* 테마가 제목, 동네 이름은 보조 정보(사용자 피드백: 무슨 테마인지 먼저 보여야 함). */
-.curation-mood { grid-column:2; font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; color:var(--ink); }
-.curation-area { grid-column:2; font-size:14px; color:var(--muted); line-height:1.6; }
-.curation-copy { grid-column:2; margin-top:4px; font-size:16px; line-height:1.6; color:var(--ink); }
-.curation-card[aria-pressed=true] .curation-mood { color:var(--hong); text-decoration:underline; text-underline-offset:4px; }
-.data-banner { margin:32px 0 0; padding:0; background:none!important; color:var(--ink); border-radius:0; display:block; }
-.data-banner h2 { font-size:19px!important; margin:0 0 8px; color:var(--ink)!important; }
-.data-points { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 24px; color:var(--ink); font-size:16px; }
-.data-points li::before { content:'·'; margin-right:8px; color:var(--hong); font-weight:800; }
-
-.service-details { background:none; border:0; border-top:1px solid var(--line); border-radius:0; padding:4px 0; margin:0; color:var(--muted); }
-.service-details summary>span { color:var(--ink); }
 .notice { background:var(--platform); border:0; border-radius:0; color:var(--ink); }
-.workspace-intro { margin:40px 0 24px; padding-top:0; border-top:0; }
-.workspace-intro h2 { margin:0 0 4px; }
-.workspace-intro>p { color:var(--muted); font-size:16px; }
 
 /* ---------- 조건 입력 ---------- */
-.conditions.panel,#planner-section .conditions.panel { background:#fff; border:0; border-radius:0; box-shadow:none; padding:0; }
-.simple-form-intro { background:none!important; border:0!important; padding:0!important; color:var(--muted)!important; }
-.simple-plan-form .simple-form-group,.conditions .simple-form-group {
-  background:#fff;
-  border:0;
-  border-top:1px solid var(--line);
-  border-radius:0;
-  padding:20px 0 4px;
-  margin-top:16px;
-}
-.simple-plan-form .simple-form-group legend { float:left; width:100%; padding:0; margin:0 0 12px; font-family:var(--font-head); font-weight:800; font-size:19px; color:var(--ink); }
-.simple-plan-form .simple-form-group legend+* { clear:both; }
-.quick-summary { background:var(--platform); border:0; border-radius:10px; }
-.quick-summary-label { color:var(--muted); }
-.quick-summary-text strong { color:var(--ink); }
 .condition-details { background:#fff; border:1px solid var(--line); border-top:0; border-radius:0 0 10px 10px; }
-.simple-extra-options,.simple-plan-form .simple-extra-options,.conditions .simple-extra-options {
-  background:#fff!important;
-  border:1px solid var(--line)!important;
-  border-radius:10px!important;
-}
-.simple-extra-options>summary,.conditions .simple-extra-options>summary { color:var(--ink); }
-.simple-plan-form #submit-plan,.conditions #submit-plan { min-height:56px; font-size:18px; border-radius:10px; }
-.last-conditions .again-button { border-radius:10px; }
 
-/* ---------- 결과: 제목 · 코스 카드 ---------- */
-.section-heading .step { display:none; }
-.results-area .section-heading h2 { margin:0; }
-#results>.plan-option-tabs {
-  background:none!important;
-  border:0;
-  border-radius:0!important;
-  padding:0!important;
-  gap:12px!important;
-  box-shadow:none;
-  backdrop-filter:none;
-}
-#results .plan-option-tabs button,
-#results .plan-option-tabs button.primary,
-#results .plan-option-tabs button.secondary {
-  background:#fff!important;
-  color:var(--ink)!important;
-  border:1px solid var(--line)!important;
-  border-radius:10px!important;
-  padding:16px!important;
-  box-shadow:none!important;
-  outline:0;
-}
-#results .plan-option-tabs button:hover { border-color:var(--ink)!important; }
-#results .plan-option-tabs button[aria-pressed=true] {
-  border-color:var(--line)!important;
-  border-left:4px solid var(--hong)!important;
-  padding-left:13px!important;
-}
-#results .plan-option-tabs button[aria-pressed=true] :is(strong,span) { color:var(--ink)!important; }
-#results .plan-option-tabs button[aria-pressed=true] .selection-indicator { color:#fff!important; }
-#results .plan-option-tabs .option-label { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; }
-#results .plan-option-tabs .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
-#results .plan-option-tabs button[aria-pressed=true] .option-purpose { color:var(--muted)!important; }
-#results .plan-option-tabs .option-relaxed { color:var(--ink); border-color:var(--line); }
-#results .plan-option-tabs .option-route { font-size:16px; font-weight:700; color:var(--ink); }
-#results .plan-option-tabs :is(.option-title,.option-facts,.option-difference) { color:var(--muted); }
-#results .plan-option-tabs button[aria-pressed=true] :is(.option-title,.option-facts,.option-difference) { color:var(--muted)!important; }
-/* 미니 노선: 장소 수만큼 ●─●─● */
-#results .plan-option-tabs .option-line,.option-line { position:relative; display:flex!important; justify-content:space-between; align-items:center; width:calc(var(--stops,3) * 26px)!important; height:16px; margin:2px 0; }
-.option-line::before { content:''; position:absolute; left:6px; right:6px; top:calc(50% - 2px); height:4px; background:var(--hong); }
-.option-line i { position:relative; width:14px; height:14px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
-#results .plan-option-tabs button[aria-pressed=true] .option-line i { background:var(--hong); }
-@media(forced-colors:active) {
-  .option-line::before,.line-sample li::before,.stop::before,.route-line-block::before { forced-color-adjust:none; }
-}
+/* 강제 색상(고대비) 모드에서도 노선 선 색을 지킨다. 코스 탭의 미니 노선은 results.css 로 옮김. */
 
-/* 선택한 코스 요약 카드 */
-.plan-card,.plan-card.selected {
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:10px;
-  box-shadow:none;
-  padding:24px;
-}
-.plan-card.selected { border-left:4px solid var(--hong); padding-left:21px; }
-.plan-card h3 { margin:8px 0 12px; color:var(--ink); }
-.plan-card .number { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:16px; letter-spacing:0; }
-.fit-reasons { background:var(--platform); border:0; border-radius:0; padding:12px 16px; color:var(--ink); }
-.plan-card .stats,.stats { background:none!important; border:0!important; border-top:1px solid var(--line)!important; border-radius:0; padding:16px 0 0!important; }
-.plan-card .stats b,.stats b { color:var(--ink); font-family:var(--font-head); font-weight:800; font-size:24px; }
-.plan-card .stats small,.stats small { color:var(--muted); }
-.path-text { background:none; border:0; padding:0; color:var(--ink); }
-
-/* 비교 표: 바깥 테두리 없이 줄만. 금액·시간은 오른쪽 정렬(기존 .num). */
-.option-comparison,.comparison-details>.option-comparison { background:none; border:0; border-radius:0; padding:0; box-shadow:none; }
-.option-comparison table { border-collapse:collapse; }
-.option-comparison :is(th,td) { border-bottom:1px solid var(--line); }
-.option-comparison th,.detail th,.cost-table th { background:#fff!important; color:var(--muted)!important; font-weight:700; }
-.option-comparison thead th,.cost-table thead th { border-bottom:2px solid var(--ink); }
-.option-comparison tbody th { background:#fff!important; color:var(--ink)!important; }
-.comparison-course-title,.option-comparison .comparison-basis { color:var(--muted); }
-.comparison-details>summary,.cost-table-details>summary,.plan-photo-details>summary { color:var(--ink); }
-
-/* ---------- 일정: 노선 띠 ---------- */
-.detail.panel,.plan-extras-panel { background:#fff; border:0; border-radius:0; box-shadow:none; padding:24px 0; }
-.detail-header h2 { color:var(--ink); }
-.detail .map-link-list a { background:#fff; border:1px solid var(--line); border-radius:999px; color:var(--cheong); }
-.detail { --time:88px; --rail:40px; --band:calc(var(--time) + var(--rail)); }
-.detail .stop {
-  position:relative;
-  display:grid;
-  grid-template-columns:var(--time) var(--rail) minmax(0,1fr);
-  gap:0;
-  margin:0;
-  padding:0 0 28px;
-  border:0;
-}
-/* 세로 노선: 역 사이를 8px 홍색 선으로 잇는다. */
-.detail .stop::before,.detail .route-line-block::before {
-  content:'';
-  display:block;
-  position:absolute;
-  left:calc(var(--time) + var(--rail) / 2 - 4px);
-  top:0;
-  bottom:0;
-  border-left:8px solid var(--hong);
-}
-.detail .timeline-stamp {
-  grid-column:1 / 3;
-  grid-row:1;
-  position:static;
-  display:grid;
-  grid-template-columns:var(--time) var(--rail);
-  align-content:start;
-  padding:0;
-  text-align:left;
-}
-.detail .timeline-stamp strong { grid-column:1; font-size:24px; line-height:1.3; color:var(--ink); padding-right:8px; }
-.detail .timeline-stamp small { grid-column:1; font-size:14px; line-height:1.5; color:var(--muted); padding-right:8px; }
-.detail .stop-number {
-  position:absolute;
-  left:calc(var(--time) + var(--rail) / 2 - 17px);
-  top:0;
-  right:auto;
-  z-index:1;
-  display:grid;
-  place-items:center;
-  width:34px;
-  height:34px;
-  box-sizing:border-box;
-  border:3px solid var(--hong);
-  border-radius:50%;
-  background:#fff!important;
-  color:var(--hong)!important;
-  font-family:var(--font-head);
-  font-weight:800;
-  font-size:15px;
-  box-shadow:none;
-  order:0;
-}
-.detail .stop .timeline-card,.stop .timeline-card,.timeline-card {
-  grid-column:3;
-  grid-row:1;
-  min-width:0;
-  padding:0;
-  border:0;
-  border-radius:0;
-  background:none;
-  box-shadow:none;
-}
-.detail .timeline-card h4 { margin:2px 0 6px; font-size:24px; line-height:1.35; color:var(--ink); }
-.detail .step-category { margin:0 0 4px; }
-.stop-cost,.detail .stop-cost { display:inline-block; background:none!important; border:0!important; padding:0!important; color:var(--ink)!important; font-weight:700; font-variant-numeric:tabular-nums; }
-/* 구간 줄: 노선은 이어지고 글은 장소 이름과 같은 열. 자동차 실제 경로만 실선, 도보 짧은 점선, 그 밖 긴 점선(지도 범례와 같음). */
-.detail .route-line-block { position:relative; padding:4px 0 16px var(--band); }
-.detail .route-line-block.route-leg-short::before { border-left-style:dotted; }
-.detail .route-line-block.route-leg-long::before { border-left-style:dashed; }
-.detail .route-line {
-  margin:0;
-  padding:8px 0;
-  background:none;
-  border:0;
-  border-radius:0;
-  color:var(--muted);
-  font-weight:500;
-}
-.detail .route-line-text { color:var(--muted); }
-.detail .route-line-source { color:var(--muted); }
-.detail .transport-chooser,.detail .transport-bulk { background:#fff; border:1px solid var(--line); border-radius:10px; }
-/* 같은 열에 놓이는 주변 식당 제안도 노선 옆에 둔다. */
-.detail>.meal-suggestions { position:relative; margin:0 0 16px var(--band)!important; }
-.detail>.meal-suggestions::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
-.detail .stop:last-of-type { padding-bottom:12px; }
-/* 자동차로 도착한 장소 아래의 근처 주차장(parking.js). 식당 제안처럼 노선 옆 같은 열에 둔다. 흰 바탕, 1px 선, 그림자 없음. */
-.detail>.parking-panel { position:relative; margin:0 0 16px var(--band); }
-.detail>.parking-panel::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
-.parking-panel { min-width:0; padding:12px 16px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); box-shadow:none; color:var(--ink); font-size:15px; overflow-wrap:anywhere; }
-.parking-panel h4 { margin:0 0 8px; font-size:17px; line-height:1.4; color:var(--ink); }
-.parking-panel p { margin:4px 0; font-size:15px; line-height:1.5; }
-.parking-panel .hint { font-size:14px; color:var(--muted); }
-.parking-lots { list-style:none; margin:0; padding:0; }
-.parking-lot { padding:10px 0; border-top:1px solid var(--line); }
-.parking-lot:first-child { border-top:0; padding-top:0; }
-.parking-lot-title { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
-.parking-lot-title strong { font-size:16px; color:var(--ink); }
-.parking-panel .parking-public { font-size:14px; background:var(--platform); color:var(--ink); border:1px solid var(--line); }
-.parking-panel a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
-.parking-panel button { min-height:44px; font-size:15px; }
-.parking-panel .parking-live { font-weight:700; color:var(--ink); }
-.parking-panel .parking-note { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
-/* 블로그 후기 본문에서 읽은 영업시간(참고용). 확인된 운영 정보와 구분되게 회색 꼬리표로 둔다. */
-.review-facts { margin:8px 0; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--platform); overflow-wrap:anywhere; }
-.review-facts p { margin:2px 0; font-size:15px; line-height:1.5; color:var(--ink); }
-.review-facts .review-facts-tag { font-size:14px; background:var(--paper); color:var(--ink); border:1px solid var(--line); }
-.review-facts .hint { font-size:14px; color:var(--muted); }
-.review-facts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
-@media(max-width:800px) {
-  .detail { --time:0px; --rail:36px; }
-  .detail .stop { grid-template-columns:var(--rail) minmax(0,1fr); padding-bottom:24px; }
-  .detail .timeline-stamp { grid-column:2; grid-row:1; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; padding:4px 0 2px; }
-  .detail .timeline-stamp strong { font-size:19px; padding:0; }
-  .detail .timeline-stamp small { padding:0; }
-  .detail .stop-number { left:calc(var(--rail) / 2 - 17px); top:0; }
-  .detail .stop .timeline-card,.detail .timeline-card { grid-column:2; grid-row:2; padding-left:0; }
-  .detail .timeline-card h4 { font-size:19px; }
-  .detail .stop::before,.detail .route-line-block::before { left:calc(var(--rail) / 2 - 4px); }
-  .detail .route-line-block { padding-left:var(--rail); }
-  .detail>.meal-suggestions { margin-left:var(--rail)!important; }
-  .detail>.parking-panel { margin-left:var(--rail); }
-}
-
-/* 일정 안의 사진·근거·블로그·메뉴: 흰 바탕, 1px 선, 그림자 없음. */
-.place-photo-panel { background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
-.photo-viewport,.place-photo img { background:var(--platform); border-radius:0; }
-/* 사진 출처 줄: 글과 링크를 같은 크기로, 링크는 출처 색(청)으로. */
-:is(main,dialog) .place-photo figcaption { font-size:14px!important; line-height:1.6; color:var(--muted); }
-:is(main,dialog) .place-photo figcaption a { font-size:inherit; line-height:inherit; font-weight:400; color:var(--cheong); }
-.photo-arrow { background:var(--ink); border:1px solid #fff; box-shadow:none; }
-.photo-arrow:hover { background:var(--hong); }
-.photo-counter { background:var(--ink); }
-.photo-eyebrow { display:block; font-size:14px; letter-spacing:0; color:var(--muted); }
-.place-evidence,.place-blogs,.restaurant-menu,.verified-facts,.experience-panel>details,.experience-controls,.course-search-panel {
-  background:#fff!important;
-  border:1px solid var(--line)!important;
-  border-radius:10px!important;
-}
-.place-blogs summary,.place-evidence>summary,.course-evidence>summary,.experience-panel summary { color:var(--ink)!important; }
-.evidence-item { background:#fff; border-color:var(--line); }
-.evidence-ok .evidence-badge { background:var(--platform); color:var(--ink); border-color:var(--line); }
-.evidence-info .evidence-badge { background:#fff; color:var(--cheong); border-color:var(--line); }
-.evidence-check .evidence-badge,.evidence-summary-count { background:var(--warn-bg); color:var(--ink); border-color:var(--ink); }
-.menu-heading,.menu-price-row b { color:var(--ink); }
-.meal-suggestions { background:var(--platform)!important; border:0!important; border-radius:0!important; }
-.meal-card { background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; box-shadow:none; }
-.photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
-
-/* ---------- 확인: 네 가지 확인은 2열 정의 목록 ---------- */
-.execution-summary { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; padding:20px 0 4px; box-shadow:none; }
-.execution-summary h3 { color:var(--ink); }
-.execution-summary .execution-grid { display:block; margin:12px 0 16px; }
-.execution-summary .execution-grid>div {
-  display:grid;
-  grid-template-columns:6.5em minmax(0,1fr);
-  gap:0 16px;
-  align-items:baseline;
-  padding:10px 0;
-  background:none;
-  border:0;
-  border-bottom:1px solid var(--line);
-  border-radius:0;
-  box-shadow:none;
-}
-.execution-summary .execution-grid>div:first-child { border-top:1px solid var(--line); }
-.execution-summary .execution-grid strong { margin:0; color:var(--muted); font-size:15px; font-weight:700; }
-.execution-summary .execution-grid p { margin:0; color:var(--ink); font-size:16px; }
-.execution-summary summary { color:var(--ink); }
-.execution-summary .verification-place>a { color:var(--cheong); }
-.detail .table-scroll { border:0; border-radius:0; }
-.detail td { color:var(--ink); }
-.detail .total-row { background:none; border:0; border-bottom:1px solid var(--line); border-radius:0; padding:12px 0; }
-.detail .total-row>span:last-child { color:var(--ink); }
-.planning-decision { background:var(--platform); border:0; border-radius:0; box-shadow:none; }
-.planning-decision h3 { color:var(--ink); }
-.planning-decision>.partner-agreement { border-top:1px solid var(--line); }
-.planning-decision .actions button { border-radius:10px; }
-
-/* ---------- 축제: 청색 띠로 구분, 사진은 자르지 않고 출처는 사진 아래 ---------- */
-#festival-section,.festival-panel {
-  background:#fff;
-  border:0;
-  border-top:8px solid var(--cheong);
-  border-radius:0;
-  box-shadow:none;
-  padding:20px 0 8px;
-}
-.festival-panel .section-heading h3 { color:var(--cheong); }
-.festival-demo-note { background:var(--platform); color:var(--ink); border-radius:0; }
-.festival-card { border:1px solid var(--line); border-radius:10px; background:#fff; box-shadow:none; }
-.festival-card>strong { font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
-.festival-card a { color:var(--cheong); }
-.festival-chosen { border-color:var(--line); border-left:4px solid var(--hong); box-shadow:none; }
-.festival-photo-frame { background:var(--platform); }
-.festival-photo-frame img { object-fit:contain; }
-.festival-photo-credit { font-size:14px; color:var(--muted); text-align:left; }
-.festival-origin-note { background:var(--platform); border:0; border-left:8px solid var(--cheong); border-radius:0; color:var(--ink); }
-.festival-origin-note .festival-origin-title,.festival-context { color:var(--ink)!important; }
-.festival-course-tag { background:#fff; border:1px solid var(--cheong); color:var(--cheong); }
-.map-festival-note { color:var(--ink); }
-
-/* ---------- 지도 ---------- */
-.plan-map-card { background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:none; }
-.plan-map-card h2 { font-size:19px; color:var(--ink); }
-.naver-plan-map { border:1px solid var(--line); border-radius:0; background:var(--platform); box-shadow:none; }
-.map-reconnect { background:var(--platform); border:0; border-radius:0; }
-.route-marker { background:var(--hong); border:3px solid #fff; box-shadow:none; }
-.route-marker.route-start { background:var(--ink); }
-/* 지도 안내 문구가 "주황색 번호"라고 부르는 주변 식당 표시. */
-.route-marker.restaurant-marker { background:#a3480f; }
-/* 근처 주차장 P: 청색 바탕 흰 글자 네모(코스 번호 원과 모양으로도 구분). */
-.route-marker.parking-marker { width:32px; height:32px; border-radius:4px; background:var(--cheong); color:var(--white); font-size:15px; font-weight:800; }
-.leaflet-marker-icon.parking-divicon { width:0; height:0; background:none; border:0; }
-.parking-divicon .parking-marker { position:absolute; left:0; top:0; transform:translate(-50%,-50%); }
-.parking-divicon:focus-visible .parking-marker { outline:3px solid var(--ink); outline-offset:2px; }
-.map-parking-note { color:var(--ink); }
-
-/* ---------- 부가: 레저 · 대화 · 후기 ---------- */
-.leisure-course-panel { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; box-shadow:none; padding:24px 0; }
-.leisure-course-panel>h3 { color:var(--ink); }
-.leisure-choices,.leisure-results { background:#fff; border:1px solid var(--line); border-radius:10px; }
-.leisure-choices>summary,.leisure-results>summary,.leisure-setting>h4 { color:var(--ink); }
-.leisure-photo-grid img,.leisure-photo-empty { background:var(--platform); border-color:var(--line); border-radius:0; }
-.leisure-photo-grid figure>a { border-radius:0; }
-.chat-box { background:var(--platform); border:0; border-radius:0; }
 
 /* ---------- 장소 둘러보기 ---------- */
 .searchbar.panel,.panel.searchbar { background:var(--platform); border:0; border-radius:0; }
-.catalog .place-card,.place-card {
-  background:#fff;
-  border:1px solid var(--line);
-  border-radius:10px;
-  box-shadow:none;
-  transform:none!important;
-}
-.catalog .place-card:hover { border-color:var(--ink); box-shadow:none; }
-.catalog .place-card h3 { font-size:19px; color:var(--ink); }
 
 /* ---------- 대화상자 · 알림 · 바닥글 ---------- */
 dialog {
@@ -673,51 +200,10 @@ footer strong { color:var(--ink); font-family:var(--font-head); font-weight:800;
 body:has(#shared-places) main { max-width:880px; padding-block:24px 48px; }
 
 /* ---------- 좁은 화면 ---------- */
-@media(max-width:1000px) {
-  .hero-copy { display:block; }
-  body:not(.show-date-plan) .hero-photo { display:none; }
-  .hero .hero-description { margin-bottom:24px; }
-  .curation-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
-@media(max-width:800px) {
-  body:not(.show-date-plan) .romance-hero { padding:28px 0 36px; }
-  .hero-actions { display:grid; grid-template-columns:minmax(0,1fr); justify-items:start; gap:8px; }
-  .hero-actions .primary { width:100%; }
-  .curation { padding-block:32px 40px; }
-  .curation-grid { grid-template-columns:minmax(0,1fr); }
-  /* 모바일에서는 동네 목록도 한 줄 노선으로 잇는다. */
-  .curation-card::after { content:''; position:absolute; left:14px; top:0; bottom:0; border-left:4px solid var(--hong); z-index:0; }
-  .curation-card:first-child::after { top:22px; }
-  .curation-card:last-child::after { bottom:auto; height:22px; }
-  .curation-card::before { position:relative; z-index:1; }
-  .plan-card,.plan-card.selected { padding:18px 16px; }
-  .plan-card.selected { padding-left:13px; }
-}
-@media(max-width:420px) {
-  .hero .hero-description { font-size:16px!important; }
-  .line-sample { --time:4.2em; --rail:30px; }
-  .line-sample time,.line-sample .line-name { font-size:19px; }
-}
 @media(prefers-reduced-motion:reduce) {
-  .curation-card,.hero-photo img,.primary { transition:none; }
-}
-@media print {
-  .line-sample li::before,.detail .stop::before,.detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  .primary { transition:none; }
 }
 body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
-/* 확정 전 후보(가격 확인 중): 버튼이 아닌 읽기 전용 카드. 점선 테두리로 확정된 코스 카드와 구별한다(plan-progress.js PlanPreview). */
-#results .plan-preview { border:1px dashed var(--muted); border-radius:12px; padding:16px; margin:0 0 16px; min-width:0; background:var(--paper); }
-#results .plan-preview h3 { margin:0 0 6px; font-size:17px; line-height:1.5; color:var(--ink); }
-#results .plan-preview .hint { margin:0 0 12px; overflow-wrap:anywhere; }
-.plan-preview-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
-.plan-preview-card { display:flex; flex-direction:column; gap:2px; min-width:0; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--platform); overflow-wrap:anywhere; word-break:keep-all; }
-.plan-preview-card .option-label { font-family:var(--font-head); font-weight:800; font-size:15px; color:var(--ink); }
-.plan-preview-card .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
-.plan-preview-card .option-route { font-size:16px; line-height:1.6; color:var(--ink); }
-.plan-preview-pending { font-size:14px; line-height:1.6; color:var(--muted); }
-.plan-preview-changes { border-left:4px solid var(--hong); background:var(--platform); padding:10px 14px; margin:0 0 16px; overflow-wrap:anywhere; }
-.plan-preview-changes strong { color:var(--ink); }
-.plan-preview-changes ul { margin:6px 0 0; padding-left:20px; }
 /* 입력칸 테두리: 구분선 색(--line #d5dbdf)은 흰 바탕 대비 1.4:1 이라 칸 경계가 잘 안 보인다(WCAG 1.4.11 비텍스트 대비 3:1).
    입력·선택 칸에만 #7f8992(흰 바탕 3.56:1, --platform 바탕 3.2:1)를 쓰고, 포커스 때는 전처럼 진한 색. 카드·구분선은 그대로.
    line.css 앞쪽의 같은 선택자 규칙(border:1px solid var(--line))보다 뒤에 있어야 이기므로 이 파일 끝에 둔다. */
@@ -726,62 +212,7 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 .conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) { border-color:var(--field-line); }
 :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]),select,textarea):focus,
 .conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea):focus { border-color:var(--ink); }
-/* 후기 신고 사유 입력칸(reviews.js, prompt() 대신). */
-.review-report { display:grid; gap:8px; margin-top:10px; }
-.review-report label { margin:0; }
-.review-report button { justify-self:start; }
-@media print { .review-report { display:none !important; } }
-/* ---------- 가독성 정리 1단계(2026-11-17): 장소 카드·구간·지도 링크·출처 ----------
-   장소 이름 → 한 줄 요약(분류 · 2인 비용 · 머무는 시간) 순서로 읽히게 하고, 출처·확인 방법 문장은 접는다.
-   이 파일 앞쪽과 readability.css·calm.css·selle.css 가 같은 요소를 여러 번 덮어쓰므로 .detail 을 붙여 여기서 마지막으로 정한다.
-   글씨는 14px 아래로 두지 않는다(test_readability_ui 의 기준). */
-.detail .timeline-card > h4 { font-size:21px; line-height:1.4; margin:2px 0 6px; overflow-wrap:anywhere; }
-.detail .stop-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:0 0 10px; font-size:15px; line-height:1.6; color:var(--ink); }
-.detail .stop-meta .step-category { margin:0; font-size:14px; padding:3px 10px; }
-.detail .stop-meta .stop-cost { display:inline; margin:0; font-size:15px; font-weight:700; color:var(--ink)!important; white-space:nowrap; }
-.detail .stop-meta .stop-stay { color:var(--muted); white-space:nowrap; }
-.detail :is(.stop-source,.photo-meta) { border:0; padding:0; margin:8px 0 0; }
-.detail :is(.stop-source,.photo-meta) > summary { margin:0; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; }
-.detail :is(.stop-source,.photo-meta)[open] > summary { margin-bottom:4px; }
-.detail :is(.stop-source,.photo-meta) .hint { margin:2px 0; font-size:14px; }
-/* 네이버 지도 찾기: 화면 폭 단추 3개 대신 한 줄 링크 묶음. */
-.detail .map-link-list { display:flex !important; flex-wrap:wrap; align-items:baseline; gap:4px 14px; margin:10px 0 12px; font-size:14px; }
-.detail .map-link-list .map-link-label { width:100%; font-size:14px; color:var(--muted); }
-.detail .map-link-list a { width:auto !important; min-height:0; padding:0; border:0; border-radius:0; background:none; color:var(--cheong); text-decoration:underline; text-underline-offset:3px; }
-.detail .route-source-note { margin:0 0 12px; font-size:14px; }
-@media print { .detail .map-link-list { display:none !important; } }
-.detail .photo-copy-fold { grid-column:auto; align-self:start; }
-.detail .place-photo-panel .photo-more { justify-self:start; }
-/* ---------- 가독성 정리 2단계(2026-11-17): 휴대폰에서 고른 코스 수치·장소 단추·빈 식당 안내 ---------- */
-@media (max-width:720px) {
-  /* 고른 코스 수치: 세로 4줄 큰 숫자(약 350px) 대신 2×2 칸. */
-  #results .plan-card .stats { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; align-items:start; }
-  #results .plan-card .stats > div { display:block; min-width:0; text-align:left; }
-  #results .plan-card .stats b { display:block; font-size:20px; line-height:1.35; overflow-wrap:anywhere; }
-  #results .plan-card .stats small { display:block; max-width:none; margin-top:2px; font-size:14px; text-align:left; line-height:1.5; } /* editorial.css 의 max-width:54% 해제 */
-}
-/* 장소 단추: 2×2 큰 칸(글자가 두 줄로 꺾임) 대신 글자 길이만큼, 높이 44px 는 유지. */
-.detail .stop .actions { display:flex !important; flex-wrap:wrap; gap:8px; }
-.detail .stop .actions > :is(button,a) { flex:0 1 auto; width:auto !important; min-height:44px; padding:8px 14px; font-size:14px; white-space:nowrap; }
-/* 찾은 주변 식당이 없을 때: 제목·한 줄 안내·검색 링크만. */
-.detail .meal-suggestions.is-empty { padding:12px 16px; }
-.detail .meal-suggestions.is-empty h4 { margin:0 0 4px; font-size:16px; }
-.detail .meal-suggestions.is-empty .hint { margin:0 0 8px; }
-/* 휴대폰 지도 자리는 #plan-detail 안으로 옮겨 style.css 의 '#results 의 다른 자식 숨김' 인쇄 규칙에서 빠졌다. 종이에서는 따로 숨긴다. */
-@media print { .plan-map-slot { display:none !important; } }
-/* 휴대폰 지도 제목은 h3(maps.js renderPlanMapCard). 데스크톱 h2 와 같은 모양. */
-.plan-map-card > h3.plan-map-title { margin:0 0 14px; font-size:19px; line-height:1.4; color:var(--ink); }
-/* 가독성 3단계: 고른 코스 카드에서 탭과 겹치는 머리줄·태그를 빼고, '일정 살펴보기 ↓'는 카드 맨 아래. */
-#results .plan-card.selected > .inspect-plan { display:block; margin-top:14px; min-height:44px; }
-@media print { #results .plan-card.selected > .inspect-plan { display:none !important; } }
-/* ---------- 가독성 3단계(2026-11-17): 조건 차이 상자 여백, 휴대폰 헤더 ---------- */
-/* 노란 조건 차이 상자: 내용은 그대로, 여백과 접기 사이 간격만 줄인다(전에는 접힌 줄 두 개에 상자가 약 400px). */
-#results > .condition-differences { padding:14px 16px !important; }
-#results > .condition-differences > strong { display:block; margin:0 0 4px; }
-#results > .condition-differences .condition-summary { margin:0 0 6px; }
-#results > .condition-differences ul { margin:4px 0; padding-left:18px; }
-#results > .condition-differences details { margin:4px 0; padding:8px 0; }
-#results > .condition-differences details > summary { margin:0; }
+/* ---------- 가독성 3단계(2026-11-17): 휴대폰 헤더(조건 차이 상자 여백은 results.css) ---------- */
 /* 휴대폰 헤더: 여백을 줄이고 메뉴는 줄바꿈 대신 한 줄(넘치면 옆으로 넘김). 보조 문구는 브랜드 결정이라 남긴다(test_header_tagline_fits_mobile…).
    전에는 390px 에서 124px, 320px 에서 '피드백'이 둘째 줄로 내려가 172px(구역 표시줄까지 화면의 33%)였다. */
 @media (max-width:720px) {
@@ -791,33 +222,3 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
   body > header nav > :is(a,button) { flex:0 0 auto; white-space:nowrap; }
 }
 
-/* 대중교통 지하철·버스 비교(transit-compare.js, 2026-11-18). 일정 위 단추 상자와, 대중교통 구간 줄 아래 선택지 패널.
-   패널은 주차장 패널처럼 노선 옆 같은 열에 두고 세로 띠(::before)를 이어 그린다. 선택지는 단추(44px 이상), 고른 것은 청색 테두리.
-   색 점(.transit-kind-dot)의 색은 transit-compare.js TRANSIT_LINE_COLORS 가 style 로 준다(지도 선 색과 같게). */
-.transit-compare-intro { margin:0 0 16px; padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; }
-.transit-compare-intro .transit-compare-start { min-height:44px; }
-.transit-compare-intro p { margin:6px 0 0; font-size:14px; line-height:1.6; }
-.detail>.transit-compare-panel { position:relative; margin:0 0 16px var(--band); padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow-wrap:anywhere; }
-.detail>.transit-compare-panel::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
-.transit-options { display:grid; gap:8px; }
-.transit-option { display:grid; gap:4px; width:100%; min-height:44px; padding:10px 12px!important; text-align:left; background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px!important; font-weight:500; }
-.transit-option[aria-pressed="true"] { border:2px solid var(--cheong)!important; padding:9px 11px!important; }
-.transit-option-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; font-size:16px; }
-.transit-kind-dot { width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
-.transit-option .transit-badge { font-size:13px; padding:2px 8px; }
-.transit-option-facts,.transit-option-lines { font-size:14px; line-height:1.5; color:var(--muted); }
-.transit-option-missing { margin:0; font-size:14px; }
-.transit-preview { margin:10px 0 0; font-size:15px; line-height:1.6; color:var(--ink); }
-@media (max-width:720px) {
-  .detail>.transit-compare-panel { margin-left:var(--rail); }
-}
-/* 미리보기 전용이라 인쇄·저장본에는 넣지 않는다(저장 코스는 추정 그대로라는 사용자 결정). */
-@media print {
-  .transit-compare-intro,.transit-compare-panel,.map-transit-note { display:none!important; }
-}
-
-/* 지도 아래 장소 목록 한 줄: 네이버 지도 링크(왼쪽, 줄바꿈 허용) + 「일정에서 보기」 단추(오른쪽, 44px). maps.js renderPlanMapCard, 2026-11-18 가독성 8단계.
-   인쇄에서는 단추가 모두 숨겨지므로(style.css) 링크만 남는다. */
-.map-place-row { display:flex; align-items:center; justify-content:space-between; gap:8px 12px; min-width:0; }
-.map-place-row > a { flex:1 1 auto; min-width:0; }
-.map-place-row .map-place-go { flex:0 0 auto; min-height:44px; padding:8px 12px!important; font-size:14px!important; white-space:nowrap; }

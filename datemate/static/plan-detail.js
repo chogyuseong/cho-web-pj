@@ -58,6 +58,8 @@ function renderDetail() {
   box.append(transitCompareIntro(p));
   // 지금 늦으면 어디서 처음 문제가 생기는지(읽기 전용, delay-check.js). 저장된 코스(id)가 있을 때만.
   if (p.id && typeof delayCheckPanel === 'function') box.append(delayCheckPanel(p));
+  // 약속 당일 도구(day-of.js): 마지막 출발 시각, 한 곳씩 크게 보기, 현장용 일정 복사. 서버에 묻지 않는다.
+  if (typeof dayOfTools === 'function') box.append(dayOfTools(p));
   p.places.forEach((place, i) => {
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`), transitComparePanel(p, i));
     const stop = node('article', undefined, 'stop');

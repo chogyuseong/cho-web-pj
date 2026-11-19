@@ -1,0 +1,81 @@
+/* 결과 화면 부품 (CSS 정리 5-3, docs/css-consolidation-plan-2026-11-18.md)
+
+   맡는 범위: 추천 결과(#results) 안의 부품. 부품마다 여러 테마 파일(selle·calm·editorial·readability·line 등)에 흩어져
+   덧칠되던 규칙을 모아, 실제로 화면에 이기던 값만 한 번씩 적었다. 옮기기 전후 계산값은 tests/css_snapshot.py 로 비교해
+   차이 0 을 확인했다.
+   불러오는 순서: index.html 에서 line.css 바로 뒤, popups.css 앞. 그래서 같은 명시도라면 line.css 보다 뒤에서 이긴다.
+
+   고칠 때 지킬 것
+   - 다른 파일에 같은 부품 규칙을 다시 만들지 말고 여기서 고친다(덧칠이 다시 쌓이면 이 정리가 무의미해진다).
+   - !important 는 아래에 이유를 적은 곳에만 있다. 대부분 line.css 의 공통 단추 규칙(.primary/.secondary 의
+     background·color·border !important)을 이기기 위한 것이다. 그 공통 규칙을 5-5 단계에서 정리하면 함께 뗄 수 있다.
+   - 선택자 앞의 #results 는 원래 line.css 가 쓰던 명시도를 그대로 따른 것이다. 빼면 readability.css 의
+     main button.primary 같은 공통 규칙에 질 수 있다.
+   - 값을 바꾼 뒤에는 css_snapshot 비교로 의도한 곳만 달라졌는지 본다. */
+
+
+/* ---------------------------------------------------------------- 코스 탭 (5-3a)
+   만드는 곳: plan-results.js 의 optionTabContent()·renderResults(). #results 바로 아래 div.plan-option-tabs 안에
+   코스마다 button(선택된 것은 .primary + aria-pressed=true, 나머지는 .secondary) 하나.
+   단추 안: .option-label(코스 n + .selection-indicator + .option-purpose + .option-relaxed), .option-line(정류장 점 노선),
+   strong.option-route, .option-title, .option-facts(.range-lines), .option-difference.
+   예전 출처: place-photos·selle·calm·editorial·readability·line 의 .plan-option-tabs 규칙 63개(대부분 서로 덮어씀).
+   남겨 둔 공통 규칙: readability.css 의 main :is(...,.option-label) 줄 높이 1.75, line.css 의 .option-facts 숫자 폭 고정. */
+
+/* 탭 묶음. 위치를 고정(sticky)하던 예전 규칙은 모두 position:static 에 졌다. 배경·테두리·안쪽 여백은 없다(노선 테마).
+   z-index:4 는 static 이라 효과가 없지만 계산값을 그대로 두려고 남겼다. 필요 없다고 판단되면 지워도 화면은 같다. */
+#results>.plan-option-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; flex-wrap:wrap; align-items:stretch;
+  position:static; top:auto; z-index:4; margin-bottom:22px; padding:0; border:0; border-radius:0; background:none;
+  box-shadow:none; backdrop-filter:none; scroll-margin-top:12px; }
+/* 열 수: 1280px 이상만 3열. 지도 패널이 옆에 서는 801~1279px 에서는 탭이 좁아 이름이 잘리므로 1열, 800px 이하도 1열.
+   (두 구간의 값 표기가 달라 따로 둔다. 계산값은 같다.) */
+@media(min-width:801px) and (max-width:1279px) { #results>.plan-option-tabs { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:800px) { #results>.plan-option-tabs { grid-template-columns:1fr; } }
+
+/* 탭 단추. background·color·border 의 !important 는 line.css 의 .primary/.secondary(!important)를 이기기 위한 것. */
+#results .plan-option-tabs button { display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; gap:8px;
+  flex:1; min-width:0; min-height:48px; padding:16px; border:1px solid var(--line)!important; border-radius:10px;
+  background:#fff!important; color:var(--ink)!important; box-shadow:none; outline:0;
+  text-align:left; white-space:normal; overflow-wrap:anywhere; font-size:15px; line-height:1.6; }
+#results .plan-option-tabs button:hover { border-color:var(--ink)!important; }
+/* 선택된 탭: 왼쪽 굵은 홍색 선. 마우스를 올려도 이 규칙이 뒤에 있어 테두리 색은 그대로다.
+   outline-offset 2px 는 키보드 포커스 테두리(line.css :focus-visible)의 간격도 정한다. */
+#results .plan-option-tabs button[aria-pressed=true] { border-color:var(--line)!important; border-left:4px solid var(--hong)!important;
+  padding-left:13px; outline-offset:2px; }
+@media(max-width:800px) { #results .plan-option-tabs button { width:100%; } }
+
+/* 단추 안 글줄. style.css 의 .primary span{margin-left:12px} 를 0 으로 되돌린다. */
+#results .plan-option-tabs button span { margin-left:0; }
+#results .plan-option-tabs button>span,#results .plan-option-tabs button>strong { display:block; width:100%; min-width:0; }
+#results .plan-option-tabs .option-label { display:flex; flex-wrap:wrap; align-items:center; gap:8px; letter-spacing:0;
+  font-family:var(--font-head); font-weight:800; font-size:16px; color:var(--ink); }
+#results .plan-option-tabs .option-purpose { font-family:var(--font-body); font-weight:600; color:var(--muted); }
+#results .plan-option-tabs .option-relaxed { font-size:13px; font-weight:750; padding:1px 8px; border-radius:999px;
+  border:1px solid var(--line); color:var(--ink); }
+/* 코스 경로(가게 이름 → …)는 두 줄까지만 보이고 나머지는 잘린다. */
+#results .plan-option-tabs .option-route { font-size:16px; font-weight:700; line-height:1.5; color:var(--ink); word-break:keep-all;
+  overflow-wrap:anywhere; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; }
+#results .plan-option-tabs :is(.option-title,.option-facts,.option-difference) { font-size:14px; line-height:1.55; color:var(--muted);
+  font-weight:500; word-break:keep-all; }
+#results .plan-option-tabs .option-facts .range-lines { display:inline; }
+#results .plan-option-tabs .option-facts .range-lines>span+span { margin-left:.3em; }
+#results .plan-option-tabs .option-facts .range-lines>span { display:inline-block; }
+
+/* 선택된 탭의 글자 색. 먼저 모든 글줄을 진한 색으로 두고, 목적·설명줄은 회색, '선택됨' 표시는 흰 글자로 되돌린다.
+   (.range-lines 안의 span 은 첫 규칙에 걸려 선택된 탭에서만 진한 색이 된다. 예전 화면 그대로다.) */
+#results .plan-option-tabs button[aria-pressed=true] :is(strong,span) { color:var(--ink); }
+#results .plan-option-tabs button[aria-pressed=true] .option-purpose { color:var(--muted); }
+#results .plan-option-tabs button[aria-pressed=true] :is(.option-title,.option-facts,.option-difference) { color:var(--muted); }
+#results .plan-option-tabs button[aria-pressed=true] .selection-indicator { color:#fff; }
+
+/* '선택됨' 알약. 선택된 탭의 .option-label 안에만 생긴다. */
+.selection-indicator { font-size:12px; font-weight:750; padding:2px 8px; border:0; border-radius:999px; background:var(--hong); color:#fff; }
+
+/* 정류장 점 노선: 점 개수는 JS 가 넣는 --stops(코스 장소 수). 가운데 홍색 선 위에 흰 점, 선택된 탭은 점을 채운다. */
+#results .plan-option-tabs .option-line { position:relative; display:flex; justify-content:space-between; align-items:center;
+  width:calc(var(--stops,3) * 26px); height:16px; margin:2px 0; }
+#results .plan-option-tabs .option-line::before { content:''; position:absolute; left:6px; right:6px; top:calc(50% - 2px); height:4px; background:var(--hong); }
+#results .plan-option-tabs .option-line i { position:relative; width:14px; height:14px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; background:#fff; }
+#results .plan-option-tabs button[aria-pressed=true] .option-line i { background:var(--hong); }
+/* 강제 색상(고대비) 모드에서도 선 색을 지키게 한다. */
+@media(forced-colors:active) { #results .plan-option-tabs .option-line::before { forced-color-adjust:none; } }

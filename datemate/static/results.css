@@ -195,8 +195,9 @@
 @media(max-width:600px) { .detail .stop-meta .stop-cost { float:none; max-width:100%; } }
 .detail .stop-meta .stop-stay { color:var(--muted); white-space:nowrap; }
 
-/* 장소 단추·링크 줄: 점선 위 구분, 글자 길이만큼의 단추. display:flex!important 는 예전 값 그대로(5-5 에서 확인 후 뗀다). */
-.detail .stop .actions { display:flex!important; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:13px; border-top:1px dashed var(--line); }
+/* 장소 단추·링크 줄: 점선 위 구분, 글자 길이만큼의 단추. display:flex!important 는 예전 값 그대로(5-5 에서 확인 후 뗀다).
+   위 여백(12px)은 readability.css 의 .results-area .actions 가 정한다. 여기서 정하면 명시도가 높아 그 값을 덮으니 넣지 않는다. */
+.detail .stop .actions { display:flex!important; flex-wrap:wrap; gap:8px; padding-top:13px; border-top:1px dashed var(--line); }
 .detail .stop .actions>button { flex:0 1 auto; width:auto!important; min-height:44px; padding:8px 14px; font-size:14px; white-space:nowrap; }
 /* 링크(네이버 지도 등)는 단추처럼 보이게. 테두리·바탕·글자색 !important 는 공통 단추 규칙과 같은 값. */
 .detail .stop .actions>a { flex:0 1 auto; width:auto!important; min-height:44px; padding:8px 14px; font-size:14px; font-weight:600; white-space:nowrap;

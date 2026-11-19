@@ -207,3 +207,66 @@
   .stop { break-inside:auto; }
   .detail .stop::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
 }
+
+
+/* ---------------------------------------------------------------- 이동 구간 줄·교통수단 선택·지하철/버스 비교 (5-3c-2)
+   만드는 곳: plan-actions.js routeLine() — 장소 사이마다 div.route-line-block(.route-leg-short|long) 안에 div.route-line
+   (span.route-line-text, 교통수단 바꾸기 단추 .route-mode-toggle, small.route-line-source), 펼치면 fieldset.transport-chooser
+   (legend, div.actions.transport-options 단추들, p.hint.transport-status), 공지 div.transport-notice, 일괄 바꾸기 details.transport-bulk.
+   지하철·버스 비교는 transit-compare.js(.transit-compare-intro, 구간 아래 .transit-compare-panel, .transit-option 카드).
+   레일: .route-line-block::before 가 장소 칸(.stop::before)과 같은 자리에 같은 굵기로 이어진다. 짧은 도보는 점선, 먼 거리는 파선.
+   예전 출처: style·selle·calm·editorial·readability·line 의 규칙 약 50개. transit-* 는 line.css 에만 있던 것을 그대로 옮겼다.
+   남겨 둔 공통 규칙: style.css 인쇄 숨김 목록의 .transport-bulk, line.css 의 .map-transit-note 인쇄 숨김. */
+
+.detail .route-line-block { position:relative; padding:4px 0 16px var(--band); }
+@media(max-width:800px) { .detail .route-line-block { padding-left:var(--rail); } }
+.detail .route-line-block::before { content:''; display:block; position:absolute; top:0; bottom:0; left:calc(var(--time) + var(--rail) / 2 - 4px); border-left:8px solid var(--hong); }
+@media(max-width:800px) { .detail .route-line-block::before { left:calc(var(--rail) / 2 - 4px); } }
+.detail .route-line-block.route-leg-short::before { border-left-style:dotted; }
+.detail .route-line-block.route-leg-long::before { border-left-style:dashed; }
+.detail .route-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:0; padding:8px 0; background:none; border:0; border-radius:0;
+  color:var(--muted); font-size:15px; font-weight:500; line-height:1.8; }
+.detail .route-line-text { flex:1 1 14em; min-width:0; color:var(--muted); }
+.detail .route-line-source { flex-basis:100%; font-size:14px; line-height:1.7; font-weight:500; color:var(--muted); }
+.detail .route-line .route-mode-toggle { flex:0 0 auto; padding:8px 14px; font-size:15px; border:1px solid var(--line); }
+@media(max-width:800px) { .detail .route-line .route-mode-toggle { width:100%; } }
+
+/* 교통수단 고르기(구간별 fieldset, 전체 일괄 details) */
+.detail .transport-chooser,.detail .transport-bulk { min-width:0; margin:8px 0 12px; padding:4px 14px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.detail .transport-chooser>legend { padding:0 6px; font-weight:700; }
+.results-area .transport-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.results-area .transport-options>button { width:100%; }
+/* 고른 수단: 홍색 칠 + 밑줄(색만으로 구분하지 않게). !important 는 공통 .secondary(!important)를 이기기 위한 것. */
+.results-area .transport-options>button[aria-pressed=true] { box-shadow:none; text-decoration:underline; text-underline-offset:4px;
+  background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; }
+.detail .transport-status { margin:8px 0 0; }
+.detail .transport-status:empty { display:none; }
+.detail .transport-notice { margin:12px 0; padding:10px 16px; border-left:4px solid var(--ink); border-radius:0; background:var(--platform); color:var(--ink); }
+.detail .transport-notice p { margin:4px 0; }
+
+/* 지하철·버스 비교(TMAP). 비교 상자는 노선 레일 오른쪽(--band)에 붙고, ::before 로 레일을 상자 옆까지 잇는다. */
+.transit-compare-intro { margin:0 0 16px; padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; }
+.transit-compare-intro .transit-compare-start { min-height:44px; }
+.transit-compare-intro p { margin:6px 0 0; font-size:14px; line-height:1.6; }
+.detail>.transit-compare-panel { position:relative; margin:0 0 16px var(--band); padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow-wrap:anywhere; }
+@media(max-width:720px) { .detail>.transit-compare-panel { margin-left:var(--rail); } }
+.detail>.transit-compare-panel::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
+.transit-options { display:grid; gap:8px; }
+/* 선택지 카드(단추). 바탕·글자·테두리·여백의 !important 는 예전 값 그대로(공통 단추 규칙 정리 5-5 때 다시 본다).
+   고른 카드는 테두리 2px 청색, 두꺼워진 1px 만큼 안쪽 여백을 줄여 글자가 움직이지 않게 한다. */
+.transit-option { display:grid; gap:4px; width:100%; min-height:44px; text-align:left; font-weight:500;
+  padding:10px 12px!important; background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+.transit-option[aria-pressed="true"] { border:2px solid var(--cheong)!important; padding:9px 11px!important; }
+.transit-option-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; font-size:16px; }
+.transit-kind-dot { width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
+.transit-option .transit-badge { font-size:13px; padding:2px 8px; }
+.transit-option-facts,.transit-option-lines { font-size:14px; line-height:1.5; color:var(--muted); }
+.transit-option-missing { margin:0; font-size:14px; }
+.transit-preview { margin:10px 0 0; font-size:15px; line-height:1.6; color:var(--ink); }
+
+@media(forced-colors:active) { .route-line-block::before { forced-color-adjust:none; } }
+@media print {
+  .route-line-block { break-after:avoid; }
+  .detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  .transit-compare-intro,.transit-compare-panel { display:none!important; }
+}

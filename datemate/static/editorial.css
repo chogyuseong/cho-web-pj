@@ -141,14 +141,6 @@ input:focus,textarea:focus,select:focus{
 .detail-header>.actions{display:flex;flex-wrap:wrap;gap:8px;min-width:0;max-width:100%}
 .detail-header>.actions button{white-space:normal;min-height:44px;border-radius:999px}
 
-.route-line{
-  color:var(--hong);
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:12px 16px;
-  font-weight:600;
-}
 
 /* Photos, Evidence, Blogs & Meals */
 .place-photo{border-radius:16px;overflow:hidden}

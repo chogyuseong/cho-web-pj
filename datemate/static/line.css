@@ -89,7 +89,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 .quick-chip:hover,.simple-activity-ideas button:hover { border-color:var(--ink)!important; }
 /* 선택 표시는 홍. 색만으로 구분하지 않도록 밑줄을 함께 쓴다. */
 .quick-chip[aria-pressed=true],.leisure-filter button[aria-pressed=true],.photo-choices button[aria-pressed=true],
-.map-option-tabs button[aria-pressed=true],.results-area .transport-options>button[aria-pressed=true],.leisure-choices button[aria-pressed=true] {
+.map-option-tabs button[aria-pressed=true],.leisure-choices button[aria-pressed=true] {
   background:var(--hong)!important;
   border-color:var(--hong)!important;
   color:#fff!important;
@@ -149,7 +149,7 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea,select,
   border:0!important;
   border-radius:0;
 }
-#parse-notice:not(:empty),.detail .transport-notice {
+#parse-notice:not(:empty) {
   background:var(--platform);
   color:var(--ink);
   border-left:4px solid var(--ink);
@@ -325,7 +325,7 @@ body:not(.show-date-plan) .hero-photo {
 .results-area .section-heading h2 { margin:0; }
 /* 강제 색상(고대비) 모드에서도 노선 선 색을 지킨다. 코스 탭의 미니 노선은 results.css 로 옮김. */
 @media(forced-colors:active) {
-  .line-sample li::before,.route-line-block::before { forced-color-adjust:none; }
+  .line-sample li::before { forced-color-adjust:none; }
 }
 
 /* 비교 표: 바깥 테두리 없이 줄만. 금액·시간은 오른쪽 정렬(기존 .num). */
@@ -343,34 +343,8 @@ body:not(.show-date-plan) .hero-photo {
 .detail-header h2 { color:var(--ink); }
 .detail .map-link-list a { background:#fff; border:1px solid var(--line); border-radius:999px; color:var(--cheong); }
 .detail { --time:88px; --rail:40px; --band:calc(var(--time) + var(--rail)); }
-/* 세로 노선: 역 사이를 8px 홍색 선으로 잇는다. */
-.detail .route-line-block::before {
-  content:'';
-  display:block;
-  position:absolute;
-  left:calc(var(--time) + var(--rail) / 2 - 4px);
-  top:0;
-  bottom:0;
-  border-left:8px solid var(--hong);
-}
 .detail .step-category { margin:0 0 4px; }
-/* 구간 줄: 노선은 이어지고 글은 장소 이름과 같은 열. 자동차 실제 경로만 실선, 도보 짧은 점선, 그 밖 긴 점선(지도 범례와 같음). */
-.detail .route-line-block { position:relative; padding:4px 0 16px var(--band); }
-.detail .route-line-block.route-leg-short::before { border-left-style:dotted; }
-.detail .route-line-block.route-leg-long::before { border-left-style:dashed; }
-.detail .route-line {
-  margin:0;
-  padding:8px 0;
-  background:none;
-  border:0;
-  border-radius:0;
-  color:var(--muted);
-  font-weight:500;
-}
-.detail .route-line-text { color:var(--muted); }
-.detail .route-line-source { color:var(--muted); }
-.detail .transport-chooser,.detail .transport-bulk { background:#fff; border:1px solid var(--line); border-radius:10px; }
-/* 같은 열에 놓이는 주변 식당 제안도 노선 옆에 둔다. */
+/* 주변 식당 제안은 노선 레일 오른쪽, 구간 줄·장소 칸과 같은 열에 둔다(그 둘은 results.css). */
 .detail>.meal-suggestions { position:relative; margin:0 0 16px var(--band)!important; }
 .detail>.meal-suggestions::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
 /* 자동차로 도착한 장소 아래의 근처 주차장(parking.js). 식당 제안처럼 노선 옆 같은 열에 둔다. 흰 바탕, 1px 선, 그림자 없음. */
@@ -398,8 +372,6 @@ body:not(.show-date-plan) .hero-photo {
 .review-facts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
 @media(max-width:800px) {
   .detail { --time:0px; --rail:36px; }
-  .detail .route-line-block::before { left:calc(var(--rail) / 2 - 4px); }
-  .detail .route-line-block { padding-left:var(--rail); }
   .detail>.meal-suggestions { margin-left:var(--rail)!important; }
   .detail>.parking-panel { margin-left:var(--rail); }
 }
@@ -581,7 +553,7 @@ body:has(#shared-places) main { max-width:880px; padding-block:24px 48px; }
   .curation-card,.hero-photo img,.primary { transition:none; }
 }
 @media print {
-  .line-sample li::before,.detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  .line-sample li::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
 }
 body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 /* 입력칸 테두리: 구분선 색(--line #d5dbdf)은 흰 바탕 대비 1.4:1 이라 칸 경계가 잘 안 보인다(WCAG 1.4.11 비텍스트 대비 3:1).
@@ -642,26 +614,9 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 /* 대중교통 지하철·버스 비교(transit-compare.js, 2026-11-18). 일정 위 단추 상자와, 대중교통 구간 줄 아래 선택지 패널.
    패널은 주차장 패널처럼 노선 옆 같은 열에 두고 세로 띠(::before)를 이어 그린다. 선택지는 단추(44px 이상), 고른 것은 청색 테두리.
    색 점(.transit-kind-dot)의 색은 transit-compare.js TRANSIT_LINE_COLORS 가 style 로 준다(지도 선 색과 같게). */
-.transit-compare-intro { margin:0 0 16px; padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; }
-.transit-compare-intro .transit-compare-start { min-height:44px; }
-.transit-compare-intro p { margin:6px 0 0; font-size:14px; line-height:1.6; }
-.detail>.transit-compare-panel { position:relative; margin:0 0 16px var(--band); padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow-wrap:anywhere; }
-.detail>.transit-compare-panel::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
-.transit-options { display:grid; gap:8px; }
-.transit-option { display:grid; gap:4px; width:100%; min-height:44px; padding:10px 12px!important; text-align:left; background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px!important; font-weight:500; }
-.transit-option[aria-pressed="true"] { border:2px solid var(--cheong)!important; padding:9px 11px!important; }
-.transit-option-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; font-size:16px; }
-.transit-kind-dot { width:12px; height:12px; border-radius:50%; flex:0 0 auto; }
-.transit-option .transit-badge { font-size:13px; padding:2px 8px; }
-.transit-option-facts,.transit-option-lines { font-size:14px; line-height:1.5; color:var(--muted); }
-.transit-option-missing { margin:0; font-size:14px; }
-.transit-preview { margin:10px 0 0; font-size:15px; line-height:1.6; color:var(--ink); }
-@media (max-width:720px) {
-  .detail>.transit-compare-panel { margin-left:var(--rail); }
-}
 /* 미리보기 전용이라 인쇄·저장본에는 넣지 않는다(저장 코스는 추정 그대로라는 사용자 결정). */
 @media print {
-  .transit-compare-intro,.transit-compare-panel,.map-transit-note { display:none!important; }
+  .map-transit-note { display:none!important; }
 }
 
 /* 지도 아래 장소 목록 한 줄: 네이버 지도 링크(왼쪽, 줄바꿈 허용) + 「일정에서 보기」 단추(오른쪽, 44px). maps.js renderPlanMapCard, 2026-11-18 가독성 8단계.

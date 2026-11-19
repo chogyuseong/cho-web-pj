@@ -21,6 +21,7 @@ def load(pid,owner=None):
 def run(action):
     try:return action()
     except PermissionError as e:raise HTTPException(403,str(e))
+    except service.VotesChanged as e:raise HTTPException(409,dict(code='votes_changed',message=str(e),changed=e.changed))
     except ValueError as e:raise HTTPException(409,str(e))
 
 class MealChange(BaseModel):

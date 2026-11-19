@@ -852,3 +852,6 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 #plan-detail { scroll-margin-top:65px; }
 .price-basis { display:block; margin:5px 0; font-size:11px; line-height:1.6; }
 .timeline-card .hint { overflow-wrap:anywhere; }
+
+/* 합의 초안을 적용하려는데 계산 뒤 의견이 바뀐 경우(experience.js showDraft): 바뀐 장소를 한 줄씩. */
+.draft-stale .stale-change { display:block; margin-top:4px; }

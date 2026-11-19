@@ -1,6 +1,6 @@
 /* 홈·피드백 화면 공통 테마 층 (CSS 정리 5-5, docs/css-consolidation-plan-2026-11-18.md)
 
-   무엇: 예전 selle.css → calm.css → (planner-layout.css 의 [hidden]) → editorial.css 를 그 순서 그대로 이은 파일.
+   무엇: 예전 selle.css → calm.css → (planner-layout.css 의 [hidden]) → editorial.css 를 그 순서 그대로 이은 파일(끝에 예전 clarity.css).
    index.html 과 feedback.html 만 읽는다(공유 화면·피드백 관리 화면은 읽지 않는다).
    왜 style.css 에 합치지 않았나: 공유·관리 화면은 style → readability → line 만 읽고, 홈·피드백은 그 사이에 이 층이 끼어 있다.
    한 파일로 합치면 어느 한쪽 화면에서 이기는 순서가 바뀐다(DOM 에 화면 구분 class 를 더하거나 @layer 를 쓰는 것은 설계에서 금지).
@@ -216,3 +216,29 @@ h3[tabindex="-1"]:focus { outline:none!important; }
 .condition-toggle { flex:0 0 auto; }
 .condition-details { display:grid; gap:4px; padding:6px 18px 12px; border:1px solid var(--line); border-top:0; border-radius:0 0 18px 18px; background-color:#fff; margin-top:-6px; }
 
+/* ---------------------------------------------------------------- 예전 clarity.css (2026-11-19 이 파일 끝으로 옮김)
+   clarity.css 도 index·feedback 만 읽고 readability.css 뒤에 있었다. 여기(readability 앞)로 옮겨도 이기는 쪽이 바뀌지 않음을 확인했다:
+   readability 와 같은 명시도로 겹치는 것은 800px 이하 html 의 scroll-padding-top 하나뿐이라 그 규칙만 :root 로 썼다. */
+/* 사용자 피드백 반영: 태그라인, 축제 기준 코스, 이동 수단, 확인 상태 배지, 모바일 현재 구역 표시. */
+
+/* Header tagline */
+header .brand-name .brand-tagline { color:var(--hong); font-weight:650; letter-spacing:-.2px; white-space:nowrap; }
+@media(max-width:360px) { header .brand-name .brand-tagline { font-size:11px; } }
+
+
+
+/* Named source links print their address so a paper copy still shows where the fact came from. */
+/* 인쇄: 출처 주소는 근거로 남기되, 장소 이름을 퍼센트 인코딩한 네이버 지도 검색 주소는 여러 줄을 차지하고 따라 칠 수도 없어 뺀다(PDF 에서는 링크가 그대로 눌림). */
+@media print { a.source-url-link::after { content:" (" attr(href) ")"; font-size:11px; overflow-wrap:anywhere; } a.source-url-link[href*="map.naver.com/p/search/"]::after { content:none; } .section-indicator { display:none!important; } }
+
+/* Mobile: the current section heading follows below the sticky header. */
+.section-indicator { position:fixed; left:0; right:0; top:var(--site-header-height,76px); z-index:29; display:flex; align-items:baseline; gap:8px; min-width:0; padding:8px 16px; background:#fff; border-bottom:1px solid var(--line); font-size:14px; line-height:1.5; color:var(--ink); opacity:0; visibility:hidden; transform:translateY(-6px); transition:opacity .18s,transform .18s,visibility 0s linear .18s; pointer-events:none; }
+.section-indicator.is-visible { opacity:1; visibility:visible; transform:none; transition:opacity .18s,transform .18s; }
+.section-indicator-parent { flex:0 1 auto; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
+.section-indicator-parent::after { content:" ›"; }
+.section-indicator-parent[hidden] { display:none; }
+.section-indicator-current { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--hong); }
+@media(min-width:801px) { .section-indicator { display:none!important; } }
+@media(max-width:800px) { /* html 대신 :root — 이 파일이 readability.css(모든 폭 html 규칙) 앞으로 와도 명시도로 이기게(같은 요소). */
+  :root { scroll-padding-top:calc(var(--site-header-height,88px) + 52px); } }
+@media(prefers-reduced-motion:reduce) { .section-indicator,.section-indicator.is-visible { transition:none; transform:none; } }

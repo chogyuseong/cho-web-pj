@@ -143,7 +143,7 @@ runtime/   실행 중 DB·캐시·색인 (Git 제외)
 docs/      설계·출처·기능별 검증 기록
 ```
 
-CSS 구성(2026-11-19 정리 뒤): 공통 테마 층은 `style.css` → (홈·피드백만) `shell.css` → `readability.css` → (홈·피드백만) `clarity.css` → `line.css` 순서이고, 그 뒤에 화면 부품 파일 `home.css`(홈·조건·화면 전환), `results.css`(결과 화면), `place-photos.css`(사진), `plan-map.css`(지도), `popups.css`, `server-wake.css` 가 옵니다. 공유 화면은 축제 구역용 `shared.css`, 피드백 화면은 `feedback.css` 를 더 읽습니다. 부품 규칙은 부품 파일에서만 고치고 공통 테마 파일에 다시 쓰지 않습니다(`tests/test_css_structure.py` 가 검사). 화면별 순서·정리 기록은 [docs/css-consolidation-plan-2026-11-18.md](docs/css-consolidation-plan-2026-11-18.md), CSS 를 크게 고칠 때의 전후 계산값 비교는 `tests/css_snapshot.py`.
+CSS 구성(2026-11-19 정리 뒤): 공통 테마 층은 `style.css` → (홈·피드백만) `shell.css`(예전 selle·calm·editorial·clarity) → `readability.css` → `line.css` 순서이고, 그 뒤에 화면 부품 파일 `home.css`(홈·조건·화면 전환), `results.css`(결과 화면), `place-photos.css`(사진), `plan-map.css`(지도), `popups.css`, `server-wake.css` 가 옵니다. 공유 화면은 축제 구역용 `shared.css`, 피드백 화면은 `feedback.css` 를 더 읽습니다. 부품 규칙은 부품 파일에서만 고치고 공통 테마 파일에 다시 쓰지 않습니다(`tests/test_css_structure.py` 가 검사). 화면별 순서·정리 기록은 [docs/css-consolidation-plan-2026-11-18.md](docs/css-consolidation-plan-2026-11-18.md), CSS 를 크게 고칠 때의 전후 계산값 비교는 `tests/css_snapshot.py`.
 
 - [API 문서(실행 서버)](http://127.0.0.1:8001/docs)
 - [(과거 방식) 장소 탐색 500곳](docs/explore-500.md)

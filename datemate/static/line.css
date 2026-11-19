@@ -77,7 +77,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 }
 :is(.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary)):hover { border-color:var(--ink)!important; }
 .text-link { color:var(--ink); font-weight:700; text-decoration:underline; text-underline-offset:4px; }
-.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.photo-choices button,.date-subcategories span,.tag,.step-category,.field-requirement {
+.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.date-subcategories span,.tag,.step-category,.field-requirement {
   border-radius:999px!important;
 }
 .quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button {
@@ -88,7 +88,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 }
 .quick-chip:hover,.simple-activity-ideas button:hover { border-color:var(--ink)!important; }
 /* 선택 표시는 홍. 색만으로 구분하지 않도록 밑줄을 함께 쓴다. */
-.quick-chip[aria-pressed=true],.photo-choices button[aria-pressed=true] {
+.quick-chip[aria-pressed=true] {
   background:var(--hong)!important;
   border-color:var(--hong)!important;
   color:#fff!important;
@@ -319,28 +319,10 @@ body:not(.show-date-plan) .hero-photo {
 .simple-plan-form #submit-plan,.conditions #submit-plan { min-height:56px; font-size:18px; border-radius:10px; }
 .last-conditions .again-button { border-radius:10px; }
 
-/* ---------- 결과: 제목 · 코스 카드 ---------- */
 /* 강제 색상(고대비) 모드에서도 노선 선 색을 지킨다. 코스 탭의 미니 노선은 results.css 로 옮김. */
 @media(forced-colors:active) {
   .line-sample li::before { forced-color-adjust:none; }
 }
-
-
-/* ---------- 일정: 노선 띠 ---------- */
-
-/* 일정 안의 사진·근거·블로그·메뉴: 흰 바탕, 1px 선, 그림자 없음. */
-.place-photo-panel { background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
-.photo-viewport,.place-photo img { background:var(--platform); border-radius:0; }
-/* 사진 출처 줄: 글과 링크를 같은 크기로, 링크는 출처 색(청)으로. */
-:is(main,dialog) .place-photo figcaption { font-size:14px!important; line-height:1.6; color:var(--muted); }
-:is(main,dialog) .place-photo figcaption a { font-size:inherit; line-height:inherit; font-weight:400; color:var(--cheong); }
-.photo-arrow { background:var(--ink); border:1px solid #fff; box-shadow:none; }
-.photo-arrow:hover { background:var(--hong); }
-.photo-counter { background:var(--ink); }
-.photo-eyebrow { display:block; font-size:14px; letter-spacing:0; color:var(--muted); }
-.photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
-
-
 
 
 /* ---------- 장소 둘러보기 ---------- */
@@ -419,12 +401,6 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 .conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) { border-color:var(--field-line); }
 :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]),select,textarea):focus,
 .conditions :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea):focus { border-color:var(--ink); }
-/* ---------- 가독성 정리 1단계(2026-11-17): 장소 카드·구간·지도 링크·출처 ----------
-   장소 이름 → 한 줄 요약(분류 · 2인 비용 · 머무는 시간) 순서로 읽히게 하고, 출처·확인 방법 문장은 접는다.
-   이 파일 앞쪽과 readability.css·calm.css·selle.css 가 같은 요소를 여러 번 덮어쓰므로 .detail 을 붙여 여기서 마지막으로 정한다.
-   글씨는 14px 아래로 두지 않는다(test_readability_ui 의 기준). */
-.detail .photo-copy-fold { grid-column:auto; align-self:start; }
-.detail .place-photo-panel .photo-more { justify-self:start; }
 /* ---------- 가독성 3단계(2026-11-17): 휴대폰 헤더(조건 차이 상자 여백은 results.css) ---------- */
 /* 휴대폰 헤더: 여백을 줄이고 메뉴는 줄바꿈 대신 한 줄(넘치면 옆으로 넘김). 보조 문구는 브랜드 결정이라 남긴다(test_header_tagline_fits_mobile…).
    전에는 390px 에서 124px, 320px 에서 '피드백'이 둘째 줄로 내려가 172px(구역 표시줄까지 화면의 33%)였다. */

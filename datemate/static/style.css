@@ -14,7 +14,7 @@
      카드는 쪽 사이에서 나뉘게 두고, 번호·시간·이름 줄(h4)만 바로 아래 내용과 붙여 둔다. 주차장·식당 상자는 위 규칙대로 자르지 않는다.
      (.stop 의 break-inside:auto 는 results.css 인쇄 구역으로 옮김.) */
   /* 불러오는 중 문구(메뉴 가격·주차장·사진)는 종이에서 뜻이 없다(2026-11-17 운영 PDF 에 '메뉴 가격을 확인하고 있어요…'가 찍힘). */
-  .loading-note,.photo-status {display:none!important}
+  .loading-note {display:none!important}
 }
 /* 검색 중 상자: 취소 버튼이 눌려 글자가 쪼개지지 않게 하고, 적용 조건은 아랫줄로 내린다. */
 #progress.is-searching {flex-wrap:wrap}

@@ -1,43 +1,173 @@
-.place-photo-panel{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;margin:16px 0;padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px;min-width:0}.place-photo-panel>.hint,.place-photo-panel>.photo-status{grid-column:1/-1;margin:0}.place-photo{margin:0;min-width:0}.place-photo>a{display:block}.place-photo img{display:block;width:100%;height:195px;object-fit:cover;border-radius:9px;background:var(--platform)}.place-photo figcaption{font-size:10px;line-height:1.6;margin-top:7px;color:var(--muted);overflow-wrap:anywhere}.place-photo-copy{align-self:center;min-width:0}.place-photo-copy h5{font-size:16px;margin:6px 0 10px}.place-photo-copy p{font-size:12px;margin:7px 0;line-height:1.8}.place-photo-copy .hint{font-size:10px}.photo-eyebrow{font-size:9px;letter-spacing:2px;color:var(--orange)}.photo-status{font-size:12px;color:var(--muted);padding:12px;line-height:1.7}.catalog .place-photo-panel{display:block;padding:0;border:0;margin:0;background:transparent}.catalog .place-photo-copy{display:none}.catalog .place-photo img{height:145px}.catalog .place-photo figcaption{font-size:9px}@media(max-width:720px){.place-photo-panel{grid-template-columns:1fr;gap:10px;padding:12px}.place-photo img{height:210px}.catalog .place-photo img{height:105px}.place-photo-copy h5{margin-top:2px}}
+/* 장소 사진 (CSS 정리 5-3h, docs/css-consolidation-plan-2026-11-18.md)
 
-.photo-extra{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.option-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:12px}#plan-detail{scroll-margin-top:65px}.price-basis{display:block;font-size:11px;line-height:1.6;margin:5px 0}@media(max-width:600px){.option-heading{align-items:flex-start}}
-.meal-card>a{font-size:11px;overflow-wrap:anywhere}
-.plan-photo-preview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}.plan-photo-preview:empty{display:none}.plan-photo-item{min-width:0}.plan-photo-name{display:block;font-size:12px;margin-bottom:6px;overflow-wrap:anywhere}.plan-photo-preview .place-photo-panel{display:block;padding:0;margin:0;border:0;background:transparent}.plan-photo-preview .place-photo-copy{display:none}.plan-photo-preview .place-photo img{height:145px}.plan-photo-preview .place-photo figcaption{font-size:9px}.plan-photo-preview .photo-status{font-size:11px;padding:8px}.photo-retry{font-size:11px;margin:6px 0}@media(max-width:600px){.plan-photo-preview{gap:6px}.plan-photo-preview .place-photo img{height:105px}}
+   맡는 범위: 장소 사진 패널(.place-photo-panel: 사진 figure.place-photo, 넘김 .photo-viewport·화살표·장 수, 설명 .place-photo-copy, 상태 .photo-status),
+   코스 카드의 사진 미리보기(.plan-photo-preview), 식당 카드 사진 칸(.meal-photo), 둘러보기 카드 사진(.catalog …),
+   사진 고르기 칩(.photo-choices), 사진 크게 보기 대화상자(.photo-viewer). 만드는 곳: place-photos.js.
+   불러오는 순서: index.html 에서 results.css 뒤(5-3h 에서 style.css 바로 뒤에서 이 자리로 옮겼다). 예전에는 뒤의 테마 파일
+   (selle·calm·editorial·readability·line)이 사진 규칙을 계속 덮어썼다. 그 규칙들을 모두 이 파일로 모으되,
+   같은 요소에 범위가 다른 선택자(.place-photo img 와 .photo-viewport img 등)가 겹쳐 걸려 선택자별로 합치지 않고
+   원래 덮어쓰던 순서를 그대로 두었다. 같은 선택자가 뒤에서 덮어써 효과가 없던 선언만 지웠다(33개).
+   그래서 같은 선택자가 아래에서 다시 나올 수 있다. 값을 고칠 때는 그 선택자의 마지막 규칙을 고친다.
+   여기 없는 것: 첫 화면 큰 사진(.hero-photo)은 홈 단계(5-4), 카드 안 글 크기를 정하는 readability.css 의 main :is(…,.place-photo-panel,…) 규칙. */
 
-
-
-.timeline-card .hint{overflow-wrap:anywhere}
-
+@media print {
+  .photo-status { display:none!important; }
+}
+.place-photo-panel { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:18px; margin:16px 0; min-width:0; }
+.place-photo-panel>.hint { grid-column:1/-1; margin:0; }
+.place-photo-panel>.photo-status { grid-column:1/-1; margin:0; }
+.place-photo { margin:0; min-width:0; }
+.place-photo>a { display:block; }
+.place-photo img { display:block; width:100%; height:195px; }
+.place-photo figcaption { font-size:10px; line-height:1.6; margin-top:7px; color:var(--muted); overflow-wrap:anywhere; }
+.place-photo-copy { align-self:center; min-width:0; }
+.place-photo-copy h5 { font-size:16px; margin:6px 0 10px; }
+.place-photo-copy p { margin:7px 0; }
+.place-photo-copy .hint { font-size:10px; }
+.photo-status { font-size:12px; color:var(--muted); padding:12px; line-height:1.7; }
+.catalog .place-photo-panel { display:block; padding:0; border:0; margin:0; background:transparent; }
+.catalog .place-photo-copy { display:none; }
+.catalog .place-photo img { height:145px; }
+.catalog .place-photo figcaption { font-size:9px; }
+@media(max-width:720px) {
+  .place-photo-panel { grid-template-columns:1fr; gap:10px; }
+  .place-photo img { height:210px; }
+  .catalog .place-photo img { height:105px; }
+  .place-photo-copy h5 { margin-top:2px; }
+}
+.photo-extra { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.plan-photo-preview { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:16px 0; }
+.plan-photo-preview:empty { display:none; }
+.plan-photo-name { display:block; font-size:12px; margin-bottom:6px; overflow-wrap:anywhere; }
+.plan-photo-preview .place-photo-panel { display:block; padding:0; margin:0; border:0; background:transparent; }
+.plan-photo-preview .place-photo-copy { display:none; }
+.plan-photo-preview .place-photo img { height:145px; }
+.plan-photo-preview .place-photo figcaption { font-size:9px; }
+.plan-photo-preview .photo-status { font-size:11px; padding:8px; }
+.photo-retry { font-size:11px; margin:6px 0; }
+@media(max-width:600px) {
+  .plan-photo-preview .place-photo img { height:105px; }
+}
 /* 사진 크게 보기: 카드 사진은 누르는 단추(.photo-open), 큰 보기는 별도 대화상자(#photo-viewer)에서 자르지 않고 보여 준다. */
-.place-photo .photo-open{display:block;width:100%;min-height:0;margin:0;padding:0;border:0!important;border-radius:0;background:none!important;box-shadow:none!important;cursor:zoom-in;color:inherit;font:inherit}
-.place-photo .photo-open:focus-visible{outline:3px solid var(--cheong);outline-offset:2px}
-.photo-viewer{width:min(1100px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);margin:auto;padding:0;overflow:auto;box-sizing:border-box}
-.photo-viewer-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px}
-.photo-viewer-top h2{margin:0;font-size:16px;line-height:1.5;min-width:0;overflow-wrap:anywhere}
-.photo-viewer-close{flex:none;min-width:44px;min-height:44px;font-size:16px}
-.photo-viewer .photo-viewer-figure{margin:0;padding:12px}
-.photo-viewer-frame{position:relative;background:var(--platform);min-height:160px}
-.photo-viewer .photo-viewer-frame img{display:block;width:100%;height:auto!important;max-height:calc(100dvh - 210px);object-fit:contain!important;margin:0 auto;border-radius:0}
-.photo-viewer .photo-viewer-status{margin:0;padding:16px}
-.photo-viewer .photo-viewer-status:empty{display:none}
-.photo-viewer .place-photo figcaption{margin-top:8px}
-.photo-viewer .photo-arrow{width:44px;height:44px;min-height:44px;font-size:28px;line-height:1}
-
+.place-photo .photo-open { display:block; width:100%; min-height:0; margin:0; padding:0; border:0!important; border-radius:0; background:none!important; box-shadow:none!important; cursor:zoom-in; color:inherit; font:inherit; }
+.place-photo .photo-open:focus-visible { outline:3px solid var(--cheong); outline-offset:2px; }
+.photo-viewer { width:min(1100px,calc(100vw - 32px)); max-width:none; max-height:calc(100dvh - 32px); margin:auto; padding:0; overflow:auto; box-sizing:border-box; }
+.photo-viewer-top { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 12px; }
+.photo-viewer-top h2 { margin:0; font-size:16px; line-height:1.5; min-width:0; overflow-wrap:anywhere; }
+.photo-viewer-close { flex:none; min-width:44px; min-height:44px; font-size:16px; }
+.photo-viewer .photo-viewer-figure { margin:0; padding:12px; }
+.photo-viewer-frame { position:relative; background:var(--platform); min-height:160px; }
+.photo-viewer .photo-viewer-frame img { display:block; width:100%; height:auto!important; max-height:calc(100dvh - 210px); object-fit:contain!important; margin:0 auto; border-radius:0; }
+.photo-viewer .photo-viewer-status { margin:0; padding:16px; }
+.photo-viewer .photo-viewer-status:empty { display:none; }
+.photo-viewer .place-photo figcaption { margin-top:8px; }
+.photo-viewer .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; line-height:1; }
 /* 사진 자리 미리 잡기(CLS): 사진은 받아질 때까지 숨겨져(hidden) 높이 0 이었다가 195px 로 나타나 아래 일정을 밀었다.
    사진 칸과 불러오는 중인 패널에 화면별 사진 높이(위 규칙과 같은 값)만큼 자리를 먼저 둔다. 사진이 없으면 그 자리에 안내가 들어간다. */
-.place-photo .photo-viewport{min-height:195px}
-.place-photo-panel:has(>.photo-status:only-child){min-height:223px}
-.catalog .place-photo .photo-viewport,.plan-photo-preview .place-photo .photo-viewport{min-height:145px}
-.catalog .place-photo-panel:has(>.photo-status:only-child),.plan-photo-preview .place-photo-panel:has(>.photo-status:only-child){min-height:145px}
-@media(max-width:720px){.place-photo .photo-viewport{min-height:210px}.place-photo-panel:has(>.photo-status:only-child){min-height:234px}
-.catalog .place-photo .photo-viewport{min-height:105px}.catalog .place-photo-panel:has(>.photo-status:only-child){min-height:105px}}
-@media(max-width:600px){.plan-photo-preview .place-photo .photo-viewport,.plan-photo-preview .place-photo-panel:has(>.photo-status:only-child){min-height:105px}}
-@media print{.place-photo .photo-viewport,.place-photo-panel{min-height:0!important}}
+.place-photo .photo-viewport { min-height:195px; }
+.place-photo-panel:has(>.photo-status:only-child) { min-height:223px; }
+.catalog .place-photo .photo-viewport { min-height:145px; }
+.plan-photo-preview .place-photo .photo-viewport { min-height:145px; }
+.catalog .place-photo-panel:has(>.photo-status:only-child) { min-height:145px; }
+.plan-photo-preview .place-photo-panel:has(>.photo-status:only-child) { min-height:145px; }
+@media(max-width:720px) {
+  .place-photo .photo-viewport { min-height:210px; }
+  .place-photo-panel:has(>.photo-status:only-child) { min-height:234px; }
+  .catalog .place-photo .photo-viewport { min-height:105px; }
+  .catalog .place-photo-panel:has(>.photo-status:only-child) { min-height:105px; }
+}
+@media(max-width:600px) {
+  .plan-photo-preview .place-photo .photo-viewport { min-height:105px; }
+  .plan-photo-preview .place-photo-panel:has(>.photo-status:only-child) { min-height:105px; }
+}
 /* 결과 화면 사진은 화면 근처에 올 때 받는다(place-photos.js startPhotoNearViewport). 인쇄 직전(beforeprint)에 남은 사진을 시작하지만
    인쇄 전에 다 받지 못한 사진(숨긴 img)은 빈 칸·출처 줄만 남지 않게 종이에서 사진 칸째 뺀다. 받은 사진·사진 없음 안내는 그대로 나온다. */
-@media print{.place-photo-panel:has(.photo-open img[hidden]){display:none!important}}
+@media print {
+  .place-photo .photo-viewport { min-height:0!important; }
+  .place-photo-panel { min-height:0!important; }
+  .place-photo-panel:has(.photo-open img[hidden]) { display:none!important; }
+}
 /* 사진을 받는 동안의 '사진을 확인하고 있어요…'(figure 안)는 자리를 미리 잡은 사진 칸 위에 얹는다. 전에는 사진 아래에 한 줄(약 78px)을 더 차지했다가
    사진이 오면 빠져 아래 일정이 위로 당겨졌다. 이제 화면 근처에 와서야 받기 시작하므로 그 당김이 보이는 자리에서 일어날 수 있어 겹쳐 둔다. */
-.place-photo{position:relative}
-.place-photo>.photo-status{position:absolute;top:0;left:0;right:0;margin:0}
+.place-photo { position:relative; }
+.place-photo>.photo-status { position:absolute; top:0; left:0; right:0; margin:0; }
+.stop .place-photo-panel { grid-template-columns:1fr!important; }
+.stop .place-photo img { height:230px!important; }
+.place-photo-panel { overflow:hidden; }
+.plan-photo-preview { gap:10px; }
+.plan-photo-item { min-width:0; }
+@media(max-width:760px) {
+  .stop .place-photo img { height:180px!important; }
+  .plan-photo-preview { grid-template-columns:1fr!important; }
+  .plan-photo-preview .place-photo img { height:180px!important; }
+}
+.meal-photo .place-photo-panel { display:block!important; margin:0; padding:0; background:transparent; border:0; }
+.meal-photo .place-photo-copy { display:none; }
+.meal-photo .photo-copy-fold .place-photo-copy { display:block; }
+.meal-photo .place-photo img { height:125px!important; border-radius:12px; }
+.meal-photo .place-photo figcaption { font-size:8px; }
+.meal-photo .photo-status { font-size:10px; padding:8px; }
+@media(max-width:760px) {
+  .meal-photo .place-photo img { height:200px!important; }
+}
+@media(min-width:761px) {
+  .meal-photo .place-photo img { height:180px!important; }
+}
+.plan-photo-item>strong { font-size:14px; }
+.plan-card:not(.selected) .plan-photo-preview { display:none; }
+.photo-choices { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.photo-choices button { font-size:14px; }
+.photo-empty-card { padding:24px; }
+.place-photo { border-radius:16px; overflow:hidden; }
+.place-photo-panel { padding:16px; }
+.place-photo img { object-fit:cover; }
+.photo-choices button[aria-pressed=true] { font-weight:750; }
+.photo-viewport { position:relative; touch-action:pan-y pinch-zoom; min-width:0; overflow:hidden; }
+.photo-viewport>a { display:block; }
+.photo-viewport img { display:block; width:100%; }
+/* 넘김 화살표의 display 는 명시도 0(:where)으로 둔다. 결과 화면 안에서는 readability.css 의 .results-area :where(button…)(inline-flex)가
+   이기고, 사진 크게 보기 대화상자·둘러보기 카드에서는 grid 가 된다(예전 화면 그대로). 보통 선택자로 쓰면 결과 화면에서도 grid 가 된다. */
+:where(.photo-arrow) { display:grid; }
+.photo-arrow { position:absolute; top:50%; transform:translateY(-50%); place-items:center; width:44px; height:44px; min-height:44px; padding:0; border-radius:50%; color:#fff; font:30px/1 system-ui; z-index:2; }
+.photo-arrow:disabled { opacity:.65; }
+.photo-prev { left:10px; }
+.photo-next { right:10px; }
+.photo-counter { position:absolute; bottom:10px; right:12px; z-index:2; padding:4px 11px; color:#fff; border-radius:999px; font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; pointer-events:none; }
+.photo-viewport:focus-visible { outline:3px solid var(--hong); outline-offset:3px; }
+.plan-photo-preview .photo-arrow { width:44px; height:44px; min-height:44px; font-size:26px; }
+.plan-photo-preview .photo-prev { left:6px; }
+.plan-photo-preview .photo-next { right:6px; }
+.catalog .place-photo-panel { width:100%; }
+@media(max-width:800px) {
+  .plan-photo-preview { grid-template-columns:1fr; }
+  .plan-photo-preview .place-photo img { height:185px; }
+  .plan-photo-preview .place-photo-copy { display:none; }
+  .plan-photo-preview .photo-choices { display:none; }
+  .plan-photo-preview .place-photo-panel { margin-bottom:10px; }
+  .plan-photo-name { font-size:16px; }
+  .photo-choices { grid-column:1/-1; }
+}
+@media(max-width:600px) {
+  .catalog .place-photo img { height:210px; }
+}
+@media print {
+  .photo-choices { display:none!important; }
+}
+main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; line-height:1; }
+.place-photo-panel .photo-counter { font-size:14px; }
+.plan-photo-details { margin-top:14px; }
+.photo-choices button { border-radius:999px!important; }
+.photo-choices button[aria-pressed=true] { background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; text-decoration:underline; text-underline-offset:4px; box-shadow:none; }
+.place-photo-panel { background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+.photo-viewport { background:var(--platform); border-radius:0; }
+.place-photo img { background:var(--platform); border-radius:0; }
+:is(main,dialog) .place-photo figcaption { font-size:14px!important; line-height:1.6; color:var(--muted); }
+:is(main,dialog) .place-photo figcaption a { font-size:inherit; line-height:inherit; font-weight:400; color:var(--cheong); }
+.photo-arrow { background:var(--ink); border:1px solid #fff; box-shadow:none; }
+.photo-arrow:hover { background:var(--hong); }
+.photo-counter { background:var(--ink); }
+.photo-eyebrow { display:block; font-size:14px; letter-spacing:0; color:var(--muted); }
+.photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
+.detail .photo-copy-fold { grid-column:auto; align-self:start; }
+.detail .place-photo-panel .photo-more { justify-self:start; }
+

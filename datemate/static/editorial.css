@@ -108,21 +108,6 @@ input:focus,textarea:focus,select:focus{
 
 .number{color:var(--ink);font-size:14px;font-weight:750}
 
-/* Detailed Timeline & Stops */
-
-
-/* Photos, Evidence, Blogs & Meals */
-.place-photo{border-radius:16px;overflow:hidden}
-.place-photo-panel{
-  border:1px solid var(--line);
-  border-radius:18px;
-  background-color:#fff;
-  padding:16px;
-}
-.place-photo img{object-fit:cover}
-.photo-choices button{border-radius:999px}
-.photo-choices button[aria-pressed=true]{background-color:var(--brand-soft);border-color:var(--hong);color:var(--hong);font-weight:750}
-
 /* Sticky Plan Map Card */
 .message{line-height:1.8}
 .source-search-fallback{color:var(--hong);font-weight:600}
@@ -131,60 +116,7 @@ input:focus,textarea:focus,select:focus{
 /* 홈 인기 동네(승강장 띠)는 line.css */
 .curation{margin-top:0}
 
-/* Photo Carousel & Gallery */
-.photo-viewport{
-  position:relative;
-  touch-action:pan-y pinch-zoom;
-  min-width:0;
-  background-color:#fff;
-  border-radius:14px;
-  overflow:hidden;
-}
-.photo-viewport>a{display:block}
-.photo-viewport img{display:block;width:100%}
-.photo-arrow{
-  position:absolute;
-  top:50%;
-  transform:translateY(-50%);
-  display:grid;
-  place-items:center;
-  width:44px;
-  height:44px;
-  min-height:44px;
-  padding:0;
-  border:1px solid #fff;
-  border-radius:50%;
-  background-color:var(--ink);
-  color:#fff;
-  font:30px/1 system-ui;
-  z-index:2;
-}
-.photo-arrow:hover{background-color:var(--hong)}
-.photo-arrow:disabled{opacity:.65}
-.photo-prev{left:10px}
-.photo-next{right:10px}
-.photo-counter{
-  position:absolute;
-  bottom:10px;
-  right:12px;
-  z-index:2;
-  padding:4px 11px;
-  background-color:var(--ink);
-  color:#fff;
-  border-radius:999px;
-  font-size:14px;
-  font-weight:700;
-  font-variant-numeric:tabular-nums;
-  pointer-events:none;
-}
-.photo-viewport:focus-visible{outline:3px solid var(--hong);outline-offset:3px}
-.plan-photo-preview .photo-arrow{width:44px;height:44px;min-height:44px;font-size:26px}
-.plan-photo-preview .photo-prev{left:6px}
-.plan-photo-preview .photo-next{right:6px}
-
-
 /* Explore Catalog */
-.catalog .place-photo-panel{width:100%}
 #search-info{line-height:1.8}
 body.show-explore .hero,body.show-explore .workspace-intro,body.show-explore .service-details,body.show-explore .curation{display:none}
 
@@ -256,15 +188,8 @@ input,select,textarea{max-width:100%;min-width:0}
   .workspace-intro{display:block}
   .workspace-intro h2{font-size:26px}
   .simple-plan-form .simple-form-group{padding:18px}
-  .plan-photo-preview{grid-template-columns:1fr}
-  .plan-photo-preview .place-photo img{height:185px}
-  .plan-photo-preview .place-photo-copy,.plan-photo-preview .photo-choices{display:none}
-  .plan-photo-preview .place-photo-panel{margin-bottom:10px}
-  .plan-photo-name{font-size:16px}
-  .photo-choices{grid-column:1/-1}
 }
 @media(max-width:600px){
-  .catalog .place-photo img{height:210px}
   dialog{padding:18px 14px}
 }
 @media(max-width:420px){
@@ -279,7 +204,7 @@ input,select,textarea{max-width:100%;min-width:0}
   button{transition:none}
 }
 @media print{
-  .hero-actions,.photo-choices{display:none!important}
+  .hero-actions{display:none!important}
   body{background:white}
 }
 

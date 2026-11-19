@@ -838,3 +838,10 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
   .detail h3 { break-after:avoid; }
   .detail.panel { border:0; box-shadow:none; }
 }
+
+
+/* ---------------------------------------------------------------- 사진 단계(5-3h)에서 place-photos.css 에서 옮겨 온 결과 화면 규칙
+   place-photos.css 에 섞여 있던 사진이 아닌 규칙. 지운 죽은 규칙: .option-heading(만드는 곳 없음), .meal-card>a(카드 바로 아래 링크 없음). */
+#plan-detail { scroll-margin-top:65px; }
+.price-basis { display:block; margin:5px 0; font-size:11px; line-height:1.6; }
+.timeline-card .hint { overflow-wrap:anywhere; }

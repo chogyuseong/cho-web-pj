@@ -119,8 +119,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 
 main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.small,small,.menu-checked,.photo-credit) { font-size:14px; line-height:1.8; color:var(--muted); }
 main :is(.meal-card,.place-blogs,.place-photo-panel) a { font-size:14px; line-height:1.8; overflow-wrap:anywhere; color:var(--hong); font-weight:650; }
-main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; line-height:1; }
-.place-photo-panel .photo-counter { font-size:14px; }
 
 /* Shared Partner Voting Page (shared.html) */
 #shared-places { display:grid; gap:16px; margin:20px 0 24px; }
@@ -189,8 +187,6 @@ html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 
 
 
-/* 결과 화면 구역 간격(사용자 흐름 순서: 코스 카드 → 지도 → 일정 → 확인 → 결정·공유 → 축제 → 부가 정보) */
-.plan-photo-details { margin-top:14px; }
 /* 휴대폰: 조건 칩·소분류 칩을 손가락으로 누르기 쉽게 44px 높이로(전 34~38px). 넓은 화면은 그대로. */
 @media (max-width:720px) {
   .chips label > span { display:inline-flex; align-items:center; min-height:44px; }

@@ -11,10 +11,11 @@ from .models import PlaceId
 
 router=APIRouter(prefix='/api')
 
-def load(pid,owner=None):
+def load(pid,owner):
+    # 만든 브라우저(owner)의 코스만 연다(app/main.py plan_row 와 같은 기준). 상대방 의견은 공유 토큰 경로(app/sharing.py)로만 받는다.
+    # 남의 코스와 없는 코스를 구별하지 않고 둘 다 404 로 답한다.
     row=store.get_plan(pid)
-    if not row:raise HTTPException(404,'일정을 찾을 수 없습니다.')
-    if owner is not None and row['owner']!=owner:raise HTTPException(403,'이 브라우저에서 만든 일정만 변경할 수 있어요.')
+    if not row or not owner or row['owner']!=owner:raise HTTPException(404,'일정을 찾을 수 없습니다.')
     from .condition_audit import audit_plan
     return row,audit_plan(json.loads(row['payload']))
 
@@ -73,7 +74,7 @@ class Feedback(BaseModel):
 
 @router.post('/plans/{pid}/feedback')
 def feedback(pid:str,data:Feedback,request:Request):
-    _,plan=load(pid)
+    _,plan=load(pid,request.state.owner)
     if data.kind=='replace_reason' and (data.place_id not in {p['id'] for p in plan['places']} or not data.reason):raise HTTPException(422,'장소와 변경 이유를 확인해 주세요.')
     if data.kind=='visit' and (not data.visited or not data.obstacle or not data.reuse):raise HTTPException(422,'세 가지 방문 피드백을 모두 선택해 주세요.')
     with store.connect() as db:
@@ -84,13 +85,13 @@ def feedback(pid:str,data:Feedback,request:Request):
 
 @router.get('/plans/{pid}/feedback')
 def my_plan_feedback(pid:str,request:Request):
-    load(pid)
+    load(pid,request.state.owner)
     with store.connect() as db:row=db.execute("SELECT payload FROM experience_events WHERE owner=? AND plan_id=? AND kind='visit' ORDER BY created DESC LIMIT 1",(request.state.owner,pid)).fetchone()
     return dict(visit=json.loads(row[0]) if row else None)
 
 @router.delete('/plans/{pid}/feedback')
 def delete_my_feedback(pid:str,request:Request):
-    load(pid)
+    load(pid,request.state.owner)
     with store.connect() as db:db.execute('DELETE FROM experience_events WHERE owner=? AND plan_id=?',(request.state.owner,pid))
     return dict(deleted=True)
 
@@ -101,7 +102,7 @@ class PlaceReport(BaseModel):
 
 @router.post('/plans/{pid}/place-report')
 def place_report(pid:str,data:PlaceReport,request:Request):
-    _,plan=load(pid)
+    _,plan=load(pid,request.state.owner)
     if data.place_id not in {p['id'] for p in plan['places']}:raise HTTPException(422,'코스에 있는 장소만 제보할 수 있어요.')
     with store.connect() as db:
         db.execute('INSERT INTO place_reports(id,owner,place_id,reason,note,created) VALUES(?,?,?,?,?,?) ON CONFLICT(owner,place_id,reason) DO UPDATE SET note=excluded.note,created=excluded.created,resolved=0,resolution=\'\'',(uuid.uuid4().hex,request.state.owner,data.place_id,data.reason,data.note,time.time()))
@@ -112,12 +113,12 @@ class Votes(BaseModel):
 
 @router.get('/plans/{pid}/agreement')
 def agreement(pid:str,request:Request):
-    row,plan=load(pid)
+    row,plan=load(pid,request.state.owner)
     return dict(**service.vote_status(plan,request.state.owner),can_replan=row['owner']==request.state.owner)
 
 @router.post('/plans/{pid}/agreement')
 def vote(pid:str,data:Votes,request:Request):
-    row,plan=load(pid)
+    row,plan=load(pid,request.state.owner)
     return run(lambda:service.save_votes(plan,request.state.owner,row['owner'],data.choices))
 
 @router.post('/plans/{pid}/agreement-preview')

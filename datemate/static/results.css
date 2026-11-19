@@ -463,3 +463,110 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 /* 공식 자료로 확인한 정보 */
 .verified-facts { padding:10px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
 .verified-facts a { font-size:12px; }
+
+
+/* ---------------------------------------------------------------- 비교 표·비용 표·실행 요약·결정 상자 (5-3e)
+   만드는 곳: plan-evidence.js optionComparison() — #results 의 details.comparison-details > section.option-comparison(h3, div.table-scroll > table:
+   thead th 열 제목, tbody th 코스 이름 + .comparison-course-title, td 숫자 칸 .num).
+   plan-detail.js — details.cost-table-details > (가격 다시 조회 .price-refresh-control, div.table-scroll > table.cost-table, div.total-row 합계).
+   price-controls.js 의 칸 안 .price-basis·.price-blog-evidence, execution-summary.js 의 section.execution-summary(.execution-grid 항목,
+   details.verification-places > .verification-place 줄, details.route-assumptions), planning-outcomes.js 의 section.planning-decision,
+   recommendation-feedback.js 의 details.verification-notes.
+   예전 출처: style·place-photos·selle·calm·editorial·readability·line 과 execution-summary.css·planning-outcomes.css(이제 비어 있다) 규칙 약 140개.
+   남겨 둔 공통 규칙: style.css 의 table·th·td 기본값과 인쇄 table, readability.css 의 main :is(th,td)·main :is(…,.price-basis,…). */
+
+/* 표를 감싼 가로 넘김 상자(비교 표·비용 표 공통). 인쇄에서는 잘리지 않게 넘김을 푼다. */
+.table-scroll { overflow:auto; max-width:100%; }
+.table-scroll td:last-child { min-width:220px; max-width:350px; overflow-wrap:anywhere; }
+.table-scroll td details { font-size:11px; }
+.table-scroll td a { display:block; font-size:11px; }
+
+/* 코스 비교 표 */
+.comparison-details { margin:16px 0; }
+.option-comparison { margin:20px 0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; }
+.comparison-details>.option-comparison { margin:8px 0 0; }
+.option-comparison h3 { margin:0 0 10px; color:var(--ink); font-size:20px; }
+.option-comparison table { width:100%; min-width:0; white-space:normal; border-collapse:collapse; }
+/* 칸 공통. th 의 바탕·글자색 !important 는 style.css 의 th 기본값(!important 아님)보다는 line.css 예전 목록과 맞춘 값(5-5 에서 정리). */
+.option-comparison th { padding:10px 8px; line-height:1.5; vertical-align:top; text-align:left; word-break:keep-all; overflow-wrap:normal; font-size:14px;
+  border-bottom:1px solid var(--line); font-weight:700; color:var(--muted)!important; background:#fff!important; }
+.option-comparison td { padding:10px 8px; line-height:1.5; vertical-align:top; text-align:left; word-break:keep-all; overflow-wrap:normal; border-bottom:1px solid var(--line); color:var(--ink); }
+.option-comparison thead th { white-space:normal; border-bottom:2px solid var(--ink); }
+/* 코스 이름 칸은 가로로 넘겨도 왼쪽에 붙어 있게(sticky). */
+.option-comparison tbody th { position:sticky; left:0; z-index:1; white-space:nowrap; font-weight:750; color:var(--ink)!important; background:#fff!important; }
+.option-comparison thead th:first-child { position:sticky; left:0; z-index:2; }
+.option-comparison :is(th,td).num { text-align:right; font-variant-numeric:tabular-nums; }
+.option-comparison th.travel-time { white-space:nowrap; }
+.option-comparison td:nth-child(4) { min-width:7em; }
+.option-comparison td:nth-child(5) { min-width:7em; }
+.comparison-course-title { display:block; font-weight:600; white-space:normal; color:var(--muted); }
+@media(max-width:800px) { .comparison-course-title { display:none; } }
+.option-comparison .comparison-basis { display:block; font-size:14px; line-height:1.5; color:var(--muted); }
+.comparison-details>summary,.cost-table-details>summary,.plan-photo-details>summary { font-weight:700; color:var(--ink); }
+
+/* 장소·구간별 비용 표(일정 안). 표는 700px 이상 폭을 유지하고 좁은 화면에서는 상자 안에서 가로로 넘긴다. */
+.cost-table-details { margin:8px 0 12px; }
+.price-refresh-control { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:12px 0; }
+.detail .table-scroll { margin:16px 0; background-color:#fff; border:0; border-radius:0; }
+.detail .table-scroll:focus-visible { outline:3px solid var(--hong); outline-offset:3px; }
+.detail table { white-space:normal; min-width:700px; }
+.cost-table thead th { padding:10px 8px; line-height:1.5; vertical-align:top; text-align:left; word-break:keep-all; overflow-wrap:normal; font-weight:700;
+  border-bottom:2px solid var(--ink); background:#fff!important; color:var(--muted)!important; }
+.detail .cost-table td { min-width:85px; padding:10px 8px; line-height:1.5; vertical-align:top; text-align:left; word-break:keep-all; overflow-wrap:normal; color:var(--ink); }
+.detail .cost-table td:first-child { min-width:160px; font-weight:650; }
+.detail .cost-table td:last-child { overflow-wrap:anywhere; }
+.cost-table :is(th,td).num { text-align:right; font-variant-numeric:tabular-nums; }
+/* 비용 칸 안의 블로그 가격 근거 */
+.price-blog-evidence { display:grid; gap:6px; margin-top:12px; min-width:200px; max-width:340px; white-space:normal; }
+.price-blog-evidence strong { font-size:14px; color:var(--ink); }
+.price-blog-evidence a { display:block; font-size:14px; line-height:1.7; overflow-wrap:anywhere; word-break:break-word; color:var(--cheong); }
+/* 합계 줄 */
+.detail .total-row { display:flex; justify-content:space-between; gap:16px; margin:8px 0; padding:12px 0; background:none; border:0; border-radius:0;
+  font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; }
+@media(max-width:480px) { .detail .total-row { gap:4px 12px; flex-wrap:wrap; } }
+.detail .total-row>span:last-child { flex-shrink:0; font-variant-numeric:tabular-nums; font-weight:800; color:var(--ink); }
+
+/* 방문 전 확인할 사항 */
+.verification-notes { margin:12px 0; }
+.verification-notes>summary { cursor:pointer; font-weight:600; padding:8px 0; }
+
+/* 실행 요약: 항목마다 [이름 6.5em | 내용] 두 칸, 위아래 선. grid-template-columns 는 display:block 이라 쓰이지 않지만 계산값 보존용. */
+.execution-summary { min-width:0; margin:20px 0; padding:20px 0 4px; background:#fff; border:0; border-radius:0; box-shadow:none; }
+.execution-summary h3 { margin:0; font-size:19px; letter-spacing:-0.4px; color:var(--ink); }
+.execution-summary .execution-grid { display:block; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:12px 0 16px; }
+@media(max-width:480px) { .execution-summary .execution-grid { grid-template-columns:1fr; } }
+.execution-summary .execution-grid>div { display:grid; grid-template-columns:6.5em minmax(0,1fr); gap:0 16px; align-items:baseline; min-width:0; padding:10px 0;
+  background:none; border:0; border-radius:0; box-shadow:none; }
+.execution-summary .execution-grid>div:first-child { border-top:1px solid var(--line); }
+.execution-summary .execution-grid strong { display:inline-block; margin:0; color:var(--muted); font-size:15px; font-weight:700; }
+.execution-summary .execution-grid p { margin:0; font-size:16px; line-height:1.75; color:var(--ink); overflow-wrap:anywhere; }
+.execution-summary .hint { margin:4px 0 0; font-size:14px; line-height:1.75; color:var(--muted); overflow-wrap:anywhere; }
+.execution-summary>details { margin:10px 0; padding:8px 0; }
+.execution-summary summary { cursor:pointer; padding:10px 0; font-weight:700; color:var(--ink); }
+.execution-summary>details>summary { font-size:15px; }
+.execution-summary .verification-place { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:14px 0; border-top:1px solid var(--line); font-size:14px; }
+.execution-summary .verification-place>strong,.execution-summary .verification-place>p { flex-basis:100%; margin:0; color:var(--ink); }
+.execution-summary .verification-place>a { min-width:0; overflow-wrap:anywhere; font-size:14px; font-weight:600; color:var(--cheong); }
+.execution-summary .verification-place>button { margin-left:auto; font-size:14px; }
+@media(max-width:480px) { .execution-summary .verification-place>button { margin-left:0; } }
+.execution-summary .route-assumptions p { overflow-wrap:anywhere; }
+
+/* 결정 상자(이 코스로 할지, 함께 고르기, 짧은 설문) */
+.planning-decision { margin:22px 0 6px; padding:24px; border:0; border-radius:0; background:var(--platform); box-shadow:none; }
+@media(max-width:480px) { .planning-decision { padding:18px; } }
+.planning-decision h3 { margin:0 0 8px; font-size:21px; line-height:1.5; letter-spacing:-0.5px; color:var(--ink); }
+.planning-decision>.actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+@media(max-width:480px) { .planning-decision>.actions { flex-direction:column; align-items:stretch; } }
+.planning-decision .actions button { min-height:46px; padding:11px 18px; font-weight:700; border-radius:10px; }
+.planning-decision>.partner-agreement { margin:18px 0 0; padding-top:14px; padding-bottom:0; border-top:1px solid var(--line); }
+.planning-decision label { font-size:15px; color:var(--ink); }
+.planning-decision select,.planning-decision input { min-height:46px; font-size:16px; background-color:#fff; border-color:var(--line); border-radius:12px; }
+.planning-decision .decision-survey { margin:12px 0; }
+.planning-study .check { align-items:flex-start; }
+.planning-study input[type=checkbox] { flex:0 0 18px; margin-top:5px; accent-color:var(--hong); }
+.planning-decision p[role=status] { overflow-wrap:anywhere; }
+
+@media print {
+  .table-scroll { overflow:visible; }
+  .total-row { break-inside:avoid; }
+}

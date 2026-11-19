@@ -94,9 +94,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 
 
 
-.option-comparison h3 { font-size:20px; }
-.option-comparison th { font-size:14px; color:var(--hong); background-color:#fff; }
-.option-comparison th.travel-time { white-space:nowrap; }
 
 .detail-header h2 { font-size:26px; line-height:1.5; }
 .detail .timeline-card :is(.small,.hint) { font-size:15px; line-height:1.8; }
@@ -132,24 +129,8 @@ header .brand-name small { font-size:13px; color:var(--muted); }
   .detail .map-link-list { display:grid; grid-template-columns:minmax(0,1fr); }
   .detail .map-link-list a { width:100%; }
 }
-.detail .table-scroll { border:1px solid var(--line); border-radius:14px; margin:16px 0; background-color:#fff; }
-.detail .table-scroll:focus-visible { outline:3px solid var(--hong); outline-offset:3px; }
-.detail table { white-space:normal; min-width:700px; }
-.detail th { background-color:#fff; color:var(--hong); font-weight:750; }
-.detail td { vertical-align:top; min-width:85px; overflow-wrap:anywhere; color:var(--ink); }
-.detail td:first-child { min-width:160px; font-weight:650; }
 .detail .chat-box { font-size:16px; line-height:1.85; }
 .detail .chat-form button { font-size:16px; }
-.detail .total-row {
-  gap:16px;
-  font-size:16px;
-  padding:14px 18px;
-  margin:8px 0;
-  background-color:#fff;
-  border:1px solid var(--line);
-  border-radius:14px;
-}
-.detail .total-row>span:last-child { flex-shrink:0; font-variant-numeric:tabular-nums; color:var(--hong); font-weight:800; }
 
 .plan-map-card .map-option-tabs button { font-size:15px; min-height:44px; border-radius:999px; }
 .plan-map-card :is(p,summary,.hint,.map-place-list) { font-size:14px; line-height:1.8; }
@@ -160,8 +141,6 @@ main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.sm
 main :is(.meal-card,.place-blogs,.place-photo-panel) a { font-size:14px; line-height:1.8; overflow-wrap:anywhere; color:var(--hong); font-weight:650; }
 main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; line-height:1; }
 .place-photo-panel .photo-counter { font-size:14px; }
-.execution-summary>details { margin:10px 0; padding:8px 0; }
-.execution-summary>details>summary { font-size:15px; }
 
 /* Shared Partner Voting Page (shared.html) */
 #shared-places { display:grid; gap:16px; margin:20px 0 24px; }
@@ -222,7 +201,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
   .detail .chat-form { flex-wrap:wrap; }
   .detail .chat-form input { flex-basis:100%; }
   .detail .chat-form button { width:100%; min-height:46px; }
-  .detail .total-row { flex-wrap:wrap; gap:4px 12px; }
 }
 @media print { .skip-to-content { display:none; } }
 
@@ -259,7 +237,6 @@ html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 .plan-share>h3 { font-size:19px; margin:20px 0 0; }
 #plan-extras>.plan-extras-panel { margin-top:24px; }
 .plan-photo-details { margin-top:14px; }
-.cost-table-details { margin:8px 0 12px; }
 /* 휴대폰: 조건 칩·소분류 칩을 손가락으로 누르기 쉽게 44px 높이로(전 34~38px). 넓은 화면은 그대로. */
 @media (max-width:720px) {
   .chips label > span { display:inline-flex; align-items:center; min-height:44px; }

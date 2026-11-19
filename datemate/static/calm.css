@@ -43,7 +43,6 @@ nav a,.nav,.nav-cta,summary{font-size:15px}
 @keyframes search-spin{to{transform:rotate(360deg)}}
 @media(max-width:600px){#progress.is-searching{padding:22px 18px;gap:14px;align-items:flex-start}.search-progress-copy strong{font-size:19px}.search-progress-copy p{font-size:15px}.search-spinner{width:28px;height:28px;flex-basis:28px;margin-top:3px}}
 /* Keep the explicitly requested loading indicator moving even when OS effects are off. */
-.price-blog-evidence{display:grid;gap:6px;margin-top:12px;min-width:200px;max-width:340px;white-space:normal}.price-blog-evidence strong{font-size:14px;color:var(--ink)}.price-blog-evidence a{display:block;font-size:14px;line-height:1.7;overflow-wrap:anywhere;word-break:break-word;color:var(--cheong)}
 .simple-plan-form{display:grid;gap:22px}.simple-form-intro{margin:0;color:var(--muted);font-size:15px}.simple-plan-form .simple-form-group{margin:0;padding:20px;border:1px solid var(--line);border-radius:12px}.simple-plan-form .simple-form-group legend{padding:0 8px;font-size:17px;font-weight:700;color:var(--hong)}.simple-plan-form .simple-form-group>label:last-child{margin-bottom:0}.simple-plan-form .field-grid{gap:14px}.simple-plan-form .hint{margin:8px 0 0}.simple-plan-form .simple-extra-options{margin:0;padding:14px 18px;border:1px solid var(--line);border-radius:12px;background:#fff}.simple-extra-options>summary{font-size:15px;font-weight:600;color:var(--muted)}.simple-extra-options[open]>.field-grid{margin-top:14px}.simple-activity-ideas{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}.simple-activity-ideas button{font-size:14px;min-height:40px;padding:6px 16px;border-radius:20px}.simple-plan-form textarea{min-height:110px;resize:vertical}.simple-plan-form #submit-plan{min-height:54px;font-size:17px}.simple-plan-form .price-input-preview{font-size:13px}.simple-plan-form #parse-notice:empty{display:none}
 .search-progress-copy p{color:var(--cheong);font-weight:600}
 #progress.is-searching .search-spinner{animation:search-spin 1.1s linear infinite!important;will-change:transform}
@@ -54,8 +53,6 @@ body:not(.show-date-plan) .hero-photo{display:none}
 body:not(.show-date-plan) .hero-copy{max-width:800px}
 .plan-card:not(.selected) .plan-photo-preview{display:none}
 @media(min-width:801px){.simple-plan-form{max-width:760px;margin-inline:auto}}
-.option-comparison{padding:20px;border:1px solid var(--line);border-radius:16px;margin:16px 0;background:#fff}
-@media(max-width:800px){.option-comparison{padding:10px}}
 .timeline-card .hint a{color:var(--cheong);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere;cursor:pointer}
 .timeline-card .hint a:focus-visible{outline:2px solid var(--cheong);outline-offset:3px}
 .source-link-options{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 12px;max-width:100%;overflow-wrap:anywhere}

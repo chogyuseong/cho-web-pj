@@ -37,7 +37,7 @@ h4,h5 { font-size:19px; line-height:1.45; }
   h3 { font-size:24px; }
 }
 main a { color:var(--cheong); }
-.nowrap,.option-facts,.stats b,.total-row,.num,time { font-variant-numeric:tabular-nums; }
+.nowrap,.option-facts,.stats b,.num,time { font-variant-numeric:tabular-nums; }
 main :is(.hint,.muted,small,.small) { color:var(--muted); }
 
 /* 포커스 표시는 그대로 두고 색만 청색으로. */
@@ -328,15 +328,6 @@ body:not(.show-date-plan) .hero-photo {
   .line-sample li::before { forced-color-adjust:none; }
 }
 
-/* 비교 표: 바깥 테두리 없이 줄만. 금액·시간은 오른쪽 정렬(기존 .num). */
-.option-comparison,.comparison-details>.option-comparison { background:none; border:0; border-radius:0; padding:0; box-shadow:none; }
-.option-comparison table { border-collapse:collapse; }
-.option-comparison :is(th,td) { border-bottom:1px solid var(--line); }
-.option-comparison th,.detail th,.cost-table th { background:#fff!important; color:var(--muted)!important; font-weight:700; }
-.option-comparison thead th,.cost-table thead th { border-bottom:2px solid var(--ink); }
-.option-comparison tbody th { background:#fff!important; color:var(--ink)!important; }
-.comparison-course-title,.option-comparison .comparison-basis { color:var(--muted); }
-.comparison-details>summary,.cost-table-details>summary,.plan-photo-details>summary { color:var(--ink); }
 
 /* ---------- 일정: 노선 띠 ---------- */
 .detail.panel,.plan-extras-panel { background:#fff; border:0; border-radius:0; box-shadow:none; padding:24px 0; }
@@ -366,35 +357,6 @@ body:not(.show-date-plan) .hero-photo {
 .course-evidence>summary,.experience-panel summary { color:var(--ink)!important; }
 .photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
 
-/* ---------- 확인: 네 가지 확인은 2열 정의 목록 ---------- */
-.execution-summary { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; padding:20px 0 4px; box-shadow:none; }
-.execution-summary h3 { color:var(--ink); }
-.execution-summary .execution-grid { display:block; margin:12px 0 16px; }
-.execution-summary .execution-grid>div {
-  display:grid;
-  grid-template-columns:6.5em minmax(0,1fr);
-  gap:0 16px;
-  align-items:baseline;
-  padding:10px 0;
-  background:none;
-  border:0;
-  border-bottom:1px solid var(--line);
-  border-radius:0;
-  box-shadow:none;
-}
-.execution-summary .execution-grid>div:first-child { border-top:1px solid var(--line); }
-.execution-summary .execution-grid strong { margin:0; color:var(--muted); font-size:15px; font-weight:700; }
-.execution-summary .execution-grid p { margin:0; color:var(--ink); font-size:16px; }
-.execution-summary summary { color:var(--ink); }
-.execution-summary .verification-place>a { color:var(--cheong); }
-.detail .table-scroll { border:0; border-radius:0; }
-.detail td { color:var(--ink); }
-.detail .total-row { background:none; border:0; border-bottom:1px solid var(--line); border-radius:0; padding:12px 0; }
-.detail .total-row>span:last-child { color:var(--ink); }
-.planning-decision { background:var(--platform); border:0; border-radius:0; box-shadow:none; }
-.planning-decision h3 { color:var(--ink); }
-.planning-decision>.partner-agreement { border-top:1px solid var(--line); }
-.planning-decision .actions button { border-radius:10px; }
 
 /* ---------- 축제: 청색 띠로 구분, 사진은 자르지 않고 출처는 사진 아래 ---------- */
 #festival-section,.festival-panel {

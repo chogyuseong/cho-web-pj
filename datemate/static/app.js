@@ -547,9 +547,14 @@ function beginPlanSearch() {
   icon.setAttribute('aria-hidden', 'true');
   const copy = node('div', undefined, 'search-progress-copy');
   copy.append(node('strong', '우리에게 맞는 코스를 찾고 있어요'), node('p', '조건 확인 → 코스 탐색 → 실시간 단가 검색·비용 계산 중…'), node('small', '검색을 진행 중이에요. 결과가 준비되면 여기에 보여드릴게요.'));
+  // 실패 안내의 단추(이어보기·다시 검색)를 연달아 탭하면 두 번째 탭이 같은 자리에 새로 나타난 이 단추를 눌러
+  // 방금 시작한 검색을 취소했다(2026-11-19 확인). 나타난 뒤 0.6초 안의 누름은 무시한다.
+  const shownAt = performance.now();
   progress.replaceChildren(icon, copy, button('검색 취소', async () => {
+    if (performance.now() - shownAt < 600) return;
     await PlanSearch.cancel();
     showPlannerPage(false);
+    toast('검색을 취소했어요.');
   }));
 }
 form.addEventListener('submit', async e => {
@@ -591,8 +596,11 @@ form.addEventListener('submit', async e => {
     // behavior 를 넘기지 않아 html 의 scroll-behavior 를 따른다(동작 줄이기 설정이면 바로 이동).
     if (window.innerWidth < 720) $('#results').scrollIntoView();
   } catch (error) {
-    toast(error.message);
-    showSearchFailure(error);
+    // 이어보기·취소로 대체된 조회는 화면을 건드리지 않는다(늦게 끝난 앞 조회가 실패 안내를 덮어쓰지 않게).
+    if (error.searchKind !== 'superseded') {
+      toast(error.message);
+      showSearchFailure(error);
+    }
   } finally {
     submit.disabled = false;
     $('#progress').classList.remove('is-searching');

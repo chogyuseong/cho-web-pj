@@ -270,3 +270,29 @@
   .detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
   .transit-compare-intro,.transit-compare-panel { display:none!important; }
 }
+
+
+/* ---------------------------------------------------------------- 근처 주차장 상자 (5-3c-3)
+   만드는 곳: parking.js parkingPanel() — 자동차로 도착하는 장소 바로 아래 section.parking-panel(h4, ul.parking-lots > li.parking-lot …,
+   .parking-note). 노선 레일 오른쪽 같은 열에 두고 ::before 로 레일을 상자 옆까지 잇는다(주변 식당 제안·지하철 비교 상자와 같은 방식).
+   line.css 에만 있던 규칙을 값 그대로 옮겼다. 이 상자는 css_snapshot 장면에 나오지 않아(자동차 + 외부 API 필요) 계산값 비교로는
+   확인되지 않는다. 그래서 값은 바꾸지 않았고, 뒤에 오는 규칙 중 이 요소들에 걸리는 것이 없음을 확인한 뒤 자리만 옮겼다.
+   남겨 둔 것: 지도 위 주차장 표시(.parking-marker 등)는 지도 단계(5-3f), 인쇄 쪼개짐 방지는 style.css 인쇄 목록. */
+
+.detail>.parking-panel { position:relative; margin:0 0 16px var(--band); }
+.detail>.parking-panel::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
+@media(max-width:800px) { .detail>.parking-panel { margin-left:var(--rail); } }
+.parking-panel { min-width:0; padding:12px 16px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); box-shadow:none; color:var(--ink); font-size:15px; overflow-wrap:anywhere; }
+.parking-panel h4 { margin:0 0 8px; font-size:17px; line-height:1.4; color:var(--ink); }
+.parking-panel p { margin:4px 0; font-size:15px; line-height:1.5; }
+.parking-panel .hint { font-size:14px; color:var(--muted); }
+.parking-lots { list-style:none; margin:0; padding:0; }
+.parking-lot { padding:10px 0; border-top:1px solid var(--line); }
+.parking-lot:first-child { border-top:0; padding-top:0; }
+.parking-lot-title { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
+.parking-lot-title strong { font-size:16px; color:var(--ink); }
+.parking-panel .parking-public { font-size:14px; background:var(--platform); color:var(--ink); border:1px solid var(--line); }
+.parking-panel a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
+.parking-panel button { min-height:44px; font-size:15px; }
+.parking-panel .parking-live { font-weight:700; color:var(--ink); }
+.parking-panel .parking-note { margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }

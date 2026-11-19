@@ -8,7 +8,17 @@
 ★ 지금 상태 (2026-11-19 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 1c6a592(main, 병합 = 모바일 다듬기 + TMAP 비교를 네이버 지도 길찾기 링크로 바꿈), Worker 버전 4729a3a6-29d5-4d7d-83b9-0a7eba05d9ac (쉰네 번째 배포, 2026-11-19)
+운영에 올라간 것: 커밋 e30cb6f(main, 병합 = robots.txt·sitemap.xml 을 Worker 가 직접 답함), Worker 버전 0914e4fc-e099-4179-ae5c-af955e2379ca (쉰다섯 번째 배포, 2026-11-19)
+  · 사용자 신고: 구글 서치 콘솔 Sitemaps 에서 /sitemap.xml(2026-11-17 제출)이 '가져올 수 없음', 마지막으로 읽은 날짜 없음.
+  · 원인(추정, 서치 콘솔에 오류 세부 없음): 두 주소는 컨테이너가 답했는데, 잠들어 있으면 깨어날 때까지 기다려 크롤러가 시간 초과로 실패할 수 있었다.
+    사람 브라우저로는 대개 깨어 있어 늘 200 이었다. 바뀐 파일은 cloudflare/edge.mjs·edge.test.mjs 뿐(6e4ec11).
+  · 고침: Worker 가 GET/HEAD 에 늘 직접 답함(잠듦·깨어 있음 모두). 본문은 datemate/app/search_robots.py 와 글자까지 같음(PUBLIC_ORIGIN 만으로 만듦), Cache-Control public, max-age=3600.
+  · 검증: npm run test:security 25 통과(새 테스트: 본문 일치·컨테이너를 묻지 않음). CI Run 44488662204 의 security·container·python-audit 통과 뒤 배포
+    (sqlite·postgres 는 바뀌지 않은 Python 만 검사해 결과를 기다리지 않음 — 구글이 다시 읽기 전에 올리려고).
+    운영: Googlebot User-Agent 로 /sitemap.xml·/robots.txt 200, 약 0.5초, Server-Timing 없음(= 컨테이너가 아니라 Worker 가 답함), 본문 정상.
+  · 사용자 할 일: 서치 콘솔에서 sitemap.xml 다시 제출(배포 전에 이미 한 번 제출함 — '가져올 수 없음'이 다시 나오면 한 번 더). 읽기까지 몇 시간~하루.
+  · 문제가 생기면: git revert -m 1 e30cb6f 후 재배포.
+(쉰네 번째) 운영에 올라간 것: 커밋 1c6a592(main, 병합 = 모바일 다듬기 + TMAP 비교를 네이버 지도 길찾기 링크로 바꿈), Worker 버전 4729a3a6-29d5-4d7d-83b9-0a7eba05d9ac (쉰네 번째 배포, 2026-11-19)
   · 사용자 지시: '모바일 화면 직접 다듬고 배포까지', 'TMAP 대신 네이버 지도(2번)'. Sleek(design-mobile-apps 스킬)은 사용자 지시로 쓰지 않고 삭제(키 받지 않음, 화면 정보 보내지 않음).
   · 모바일 다듬기(2645d22): 390px 캡처 15장 점검. 아래로 읽는 동안 머리말 소개 문구 숨김(109→91px, 800px 이하, 160px↓ 붙이고 40px↑ 뗌),
     장소 단추 4개·당일 도구 단추를 같은 폭 2열(480px 이하, !important 대신 CSS 변수), 당일 도구 구간 문구 중복('도보 2분 · 가상 추정 2분(추정)') 고침.

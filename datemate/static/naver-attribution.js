@@ -49,6 +49,20 @@ function isNaverResult(place) {
 function naverExpiredNote() {
   const p = document.createElement('p');
   p.className = 'hint naver-expired';
-  p.textContent = '네이버 검색으로 찾은 장소라 보관 기간(21일)이 지나 이름·주소 등 검색 정보를 지웠어요. 일정 시간·비용 계산은 그대로예요.';
+  p.textContent = '네이버 검색으로 찾은 장소라 보관 기간(21일)이 지나 이름·주소·위치 등 검색 정보를 지웠어요. 일정 시간 계산은 그대로이고, 블로그에서 읽은 가격은 확인 필요로 바꿨어요.';
+  return p;
+}
+
+/* 보관 기한(21일)이 지나 좌표까지 지운 장소가 있는 코스인지(app/naver_terms.has_expired_places 와 같은 기준).
+   이런 코스는 서버가 장소·이동 수단 바꾸기, 주변 식당·주차장 찾기, 가격 다시 찾기를 409 로 거절한다(경로를 다시 계산할 좌표가 없음).
+   화면은 그 단추와 패널을 그리지 않고 아래 안내만 보여 준다. */
+function planHistoryExpired(plan) {
+  return Boolean(plan?.places?.some(place => place?.naver_expired));
+}
+
+function planHistoryExpiredNote() {
+  const p = document.createElement('p');
+  p.className = 'warning naver-expired-plan';
+  p.textContent = '만든 지 21일이 지나 네이버 검색으로 찾은 장소의 정보를 지운 코스예요. 장소·이동 수단 바꾸기, 주변 식당·주차장 찾기, 가격 다시 찾기는 같은 조건으로 새로 추천받은 코스에서 할 수 있어요.';
   return p;
 }

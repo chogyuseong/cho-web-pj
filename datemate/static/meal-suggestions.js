@@ -58,6 +58,8 @@ function restaurantCard(food,{badge='',near='',plan=null,index=0}={}){
   if(plan&&plan.can_edit!==false)actions.append(button('이 식당을 일정에 넣기',()=>showMealChange(food,plan,index),'primary'));card.append(info,photo,actions,placeBlogPanel(food,'real'));return card;
 }
 function mealRescuePanel(plan){
+  // 보관 기간(21일)이 지나 좌표를 지운 장소가 있는 코스는 주변 식당을 찾지 않는다(서버 409, naver-attribution.js planHistoryExpired).
+  if(planHistoryExpired(plan))return document.createDocumentFragment();
   const panel=node('section',undefined,'meal-rescue');panel.append(node('h4','대신 들르기 좋은 코스 주변 식당'),node('p','네이버 리뷰순으로 주변 음식점을 찾고 있어요…','hint'));
   if(!mealRescueRequests.has(plan.id))mealRescueRequests.set(plan.id,api('/plans/'+encodeURIComponent(plan.id)+'/meal-rescue').catch(e=>{mealRescueRequests.delete(plan.id);throw e;}));
   mealRescueRequests.get(plan.id).then(data=>{
@@ -73,11 +75,12 @@ function mealRescuePanel(plan){
 function estimatedPlanNotice(){return node('p','이동 시간은 추정값이에요. 장소별 운영시간·입장료의 확인 여부는 조건 확인과 비용표에서 볼 수 있어요. 길찾기로 실제 이동을 확인해 주세요.','hint');}
 const restaurantMatchRequests=new Map();
 function fetchRestaurantMatches(plan){
+  if(planHistoryExpired(plan))return Promise.resolve({groups:[],popular:null});
   if(!restaurantMatchRequests.has(plan.id))restaurantMatchRequests.set(plan.id,api('/plans/'+encodeURIComponent(plan.id)+'/restaurant-matches').catch(error=>{restaurantMatchRequests.delete(plan.id);throw error;}));
   return restaurantMatchRequests.get(plan.id);
 }
 function mealSuggestionPanel(plan,index){
-  if(plan.conditions.mode!=='real')return document.createDocumentFragment();
+  if(plan.conditions.mode!=='real'||planHistoryExpired(plan))return document.createDocumentFragment();
   const place=plan.places[index],panel=node('section',undefined,'meal-suggestions');
   panel.append(node('h4',`${index+1}번 코스 · ${place.name} 주변 식당`),node('p','500m 안에서 먼저 찾고, 3곳 미만이면 1,000m·1,500m까지 넓혀 찾고 있어요…','hint'));
   fetchRestaurantMatches(plan).then(data=>{

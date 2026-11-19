@@ -5,6 +5,8 @@ function applyArea(region,origin){
   // 지역 change 이벤트를 보내지 않는다. 보내면 방금 넣은 출발지가 지워진다.
   form.elements.region.value=region;
   locationState.origin={name:origin.name,lat:Number(origin.lat),lon:Number(origin.lon)};form.elements.origin_name.value=origin.name;
+  // 네이버 검색에서 온 출발지는 받은 시각·검색 종류를 그대로 들고 간다(form-state.js NaverDeviceRetention, 기기 보관 24시간).
+  if(NaverDeviceRetention.isNaver(origin))Object.assign(locationState.origin,{naver_at:Number(origin.naver_at),naver_query:String(origin.naver_query||'local')});
 }
 function applyPresetArea(card){
   applyArea(card.dataset.state,{name:card.dataset.origin,lat:card.dataset.lat,lon:card.dataset.lon});

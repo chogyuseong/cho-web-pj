@@ -100,7 +100,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(query.length<2){closeResults();searchStatus.textContent='동네·역·주소를 두 글자 이상 입력하고 검색해 주세요.';originInput.focus();return;}
     // disabled 로 바꾸면 버튼에 있던 포커스가 사라져 입력한 검색어가 되돌려지므로 aria-disabled 만 쓴다.
     searching=true;searchButton.setAttribute('aria-disabled','true');closeResults();searchStatus.textContent=`‘${query}’을(를) 찾고 있어요…`;
-    try{const data=await api('/locations/search',{query});showResults(data.results||[],data.message);}
+    // 새 질의: 앞서 지역 검색으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 2.4, form-state.js).
+    LastConditions.newQuery('local');
+    try{const data=await api('/locations/search',{query}),at=Date.now();showResults((data.results||[]).map(point=>({...point,received_at:at})),data.message);}
     catch(error){searchStatus.textContent=(error.message||'검색하지 못했어요.')+' 잠시 후 다시 검색하거나 ‘지도에서 고르기’를 이용해 주세요.';}
     finally{searching=false;searchButton.removeAttribute('aria-disabled');}
   }
@@ -108,7 +110,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     const point=searchResults[index];if(!point)return;
     const area=regionOf(point);
     if(!area){setActive(index);searchStatus.textContent='이 결과는 시·도를 알 수 없어 고를 수 없어요. 다른 결과를 고르거나 시·도 이름을 붙여 다시 검색해 주세요.';return;}
-    applyArea(area,{name:originNameOf(point,area),lat:point.lat,lon:point.lon});
+    // 역·가게·명소 이름으로 찾은 결과(place_name)는 네이버 지역 검색 결과다. 받은 시각을 붙여 기기 보관을 24시간으로 묶는다.
+    const origin={name:originNameOf(point,area),lat:point.lat,lon:point.lon};
+    applyArea(area,point.place_name?NaverDeviceRetention.mark(origin,'local',point.received_at):origin);
     appliedOrigin=locationState.origin;closeResults();searchStatus.textContent='';closeLocationChoice();
     areaStatus.textContent=(point.place_name?point.place_name+'('+originInput.value+')':originInput.value)+'을(를) 데이트할 지역으로 골랐어요.';
     refresh();

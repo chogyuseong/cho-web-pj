@@ -172,3 +172,16 @@
 - experience_events·partner_votes 등 다른 표에 장소 이름이 들어가는지 전수 확인하지 못했다.
 - BI: 로고 이미지·크기·색 규정이 가이드에 없어 텍스트 표기로만 했다. 가이드 페이지가 오래된(stale) 표시였다.
 - 외부 호출 증가로 시간당 제공자 한도(DATEMATE_PROVIDER_CALLS_PER_HOUR, 기본 600)에 닿을 수 있다. 값 조정은 운영 결정으로 남겼다(보고서 참고).
+
+## 후속 조치 (2026-11-20, 브랜치 fix/terms-followups)
+
+- 21일 정리(app/naver_terms.strip_plan)가 더 지우는 것: 지역 검색 장소의 좌표(lat·lon → null), 그 장소에 닿는 구간의 길찾기 링크(nmap:// 링크 안에
+  이름이 URL 인코딩돼 있어 1단계의 문자열 가리기로는 지워지지 않았음)·도로 경로, 블로그 가격 금액(→ 금액 없음 '확인 필요', 합계에서 빠짐, 합계 다시 계산),
+  식당 메뉴 가격(menu_pricing), 화면이 만든 이름이 아닌 출발지·귀가지·동네 기준점 이름(→ '{시·도} · 보관 기간이 지난 출발지 주소'). 출발지 좌표는 남긴다(남은 위험).
+- 바꾼 코스(자식)는 created 를 새로 받아 고칠 때마다 보관이 21일씩 늘었다. 부모를 정리하면 같은 호출 안에서 자식도 정리하고, 정리한 코스의 대화(real:plan:{id})도 지운다.
+- 좌표를 지운 코스는 열리지만 경로·주변 검색을 다시 하는 요청은 409(app/naver_terms.ensure_changeable). 화면은 안내 한 줄과 함께 그 기능을 그리지 않는다.
+- AI 근거(ai_safe_plan·redact_history)에서도 검색 결과일 수 있는 출발지 주소를 가린다.
+- 다른 표 전수 확인: experience_events(kind·피드백 값·해시 장소 id), partner_votes(해시 장소 id → 의견), place_reports(해시 장소 id·사용자 메모),
+  reviews·reports·feedback_entries(사용자 글)에는 네이버 장소 이름·주소가 들어가지 않는다. 해시 장소 id 는 코스에도 남는 값이다(남은 위험).
+- 브라우저: '지난번처럼 추천'의 출발지가 지역 검색·팝업 거점에서 왔으면 받은 시각(naver_at)을 함께 두고 24시간 또는 같은 종류의 새 검색에서 출발지만 지운다(static/form-state.js).
+- 2.2 충돌 목록의 설계는 docs/naver-terms-stage2-design.ko.md.

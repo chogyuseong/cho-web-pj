@@ -13,7 +13,8 @@ function parkingEntry(planId) {
 }
 
 function parkingStops(plan) {
-  if (plan?.conditions?.mode !== 'real') return [];
+  // 보관 기간(21일)이 지나 좌표를 지운 장소가 있는 코스는 주변 주차장을 찾지 않는다(서버 409).
+  if (plan?.conditions?.mode !== 'real' || planHistoryExpired(plan)) return [];
   return (plan.places || []).map((_, i) => i).filter(i => plan.legs?.[i] && legMode(plan, plan.legs[i]) === 'car');
 }
 

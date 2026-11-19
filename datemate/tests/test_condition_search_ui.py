@@ -168,11 +168,16 @@ def test_place_name_results_show_name_and_address(server):
         page.wait_for_function('!!locationState.origin')
         assert field.input_value() == SEONGSIMDANG['road_address']
         assert page.locator('[name=region]').input_value() == '대전'
-        assert page.evaluate('locationState.origin') == {'name': SEONGSIMDANG['road_address'], 'lat': SEONGSIMDANG['lat'], 'lon': SEONGSIMDANG['lon']}
+        # 지역 검색 결과라 받은 시각과 검색 종류를 함께 든다(기기 보관 24시간, static/form-state.js · tests/test_naver_device_retention.py).
+        picked = page.evaluate('locationState.origin')
+        assert picked.pop('naver_query') == 'local' and isinstance(picked.pop('naver_at'), (int, float))
+        assert picked == {'name': SEONGSIMDANG['road_address'], 'lat': SEONGSIMDANG['lat'], 'lon': SEONGSIMDANG['lon']}
         assert '성심당 <b>본점</b>(' in page.locator('.area-status').inner_text()
         page.locator('#submit-plan').click()
         body = wait_job(page, bodies, 1)
         assert Conditions.model_validate(body).region == '대전'
+        # 서버에는 이름·좌표만 보낸다.
+        assert body['origin'] == {'name': SEONGSIMDANG['road_address'], 'lat': SEONGSIMDANG['lat'], 'lon': SEONGSIMDANG['lon']}
         assert no_overflow(page)
 
 

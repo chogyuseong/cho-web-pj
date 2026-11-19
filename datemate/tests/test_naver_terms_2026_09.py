@@ -136,7 +136,9 @@ def test_plans_older_than_21_days_lose_naver_fields_but_stay():
     assert '비밀정원카페' not in text and '비밀로 7' not in text and 'blog.naver.com' not in text
     assert stored['places'][0]['naver_expired'] and stored['places'][0]['name'] == naver_terms.EXPIRED_NAME
     assert stored['places'][1] == OWN_PLACE and stored['conditions']['transport'] == 'walk'
-    assert stored['costs'][0]['price_evidence'] == [] and stored['costs'][0]['amount'] == [12000, 12000]
+    # 블로그 가격의 금액도 지운다('확인 필요', 2026-11-20 후속 — tests/test_naver_terms_followups.py).
+    assert stored['costs'][0]['price_evidence'] == [] and stored['costs'][0]['amount'] is None
+    assert stored['places'][0]['lat'] is None and stored['places'][0]['lon'] is None
     assert not stored['reasons'][0].startswith('네이버 코스 검색')
     assert '비밀정원카페' in store.get_plan(fresh)['payload']
 

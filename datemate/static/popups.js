@@ -111,6 +111,8 @@ const PopupView = {
     document.getElementById('popup-status').textContent = `${region}의 팝업 글을 찾고 있어요.`;
     document.getElementById('popup-results').replaceChildren();
     this.setBusy(true);
+    // 새 질의: 앞 팝업 검색의 거점으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 2.4, form-state.js).
+    LastConditions.newQuery('popups');
     try {
       const params = new URLSearchParams({
         region,
@@ -460,11 +462,18 @@ const PopupCourse = {
         region
       });
       if (day) params.set('visit_date', day);
+      // 새 질의(지역·방문일이 앞 요청과 다름): 앞 팝업 검색의 거점으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 2.4).
+      // 같은 조건으로 다시 그리는 것은 새 질의로 보지 않는다(서버 app/naver_cache 의 새 질의 기준과 같음).
+      const query = params.toString();
+      if (this.lastQuery !== undefined && this.lastQuery !== query) LastConditions.newQuery('popups');
+      this.lastQuery = query;
       const data = await api('/popups?' + params, null, 'GET', {
         timeout: 20000,
         signal: controller.signal
       });
       if (generation !== this.generation) return;
+      // 거점 좌표(네이버 지역 검색 결과)를 받은 시각. 이 목록에서 고른 출발지의 기기 보관 기한을 여기서 센다.
+      this.receivedAt = Date.now();
       this.render(data, conditions);
     } catch (error) {
       if (generation !== this.generation) return;
@@ -799,11 +808,12 @@ const PopupCourse = {
     }
     // 지역 change 이벤트를 보내지 않는다. 보내면 방금 넣은 출발지가 지워진다. 방문일·시간·예산·교통·취향은 건드리지 않는다.
     form.elements.region.value = place.region || form.elements.region.value;
-    locationState.origin = {
+    // 거점 좌표는 네이버 지역 검색 결과다. 받은 시각을 붙여 기기 보관을 24시간·새 팝업 검색까지로 묶는다(form-state.js).
+    locationState.origin = NaverDeviceRetention.mark({
       name: originName,
       lat: place.lat,
       lon: place.lon
-    };
+    }, 'popups', this.receivedAt);
     form.elements.origin_name.value = originName;
     this.chosen = {
       hub: {

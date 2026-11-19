@@ -38,7 +38,8 @@ function updatePricePreview(plan) {
 
 function priceRefreshControl(plan) {
   const box = node('div', undefined, 'price-refresh-control');
-  if (plan.conditions.mode === 'demo' || plan.can_edit === false) return box;
+  // 보관 기간(21일)이 지난 검색 장소가 있는 코스는 가격을 다시 찾지 않는다(서버 409, naver-attribution.js planHistoryExpired).
+  if (plan.conditions.mode === 'demo' || plan.can_edit === false || planHistoryExpired(plan)) return box;
   const status = node('span', plan.pricing_checked_at ? '최근 계산 ' + new Date(plan.pricing_checked_at).toLocaleString('ko-KR') : '추천 시 단가 조회', 'hint');
   const refresh = button('현재 단가 다시 검색', async () => {
     refresh.disabled = true;

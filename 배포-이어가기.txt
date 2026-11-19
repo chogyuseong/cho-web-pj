@@ -8,7 +8,16 @@
 ★ 지금 상태 (2026-11-19 기준)
 ----------------------------------------------------------------------
 공개 주소: https://datemate.guseong-family.workers.dev
-운영에 올라간 것: 커밋 aa37057(main, 병합 = CSS 정리 5-3~5-7), Worker 버전 99c9184a-d5c9-46ca-9277-9f1bd23e6e00 (쉰 번째 배포, 2026-11-19)
+운영에 올라간 것: 커밋 076be94(main, 병합 = clarity.css 를 shell.css 끝으로 합침), Worker 버전 dfc854ba-56f3-4457-8b43-352628ed9a58 (쉰한 번째 배포, 2026-11-19)
+  · 사용자가 '모든 권한 … 배포 진행' 으로 지시. 바뀐 정적 파일 3개(shell.css·index.html·feedback.html), clarity.css 삭제. CSS 파일 14 → 13개.
+  · 이기는 쪽이 바뀌는 곳은 800px 이하 html 의 scroll-padding-top 하나뿐이라 그 규칙만 :root 로 씀. css_snapshot 180캡처 계산값·상자·스크린샷 차이 0.
+  · 같은 날 main 에 CI 액션 v7(Node 24) 병합 7ef9aee(배포 불필요): checkout·setup-python·setup-node v4/v5 → v7, CI Run 44445459692 5개 통과, Node 20 경고 사라짐.
+  · 운영 확인: 배포 직후엔 깨어 있던 컨테이너가 예전 HTML 을 줌(clarity.css 링크, 200) → 12분 접속 없이 기다린 뒤 엣지가 새 파일을 줌(Server-Timing 없음):
+    첫 화면 CSS 링크 11개(clarity 없음), shell.css?v=a6bd11b651c0 = 로컬 sha256 앞 12자리, 피드백 화면 5개, clarity.css 404. 화면을 사람 눈으로 보지는 않음.
+  · 문제가 생기면: git revert -m 1 076be94 후 재배포.
+  · 하지 않기로 한 것(판단): 4개 화면 공통을 style.css 하나로 완전히 합치기 — 원래 순서를 지키려면 같은 규칙을 shell.css 에 복사해야 해
+    한쪽만 고쳐 화면이 어긋나기 쉬워진다(수정하기 쉽게라는 목표와 반대). !important 대량 축소와 조건 입력칸 이동도 같은 이유로 보류.
+(쉰 번째) 운영에 올라간 것: 커밋 aa37057(main, 병합 = CSS 정리 5-3~5-7), Worker 버전 99c9184a-d5c9-46ca-9277-9f1bd23e6e00 (쉰 번째 배포, 2026-11-19)
   · 사용자가 '모든 권한 … 배포 진행' 으로 지시. 이번에는 Claude 의 npx wrangler deploy 가 막히지 않고 바로 배포됨(정적 파일 14개 올림, 컨테이너 이미지 새로).
   · 운영 확인(배포 직후, curl): 첫 화면 CSS 링크 12개(style·location-picker·shell·readability·clarity·line·home·results·place-photos·plan-map·popups·server-wake),
     공유 화면 5개(style·readability·line·shared·server-wake), results·home·shell·location-picker 의 ?v= 해시가 로컬 파일 sha256 앞 12자리와 같음, 지운 selle.css 는 404.

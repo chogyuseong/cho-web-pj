@@ -81,12 +81,53 @@ async function changePlanTransport(body, focusKey, box, status) {
 }
 
 // 일정의 구간 줄: "A → B · 도보 18분 · 추정" + [수단 바꾸기]. 누르면 바로 아래에 수단 4개가 펼쳐진다.
+/* 구간마다 「네이버 지도 길찾기」 링크(2026-11-19, 예전 TMAP 지하철·버스 비교를 대신함).
+   네이버 지도 API 에는 공개된 대중교통 길찾기가 없어(자동차 Directions 만) 앱 안에서 노선을 보여 주지 않고,
+   출발·도착이 채워진 네이버 지도 길찾기 화면을 연다. 지하철·버스·환승·요금·실시간 도착은 거기서 본다.
+   좌표·이름은 서버가 구간마다 만든 leg.link(routes.app_link 의 nmap://route/...?slat=&slng=&sname=&dlat=&dlng=&dname=)에서 읽는다.
+   주소 형식(2026-11-19 브라우저로 확인): https://map.naver.com/p/directions/{출발 경도},{위도},{이름},,/{도착 경도},{위도},{이름},,/-/{수단}
+   수단 값: transit(대중교통)·car·walk·bicycle. 형식이 바뀌면 이 함수 하나만 고치면 된다.
+   가상 장소 데모(conditions.mode==='demo')는 좌표가 실제 장소가 아니라 링크를 달지 않는다. */
+const NAVER_DIRECTION_MODES = {
+  transit: 'transit',
+  car: 'car',
+  walk: 'walk',
+  bicycle: 'bicycle'
+};
+
+function naverDirectionsUrl(plan, leg) {
+  if (plan.conditions?.mode === 'demo' || !leg?.link) return null;
+  let q;
+  try {
+    q = new URL(leg.link).searchParams;
+  } catch {
+    return null;
+  }
+  const point = (lat, lon, name) => {
+    const y = Number(q.get(lat)),
+      x = Number(q.get(lon));
+    return Number.isFinite(x) && Number.isFinite(y) && (x || y) ? `${x},${y},${encodeURIComponent(q.get(name) || '')},,` : null;
+  };
+  const from = point('slat', 'slng', 'sname'),
+    to = point('dlat', 'dlng', 'dname'),
+    mode = NAVER_DIRECTION_MODES[legMode(plan, leg)] || 'transit';
+  return from && to ? `https://map.naver.com/p/directions/${from}/${to}/-/${mode}` : null;
+}
+
 function routeLine(plan, index, label) {
   const leg = plan.legs[index],
     // 노선 띠의 구간 선 모양은 지도 범례와 같다: 자동차 실제 경로 실선, 도보 짧은 점선, 그 밖 긴 점선.
     wrap = node('div', undefined, 'route-line-block route-leg-' + (typeof legLineStyle === 'function' ? legLineStyle(plan, leg) : 'long')),
     line = node('div', undefined, 'route-line');
   line.append(node('span', `${label} · ${legModeLabel(plan, leg)}`, 'route-line-text'));
+  const directions = naverDirectionsUrl(plan, leg);
+  if (directions) {
+    const mode = legMode(plan, leg);
+    const anchor = link(mode === 'transit' ? '네이버 지도 대중교통 길찾기 ↗' : '네이버 지도 길찾기 ↗', directions);
+    anchor.className = 'route-directions-link';
+    anchor.title = `${leg.origin} → ${leg.destination} · 새 탭에서 네이버 지도 길찾기 열기`;
+    line.append(anchor);
+  }
   wrap.append(line);
   if (plan.can_edit !== false) {
     const id = 'transport-chooser-' + index,

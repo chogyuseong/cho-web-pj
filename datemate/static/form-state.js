@@ -7,7 +7,11 @@ const FormState={
     return `${data.visit_date} · ${data.start}–${data.end} · ${data.people}명 · ${data.budget_unlimited?'예산 무관':Number(data.budget).toLocaleString('ko-KR')+'원'} ·${data.count}곳 · ${transport[data.transport]||data.transport}`;
   }
 };
-document.getElementById('conditions').addEventListener('change',event=>{
+// 'input'(입력하는 순간)에서도 기록한다. 'change'(칸을 벗어날 때)만 보면, 예산을 입력하고 칸을 벗어나기 전에
+// 자연어 해석('2명 5만원')이 도착해 입력한 값을 덮었다(2026-11-19 출시 흐름 테스트가 가끔 50000 으로 실패해 재현·확인).
+// 빠른 선택 단추(simple-form.js setValue)는 원래 input·change 를 함께 보내므로 동작이 바뀌지 않고,
+// 해석 결과를 넣는 setRequestField(app.js)는 이벤트를 보내지 않아 여전히 '바꾼 칸'으로 세지 않는다.
+for(const type of ['input','change'])document.getElementById('conditions').addEventListener(type,event=>{
   if(FormState.allowed.has(event.target.name))FormState.edited.add(event.target.name);
 });
 /* ‘지난번처럼 추천’에 쓰는 조건. 이 브라우저에만 남기고, 자유 입력 문장과 날짜는 저장하지 않는다. */

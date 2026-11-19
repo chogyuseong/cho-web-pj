@@ -46,7 +46,7 @@ def maintain():
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'feedback:%' AND bucket<?",(int(time.time()//86400)-1,))
         # Popup search hourly limits use hour buckets (app/popup_api.py).
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'popups:%' AND bucket<?",(int(time.time()//3600)-2,))
-        # TMAP 대중교통 비교의 하루 상한은 일 단위 구간(app/transit_compare.py reserve_daily_call).
+        # 예전 TMAP 대중교통 비교(2026-11-19 제거, 네이버 지도 길찾기 링크로 대체)가 남긴 하루 상한 행을 지운다. 남은 행이 없으면 아무 일도 하지 않는다.
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'tmap-transit:%' AND bucket<?",(int(time.time()//86400)-1,))
     retention()
     directory=os.getenv('DATEMATE_BACKUP_DIR','')

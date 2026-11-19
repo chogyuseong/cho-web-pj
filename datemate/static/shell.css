@@ -224,6 +224,11 @@ h3[tabindex="-1"]:focus { outline:none!important; }
 /* Header tagline */
 header .brand-name .brand-tagline { color:var(--hong); font-weight:650; letter-spacing:-.2px; white-space:nowrap; }
 @media(max-width:360px) { header .brand-name .brand-tagline { font-size:11px; } }
+/* 휴대폰에서 아래로 읽는 동안 머리말을 낮춘다(2026-11-19 모바일 점검: 머리말+현재 구역 줄이 화면 높이의 17%를 차지).
+   romance.js 가 800px 이하에서 160px 넘게 내려가면 header.is-compact 를 붙이고, 40px 위로 돌아오면 뗀다(경계에서 깜빡이지 않게 간격을 둠).
+   높이가 바뀌면 같은 스크립트의 ResizeObserver 가 --site-header-height 를 다시 재어, 현재 구역 줄(.section-indicator)도 따라 올라간다.
+   끄려면 romance.js 의 compactHeader 블록을 지우면 된다(이 규칙은 class 가 없으면 아무 일도 하지 않는다). */
+@media(max-width:800px) { header.is-compact .brand-name .brand-tagline { display:none; } }
 
 
 

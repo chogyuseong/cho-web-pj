@@ -281,16 +281,6 @@ function drawPlanMap(plan){
     const stop=onParkingLoaded(plan,data=>{if(disposed||!data||!wrap.isConnected)return;
       clearDrawn();const lots=parkingMapLots(data);drawn=draw(lots);parkingMapNote(parkingNote,lots);});
     parkingMarkers.push(()=>{stop();clearDrawn();});};
-  // 대중교통 비교(transit-compare.js)에서 고른 경로를 실선으로 그린다. 비교 응답이 오거나 선택이 바뀔 때마다 앞 선을 지우고 다시 그린다.
-  // 지도는 요청을 시작하지 않는다. 기존 추정 점선은 그대로 두고 그 위에 겹친다. draw(routes)는 지우는 함수 목록을 돌려준다.
-  const transitNote=node('p','','hint map-transit-note');transitNote.hidden=true;
-  let transitWatchers=[];
-  const clearTransit=()=>{transitWatchers.forEach(clear=>quietly(clear));transitWatchers=[];transitMapNote(transitNote,[]);};
-  const watchTransit=draw=>{if(!transitCompareAvailable(plan))return;
-    let drawn=[];const clearDrawn=()=>{drawn.forEach(clear=>quietly(clear));drawn=[];};
-    const stop=onTransitCompare(plan,()=>{if(disposed||!wrap.isConnected)return;
-      clearDrawn();const routes=transitChosenRoutes(plan);drawn=draw(routes);transitMapNote(transitNote,routes);});
-    transitWatchers.push(()=>{stop();clearDrawn();});};
   // 지도 자체(코스 표시·이동선·식당 표시는 지도와 함께 사라짐)를 지운다. 같은 이유로 remove·destroy 도 감싼다.
   // Leaflet(1.9.4)은 애니메이션 확대의 끝맺음을 transitionend 와 함께 setTimeout(_onZoomTransitionEnd,250) 으로도 예약하는데, remove() 는 이 예약을 지우지 않고
   // _mapPane 만 지운다. 확대 중(빠른 폭 변경·코스 탭 전환으로 다시 그릴 때)에 지우면 250ms 뒤 그 끝맺음이 지워진 _mapPane 의 _leaflet_pos 를 읽다 페이지 오류가 난다.
@@ -299,25 +289,25 @@ function drawPlanMap(plan){
     if(window.L&&map instanceof L.Map&&map._animatingZoom)map._onZoomTransitionEnd();
     quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
   wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
-  wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();clearParking();clearTransit();dropMap();};
+  wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();clearParking();dropMap();};
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
   canvas.setAttribute('role','region');canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
   const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
   caption.setAttribute('role','status');
   const festivalNote=node('p','','hint map-festival-note');festivalNote.hidden=true;
   const popupNote=node('p','','hint map-popup-note');popupNote.hidden=true;
-  wrap.append(canvas,caption,parkingNote,transitNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+  wrap.append(canvas,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
   wrap.showMapFallback=()=>fallback('네이버 지도 인증에 실패했습니다. Dynamic Map 권한과 등록 웹 주소를 확인해 주세요.');
   requestAnimationFrame(()=>render());
   async function render(force=false){
     if(!wrap.isConnected)return;
     clearFestivals();wrap.updateFestivals=()=>{};
     clearPopups();wrap.updatePopups=()=>{};
-    clearParking();clearTransit();
+    clearParking();
     dropMap();
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
-    wrap.replaceChildren(canvas,caption,parkingNote,transitNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+    wrap.replaceChildren(canvas,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
     try{
       await loadNaverMaps(statusData.map_js_key,force);
       if(window.naverMapAuthFailed)throw Error('지도 인증 실패');
@@ -450,13 +440,6 @@ function drawPlanMap(plan){
           return ()=>{quietly(()=>info.close());if(listener)naver.maps.Event.removeListener?.(listener);marker.setMap(null);};
         }));
       }
-      // 고른 대중교통 경로: 조각마다 선 하나(지하철·버스 실선, 도보 짧은 점선). zIndex 를 높여 추정 점선 위에 보이게.
-      watchTransit(routes=>routes.flatMap(route=>route.parts.map(part=>{
-        const line=new naver.maps.Polyline({map,path:part.points.map(([lon,lat])=>new naver.maps.LatLng(lat,lon)),zIndex:60,
-          strokeColor:TRANSIT_LINE_COLORS[part.kind]||TRANSIT_LINE_COLORS.walk,strokeWeight:part.kind==='walk'?3:6,strokeOpacity:.9,
-          strokeStyle:part.kind==='walk'?LINE_DASH.naver.short:'solid'});
-        return ()=>line.setMap(null);
-      })));
     }catch(error){if(wrap.isConnected){
       const reasons={'지도 인증 실패':'네이버 지도 인증에 실패했습니다. 등록 웹 주소와 Dynamic Map 권한을 확인해 주세요.',
         '지도 응답 시간 초과':'지도 서버의 응답이 늦어 연결이 중단됐습니다.',
@@ -468,7 +451,7 @@ function drawPlanMap(plan){
     if(disposed||!wrap.isConnected)return;
     clearFestivals();wrap.updateFestivals=()=>{};festivalNote.hidden=true;
     clearPopups();wrap.updatePopups=()=>{};popupMapNote(popupNote,[]);
-    clearParking();clearTransit();
+    clearParking();
     dropMap();
     const notice=node('div',undefined,'map-reconnect');
     notice.setAttribute('role','status');
@@ -480,7 +463,7 @@ function drawPlanMap(plan){
     loadLeaflet().then(()=>{if(disposed||!wrap.isConnected)return;
       const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('role','region');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
-      wrap.prepend(mapCanvas,mapCaption,parkingNote,transitNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+      wrap.prepend(mapCanvas,mapCaption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
       if(!points.length)return;
       try{
@@ -568,12 +551,6 @@ function drawPlanMap(plan){
           marker.bindPopup(parkingMapInfo(lot));
           return ()=>{marker.off();marker.remove();};
         }));
-        // 고른 대중교통 경로(네이버 지도와 같은 색·모양). 누름을 받지 않게 해 아래 장소 원을 누를 수 있게 한다.
-        watchTransit(routes=>routes.flatMap(route=>route.parts.map(part=>{
-          const line=L.polyline(part.points.map(([lon,lat])=>[lat,lon]),{color:TRANSIT_LINE_COLORS[part.kind]||TRANSIT_LINE_COLORS.walk,
-            weight:part.kind==='walk'?3:6,opacity:.9,dashArray:part.kind==='walk'?LINE_DASH.leaflet.short:null,className:'transit-route transit-route-'+part.kind,interactive:false}).addTo(map);
-          return ()=>line.remove();
-        })));
         const fit=()=>{if(!disposed&&mapCanvas.isConnected){map.invalidateSize();map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35],maxZoom:16});}};
         requestAnimationFrame(fit);
         if(window.ResizeObserver){resizeObserver=new ResizeObserver(fit);resizeObserver.observe(mapCanvas);}

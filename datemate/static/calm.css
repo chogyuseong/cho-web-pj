@@ -1,7 +1,0 @@
-/* Calm editorial theme. Keep behavior and component IDs in the existing app. */
-
-/* Readability: increase body text and the previously tiny supporting labels. */
-/* Separate the needs form and the recommended date plan into two screens. */
-@keyframes search-spin{to{transform:rotate(360deg)}}
-/* Keep the explicitly requested loading indicator moving even when OS effects are off. */
-/* One entry point and compact comparison cards. */

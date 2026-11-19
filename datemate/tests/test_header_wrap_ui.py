@@ -41,5 +41,5 @@ def test_korean_text_breaks_between_words_without_overflow(audit_page):
     if not page.locator('.comparison-details').evaluate('d=>d.open'):
         page.locator('.comparison-details summary').click()
     assert no_overflow(page)
-    # 비교 표 칸은 전처럼 낱말을 쪼개지 않는다(editorial.css 의 keep-all + normal 유지).
+    # 비교 표 칸은 전처럼 낱말을 쪼개지 않는다(results.css 의 keep-all + normal 유지, 예전 editorial.css).
     assert page.locator('.option-comparison td').first.evaluate('el=>getComputedStyle(el).overflowWrap') == 'normal'

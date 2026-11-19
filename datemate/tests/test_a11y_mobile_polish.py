@@ -66,7 +66,7 @@ def test_input_borders_have_3_to_1_contrast_and_focus_stays_dark(audit_page):
     assert borders
     for name, border in borders:
         assert contrast(rgb(border), (255, 255, 255)) >= 3, (name, border)
-    # editorial.css 의 테두리 색 전환(0.18초) 중간값을 읽지 않도록 동작 줄이기로 전환을 끈다.
+    # shell.css(예전 editorial.css)의 테두리 색 전환(0.18초) 중간값을 읽지 않도록 동작 줄이기로 전환을 끈다.
     page.emulate_media(reduced_motion='reduce')
     page.focus('form [name=origin_name]')
     focused = page.evaluate("getComputedStyle(document.querySelector('form [name=origin_name]')).borderTopColor")

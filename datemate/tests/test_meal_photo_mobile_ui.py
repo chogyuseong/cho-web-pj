@@ -2,7 +2,7 @@
 
 760px 이하에서는 식당 카드(meal-suggestions.js restaurantCard, .meal-card-with-photo)를 한 칸으로 쌓는다:
 정보(이름·주소·메뉴 가격표) → 사진(카드 폭, 높이 200px) → 단추. 전에는 정보 옆 사진 칸이 100px 이었다.
-761px 이상(데스크톱)은 전처럼 정보 옆에 사진 칸(minmax(165px,38%))을 둔다. 규칙은 static/selle.css.
+761px 이상(데스크톱)은 전처럼 정보 옆에 사진 칸(minmax(165px,38%))을 둔다. 규칙은 static/results.css(식당 카드)와 place-photos.css(사진 높이), 예전 selle.css.
 외부 API 는 부르지 않는다. 사진·메뉴·블로그 응답은 가로채 흉내 낸다."""
 import pytest
 

@@ -732,7 +732,7 @@ def test_panel_rest_line_names_the_section_and_jumps_to_the_hub_group(audit_page
         state = page.evaluate(REVEALED, "seoul-many-4")
         assert state["posts"] == 5 and state["more"] == 0, (width, state)
         assert state["hubsMore"] == 0 and state["focus"] and state["name"] == "거점4 백화점", (width, state)
-        # 문서 스크롤은 부드럽게 움직인다(selle.css scroll-behavior:smooth). 고정 머리글 아래 화면 위쪽 절반에 멈춘다.
+        # 문서 스크롤은 부드럽게 움직인다(shell.css scroll-behavior:smooth, 예전 selle.css). 고정 머리글 아래 화면 위쪽 절반에 멈춘다.
         page.wait_for_function(f"id=>({REVEALED})(id).inView", arg="seoul-many-4")
         assert page.evaluate("document.querySelectorAll('#popup-course .popup-hub').length") == 5
         assert page.evaluate("document.documentElement.scrollWidth<=innerWidth"), width

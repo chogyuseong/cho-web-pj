@@ -3,7 +3,7 @@
 브라우저 없이 static/*.css 와 html 의 <link> 만 읽는다. 무엇을 막는지:
 1. 화면마다 읽는 CSS 파일과 순서가 정해진 목록과 같다. 순서가 바뀌면 같은 명시도의 규칙끼리 이기는 쪽이 바뀌므로,
    파일을 더하거나 옮길 때는 css_snapshot 비교로 계산값을 확인한 뒤 이 목록을 함께 고친다.
-2. 부품 파일(results·home·place-photos·plan-map)에 있는 선택자를 공통 테마 파일(style·shell·readability·clarity·line)에 다시 쓰지 않는다.
+2. 부품 파일(results·home·place-photos·plan-map)에 있는 선택자를 공통 테마 파일(style·shell·readability·line)에 다시 쓰지 않는다.
    예외는 style.css 인쇄 구역의 '#results 의 다른 자식 숨김' 같은 화면 전체 목록뿐이다(ALLOWED_PRINT_SHARED).
 3. !important 개수가 파일마다 지금보다 늘지 않는다(IMPORTANT_LIMITS). 줄었으면 그 숫자로 낮춘다(상한을 내리는 쪽으로만 고친다).
 4. 새로 만든 파일은 맨 앞 주석에 맡는 범위를 적어 둔다.
@@ -16,22 +16,22 @@ from app.config import ROOT
 
 STATIC = ROOT / 'static'
 
-# 화면별 CSS 순서(5-5 기준). 홈·피드백은 shell.css(예전 selle·calm·editorial)를 읽고, 공유·관리 화면은 읽지 않는다.
+# 화면별 CSS 순서(5-5 기준). 홈·피드백은 shell.css(예전 selle·calm·editorial·clarity)를 읽고, 공유·관리 화면은 읽지 않는다.
 PAGE_STYLESHEETS = {
-    'index.html': ['style.css', 'location-picker.css', 'shell.css', 'readability.css', 'clarity.css', 'line.css',
+    'index.html': ['style.css', 'location-picker.css', 'shell.css', 'readability.css', 'line.css',
                    'home.css', 'results.css', 'place-photos.css', 'plan-map.css', 'popups.css', 'server-wake.css'],
-    'feedback.html': ['style.css', 'shell.css', 'readability.css', 'clarity.css', 'feedback.css', 'line.css'],
+    'feedback.html': ['style.css', 'shell.css', 'readability.css', 'feedback.css', 'line.css'],
     'feedback-admin.html': ['style.css', 'readability.css', 'feedback.css', 'line.css'],
     'shared.html': ['style.css', 'readability.css', 'line.css', 'shared.css', 'server-wake.css'],
 }
 COMPONENT_FILES = ('results.css', 'home.css', 'place-photos.css', 'plan-map.css')
-THEME_FILES = ('style.css', 'shell.css', 'readability.css', 'clarity.css', 'line.css')
+THEME_FILES = ('style.css', 'shell.css', 'readability.css', 'line.css')
 # style.css 인쇄 구역의 화면 전체 숨김·쪼개짐 방지 목록에 남겨 둔 부품 선택자(부품 파일과 겹쳐도 된다).
 ALLOWED_PRINT_SHARED = {'#festival-origin-note', '#festival-section', '#plan-detail', '.meal-suggestions', '.more-restaurants',
                         '.parking-panel', '.plan-card .stats'}
 # 2026-11-19 5-7 기준 파일별 !important 개수 상한(주석 안 글자는 세지 않음). 합계 318, 정리 전 326. 늘리지 말 것.
 IMPORTANT_LIMITS = {
-    'style.css': 4, 'shell.css': 30, 'readability.css': 1, 'clarity.css': 2, 'line.css': 39, 'home.css': 88, 'results.css': 114,
+    'style.css': 4, 'shell.css': 32, 'readability.css': 1, 'line.css': 39, 'home.css': 88, 'results.css': 114,
     'place-photos.css': 27, 'plan-map.css': 9, 'popups.css': 1, 'shared.css': 3, 'location-picker.css': 0, 'feedback.css': 0,
     'server-wake.css': 0,
 }

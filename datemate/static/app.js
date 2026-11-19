@@ -580,6 +580,13 @@ form.addEventListener('submit', async e => {
     data.explicit_fields = [...FormState.edited];
     await PlanningStudy.prepare(data);
     LastConditions.save(data);
+    // 네이버 검색 결과의 받은 시각(naver_at·naver_query)은 이 브라우저의 보관 기한에만 쓴다(form-state.js). 서버에는 이름·좌표만 보낸다.
+    for (const kind of ['origin', 'home'])
+      if (data[kind]) data[kind] = {
+        name: data[kind].name,
+        lat: data[kind].lat,
+        lon: data[kind].lon
+      };
     mode = data.mode;
     beginPlanSearch();
     setTab(false);

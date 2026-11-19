@@ -1,8 +1,8 @@
-﻿const ExploreView={
+const ExploreView={
   sequence:0,offset:0,regionTouched:false,
   card(place,mode){
     const card=node('article',undefined,'place-card');
-    card.append(placePhotoPanel(place,mode),node('span',place.demo?'가상 장소':place.category,'tag'),node('h3',place.name),node('p',place.address||'주소는 상세에서 확인해 주세요.','hint'),button('장소 자세히 보기',()=>showPlace(place.id,mode),'secondary'));
+    card.append(placePhotoPanel(place,mode),node('span',place.demo?'가상 장소':place.category,'tag'),node('h3',place.name),node('p',place.address||'주소는 상세에서 확인해 주세요.','hint'),...(isNaverResult(place)?[naverAttribution('지역 검색',place.source)]:[]),button('장소 자세히 보기',()=>showPlace(place.id,mode),'secondary'));
     return card;
   },
   controls(){let controls=document.getElementById('explore-controls');if(!controls){controls=node('div',undefined,'explore-controls');controls.id='explore-controls';document.getElementById('catalog').after(controls);}return controls;},
@@ -24,6 +24,7 @@
       this.offset=more?this.offset+data.places.length:data.places.length;
       document.getElementById('search-info').textContent=`${data.region||c.region} · ${data.activity||'전체'} · 검색 결과 ${data.total}곳 · 현재 ${this.offset}곳 표시`;
       controls.replaceChildren();
+      if(data.places.length)controls.append(naverAttribution('지역 검색'));
       if(data.message&&data.places.length)controls.append(node('p',data.message,'hint'));
       if(!data.places.length)root.append(node('p',data.message||'조건에 맞는 장소를 찾지 못했어요. 다른 활동이나 검색어로 찾아보세요.','hint'));
       if(data.has_more)controls.append(button('장소 더 보기 · '+this.offset+' / '+data.total,async()=>{const btn=controls.querySelector('button');if(btn)btn.disabled=true;await this.page(c,seq,true);},'primary'));

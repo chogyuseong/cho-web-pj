@@ -62,6 +62,8 @@ function appendPriceEvidence(cell, cost) {
   else cell.append(node('span', cost.source || '등록 출처 없음'));
   if (cost.checked_at) cell.append(node('small', '조회·확인 ' + cost.checked_at, 'price-basis'));
   const sources = [...new Set((cost.price_evidence || []).map(quote => quote.source).filter(Boolean))];
+  // 블로그 검색 요약에서 읽은 가격: '네이버 검색결과' 표시(특약 2.1). 글마다 원본 링크는 아래 '참고한 블로그'.
+  if (sources.length || cost.price_kind === 'web_reference' || cost.price_kind === 'naver_menu') cell.append(naverAttribution('블로그 검색', sources.length === 1 ? sources[0] : null));
   if (sources.length) {
     const blogs = node('div', undefined, 'price-blog-evidence');
     blogs.append(node('strong', '참고한 블로그'));

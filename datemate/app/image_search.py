@@ -277,7 +277,7 @@ def strict_place_images(place,force=False):
     """media.py 가 쓰는 엄격한 가게 사진 검색. dict(status, photos). 성공(찾음·없음)은 1시간 캐시, 실패·바쁨은 캐시하지 않는다."""
     if place.get('demo'):return {'status':'demo','photos':[]}
     if not search_enabled():return {'status':'key_missing','photos':[]}
-    from . import store
+    from . import naver_cache as store
     import json
     key='image-strict-v1:'+hashlib.sha256(json.dumps([place.get(k) for k in ('id','name','address','lot_address','region')],ensure_ascii=False).encode()).hexdigest()
     if not force:
@@ -292,7 +292,7 @@ def strict_place_images(place,force=False):
 def search_place_images(place,force=False):
     if not place.get('id') or place.get('demo') or not search_enabled():
         result=_search_place_images(place);result.pop('busy',None);return result
-    from . import store
+    from . import naver_cache as store
     import hashlib,json
     key='image-search-v4:'+hashlib.sha256(json.dumps([place.get(k) for k in ('id','name','address','image_aliases','image_keywords','image_queries','wikipedia')],ensure_ascii=False).encode()).hexdigest()
     if not force:

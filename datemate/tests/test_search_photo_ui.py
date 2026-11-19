@@ -1,6 +1,6 @@
 """장소 사진 칸의 '검색 사진'과 사진이 없을 때의 네이버 지도 링크(2026-11-19 사용자 결정, static/place-photos.js).
 
-- 엄격한 이미지 검색 사진(kind image_search, app/image_search.strict_place_images)은 출처 줄이 '검색 사진 · 원본 · 검색'이다.
+- 엄격한 이미지 검색 사진(kind image_search, app/image_search.strict_place_images)은 출처 줄이 '네이버 검색결과 · 검색 사진 · 원본 · 검색'이다.
 - 사진이 하나도 없거나 모든 후보가 깨지면 빈 사진 칸·깨진 그림 대신 '네이버 지도에서 사진 보기' 링크(app.js placeMapLink 와 같은 주소)를 둔다.
 외부 API 는 부르지 않는다. /media 응답과 사진 서버는 page.route 로 흉내 낸다.
 """
@@ -40,7 +40,8 @@ def test_search_photo_is_labelled_with_its_source(audit_page):
     mount(page, {'status': 'available', 'photos': [search_photo('ok')], 'map_url': MAP_URL})
     page.wait_for_function("document.querySelector('#search-photo-holder .place-photo img')?.naturalWidth>0")
     caption = page.locator('#search-photo-holder .place-photo figcaption')
-    assert caption.inner_text() == '검색 사진 · 원본 · 검색'
+    # 2026-11-20: 네이버 검색 API 특약 2.1 — 네이버 검색결과임을 앞에 밝힌다.
+    assert caption.inner_text() == '네이버 검색결과 · 검색 사진 · 원본 · 검색'
     original = caption.locator('a').first
     assert original.get_attribute('href') == 'https://photos.example.test/ok.png'
     assert original.get_attribute('aria-label') == '사진 원본 (검색 사진)'

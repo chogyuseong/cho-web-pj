@@ -30,20 +30,17 @@ def test_meal_requires_real_food_and_lunch_window():
     assert not meal_due(c.model_copy(update={'start':'15:00','end':'16:00'}))
 
 
-def test_extraction_rejects_invented_address_and_instruction(monkeypatch):
-    class Fake:
-        def with_structured_output(self,_):return self
-        def invoke(self,_):return discovery.Mentions(places=[discovery.Mention(name='테스트식당',address='서울 마포구 없는길 99',kind='restaurant',rank=1,quote='테스트식당 서울 마포구 없는길 99')])
+def test_extraction_never_uses_a_model_even_with_a_key(monkeypatch):
+    # 네이버 검색 API 특약 2.3(2026-09): 블로그 검색 결과를 AI 입력에 쓰지 않는다. 예전 LLM 추출은 없앴다.
     monkeypatch.setenv('GMS_KEY','test')
-    monkeypatch.setattr(discovery,'llm',lambda:Fake())
     mentions,status=discovery.extract([dict(rank=1,title='테스트식당',description='방문했어요',_body='주소는 알 수 없어요')])
-    assert status=='available' and not mentions
-
+    assert status=='ai_blocked_by_naver_terms' and not mentions
+    assert not hasattr(discovery,'llm')
 
 def test_resolve_falls_back_to_unique_quoted_address(monkeypatch):
     monkeypatch.setattr(discovery,'local_lookup',lambda *_:([],'permission_required'))
     monkeypatch.setattr(discovery,'search_address',lambda _:dict(results=[dict(name='서울 마포구 테스트로 1',lat=37.56,lon=126.925)]))
-    saved=[];monkeypatch.setattr(discovery.store,'cache',lambda *args:saved.append(args))
+    saved=[];monkeypatch.setattr(discovery.naver_cache,'cache',lambda *args:saved.append(args))
     mention=dict(name='테스트식당',address='서울 마포구 테스트로 1',kind='restaurant',rank=1,quote='테스트식당 서울 마포구 테스트로 1')
     row,status=discovery.resolve(mention,[dict(rank=1,url='https://blog.naver.com/example/1')],'연남동 데이트 코스')
     assert row['meal'] and row['hours'] is None and row['rating'] is None

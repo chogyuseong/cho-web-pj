@@ -72,7 +72,7 @@ def test_parking_panel_under_the_car_stop_map_and_walk_back(audit_page):
     assert '삼청 공영주차장' in text and '공영(이름 기준)' in text
     assert '직선 320m · 걸어서 약 7분(추정)' in text and '서울특별시 종로구 삼청로 9' in text
     assert '요금·운영시간은 네이버 지도에서 바로 볼 수 있어요.' in text and '만차 여부는 알 수 없어요.' in text
-    assert first.locator('a').inner_text() == '네이버 지도에서 요금·운영시간 보기 ↗'
+    assert first.locator('a[data-map-place-id]').inner_text() == '네이버 지도에서 요금·운영시간 보기 ↗'
     # 공공데이터 요금·운영시간이 붙은 주차장: 자료의 공영 구분, 요금, 방문일 운영시간, 기준일.
     other = second.inner_text()
     assert '공영(이름 기준)' not in other and second.locator('.parking-public').inner_text() == '공영'
@@ -81,8 +81,8 @@ def test_parking_panel_under_the_car_stop_map_and_walk_back(audit_page):
     assert '실시간 남은 자리 약 547면 (713/1,260대 주차 중 · 17:04 기준)' in other
     assert '공공데이터 기준일 2026-04-16 · 지금은 바뀌었을 수 있어요.' in other and '만차 여부' not in other
     assert second.locator('.parking-unverified').count() == 0
-    assert second.locator('a').inner_text() == '네이버 지도에서 보기 ↗'
-    anchor = first.locator('a')
+    assert second.locator('a[data-map-place-id]').inner_text() == '네이버 지도에서 보기 ↗'
+    anchor = first.locator('a[data-map-place-id]')
     assert anchor.inner_text().endswith('↗') and anchor.get_attribute('href').startswith('https://map.naver.com/')
     assert anchor.get_attribute('target') == '_blank'
     assert panel.locator('.parking-note').inner_text() == ('주차 시간·요금은 일정과 비용에 포함하지 않았어요. '

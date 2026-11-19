@@ -104,7 +104,7 @@ async function openLocationPicker(kind){
       const data=await api('/locations/search',{query:query.value.trim()});
       if(!canvas.isConnected||!$('#dialog').open)return;
       message.textContent=data.message||'검색 결과에서 원하는 주소를 선택하세요. 도로명 주소를 우선 표시합니다.';
-      for(const point of data.results){const option=button('',()=>choose(point),'location-result');option.append(node('strong',point.road_address||point.name));if(point.jibun_address)option.append(node('span','지번: '+point.jibun_address,'hint'));results.append(option);}
+      for(const point of data.results){const option=button('',()=>choose(point),'location-result');option.append(node('strong',point.road_address||point.name));if(point.jibun_address)option.append(node('span','지번: '+point.jibun_address,'hint'));results.append(option);if(point.place_name)results.append(naverAttribution('지역 검색',placeMapUrl({name:point.place_name,address:point.road_address||point.jibun_address||point.name})));}
     }catch(error){message.textContent=error.message;}finally{searchButton.disabled=false;}
   };
   // 키가 있으면 네이버 지도를 우선 사용하고, 없거나 로딩 실패면 공개 지도 사용.

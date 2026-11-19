@@ -181,7 +181,7 @@ def search_plan(c, anchor):
 
 def discover_leisure(c, anchor):
     """묶음 검색으로 코스 장소 주변 레저를 찾아 종목별로 분류해 저장하고 진단을 돌려준다."""
-    from . import intent_discovery, store
+    from . import intent_discovery, naver_cache
     from .image_search import plain
     from .regions import region_from_address, korean_coordinates
     from .request_usage import current, measure
@@ -197,7 +197,7 @@ def discover_leisure(c, anchor):
         "leisure-local-v1:"
         + hashlib.sha256(str([point, c.region, c.transport, queries]).encode()).hexdigest()
     )
-    cached = store.cached(cachekey)
+    cached = naver_cache.cached(cachekey)
     if cached:
         return dict(cached, lookups=0, cache_hit=True)
     stats = {term: Counter() for term, _, _ in queries}
@@ -254,21 +254,21 @@ def discover_leisure(c, anchor):
             st["adopted"] += 1
             adopted[sport.key] += 1
             # 이미 저장된 장소(블로그 근거 등)는 덮어쓰지 않는다.
-            if store.cached("discovered-place:" + pid):
+            if naver_cache.cached("discovered-place:" + pid):
                 continue
             row = dict(
                 id=pid, name=name, address=address, lat=lat, lon=lon, region=c.region, demo=False,
                 category="레저·활동", themes=["레저·활동"], tags=[sport.key, category], meal=False,
                 description=category,
                 source="https://map.naver.com/p/search/" + quote(place_query({"name": name, "address": address})),
-                source_type="네이버 지역 검색 · 레저 종목 분류",
+                source_type="네이버 지역 검색 · 레저 종목 분류", naver_result=True,
                 checked_at=datetime.now(timezone.utc).isoformat(),
                 discovery_verification="네이버 업체 분류·상호·주소·좌표 연결 · 영업 여부·계절 운영 별도 확인",
                 price=None, price_unit="person", hours=None, closed_days=None, breaks=None, last_entry=None,
                 reservation=None, stay=None, stay_basis=None, rating=None, setting=None, photos=[], videos=[],
                 license="검색 결과",
             )  # fmt: skip
-            store.cache("discovered-place:" + pid, row, 604800)
+            naver_cache.cache("discovered-place:" + pid, row, naver_cache.PERSONAL_MAX_SECONDS)
     result = dict(
         search_status="permission_required"
         if "permission_required" in statuses
@@ -283,7 +283,7 @@ def discover_leisure(c, anchor):
         budget_exhausted=snapshot["budget_exhausted"],
     )
     ok = any(s == "available" for s in statuses)
-    store.cache(cachekey, result, 900 if ok else 30)
+    naver_cache.cache(cachekey, result, 900 if ok else 30)
     return result
 
 

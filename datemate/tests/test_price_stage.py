@@ -10,7 +10,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-from app import perf_trace
+from app import perf_trace, store
 from app.perf_trace import recording, stage
 from app.request_usage import context_map, measure
 from app.telemetry import observed_http
@@ -201,7 +201,8 @@ def test_preview_options_are_the_options_before_pricing_without_prices(naver, mo
     original = recommendation_service.report
     monkeypatch.setattr(recommendation_service, 'report', lambda *a, **kw: (reported.append(kw), original(*a, **kw))[1])
     clean_region(SCENARIOS['jeonju']['region'])
-    result = run('jeonju', naver)
+    owner = store.owner_of('price-stage-' + uuid.uuid4().hex)
+    result = run('jeonju', naver, owner)
     options = next(kw['preview_options'] for kw in reported if 'preview_options' in kw)
     # 고정 입력에서는 가격 확인이 3안을 바꾸지 않으므로 확정 전 후보 = 확정 코스(장소 id·순서·이름).
     assert [[p['id'] for p in o['places']] for o in options] == [[p['id'] for p in plan['places']] for plan in result['plans']]
@@ -244,7 +245,8 @@ def test_job_state_carries_preview_options_until_cancelled(monkeypatch):
 
 def test_fixed_input_recommendation_reports_the_price_stage(naver):
     clean_region(SCENARIOS['jeonju']['region'])
-    result = run('jeonju', naver)
+    owner = store.owner_of('price-stage-' + uuid.uuid4().hex)
+    result = run('jeonju', naver, owner)
     timing = result['diagnostics']['timing']
     counts = timing['counts']
     # 고정 입력(전주, 캐시 빈 상태): 가격 조회 7건이 모두 최종 3안의 장소이고, 가격 확인이 3안을 바꾸지 않는다.
@@ -252,7 +254,8 @@ def test_fixed_input_recommendation_reports_the_price_stage(naver):
     assert counts['price.plans_before'] == counts['price.plans_after'] == counts['price.plans_unchanged'] == 3
     assert timing['external_by_stage']['가격 확인']['calls'] == 7
     assert {'price.cache_read', 'price.lookups', 'price.cache_write'} <= set(timing['spans'])
-    warm = run('jeonju', naver)
+    # 같은 사용자가 같은 조건으로 다시 추천하면 그 사용자의 보관분(24시간)에서 가격을 읽는다(app/naver_cache).
+    warm = run('jeonju', naver, owner)
     counts = warm['diagnostics']['timing']['counts']
     assert counts['price.cached'] == 7 and 'price.lookups' not in counts
 

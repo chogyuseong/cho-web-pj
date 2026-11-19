@@ -33,7 +33,7 @@ function link(text,url){
       label.textContent=place.name+'에 대한 의견';select.name=place.id;
       for(const [value,title] of [['','아직 안 정했어요'],['neutral','상관없어요'],['yes','좋아요'],['must','꼭 가고 싶어요'],['no','빼주세요']])select.add(new Option(title,value));
       select.value=data.my_choices?.[place.id]||'';
-      label.append(select);article.append(title,text,label);document.getElementById('shared-places').append(article);
+      label.append(select);article.append(title,text);if(typeof isNaverResult==='function'&&isNaverResult(place))article.append(naverAttribution('지역 검색',place.source));article.append(label);document.getElementById('shared-places').append(article);
     }
     saved={...(data.my_choices||{})};form.querySelector('button').before(dirty);showDirty();
     form.hidden=false;

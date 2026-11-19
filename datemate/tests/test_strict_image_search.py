@@ -115,7 +115,8 @@ def test_strict_search_failure_is_not_cached_and_short_names_are_not_searched(mo
     assert strict_place_images(dict(PIG, demo=True))['status'] == 'demo'
 
 
-def test_media_route_adds_card_thumbnails_for_search_photos(monkeypatch):
+def test_media_route_does_not_resize_or_cache_search_photos(monkeypatch):
+    # 2026-11-20 네이버 검색 API 특약 2.2·2.3: 검색 결과 사진은 줄이지(가공) 않고 서버에 담아 두지(캐싱) 않는다. 브라우저가 원본을 받는다.
     """카드에는 기존 /photo-thumb 축소를 쓴다: 검색 사진 원본(허용 호스트)도 thumb_url 을 받고 허용 목록에 오른다."""
     from fastapi.testclient import TestClient
     from app import photo_thumb
@@ -129,8 +130,8 @@ def test_media_route_adds_card_thumbnails_for_search_photos(monkeypatch):
     with TestClient(app) as client:
         body = client.get('/api/places/Q482485/media', params={'mode': 'real'}).json()
     first, second = body['photos']
-    assert first['thumb_url'] == photo_thumb.thumb_path(original)
-    assert store.cached(photo_thumb.allow_key(original)) is True
+    assert 'thumb_url' not in first
+    assert store.cached(photo_thumb.allow_key(original)) is None
     # 허용 호스트가 아닌 원본은 줄이지 않는다(브라우저가 원본을 직접 받음). 열린 중계가 되지 않는다.
     assert 'thumb_url' not in second
     assert not photo_thumb.allowed_source('https://imgnews.naver.net.evil.example/a.jpg')

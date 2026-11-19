@@ -179,6 +179,10 @@ def observed_http(call,url,**kwargs):
         if session is not None:call=session.get
     with operation(urlsplit(url).hostname or 'unknown',call_kind(url)) as state:
         state['probe']=connection_probe(getattr(call,'__self__',None),kwargs)
+        if urlsplit(url).hostname==NAVER_API_HOST:
+            # 요청(또는 추천 작업) 하나가 실제로 부른 네이버 검색 API 수(app/naver_cache.calls). 공용 캐시를 없앤 뒤 호출 수 확인용.
+            from .naver_cache import count_call
+            count_call()
         response=call(url,**kwargs)
         state['failed']=response.status_code>=400
         return response

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 import httpx
-from . import store
+from . import naver_cache
 from .image_search import safe_https, title_matches, image_aliases, search_enabled
 from .request_usage import context_map
 from .telemetry import observed_stream
@@ -207,6 +207,12 @@ def blog_photos(place, force=False):
     empty = dict(status="not_found", photos=[], photo_source="matched_blog_photos")
     if place.get("demo") or not search_enabled():
         return empty
+    from .naver_pages import allowed
+
+    if not allowed():
+        # 글 본문 사진을 읽지 않으므로(app/naver_pages.py) 블로그 검색을 불러도 사진이 나오지 않는다.
+        # 2026-11-20: 공용 캐시를 없애 호출이 사용자마다 나가므로, 쓸모없는 블로그 검색 호출을 하지 않는다.
+        return empty
     key = (
         "caption-blog-photos-v6:"
         + hashlib.sha256(
@@ -220,7 +226,7 @@ def blog_photos(place, force=False):
         ).hexdigest()
     )
     if not force:
-        cached = store.cached(key)
+        cached = naver_cache.cached(key)
         if cached:
             return cached
     from .blog_search import place_blogs
@@ -268,5 +274,5 @@ def blog_photos(place, force=False):
     )
     if not photos and result["status"] == "available":
         result["status"] = "not_found"
-    store.cache(key, result, 3600 if photos else 60)
+    naver_cache.cache(key, result, 3600 if photos else 60)
     return result

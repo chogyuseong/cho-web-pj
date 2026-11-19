@@ -49,6 +49,12 @@ def maintain():
         # 예전 TMAP 대중교통 비교(2026-11-19 제거, 네이버 지도 길찾기 링크로 대체)가 남긴 하루 상한 행을 지운다. 남은 행이 없으면 아무 일도 하지 않는다.
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'tmap-transit:%' AND bucket<?",(int(time.time()//86400)-1,))
     retention()
+    # 네이버 검색 API 특약(2026-09): 공용 캐시에 네이버 결과가 다시 쌓이지 않았는지 정리하고(안전망),
+    # 만든 지 21일이 지난 코스에서 네이버 유래 필드를 지운다(코스는 남김, app/naver_terms.py).
+    from . import naver_cache, naver_terms
+    naver_cache.cleanup_shared()
+    for _ in range(50):
+        if naver_terms.cleanup_expired_plans()<naver_terms.CLEANUP_BATCH:break
     directory=os.getenv('DATEMATE_BACKUP_DIR','')
     if directory and not postgres_enabled():
         stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')

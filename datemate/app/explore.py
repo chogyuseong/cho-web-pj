@@ -3,14 +3,13 @@ import hashlib
 import json
 import os
 import re
-import time
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import quote
 from datetime import datetime,timezone
 import httpx
 from .telemetry import observed_http
 from fastapi import APIRouter,HTTPException,Query
-from . import store
+from . import naver_cache
 from .image_search import plain,search_enabled
 from .regions import REGIONS,korean_coordinates,normalize_region,region_from_address
 from .request_usage import context_map
@@ -88,7 +87,7 @@ def venue(item,query,rank,region='서울'):
     pid='discovered:'+hashlib.sha256((name+address).encode()).hexdigest()[:20]
     return dict(id=pid,name=name,address=address,lat=lat,lon=lon,region=region,demo=False,category=kind,themes=[kind],tags=[category],
         meal=meal,
-        description=category,source='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address})),source_type='네이버 지역 검색 · 장소 둘러보기',
+        description=category,source='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address})),source_type='네이버 지역 검색 · 장소 둘러보기',naver_result=True,
         checked_at=datetime.now(timezone.utc).isoformat(),discovery_verification='업체명·시·도 주소·좌표 확인 · 현재 영업 여부 별도 확인',
         price=None,price_unit='person',hours=None,closed_days=None,breaks=None,last_entry=None,reservation=None,stay=None,stay_basis=None,rating=None,setting=None,
         photos=[],videos=[],license='검색 결과',search_score=1/(60+rank),found_in=[dict(query=query,rank=rank)])
@@ -104,33 +103,35 @@ def add_unique(bank,row):
 
 def lookup(client,query):
     key='explore-query-v1:'+hashlib.sha256(query.encode()).hexdigest()
-    cached=store.cached(key)
+    cached=naver_cache.cached(key)
     if cached is not None:return query,cached['items'],'available'
     try:
         response=observed_http(client.get,'https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=query,display=5,start=1,sort='random',format='json'),headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']})
         if response.status_code in (401,403):return query,[],'permission_required'
         response.raise_for_status();items=response.json().get('items',[])
         if not isinstance(items,list):raise ValueError('items')
-        store.cache(key,dict(items=items[:5]),3600)
+        naver_cache.cache(key,dict(items=items[:5]),3600)
         return query,items[:5],'available'
     except (httpx.HTTPError,KeyError,ValueError,TypeError):return query,[],'unavailable'
 
 def persist(places):
-    """Keep found venues readable by /api/places/{id}?mode=real for the detail dialog."""
+    """Keep found venues readable by /api/places/{id}?mode=real for the detail dialog.
+
+    같은 사용자만, 개인화 보관 상한(24시간) 안에서 읽는다(특약 2.4, app/naver_cache.py). 다른 사용자의 후보·카탈로그에는 넣지 않는다.
+    """
     if not places:return
-    expires=time.time()+7*86400
-    with store.connect() as db:
-        db.executemany('INSERT INTO cache VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,expires=excluded.expires',
-                       [('explore-place:'+p['id'],json.dumps(p,ensure_ascii=False),expires) for p in places])
+    naver_cache.cache_many([('explore-place:'+p['id'],p,RESULT_TTL) for p in places])
 
 def results(region,activity='',q=''):
     q=' '.join(q.split())
     key='explore-result-v2:'+hashlib.sha256(json.dumps([region,activity,q.casefold()],ensure_ascii=False).encode()).hexdigest()
-    cached=store.cached(key)
+    cached=naver_cache.cached(key)
     if cached is not None:return cached
     if not search_enabled():return dict(status='key_missing',places=[],message='네이버 검색 키가 필요해요.',queries_used=0)
     # A new (uncached) search costs up to 16 provider calls; bound them per IP range.
     require_ip('explore-search','DATEMATE_IP_EXPLORE_SEARCHES_PER_MINUTE',10,'새 조건 검색이 많아요. 잠시 후 다시 시도해 주세요.')
+    # 같은 사용자의 새 둘러보기 검색: 이전 검색 보관분을 지운다(특약 2.4 '새 질의 시까지', app/naver_cache.py).
+    naver_cache.new_query('explore')
     bank={};errors=0;permission=False;planned=queries(region,activity,q)
     with httpx.Client(timeout=8) as client,ThreadPoolExecutor(max_workers=4) as pool:
         found=context_map(pool,lambda query:lookup(client,query),planned)
@@ -148,7 +149,7 @@ def results(region,activity='',q=''):
     result=dict(status=status,places=rows,message=message,queries_used=len(planned),failed_queries=errors,
                 checked_at=datetime.now(timezone.utc).isoformat())
     persist(rows)
-    if status in ('ready','empty'):store.cache(key,result,RESULT_TTL if not errors else 600)
+    if status in ('ready','empty'):naver_cache.cache(key,result,RESULT_TTL if not errors else 600)
     return result
 
 @router.get('/api/explore')

@@ -35,7 +35,7 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 
-from . import popups, store, web_security
+from . import naver_cache, popups, store, web_security
 from .image_search import LOCK_WAIT_SECONDS, safe_web_url, search_enabled
 from .popup_hubs import HUBS, HUBS_VERSION
 from .regions import REGIONS, normalize_region
@@ -56,7 +56,8 @@ DISPLAY = 50
 SORT = "date"
 RAW_TTL = 3600
 EMPTY_TTL = 600
-POINT_TTL = 7 * 86400
+# 거점 좌표 판정은 지역 검색 결과의 파생물이라 개인화 보관 상한(24시간)을 넘기지 않는다(특약 2.4, app/naver_cache.py).
+POINT_TTL = 86400
 TIMEOUT = 10
 MAX_POINT_LOOKUPS = 3
 QUERY_MAX = 30
@@ -291,7 +292,7 @@ def lookup_point(client, hub):
         lat=point.get("lat"),
         lon=point.get("lon"),
     )
-    store.cache(point_key(hub["id"]), stored, POINT_TTL)
+    naver_cache.cache(point_key(hub["id"]), stored, POINT_TTL)
     return stored
 
 
@@ -471,7 +472,7 @@ def response(status, message, region, q, visit, basis, sources, posts, counts, c
 def find_popups(region, q, visit, basis):
     key = raw_key(region, q, visit)
     query = search_query(region, q, visit)
-    raw = store.cached(key)
+    raw = naver_cache.cached(key)
     called = False
     with httpx.Client(timeout=TIMEOUT) as client:
         if raw is None:
@@ -481,9 +482,11 @@ def find_popups(region, q, visit, basis):
             if not lock.acquire(timeout=LOCK_WAIT_SECONDS):
                 return unavailable(region, q, visit, basis, "busy")
             try:
-                raw = store.cached(key)
+                raw = naver_cache.cached(key)
                 if raw is None:
                     allow_new_search(raise_error=True)
+                    # 같은 사용자의 새 팝업 검색: 이전 팝업 검색 보관분을 지운다(특약 2.4 '새 질의 시까지').
+                    naver_cache.new_query("popups")
                     called = True
                     result = fetch_blog(client, query)
                     if result["status"] != "ok":
@@ -499,7 +502,7 @@ def find_popups(region, q, visit, basis):
                     has_popup = any(
                         popups.has_popup(p["title"] + " " + p["description"]) for p in raw["posts"]
                     )
-                    store.cache(key, raw, RAW_TTL if has_popup else EMPTY_TTL)
+                    naver_cache.cache(key, raw, RAW_TTL if has_popup else EMPTY_TTL)
             finally:
                 lock.release()
         shown, counts = judge(raw["posts"], region, visit)
@@ -562,7 +565,7 @@ def hub_points(client, shown, may_call):
     may_call: 외부 호출을 해도 되는지 묻는 함수(Permit)."""
     wanted = Counter(p["_hub"]["hub_id"] for p in shown if p["_hub"]["status"] == "single")
     order = sorted(wanted, key=lambda h: (-wanted[h], h))
-    found = store.cached_many([point_key(h) for h in order])
+    found = naver_cache.cached_many([point_key(h) for h in order])
     verdicts = {h: found[point_key(h)] for h in order if point_key(h) in found}
     missing = [h for h in order if h not in verdicts]
     checks = dict(requested=0, failed=0, skipped=0)
@@ -635,7 +638,7 @@ def lookup_photo(client, name, hub, region, visit):
         )
         break
     result = dict(photo=photo)
-    store.cache(photo_key(name, hub["id"], visit), result, PHOTO_TTL)
+    naver_cache.cache(photo_key(name, hub["id"], visit), result, PHOTO_TTL)
     return result
 
 
@@ -649,7 +652,7 @@ def post_photos(client, shown, region, visit, permit):
             key = photo_key(target[0], target[1]["id"], visit)
             keys[post["id"]] = key
             targets.setdefault(key, target)
-    found = store.cached_many(list(targets))
+    found = naver_cache.cached_many(list(targets))
     missing = [key for key in targets if key not in found]
     checks = dict(requested=0, failed=0, skipped=0)
     if missing and (not search_enabled() or not permit()):

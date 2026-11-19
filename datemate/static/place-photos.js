@@ -31,7 +31,8 @@ function photoMetaLines(photo){
   return lines;
 }
 // 검색 사진 출처 줄 앞머리: 엄격한 이미지 검색 사진은 '검색 사진', 네이버 공개 사진은 그대로.
-function searchPhotoPrefix(photo){return photo.kind==='image_search'?'검색 사진 · ':'네이버 공개 사진 · ';}
+// 네이버 이미지 검색 사진은 '네이버 검색결과'임을 앞에 밝힌다(특약 2.1, 2026-11-20).
+function searchPhotoPrefix(photo){return photo.kind==='image_search'?'네이버 검색결과 · 검색 사진 · ':'네이버 공개 사진 · ';}
 // 사진이 끝내 없을 때 빈칸 대신 보여 줄 네이버 지도 링크. 다른 지도 링크와 같은 주소(app.js placeMapLink: 확인된 업체 번호가 있으면 그 업체 화면)를 쓴다.
 function photoMapLink(place){
   const a=placeMapLink('네이버 지도에서 사진 보기 ↗',place);a.classList.add('photo-map-link');return a;

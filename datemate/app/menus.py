@@ -1,11 +1,11 @@
-﻿"""Read matched businesses' public menus; never substitute another branch or delivery price."""
+"""Read matched businesses' public menus; never substitute another branch or delivery price."""
 import json
 import re
 import threading
 from datetime import datetime,timezone
 from urllib.parse import urlencode,urlsplit
 import httpx
-from . import store
+from . import naver_cache, store
 from .routes import distance
 from .image_search import plain,safe_https,LOCK_WAIT_SECONDS
 from .search_address_text import place_query
@@ -156,7 +156,7 @@ def restaurant_menu(place,force=False):
     # New parser must not reuse old false-negative entries.
     key='restaurant-menu-v4:'+place['id']
     if not force:
-        cached=store.cached(key)
+        cached=naver_cache.cached(key)
         if cached:return cached
     address=(place.get('address') or '').split();district=next((s for s in address if s.endswith('구')),'서울')
     queries=list(dict.fromkeys([place_query(place),place_query(place,'메뉴'),place['name']+' '+district+' 메뉴']))
@@ -189,5 +189,5 @@ def restaurant_menu(place,force=False):
             if provider_status in (401,403,429):store.cache('menu-provider-cooldown',{'status':provider_status},300)
             result.update(status='unavailable',reason=reason,provider_status=provider_status,message='메뉴 제공처 접근 제한으로 가격을 확인하지 못했어요. 지도 메뉴를 확인해 주세요.' if provider_status in (401,403,429) else '공개 메뉴 조회에 연결하지 못했어요. 다시 조회하거나 지도 메뉴를 확인해 주세요.')
     finally:_limit.release()
-    store.cache(key,result,3600 if result['status'] in ('available','image_only') else 60)
+    naver_cache.cache(key,result,3600 if result['status'] in ('available','image_only') else 60)
     return result

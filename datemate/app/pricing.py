@@ -13,7 +13,7 @@ import httpx
 from .telemetry import observed_http,prepaid
 
 BLOG_SEARCH_URL='https://naverapihub.apigw.ntruss.com/search/v1/blog'
-from . import store
+from . import naver_cache as store
 from .image_search import plain,safe_https,search_enabled
 from .request_usage import context_map,cache_hit
 

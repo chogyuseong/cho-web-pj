@@ -192,7 +192,9 @@ def test_failed_search_is_unavailable_and_cached_briefly(search):
     search['answer'] = lambda term, area: ([], 'unavailable')
     result = parking.parking_near(plan)
     assert result['status'] == 'unavailable' and result['stops'][0]['status'] == 'unavailable'
-    key = parking.cache_key(plan['places'][0], '서울')
+    # 네이버 검색 결과는 사용자별 키로 보관한다(app/naver_cache.personal_key, 2026-11-20).
+    from app import naver_cache
+    key = naver_cache.personal_key(naver_cache.current_owner(), parking.cache_key(plan['places'][0], '서울'))
     with store.connect() as db:
         expires = db.execute('SELECT expires FROM cache WHERE key=?', (key,)).fetchone()[0]
     import time

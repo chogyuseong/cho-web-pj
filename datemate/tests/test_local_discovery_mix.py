@@ -42,8 +42,9 @@ def _place(pid, category, meal=False, dlat=0.0):
 
 
 @pytest.fixture
-def isolated(monkeypatch):
-    cache = {}
+def isolated(monkeypatch, naver_dict_cache):
+    # 찾은 장소·검색 결과는 사용자별 네이버 보관(app/naver_cache)을 거친다. 같은 dict 를 쓴다.
+    cache = naver_dict_cache
     monkeypatch.setattr(intent_discovery.store, 'cached', lambda key: cache.get(key))
     monkeypatch.setattr(intent_discovery.store, 'cache', lambda key, value, ttl: cache.__setitem__(key, value))
     # 한 번에 읽고 쓰는 저장 함수(store.cached_many·cache_many)도 같은 임시 저장소를 쓰게 한다.
@@ -109,7 +110,7 @@ BUSAN = {
 
 
 def test_busan_default_conditions_build_strict_plan_with_meal(monkeypatch):
-    from app import store
+    from app import naver_cache, store
     from app.planner import recommend
     from app.request_usage import measure
 
@@ -216,7 +217,7 @@ def test_gangneung_neighborhood_search_reports_radius_losses_and_retries_meal(mo
 
 def test_gangneung_one_meal_place_still_fills_three_options(monkeypatch):
     """식사 장소가 1곳뿐이어도 식사 시간대를 지키는 안으로 3안을 채운다(고른 뒤 식사 미충족 안이 빠져 1안만 남던 문제)."""
-    from app import store
+    from app import naver_cache, store
     from app.planner import recommend
     from app.routes import distance
     monkeypatch.setenv('DATEMATE_OPTION_SELECTOR', 'shadow')
@@ -228,7 +229,7 @@ def test_gangneung_one_meal_place_still_fills_three_options(monkeypatch):
         for i, r in enumerate(rows):
             pid = f'discovered:anmoktest{i:011d}'
             ids.append(pid)
-            store.cache('discovered-place:' + pid, dict(
+            naver_cache.cache('discovered-place:' + pid, dict(
                 id=pid, name=r['name'], address=f'강원특별자치도 강릉시 창해로 {i + 1}', lat=ANMOK['lat'] + r['dlat'],
                 lon=ANMOK['lon'] + r.get('dlon', 0), region='강원', demo=False, category=r['category'], themes=[r['category']],
                 tags=r['tags'], meal=r['meal'], description=r['tags'][1], source='https://map.naver.com/p/search/test',

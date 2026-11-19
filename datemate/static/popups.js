@@ -259,7 +259,7 @@ const PopupView = {
     const caption = node('figcaption', undefined, 'popup-photo-credit');
     const source = link('출처 ↗', photo.source);
     if (source.tagName === 'A') source.setAttribute('aria-label', '검색 사진 출처');
-    caption.append(node('span', '검색 사진'), source);
+    caption.append(node('span', '네이버 검색결과 · 검색 사진'), source);
     figure.append(open.tagName === 'A' ? open : img, caption);
     return figure;
   },
@@ -335,7 +335,7 @@ const PopupView = {
     for (const line of this.notes(data)) results.append(node('p', line, 'hint popup-note'));
     if (general.length) results.append(this.list(`${roundups.length ? '일반 팝업 글' : '검색된 팝업 글'} ${general.length}건`, general, data));
     if (roundups.length) results.append(this.list(`여러 팝업을 모아 소개한 글 ${roundups.length}건`, roundups, data));
-    results.append(node('p', `출처: ${data.attribution || '네이버 블로그 검색 결과'} · 순위나 인기순이 아니에요.`, 'hint popup-attribution'));
+    results.append(node('p', `출처: ${data.attribution || '네이버 블로그 검색 결과'} · 순위나 인기순이 아니에요.`, 'hint popup-attribution'), naverAttribution('블로그 검색'));
   }
 };
 
@@ -732,7 +732,7 @@ const PopupCourse = {
       results.append(box);
     }
     if (unknown.length) results.append(this.unknownBlock(unknown, data));
-    results.append(node('p', `출처: ${data.attribution || '네이버 블로그 검색 결과'} · 순위나 인기순이 아니에요.`, 'hint popup-attribution'));
+    results.append(node('p', `출처: ${data.attribution || '네이버 블로그 검색 결과'} · 순위나 인기순이 아니에요.`, 'hint popup-attribution'), naverAttribution('블로그 검색'));
   },
   matches(conditions) {
     const chosen = this.chosen,

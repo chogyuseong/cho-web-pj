@@ -49,10 +49,17 @@ def festival_search(conditions):
 def public_plan(plan):
     # Never copy the original payload and remove fields: new private fields must
     # remain private by default. No origin/home/requests/routes/free text/images.
+    # 네이버 검색으로 찾은 장소는 '네이버 검색결과' 표시와 원본(지도 검색) 링크를 함께 보낸다(특약 2.1·2.2).
+    from .naver_terms import is_naver_place
+    def naver_fields(p):
+        if not is_naver_place(p):return {}
+        source=next((u for u in (p.get('place_source'),p.get('source')) if str(u or '').startswith('https://')),None)
+        return dict(naver_result=True,source=source,naver_expired=bool(p.get('naver_expired')))
     return {'places': [dict(id=p['id'], name=p['name'], category=p.get('category',''),
                             address=p.get('address',''),
                             arrival=plan['timeline'][i]['arrival'],
-                            departure=plan['timeline'][i]['departure'])
+                            departure=plan['timeline'][i]['departure'],
+                            **naver_fields(p))
                        for i,p in enumerate(plan['places'])],
             'festival_search': festival_search(plan.get('conditions') or {}),
             'notice': '공유용 코스예요. 영업·예약·이동 시간은 방문 전 확인해 주세요.'}

@@ -195,18 +195,7 @@ h2[tabindex="-1"]:focus { outline:none!important; }
 html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 #planner-section.workspace,#explore-section { scroll-margin-top:0; }
 
-/* Each nearby leisure venue shows two compact photos without hiding its actions. */
-.leisure-photo-panel { min-width:0; margin:14px 0; }
-.leisure-photo-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.leisure-photo-grid figure { margin:0; min-width:0; }
-.leisure-photo-grid figure>a { display:block; border-radius:12px; overflow:hidden; }
-.leisure-photo-grid img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:cover; background:var(--platform); }
-.leisure-photo-grid figcaption { font-size:14px; padding-top:6px; overflow-wrap:anywhere; }
-.leisure-photo-empty { display:grid; place-items:center; aspect-ratio:3/2; margin:0; padding:12px; box-sizing:border-box; border:1px dashed var(--line); border-radius:12px; background:#fff; text-align:center; color:var(--muted); }
-.leisure-photo-panel>button { margin:10px 10px 0 0; }
-@media(max-width:480px) { .leisure-photo-grid { gap:8px; } .leisure-photo-grid img,.leisure-photo-empty { aspect-ratio:1/1; } }
 
-.leisure-photo-grid>figure:only-child { grid-column:1 / -1; width:100%; max-width:480px; }
 
 /* 결과 화면 구역 간격(사용자 흐름 순서: 코스 카드 → 지도 → 일정 → 확인 → 결정·공유 → 축제 → 부가 정보) */
 .plan-share { margin-top:28px; }

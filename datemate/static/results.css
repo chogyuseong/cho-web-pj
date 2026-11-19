@@ -615,3 +615,78 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 /* 코스 카드의 「축제 장소에서 출발」 꼬리표: 청색 테두리 알약 */
 .festival-course-tag { display:inline-block; margin:4px 0 10px; padding:4px 12px; border:1px solid var(--cheong); border-radius:999px!important; background:#fff;
   color:var(--cheong); font-size:14px; font-weight:700; overflow-wrap:anywhere; }
+
+
+/* ---------------------------------------------------------------- 레저(코스 주변 즐길 거리) (5-3g-2)
+   만드는 곳: leisure.js — 「더 보기」 안 section.leisure-course-panel(h3, .hint, 고르기 details.leisure-choices, 결과 details.leisure-results
+   안 .leisure-filter 단추와 .leisure-setting(h4) 묶음의 .leisure-result-card(분류 .leisure-sport-tag, 사진 .leisure-photo-panel > .leisure-photo-grid,
+   .actions 단추·링크)).
+   예전 출처: editorial·readability·clarity·line 의 규칙 약 50개. 선택자는 예전 그대로라 명시도는 바뀌지 않았다.
+   남겨 둔 공통 규칙: readability.css 의 .results-area .actions(단추 줄의 display·gap·위 여백, 800px 이하 격자)와
+   .results-area .actions>:is(button,a)(800px 이하 폭 100%). 레저 단추 줄은 이 규칙이 정하던 값을 그대로 따른다
+   (예전 editorial 의 gap:10px, 600px 이하 display:flex 는 이 규칙에 늘 졌으므로 옮기지 않았다). */
+
+.leisure-course-panel { box-sizing:border-box; min-width:0; margin:22px 0; padding:24px 0; border:0; border-radius:0; background:#fff; box-shadow:none; }
+.leisure-course-panel>h3 { margin:0 0 8px; font-size:22px; line-height:1.5; overflow-wrap:anywhere; color:var(--ink); }
+@media(max-width:600px) { .leisure-course-panel>h3 { font-size:20px; } }
+.leisure-course-panel>.hint { margin:0 0 16px; }
+
+/* 고르기·결과 접기 상자 */
+.leisure-choices { margin:12px 0 18px; padding:14px 18px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.leisure-choices>summary { min-height:28px; cursor:pointer; font-weight:750; color:var(--ink); }
+.leisure-choices .simple-activity-ideas button { min-height:44px; }
+/* 고른 활동: 홍색 칠 + 밑줄. !important 는 공통 칩 규칙(!important)을 이기기 위한 것(같은 명시도라 위 규칙보다 뒤). */
+.leisure-choices button[aria-pressed=true] { box-shadow:none; text-decoration:underline; text-underline-offset:4px;
+  background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; }
+.leisure-results { margin:16px 0 24px; padding:18px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.leisure-results>summary { min-height:36px; cursor:pointer; font-size:17px; font-weight:750; color:var(--ink); }
+.leisure-course-panel .leisure-results { min-width:0; margin:10px 0; padding:14px 16px; }
+@media(max-width:600px) { .leisure-course-panel .leisure-results { padding:12px; } }
+.leisure-course-panel .leisure-results>summary { line-height:1.6; overflow-wrap:anywhere; }
+@media(max-width:600px) { .leisure-course-panel .leisure-results>summary { font-size:15px; } }
+
+/* 종류 거르기 단추: 600px 이하는 2칸 격자 */
+.leisure-filter { display:flex; flex-wrap:wrap; gap:8px; min-width:0; margin:12px 0 4px; }
+@media(max-width:600px) { .leisure-filter { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.leisure-filter button { min-height:44px; padding:8px 14px; white-space:normal; overflow-wrap:anywhere; border-radius:999px!important; }
+@media(max-width:600px) { .leisure-filter button { width:100%; } }
+.leisure-filter button[aria-pressed=true] { box-shadow:none; text-decoration:underline; text-underline-offset:4px;
+  background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; }
+.leisure-filter-empty[hidden] { display:none; }
+.leisure-setting { min-width:0; margin:18px 0 0; }
+.leisure-setting>h4 { margin:0 0 6px; font-size:17px; line-height:1.5; color:var(--ink); }
+
+/* 결과 카드 */
+.leisure-result-card { padding:16px 0; border-top:1px solid var(--line); }
+.leisure-result-card[hidden] { display:none; }
+.leisure-course-panel .leisure-result-card { min-width:0; }
+.leisure-result-card p { overflow-wrap:anywhere; }
+.leisure-result-card button { min-height:44px; }
+.leisure-result-card .actions { flex-wrap:wrap; }
+/* 분류 꼬리표: 옅은 바탕 알약. !important 는 공통 .tag 규칙(!important)과 맞춘 값. */
+.leisure-sport-tag { display:inline-block; max-width:100%; margin:6px 0 2px; padding:3px 10px; font-size:14px; font-weight:600; overflow-wrap:anywhere;
+  border-radius:999px!important; background:var(--platform)!important; color:var(--ink)!important; border:0!important; }
+/* 단추 줄: 600px 이하는 세로로 쌓고 단추를 줄 폭만큼(줄의 display·gap 은 위 머리 주석의 공통 규칙). */
+@media(max-width:600px) {
+  .leisure-course-panel .actions { flex-direction:column; align-items:stretch; }
+  .leisure-course-panel .actions button { width:100%; white-space:normal; }
+}
+.leisure-course-panel .actions>a { overflow-wrap:anywhere; }
+/* 단추·링크 모양은 일정의 보조 단추와 같게(흰 바탕·1px 선). !important 는 공통 .secondary 규칙과 맞춘 값. */
+.leisure-course-panel .actions>:is(button,a):not(.primary) { font-weight:600;
+  background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+
+/* 사진 두 장 격자(480px 이하는 정사각형). 사진이 한 장이면 줄 전체(최대 480px). */
+.leisure-photo-panel { min-width:0; margin:14px 0; }
+.leisure-photo-panel>button { margin:10px 10px 0 0; }
+.leisure-photo-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+@media(max-width:480px) { .leisure-photo-grid { gap:8px; } }
+.leisure-photo-grid figure { margin:0; min-width:0; }
+.leisure-photo-grid>figure:only-child { grid-column:1 / -1; width:100%; max-width:480px; }
+.leisure-photo-grid figure>a { display:block; overflow:hidden; border-radius:0; }
+.leisure-photo-grid img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:cover; background:var(--platform); border-color:var(--line); border-radius:0; }
+@media(max-width:480px) { .leisure-photo-grid img { aspect-ratio:1/1; } }
+.leisure-photo-grid figcaption { padding-top:6px; font-size:14px; overflow-wrap:anywhere; }
+.leisure-photo-empty { display:grid; place-items:center; box-sizing:border-box; aspect-ratio:3/2; margin:0; padding:12px; text-align:center; color:var(--muted);
+  border:1px dashed var(--line); border-radius:0; background:var(--platform); }
+@media(max-width:480px) { .leisure-photo-empty { aspect-ratio:1/1; } }

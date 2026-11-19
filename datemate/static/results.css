@@ -573,3 +573,45 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
   .table-scroll { overflow:visible; }
   .total-row { break-inside:avoid; }
 }
+
+
+/* ---------------------------------------------------------------- 축제 (5-3g-1)
+   만드는 곳: festivals.js — 결과 아래 section#festival-section.festival-panel(제목 .section-heading h3, 데모 안내 .festival-demo-note,
+   #festival-results 격자 안 article.festival-card(사진 .festival-photo, 분류 .tag, strong 이름, 링크, 「이 축제에서 출발」 단추,
+   고른 카드는 .festival-chosen), 「더 보기」 #festival-more), 출발지로 고른 축제 안내 #festival-origin-note.festival-origin-note,
+   코스 카드의 .festival-course-tag, 일정의 .festival-context.
+   예전 출처: style·clarity·line 의 규칙 약 35개. 선택자는 예전 그대로라 명시도는 바뀌지 않았다.
+   남겨 둔 공통 규칙: style.css 인쇄의 '#results 의 다른 자식 숨김' 목록(#festival-section·#festival-origin-note 포함). */
+
+#festival-section { padding:20px 0 8px; background:#fff; border:0; border-radius:0; box-shadow:none; }
+.festival-panel { min-width:0; margin-top:24px; padding:20px 0 8px; scroll-margin-top:100px; background:#fff; border:0; border-radius:0; box-shadow:none; }
+.festival-panel .section-heading h3 { margin:0; font-size:18px; letter-spacing:-.5px; color:var(--cheong); }
+.festival-jump { padding:6px 14px; font-size:13px; white-space:nowrap; }
+.festival-demo-note { padding:8px 12px; background:var(--platform); border-radius:0; color:var(--ink); }
+/* 카드 격자: 칸 폭 250px 이상(화면이 더 좁으면 한 칸). */
+#festival-results { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr)); gap:1rem; margin-top:1rem; }
+#festival-more { margin-top:1rem; }
+.festival-card { display:grid; gap:.35rem; min-width:0; padding:1rem; overflow-wrap:anywhere; border:1px solid var(--line); border-radius:10px; background:#fff; box-shadow:none; }
+/* 고른 축제: 왼쪽 굵은 홍색 선(같은 명시도의 .festival-card 보다 뒤에 있어야 한다). */
+.festival-chosen { border-color:var(--line); border-left:4px solid var(--hong); box-shadow:none; }
+.festival-card>.tag { justify-self:start; }
+.festival-card>strong { font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
+.festival-card a { color:var(--cheong); }
+.festival-card>button { justify-self:start; max-width:100%; white-space:normal; }
+/* 사진은 자르지 않고(contain) 4:3 틀 안에, 출처는 사진 아래. */
+.festival-photo { display:grid; gap:.25rem; min-width:0; margin:0 0 .25rem; }
+.festival-photo-frame { aspect-ratio:4/3; width:100%; background:var(--platform); }
+.festival-photo-frame img { display:block; width:100%; height:100%; object-fit:contain; }
+.festival-photo-credit { font-size:14px; color:var(--muted); text-align:left; }
+
+/* 출발지로 고른 축제 안내 */
+.festival-origin-note { display:grid; gap:6px; margin:12px 0; padding:14px 16px; border:0; border-radius:0; background:var(--platform); color:var(--ink); }
+.festival-origin-note[hidden] { display:none; }
+#festival-origin-note { margin:0 0 12px; }
+/* 제목·축제 설명 글자색 !important 는 예전 값 그대로(line.css 공통 규칙 정리 5-5 에서 다시 본다). */
+.festival-origin-note .festival-origin-title { font-size:17px; overflow-wrap:anywhere; color:var(--ink)!important; }
+.festival-context { color:var(--ink)!important; }
+.festival-origin-note button { justify-self:start; min-height:44px; white-space:normal; }
+/* 코스 카드의 「축제 장소에서 출발」 꼬리표: 청색 테두리 알약 */
+.festival-course-tag { display:inline-block; margin:4px 0 10px; padding:4px 12px; border:1px solid var(--cheong); border-radius:999px!important; background:#fff;
+  color:var(--cheong); font-size:14px; font-weight:700; overflow-wrap:anywhere; }

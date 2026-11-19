@@ -5,13 +5,6 @@ header .brand-name .brand-tagline { color:var(--hong); font-weight:650; letter-s
 @media(max-width:360px) { header .brand-name .brand-tagline { font-size:11px; } }
 
 
-/* Festival-based course */
-.festival-origin-note { display:grid; gap:6px; margin:12px 0; padding:14px 16px; border:1px solid var(--line); border-left:5px solid var(--cheong); border-radius:14px; background:#fff; color:var(--ink); }
-.festival-origin-note[hidden] { display:none; }
-.festival-origin-note .festival-origin-title { font-size:17px; color:var(--ink); overflow-wrap:anywhere; }
-.festival-origin-note button { justify-self:start; min-height:44px; white-space:normal; }
-.festival-course-tag { display:inline-block; margin:4px 0 10px; padding:4px 12px; border-radius:999px; background:var(--platform); border:1px solid var(--line); color:var(--ink); font-size:14px; font-weight:700; overflow-wrap:anywhere; }
-.festival-context { color:var(--ink)!important; }
 
 /* Named source links print their address so a paper copy still shows where the fact came from. */
 /* 인쇄: 출처 주소는 근거로 남기되, 장소 이름을 퍼센트 인코딩한 네이버 지도 검색 주소는 여러 줄을 차지하고 따라 칠 수도 없어 뺀다(PDF 에서는 링크가 그대로 눌림). */

@@ -77,7 +77,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 }
 :is(.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary)):hover { border-color:var(--ink)!important; }
 .text-link { color:var(--ink); font-weight:700; text-decoration:underline; text-underline-offset:4px; }
-.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.leisure-filter button,.photo-choices button,.date-subcategories span,.tag,.step-category,.leisure-sport-tag,.festival-course-tag,.field-requirement {
+.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.leisure-filter button,.photo-choices button,.date-subcategories span,.tag,.step-category,.leisure-sport-tag,.field-requirement {
   border-radius:999px!important;
 }
 .quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button {
@@ -356,27 +356,6 @@ body:not(.show-date-plan) .hero-photo {
 .photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
 
 
-/* ---------- 축제: 청색 띠로 구분, 사진은 자르지 않고 출처는 사진 아래 ---------- */
-#festival-section,.festival-panel {
-  background:#fff;
-  border:0;
-  border-top:8px solid var(--cheong);
-  border-radius:0;
-  box-shadow:none;
-  padding:20px 0 8px;
-}
-.festival-panel .section-heading h3 { color:var(--cheong); }
-.festival-demo-note { background:var(--platform); color:var(--ink); border-radius:0; }
-.festival-card { border:1px solid var(--line); border-radius:10px; background:#fff; box-shadow:none; }
-.festival-card>strong { font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
-.festival-card a { color:var(--cheong); }
-.festival-chosen { border-color:var(--line); border-left:4px solid var(--hong); box-shadow:none; }
-.festival-photo-frame { background:var(--platform); }
-.festival-photo-frame img { object-fit:contain; }
-.festival-photo-credit { font-size:14px; color:var(--muted); text-align:left; }
-.festival-origin-note { background:var(--platform); border:0; border-left:8px solid var(--cheong); border-radius:0; color:var(--ink); }
-.festival-origin-note .festival-origin-title,.festival-context { color:var(--ink)!important; }
-.festival-course-tag { background:#fff; border:1px solid var(--cheong); color:var(--cheong); }
 
 /* ---------- 부가: 레저 · 대화 · 후기 ---------- */
 .leisure-course-panel { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; box-shadow:none; padding:24px 0; }

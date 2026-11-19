@@ -46,6 +46,13 @@ from app import store
 @pytest.fixture(autouse=True)
 def storage():
     store.init()
+    # 테스트 실행 전체가 DB 하나(DATEMATE_RUNTIME·DATEMATE_DB_SCHEMA)를 같이 쓴다. 캐시 표를 비우지 않으면 앞 테스트가 남긴
+    # 결과가 뒤 테스트의 가짜 응답을 가린다. 2026-11-20 실제 사례: test_festivals 가 '2026-11-20·서울' 목록을 1시간 캐시에 두자,
+    # 같은 날 today() 로 같은 키를 만든 test_security_limits::test_festival_detail_only_for_listed_ids 가 그 목록을 받아 실패했다
+    # (단독 실행은 통과, 실제 날짜가 그 고정 날짜와 같은 날에만 실패). 캐시 행을 지우면 cache_owners 도 트리거로 함께 지워진다.
+    # 테스트 안의 캐시 동작(같은 테스트 안에서 두 번 부르면 한 번만 호출 등)은 그대로 시험된다.
+    with store.connect() as db:
+        db.execute('DELETE FROM cache')
 
 
 # 네이버 검색 결과는 사용자별로만 보관한다(app/naver_cache.py). HTTP 를 거치지 않고 함수를 직접 부르는 테스트는

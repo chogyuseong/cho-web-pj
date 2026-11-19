@@ -97,16 +97,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
 
 .detail-header h2 { font-size:26px; line-height:1.5; }
 .detail .timeline-card :is(.small,.hint) { font-size:15px; line-height:1.8; }
-.detail .map-link-list a {
-  padding:6px 14px;
-  border-radius:999px;
-  background-color:#fff;
-  border:1px solid var(--line);
-  color:var(--hong);
-  font-weight:650;
-  text-decoration:none;
-}
-.detail .map-link-list a:hover { background-color:var(--platform); }
 
 /* 버튼 체계: 결과 화면의 모든 버튼과 버튼처럼 쓰는 링크.
    - 최소 높이 44px, 글자와 화살표 세로 가운데, 긴 문구는 낱말 단위로 줄바꿈.
@@ -117,24 +107,18 @@ header .brand-name small { font-size:13px; color:var(--muted); }
   display:inline-flex; align-items:center; justify-content:center; gap:6px;
   min-height:44px; white-space:normal; word-break:keep-all; text-align:center;
 }
-.results-area .actions,.detail .map-link-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.results-area .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
 .results-area .actions>:is(button,a) { padding:10px 16px; font-size:15px; }
 .detail .actions button { border:1px solid var(--line); }
-.detail .map-link-list { font-size:15px; }
 @media(max-width:800px) {
   .results-area .actions { display:grid; grid-template-columns:minmax(0,1fr); }
   .results-area .actions:has(>:nth-child(3)) { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .results-area .actions:has(>:nth-child(3))>:last-child:nth-child(odd) { grid-column:1 / -1; }
   .results-area .actions>:is(button,a) { width:100%; }
-  .detail .map-link-list { display:grid; grid-template-columns:minmax(0,1fr); }
-  .detail .map-link-list a { width:100%; }
 }
 .detail .chat-box { font-size:16px; line-height:1.85; }
 .detail .chat-form button { font-size:16px; }
 
-.plan-map-card .map-option-tabs button { font-size:15px; min-height:44px; border-radius:999px; }
-.plan-map-card :is(p,summary,.hint,.map-place-list) { font-size:14px; line-height:1.8; }
-.plan-map-card .map-course-title { font-size:16px; color:var(--ink); }
 
 .place-card h3 { font-size:20px; line-height:1.5; }
 main :is(.place-card,.meal-card,.place-photo-panel,.place-blogs) :is(p,.hint,.small,small,.menu-checked,.photo-credit) { font-size:14px; line-height:1.8; color:var(--muted); }
@@ -210,12 +194,6 @@ h2[tabindex="-1"]:focus { outline:none!important; }
 /* Keep anchored sections and the map below the wrapping sticky navigation. */
 html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 #planner-section.workspace,#explore-section { scroll-margin-top:0; }
-@media(min-width:801px) {
-  .plan-map-card {
-    top:calc(var(--site-header-height,88px) + 16px);
-    max-height:calc(100dvh - var(--site-header-height,88px) - 32px);
-  }
-}
 
 /* Each nearby leisure venue shows two compact photos without hiding its actions. */
 .leisure-photo-panel { min-width:0; margin:14px 0; }
@@ -231,8 +209,6 @@ html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 .leisure-photo-grid>figure:only-child { grid-column:1 / -1; width:100%; max-width:480px; }
 
 /* 결과 화면 구역 간격(사용자 흐름 순서: 코스 카드 → 지도 → 일정 → 확인 → 결정·공유 → 축제 → 부가 정보) */
-.plan-map-slot { margin:16px 0; }
-.plan-map-slot .plan-map-card { position:static; max-height:none; overflow:visible; }
 .plan-share { margin-top:28px; }
 .plan-share>h3 { font-size:19px; margin:20px 0 0; }
 #plan-extras>.plan-extras-panel { margin-top:24px; }

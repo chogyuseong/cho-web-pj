@@ -77,7 +77,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 }
 :is(.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary)):hover { border-color:var(--ink)!important; }
 .text-link { color:var(--ink); font-weight:700; text-decoration:underline; text-underline-offset:4px; }
-.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.leisure-filter button,.photo-choices button,.map-option-tabs button,.date-subcategories span,.tag,.step-category,.leisure-sport-tag,.festival-course-tag,.field-requirement {
+.quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button,.leisure-filter button,.photo-choices button,.date-subcategories span,.tag,.step-category,.leisure-sport-tag,.festival-course-tag,.field-requirement {
   border-radius:999px!important;
 }
 .quick-chip,.simple-activity-ideas button,.conditions .simple-activity-ideas button {
@@ -88,8 +88,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
 }
 .quick-chip:hover,.simple-activity-ideas button:hover { border-color:var(--ink)!important; }
 /* 선택 표시는 홍. 색만으로 구분하지 않도록 밑줄을 함께 쓴다. */
-.quick-chip[aria-pressed=true],.leisure-filter button[aria-pressed=true],.photo-choices button[aria-pressed=true],
-.map-option-tabs button[aria-pressed=true],.leisure-choices button[aria-pressed=true] {
+.quick-chip[aria-pressed=true],.leisure-filter button[aria-pressed=true],.photo-choices button[aria-pressed=true],.leisure-choices button[aria-pressed=true] {
   background:var(--hong)!important;
   border-color:var(--hong)!important;
   color:#fff!important;
@@ -332,7 +331,6 @@ body:not(.show-date-plan) .hero-photo {
 /* ---------- 일정: 노선 띠 ---------- */
 .detail.panel,.plan-extras-panel { background:#fff; border:0; border-radius:0; box-shadow:none; padding:24px 0; }
 .detail-header h2 { color:var(--ink); }
-.detail .map-link-list a { background:#fff; border:1px solid var(--line); border-radius:999px; color:var(--cheong); }
 .detail { --time:88px; --rail:40px; --band:calc(var(--time) + var(--rail)); }
 .detail .step-category { margin:0 0 4px; }
 @media(max-width:800px) {
@@ -379,23 +377,6 @@ body:not(.show-date-plan) .hero-photo {
 .festival-origin-note { background:var(--platform); border:0; border-left:8px solid var(--cheong); border-radius:0; color:var(--ink); }
 .festival-origin-note .festival-origin-title,.festival-context { color:var(--ink)!important; }
 .festival-course-tag { background:#fff; border:1px solid var(--cheong); color:var(--cheong); }
-.map-festival-note { color:var(--ink); }
-
-/* ---------- 지도 ---------- */
-.plan-map-card { background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:none; }
-.plan-map-card h2 { font-size:19px; color:var(--ink); }
-.naver-plan-map { border:1px solid var(--line); border-radius:0; background:var(--platform); box-shadow:none; }
-.map-reconnect { background:var(--platform); border:0; border-radius:0; }
-.route-marker { background:var(--hong); border:3px solid #fff; box-shadow:none; }
-.route-marker.route-start { background:var(--ink); }
-/* 지도 안내 문구가 "주황색 번호"라고 부르는 주변 식당 표시. */
-.route-marker.restaurant-marker { background:#a3480f; }
-/* 근처 주차장 P: 청색 바탕 흰 글자 네모(코스 번호 원과 모양으로도 구분). */
-.route-marker.parking-marker { width:32px; height:32px; border-radius:4px; background:var(--cheong); color:var(--white); font-size:15px; font-weight:800; }
-.leaflet-marker-icon.parking-divicon { width:0; height:0; background:none; border:0; }
-.parking-divicon .parking-marker { position:absolute; left:0; top:0; transform:translate(-50%,-50%); }
-.parking-divicon:focus-visible .parking-marker { outline:3px solid var(--ink); outline-offset:2px; }
-.map-parking-note { color:var(--ink); }
 
 /* ---------- 부가: 레저 · 대화 · 후기 ---------- */
 .leisure-course-panel { background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; box-shadow:none; padding:24px 0; }
@@ -505,17 +486,9 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 .detail :is(.stop-source,.photo-meta)[open] > summary { margin-bottom:4px; }
 .detail :is(.stop-source,.photo-meta) .hint { margin:2px 0; font-size:14px; }
 /* 네이버 지도 찾기: 화면 폭 단추 3개 대신 한 줄 링크 묶음. */
-.detail .map-link-list { display:flex !important; flex-wrap:wrap; align-items:baseline; gap:4px 14px; margin:10px 0 12px; font-size:14px; }
-.detail .map-link-list .map-link-label { width:100%; font-size:14px; color:var(--muted); }
-.detail .map-link-list a { width:auto !important; min-height:0; padding:0; border:0; border-radius:0; background:none; color:var(--cheong); text-decoration:underline; text-underline-offset:3px; }
 .detail .route-source-note { margin:0 0 12px; font-size:14px; }
-@media print { .detail .map-link-list { display:none !important; } }
 .detail .photo-copy-fold { grid-column:auto; align-self:start; }
 .detail .place-photo-panel .photo-more { justify-self:start; }
-/* 휴대폰 지도 자리는 #plan-detail 안으로 옮겨 style.css 의 '#results 의 다른 자식 숨김' 인쇄 규칙에서 빠졌다. 종이에서는 따로 숨긴다. */
-@media print { .plan-map-slot { display:none !important; } }
-/* 휴대폰 지도 제목은 h3(maps.js renderPlanMapCard). 데스크톱 h2 와 같은 모양. */
-.plan-map-card > h3.plan-map-title { margin:0 0 14px; font-size:19px; line-height:1.4; color:var(--ink); }
 /* ---------- 가독성 3단계(2026-11-17): 조건 차이 상자 여백, 휴대폰 헤더 ---------- */
 /* 노란 조건 차이 상자: 내용은 그대로, 여백과 접기 사이 간격만 줄인다(전에는 접힌 줄 두 개에 상자가 약 400px). */
 #results > .condition-differences { padding:14px 16px !important; }
@@ -533,16 +506,3 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
   body > header nav > :is(a,button) { flex:0 0 auto; white-space:nowrap; }
 }
 
-/* 대중교통 지하철·버스 비교(transit-compare.js, 2026-11-18). 일정 위 단추 상자와, 대중교통 구간 줄 아래 선택지 패널.
-   패널은 주차장 패널처럼 노선 옆 같은 열에 두고 세로 띠(::before)를 이어 그린다. 선택지는 단추(44px 이상), 고른 것은 청색 테두리.
-   색 점(.transit-kind-dot)의 색은 transit-compare.js TRANSIT_LINE_COLORS 가 style 로 준다(지도 선 색과 같게). */
-/* 미리보기 전용이라 인쇄·저장본에는 넣지 않는다(저장 코스는 추정 그대로라는 사용자 결정). */
-@media print {
-  .map-transit-note { display:none!important; }
-}
-
-/* 지도 아래 장소 목록 한 줄: 네이버 지도 링크(왼쪽, 줄바꿈 허용) + 「일정에서 보기」 단추(오른쪽, 44px). maps.js renderPlanMapCard, 2026-11-18 가독성 8단계.
-   인쇄에서는 단추가 모두 숨겨지므로(style.css) 링크만 남는다. */
-.map-place-row { display:flex; align-items:center; justify-content:space-between; gap:8px 12px; min-width:0; }
-.map-place-row > a { flex:1 1 auto; min-width:0; }
-.map-place-row .map-place-go { flex:0 0 auto; min-height:44px; padding:8px 12px!important; font-size:14px!important; white-space:nowrap; }

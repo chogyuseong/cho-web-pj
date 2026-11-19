@@ -1,28 +1,114 @@
-.plan-map{margin:18px 0;min-width:0;max-width:100%;overflow:hidden}
-.map-reconnect{min-height:220px;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:28px;text-align:center;border:1px solid var(--line);border-radius:18px;background:#fff}
-.map-reconnect strong{font-size:17px;color:var(--ink)}.map-reconnect .hint{max-width:400px;font-size:14px;margin:12px 0 18px}
-.map-schematic{padding:12px 0;margin:0;border:0}.map-schematic summary{font-size:14px;color:var(--muted)}
-.naver-plan-map{height:360px;width:100%;max-width:100%;min-width:0;border:1px solid var(--line);border-radius:18px;overflow:hidden;contain:layout paint;background:#fff;position:relative;}
-.route-marker{display:flex;justify-content:center;align-items:center;width:38px;height:38px;background-color:var(--hong);border:3px solid #fff;border-radius:50%;color:#fff;font:bold 13px system-ui;white-space:nowrap}
-.route-marker.route-start{background-color:var(--hong);}
-/* 장소 번호 표시(네이버 지도)·장소 원(공개 지도)은 눌러서 일정의 그 장소로 간다(maps.js focusPlanStop). */
-.route-marker.route-stop-marker,.leaflet-interactive.route-stop-circle{cursor:pointer}
-/* 화면에서 겹치는 장소 번호를 합친 표시('2·3'). 너비는 maps.js stopMarkerWidth 가 묶인 수에 맞춰 style 로 준다(기준점을 가운데에 두려고).
-   모양은 알약형: 모서리 19px = 높이 38px 의 절반. .route-marker 의 38px 를 바꾸면 이 값과 maps.js STOP_MERGE_PX·stopMarkerWidth 도 함께 바꾼다. */
-.route-marker.route-stop-merged{border-radius:19px}
-/* 지도에서 옮겨 온 장소 제목의 포커스 표시. 마우스로 누른 뒤의 스크립트 포커스는 :focus-visible 이 아니라 :focus 로 보인다(포커스가 떠나면 class 를 뗀다). */
-#plan-detail .timeline-card>h4.map-stop-target:focus{outline:3px solid var(--cheong);outline-offset:4px;border-radius:4px}
-.plan-map .map-caption{position:static;padding:10px 0 4px;margin:0;font-size:14px;color:var(--muted);background:transparent;overflow-wrap:anywhere}
-@media(max-width:720px){.naver-plan-map{height:290px}}
-/* 휴대폰(좁은 화면·손가락 입력): 보이는 표시(번호 원 38px, P 32px, 축제·팝업 26~28px 높이)는 그대로 두고
-   투명한 누름 영역을 보이는 표시의 가운데 기준 44×44px 이상으로 넓힌다. 표시 위치(anchor)는 바뀌지 않는다.
-   표시가 몰린 곳에서는 넓힌 영역이 이웃 표시를 조금(3px) 더 덮으므로 필요한 만큼(44px)만 넓힌다.
-   Leaflet 대체 지도의 장소 원(SVG)은 maps.js 가 투명한 원(.route-hit-area)을 따로 깐다. */
-@media(max-width:720px),(pointer:coarse){
-  .route-marker{position:relative}
-  .route-marker::after{content:'';position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
-}
+/* 코스 지도 (CSS 정리 5-3f, docs/css-consolidation-plan-2026-11-18.md)
 
-.route-marker.restaurant-marker{background-color:var(--hong);font-size:11px}
-.restaurant-map-info{padding:14px;max-width:260px;font-size:14px;color:var(--ink)}
-.restaurant-map-info p{margin:6px 0}
+   맡는 범위: 코스 지도 카드(.plan-map-card)와 그 안의 탭·지도·장소 목록, 지도 위 표시(.route-marker 등)와 정보창,
+   지도 다시 연결 안내(.map-reconnect), 일정 안의 지도 링크 줄(.map-link-list), 대화상자의 좌표 개략도(.map).
+   만드는 곳: maps.js renderPlanMapCard()·renderPlanMap()(데스크톱은 오른쪽 #plan-map-rail, 휴대폰은 일정 뒤 #plan-map-slot),
+   plan-detail.js 의 .map-link-list·.plan-map-slot, place-dialog.js 의 .map.
+   불러오는 순서: index.html 에서 results.css 뒤, popups.css 앞(5-3f 에서 앞쪽에서 이 자리로 옮겼다). 예전에는 style.css 바로 뒤에
+   있어서 뒤의 테마 파일들이 덮어썼다. 그 덮어쓰기를 모두 계산해 이기던 값만 여기 적었다(calm·editorial·readability·clarity·line 의
+   지도 규칙 약 70개). 옮기기 전후 계산값은 tests/css_snapshot.py 로 비교한다.
+
+   여기 없는 것: 지도 칸의 화면 배치(.workspace.has-plan-map, .plan-map-rail 의 열 폭)는 화면 전환 규칙과 함께 5-4 단계,
+   팝업스토어 지도 표시는 popups.css, 위치 고르기 대화상자의 지도(.location-map)는 location-picker.css.
+   고칠 때: 다른 파일에 지도 규칙을 다시 만들지 말고 여기서 고친다. !important 는 이유를 적은 곳에만 있다. */
+
+/* ---------------------------------------------------------------- 지도 카드
+   801px 이상(오른쪽 패널): 머리글 아래에 붙어 따라오고(sticky) 화면 높이를 넘으면 카드 안에서 넘긴다.
+   800px 이하(일정 뒤 자리): 보통 흐름. top·max-height·overflow 값은 그때 쓰이지 않지만 계산값 보존용으로 둔다. */
+.plan-map-card { position:sticky; top:calc(var(--site-header-height,88px) + 16px); max-height:calc(100dvh - var(--site-header-height,88px) - 32px);
+  overflow:auto; overscroll-behavior:contain; padding:20px; background:#fff; border:1px solid var(--line); border-radius:10px; box-shadow:none; }
+@media(max-width:800px) { .plan-map-card { position:static; top:24px; max-height:none; overflow:visible; } }
+.plan-map-slot { margin:16px 0; }
+.plan-map-slot .plan-map-card { position:static; max-height:none; overflow:visible; }
+/* 제목: 데스크톱은 h2, 휴대폰(일정 안)은 h3.plan-map-title 로 만든다(maps.js). */
+.plan-map-card h2 { margin:0 0 14px; font-size:19px; color:var(--ink); }
+.plan-map-card>h3.plan-map-title { margin:0 0 14px; font-size:19px; line-height:1.4; color:var(--ink); }
+/* 코스 1·2·3 탭: 3칸 알약. 고른 탭은 홍색 칠 + 밑줄. !important 는 공통 .secondary(!important)를 이기기 위한 것. */
+.map-option-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.plan-map-card .map-option-tabs button { min-height:44px; padding:8px 4px; font-size:15px; border-radius:999px!important; }
+.plan-map-card .map-option-tabs button[aria-pressed=true] { box-shadow:none; text-decoration:underline; text-underline-offset:4px;
+  background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; }
+.plan-map-card .map-course-title { margin:14px 0 0; font-size:16px; font-weight:700; color:var(--ink); overflow-wrap:anywhere; }
+.map-travel-mode { margin:4px 0 8px; font-size:14px; }
+
+/* 지도 칸. 네이버 지도 높이: 기본 360px(720px 이하 290px), 지도 카드 안에서는 화면 높이의 40%(240~440px), 800px 이하 300px. */
+.plan-map { margin:18px 0; min-width:0; max-width:100%; overflow:hidden; }
+.plan-map-card .plan-map { margin:14px 0 0; }
+.naver-plan-map { position:relative; width:100%; max-width:100%; min-width:0; height:360px; overflow:hidden; contain:layout paint;
+  border:1px solid var(--line); border-radius:0; background:var(--platform); box-shadow:none; }
+@media(max-width:720px) { .naver-plan-map { height:290px; } }
+.plan-map-card .naver-plan-map { height:clamp(240px,40dvh,440px); }
+@media(max-width:800px) { .plan-map-card .naver-plan-map { height:300px; } }
+/* 지도 아래 설명 줄. 카드 안 글(p·summary·.hint·장소 목록)은 14px·줄 높이 1.8 로 맞춘다(같은 명시도라 이 순서가 중요하다:
+   마지막 규칙이 .map-caption 의 13px 를 다시 14px 로 덮는다. 예전 화면 그대로). */
+.plan-map .map-caption { position:static; margin:0; padding:10px 0 4px; font-size:14px; color:var(--muted); background:transparent; overflow-wrap:anywhere; }
+.plan-map-card .map-caption { font-size:13px; }
+.map-place-list { display:grid; gap:8px; margin-top:12px; }
+.map-place-list a { font-size:14px; overflow-wrap:anywhere; }
+.plan-map-card :is(p,summary,.hint,.map-place-list) { font-size:14px; line-height:1.8; }
+/* 지도 아래 장소 줄: [네이버 지도 링크(줄바꿈 허용) | 「일정에서 보기」 단추(44px)]. 2026-11-18 가독성 8단계.
+   인쇄에서는 단추가 모두 숨겨지므로(style.css) 링크만 남는다. */
+.map-place-row { display:flex; align-items:center; justify-content:space-between; gap:8px 12px; min-width:0; }
+.map-place-row>a { flex:1 1 auto; min-width:0; }
+.map-place-row .map-place-go { flex:0 0 auto; min-height:44px; white-space:nowrap; padding:8px 12px!important; font-size:14px!important; }
+.map-festival-note { margin:6px 0 0; font-size:14px; color:var(--ink); }
+.map-parking-note { color:var(--ink); }
+
+/* 지도를 못 불렀을 때의 다시 연결 안내 */
+.map-reconnect { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:220px; padding:28px; text-align:center;
+  border:0; border-radius:0; background:var(--platform); }
+.plan-map-card .map-reconnect { min-height:170px; padding:18px; }
+.map-reconnect strong { font-size:17px; color:var(--ink); }
+.map-reconnect .hint { max-width:400px; font-size:14px; margin:12px 0 18px; }
+.map-schematic { padding:12px 0; margin:0; border:0; }
+.map-schematic summary { font-size:14px; color:var(--muted); }
+
+/* ---------------------------------------------------------------- 지도 위 표시
+   장소 번호 표시(네이버 지도)·장소 원(공개 지도)은 눌러서 일정의 그 장소로 간다(maps.js focusPlanStop). */
+.route-marker { display:flex; justify-content:center; align-items:center; width:38px; height:38px; border-radius:50%; border:3px solid #fff; box-shadow:none;
+  background:var(--hong); color:#fff; font:bold 13px system-ui; white-space:nowrap; }
+.route-marker.route-start { background:var(--ink); }
+.route-marker.route-stop-marker,.leaflet-interactive.route-stop-circle { cursor:pointer; }
+.route-marker.route-stop-merged { border-radius:19px; }
+/* 휴대폰·터치 화면에서는 누르는 자리를 44px 이상으로 넓힌다(보이는 크기는 그대로). */
+@media(max-width:720px),(pointer:coarse) {
+  .route-marker { position:relative; }
+  .route-marker::after { content:''; position:absolute; left:50%; top:50%; width:max(100%,44px); height:max(100%,44px); transform:translate(-50%,-50%); }
+}
+/* 지도 안내 문구가 "주황색 번호"라고 부르는 주변 식당 표시. */
+.route-marker.restaurant-marker { font-size:11px; background:#a3480f; }
+.restaurant-map-info { padding:14px; max-width:260px; font-size:14px; color:var(--ink); }
+.restaurant-map-info p { margin:6px 0; }
+/* 축제: 노란 점선 알약, 고른 축제는 진하게(같은 명시도라 .festival-marker-chosen 이 뒤에 있어야 한다). */
+.route-marker.festival-marker { width:auto; min-width:0; height:26px; padding:0 8px; line-height:24px; border-radius:999px; border:2px dashed #8a5a00;
+  background:#f2b632; color:#3d2800; font-size:12px; font-weight:800; white-space:nowrap; }
+.route-marker.festival-marker-chosen { border:3px solid #5c3d00; background:#c58a00; color:#fff; font-size:13px; }
+.festival-map-info { max-width:240px; padding:10px 12px; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+.festival-map-info p { margin:4px 0; }
+/* 근처 주차장 P: 청색 바탕 흰 글자 네모(코스 번호 원과 모양으로도 구분). */
+.route-marker.parking-marker { width:32px; height:32px; border-radius:4px; background:var(--cheong); color:var(--white); font-size:15px; font-weight:800; }
+.leaflet-marker-icon.parking-divicon { width:0; height:0; background:none; border:0; }
+.parking-divicon .parking-marker { position:absolute; left:0; top:0; transform:translate(-50%,-50%); }
+.parking-divicon:focus-visible .parking-marker { outline:3px solid var(--ink); outline-offset:2px; }
+/* 지도에서 옮겨 온 장소 제목의 포커스 표시. 마우스로 누른 뒤의 스크립트 포커스는 :focus-visible 이 아니라 :focus 로 보인다(포커스가 떠나면 class 를 뗀다). */
+#plan-detail .timeline-card>h4.map-stop-target:focus { outline:3px solid var(--cheong); outline-offset:4px; border-radius:4px; }
+
+/* ---------------------------------------------------------------- 일정 안의 지도 링크 줄(네이버 지도에서 보기 등)
+   단추가 아니라 밑줄 링크로 보이게 한다. display·width 의 !important 는 결과 화면 공통 단추 줄 규칙을 이기던 값(5-5 에서 정리). */
+.detail .map-link-list { display:flex!important; flex-wrap:wrap; align-items:baseline; gap:4px 14px; margin:10px 0 12px; font-size:14px; }
+@media(max-width:800px) { .detail .map-link-list { grid-template-columns:minmax(0,1fr); } }
+.detail .map-link-list .map-link-label { width:100%; font-size:14px; color:var(--muted); }
+.detail .map-link-list a { width:auto!important; min-height:0; padding:0; border:0; border-radius:0; background:none; color:var(--cheong); font-weight:650;
+  text-decoration:underline; text-underline-offset:3px; }
+.detail .map-link-list a:hover { background-color:var(--platform); }
+
+/* ---------------------------------------------------------------- 장소 정보 대화상자의 좌표 개략도 */
+.map { position:relative; min-height:220px; margin:18px 0; overflow:hidden; background:var(--platform); border-radius:14px; }
+.map svg { width:100%; height:230px; }
+
+/* 인쇄: 휴대폰 지도 자리(.plan-map-slot)는 #plan-detail 안에 있어 style.css 의 '#results 의 다른 자식 숨김' 규칙에 걸리지 않으므로
+   따로 숨긴다. 지하철·버스 비교 안내(.map-transit-note)는 미리보기 전용이라 종이에 넣지 않는다. */
+@media print {
+  .map { break-inside:avoid; }
+  .detail .map-link-list,.plan-map-slot,.map-transit-note { display:none !important; }
+}

@@ -4,7 +4,7 @@
   TourAPI 는 공공데이터(공공데이터포털 이용 허락)이고 이미 축제(app/festivals.py)에 같은 TOUR_API_KEY 로 쓰고 있다.
 
 같은 장소의 기준(모두 만족해야 연결):
-  · locationBasedList2 로 우리 장소 좌표 반경 RADIUS_M(400m) 안의 관광정보를 받는다.
+  · searchKeyword2 로 장소 이름(지점 낱말을 뗀 이름)을 찾고, 좌표가 우리 장소 반경 RADIUS_M(400m) 안인 것만 남긴다.
   · 이름이 같다: 띄어쓰기·기호를 뺀 이름이 같거나, 지점 낱말을 뗀 이름이 같다(app/course_search.without_branch).
   · 그런 항목이 정확히 하나다(같은 이름이 둘이면 어느 쪽인지 모르므로 연결하지 않는다).
 
@@ -29,7 +29,7 @@ from . import store
 from .routes import distance
 from .telemetry import observed_http
 
-LIST_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/locationBasedList2"
+LIST_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/searchKeyword2"
 DETAIL_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/detailIntro2"
 RADIUS_M = 400
 CACHE_SECONDS = 86400
@@ -72,7 +72,7 @@ def _items(response):
 
 
 def same_place(place, rows):
-    """rows(locationBasedList2 항목) 중 우리 장소와 같은 것 하나. 없거나 둘 이상이면 None."""
+    """rows(searchKeyword2 항목) 중 우리 장소와 같은 것 하나. 없거나 둘 이상이면 None."""
     from .course_search import without_branch
 
     names = {_compact(place.get("name")), _compact(without_branch(place.get("name") or ""))}
@@ -109,10 +109,14 @@ def tour_info(place):
     base = dict(serviceKey=key, MobileOS="ETC", MobileApp="DateMate", _type="json")
     try:
         with httpx.Client(timeout=8) as client:
+            # 이름으로 찾고(searchKeyword2) 좌표로 거른다. 위치 기반 목록(locationBasedList2)은 타입을 주지 않으면
+            # 56m 옆 박물관도 빠뜨렸다(2026-11-19 실제 응답: 대한민국역사박물관·금호미술관). 같은 이름·400m·하나뿐 규칙은 그대로.
+            from .course_search import without_branch
+
             listing = observed_http(
                 client.get,
                 LIST_ENDPOINT,
-                params=dict(base, mapX=place["lon"], mapY=place["lat"], radius=RADIUS_M, arrange="E", numOfRows=30, pageNo=1),
+                params=dict(base, keyword=without_branch(place["name"]), arrange="A", numOfRows=30, pageNo=1),
             )
             listing.raise_for_status()
             if len(listing.content) > 1_000_000:

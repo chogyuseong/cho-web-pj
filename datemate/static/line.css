@@ -22,7 +22,7 @@ body {
   word-break:keep-all;
   overflow-wrap:anywhere;
 }
-h1,h2,h3,h4,h5,.brand-name,.timeline-stamp strong,.line-sample time,.line-name {
+h1,h2,h3,h4,h5,.brand-name,.line-sample time,.line-name {
   font-family:var(--font-head);
   font-weight:800;
   letter-spacing:0;
@@ -37,7 +37,7 @@ h4,h5 { font-size:19px; line-height:1.45; }
   h3 { font-size:24px; }
 }
 main a { color:var(--cheong); }
-.nowrap,.option-facts,.stats b,.total-row,.timeline-stamp,.num,time { font-variant-numeric:tabular-nums; }
+.nowrap,.option-facts,.stats b,.total-row,.num,time { font-variant-numeric:tabular-nums; }
 main :is(.hint,.muted,small,.small) { color:var(--muted); }
 
 /* 포커스 표시는 그대로 두고 색만 청색으로. */
@@ -68,7 +68,7 @@ input:focus,select:focus,textarea:focus { border-color:var(--ink); box-shadow:no
   box-shadow:none!important;
 }
 .secondary:hover,#parse:hover { border-color:var(--ink)!important; background:#fff!important; }
-.detail .actions button:not(.primary),.stop .actions>a,.meal-actions>:is(button,a):not(.primary),dialog .actions button:not(.primary),.leisure-course-panel .actions>:is(button,a):not(.primary) {
+.detail .actions button:not(.primary),.meal-actions>:is(button,a):not(.primary),dialog .actions button:not(.primary),.leisure-course-panel .actions>:is(button,a):not(.primary) {
   background:#fff!important;
   color:var(--ink)!important;
   border:1px solid var(--line)!important;
@@ -325,7 +325,7 @@ body:not(.show-date-plan) .hero-photo {
 .results-area .section-heading h2 { margin:0; }
 /* 강제 색상(고대비) 모드에서도 노선 선 색을 지킨다. 코스 탭의 미니 노선은 results.css 로 옮김. */
 @media(forced-colors:active) {
-  .line-sample li::before,.stop::before,.route-line-block::before { forced-color-adjust:none; }
+  .line-sample li::before,.route-line-block::before { forced-color-adjust:none; }
 }
 
 /* 비교 표: 바깥 테두리 없이 줄만. 금액·시간은 오른쪽 정렬(기존 .num). */
@@ -343,17 +343,8 @@ body:not(.show-date-plan) .hero-photo {
 .detail-header h2 { color:var(--ink); }
 .detail .map-link-list a { background:#fff; border:1px solid var(--line); border-radius:999px; color:var(--cheong); }
 .detail { --time:88px; --rail:40px; --band:calc(var(--time) + var(--rail)); }
-.detail .stop {
-  position:relative;
-  display:grid;
-  grid-template-columns:var(--time) var(--rail) minmax(0,1fr);
-  gap:0;
-  margin:0;
-  padding:0 0 28px;
-  border:0;
-}
 /* 세로 노선: 역 사이를 8px 홍색 선으로 잇는다. */
-.detail .stop::before,.detail .route-line-block::before {
+.detail .route-line-block::before {
   content:'';
   display:block;
   position:absolute;
@@ -362,52 +353,7 @@ body:not(.show-date-plan) .hero-photo {
   bottom:0;
   border-left:8px solid var(--hong);
 }
-.detail .timeline-stamp {
-  grid-column:1 / 3;
-  grid-row:1;
-  position:static;
-  display:grid;
-  grid-template-columns:var(--time) var(--rail);
-  align-content:start;
-  padding:0;
-  text-align:left;
-}
-.detail .timeline-stamp strong { grid-column:1; font-size:24px; line-height:1.3; color:var(--ink); padding-right:8px; }
-.detail .timeline-stamp small { grid-column:1; font-size:14px; line-height:1.5; color:var(--muted); padding-right:8px; }
-.detail .stop-number {
-  position:absolute;
-  left:calc(var(--time) + var(--rail) / 2 - 17px);
-  top:0;
-  right:auto;
-  z-index:1;
-  display:grid;
-  place-items:center;
-  width:34px;
-  height:34px;
-  box-sizing:border-box;
-  border:3px solid var(--hong);
-  border-radius:50%;
-  background:#fff!important;
-  color:var(--hong)!important;
-  font-family:var(--font-head);
-  font-weight:800;
-  font-size:15px;
-  box-shadow:none;
-  order:0;
-}
-.detail .stop .timeline-card,.stop .timeline-card,.timeline-card {
-  grid-column:3;
-  grid-row:1;
-  min-width:0;
-  padding:0;
-  border:0;
-  border-radius:0;
-  background:none;
-  box-shadow:none;
-}
-.detail .timeline-card h4 { margin:2px 0 6px; font-size:24px; line-height:1.35; color:var(--ink); }
 .detail .step-category { margin:0 0 4px; }
-.stop-cost,.detail .stop-cost { display:inline-block; background:none!important; border:0!important; padding:0!important; color:var(--ink)!important; font-weight:700; font-variant-numeric:tabular-nums; }
 /* 구간 줄: 노선은 이어지고 글은 장소 이름과 같은 열. 자동차 실제 경로만 실선, 도보 짧은 점선, 그 밖 긴 점선(지도 범례와 같음). */
 .detail .route-line-block { position:relative; padding:4px 0 16px var(--band); }
 .detail .route-line-block.route-leg-short::before { border-left-style:dotted; }
@@ -427,7 +373,6 @@ body:not(.show-date-plan) .hero-photo {
 /* 같은 열에 놓이는 주변 식당 제안도 노선 옆에 둔다. */
 .detail>.meal-suggestions { position:relative; margin:0 0 16px var(--band)!important; }
 .detail>.meal-suggestions::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
-.detail .stop:last-of-type { padding-bottom:12px; }
 /* 자동차로 도착한 장소 아래의 근처 주차장(parking.js). 식당 제안처럼 노선 옆 같은 열에 둔다. 흰 바탕, 1px 선, 그림자 없음. */
 .detail>.parking-panel { position:relative; margin:0 0 16px var(--band); }
 .detail>.parking-panel::before { content:''; position:absolute; left:calc(-1 * var(--rail) / 2 - 5px); top:-1px; bottom:-17px; border-left:8px solid var(--hong); }
@@ -453,14 +398,7 @@ body:not(.show-date-plan) .hero-photo {
 .review-facts a { display:inline-flex; align-items:center; min-height:44px; font-size:15px; color:var(--cheong); }
 @media(max-width:800px) {
   .detail { --time:0px; --rail:36px; }
-  .detail .stop { grid-template-columns:var(--rail) minmax(0,1fr); padding-bottom:24px; }
-  .detail .timeline-stamp { grid-column:2; grid-row:1; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; padding:4px 0 2px; }
-  .detail .timeline-stamp strong { font-size:19px; padding:0; }
-  .detail .timeline-stamp small { padding:0; }
-  .detail .stop-number { left:calc(var(--rail) / 2 - 17px); top:0; }
-  .detail .stop .timeline-card,.detail .timeline-card { grid-column:2; grid-row:2; padding-left:0; }
-  .detail .timeline-card h4 { font-size:19px; }
-  .detail .stop::before,.detail .route-line-block::before { left:calc(var(--rail) / 2 - 4px); }
+  .detail .route-line-block::before { left:calc(var(--rail) / 2 - 4px); }
   .detail .route-line-block { padding-left:var(--rail); }
   .detail>.meal-suggestions { margin-left:var(--rail)!important; }
   .detail>.parking-panel { margin-left:var(--rail); }
@@ -643,7 +581,7 @@ body:has(#shared-places) main { max-width:880px; padding-block:24px 48px; }
   .curation-card,.hero-photo img,.primary { transition:none; }
 }
 @media print {
-  .line-sample li::before,.detail .stop::before,.detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  .line-sample li::before,.detail .route-line-block::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
 }
 body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 /* 입력칸 테두리: 구분선 색(--line #d5dbdf)은 흰 바탕 대비 1.4:1 이라 칸 경계가 잘 안 보인다(WCAG 1.4.11 비텍스트 대비 3:1).
@@ -663,11 +601,6 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
    장소 이름 → 한 줄 요약(분류 · 2인 비용 · 머무는 시간) 순서로 읽히게 하고, 출처·확인 방법 문장은 접는다.
    이 파일 앞쪽과 readability.css·calm.css·selle.css 가 같은 요소를 여러 번 덮어쓰므로 .detail 을 붙여 여기서 마지막으로 정한다.
    글씨는 14px 아래로 두지 않는다(test_readability_ui 의 기준). */
-.detail .timeline-card > h4 { font-size:21px; line-height:1.4; margin:2px 0 6px; overflow-wrap:anywhere; }
-.detail .stop-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:0 0 10px; font-size:15px; line-height:1.6; color:var(--ink); }
-.detail .stop-meta .step-category { margin:0; font-size:14px; padding:3px 10px; }
-.detail .stop-meta .stop-cost { display:inline; margin:0; font-size:15px; font-weight:700; color:var(--ink)!important; white-space:nowrap; }
-.detail .stop-meta .stop-stay { color:var(--muted); white-space:nowrap; }
 .detail :is(.stop-source,.photo-meta) { border:0; padding:0; margin:8px 0 0; }
 .detail :is(.stop-source,.photo-meta) > summary { margin:0; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; }
 .detail :is(.stop-source,.photo-meta)[open] > summary { margin-bottom:4px; }
@@ -680,10 +613,7 @@ body:has(#shared-places) h1 { font-size:32px; line-height:1.3; }
 @media print { .detail .map-link-list { display:none !important; } }
 .detail .photo-copy-fold { grid-column:auto; align-self:start; }
 .detail .place-photo-panel .photo-more { justify-self:start; }
-/* ---------- 가독성 정리 2단계(2026-11-17): 휴대폰에서 장소 단추·빈 식당 안내 ---------- */
-/* 장소 단추: 2×2 큰 칸(글자가 두 줄로 꺾임) 대신 글자 길이만큼, 높이 44px 는 유지. */
-.detail .stop .actions { display:flex !important; flex-wrap:wrap; gap:8px; }
-.detail .stop .actions > :is(button,a) { flex:0 1 auto; width:auto !important; min-height:44px; padding:8px 14px; font-size:14px; white-space:nowrap; }
+/* ---------- 가독성 정리 2단계(2026-11-17): 휴대폰에서 빈 식당 안내(장소 단추는 results.css) ---------- */
 /* 찾은 주변 식당이 없을 때: 제목·한 줄 안내·검색 링크만. */
 .detail .meal-suggestions.is-empty { padding:12px 16px; }
 .detail .meal-suggestions.is-empty h4 { margin:0 0 4px; font-size:16px; }

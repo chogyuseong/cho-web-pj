@@ -145,3 +145,65 @@
 
 /* 인쇄: 「일정 살펴보기」 단추 숨김(style.css 의 인쇄 button 숨김과 같은 결과, 명시적으로 둔다). */
 @media print { #results .plan-card.selected > .inspect-plan { display:none !important; } }
+
+
+/* ---------------------------------------------------------------- 일정의 장소 칸 (5-3c-1)
+   만드는 곳: plan-detail.js renderDetail() — #plan-detail(.detail) 안의 article.stop 마다
+   .timeline-stamp(strong 도착 시각, small 떠나는 시각, .stop-number 순번) + .timeline-card(h4 장소 이름,
+   p.stop-meta(.step-category · .stop-cost · .stop-stay), 후기·출처·사진·블로그, div.actions 단추와 링크).
+   배치: 데스크톱은 [시각 | 노선 레일 | 내용] 3칸(--time·--rail 은 line.css 의 .detail 변수), 800px 이하는 [레일 | 내용] 2칸이고
+   시각은 내용 위 한 줄. 레일은 .stop::before 의 굵은 홍색 세로선, 순번 동그라미가 그 위에 올라간다.
+   예전 출처: style·place-photos·selle·calm·editorial·readability·line 의 규칙 약 160개.
+   남겨 둔 공통 규칙: line.css 의 :is(.detail .actions button:not(.primary),.stop .actions>a,…):hover 테두리,
+   .detail .actions button:not(.primary) 단추 모양, calm.css 의 .stop p 글자 크기, 분류 표시(.step-category) 공통 모양,
+   사진(.stop .place-photo*)·출처 접기(.stop-source)·안내 글(.timeline-card .hint)은 다음 단계에서 정리. */
+
+.detail .stop { position:relative; display:grid; grid-template-columns:var(--time) var(--rail) minmax(0,1fr); gap:0; margin:0; padding:0 0 28px; border:0; }
+@media(max-width:800px) { .detail .stop { grid-template-columns:var(--rail) minmax(0,1fr); padding-bottom:24px; } }
+.detail .stop:last-of-type { padding-bottom:12px; }
+/* 노선 레일(세로선). 위·오른쪽·아래 테두리 색은 계산값 보존용(두께가 0 이라 보이지 않는다). */
+.detail .stop::before { content:''; display:block; position:absolute; top:0; bottom:0; left:calc(var(--time) + var(--rail) / 2 - 4px);
+  border-color:var(--line); border-left:8px solid var(--hong); }
+@media(max-width:800px) { .detail .stop::before { left:calc(var(--rail) / 2 - 4px); } }
+
+/* 시각 도장 */
+.detail .timeline-stamp { grid-column:1 / 3; grid-row:1; position:static; display:grid; grid-template-columns:var(--time) var(--rail); align-content:start;
+  min-width:0; padding:0; text-align:left; font-variant-numeric:tabular-nums; }
+@media(max-width:800px) { .detail .timeline-stamp { grid-column:2; grid-row:1; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; padding:4px 0 2px; } }
+.detail .timeline-stamp strong { grid-column:1; display:block; padding-right:8px; font-family:var(--font-head); font-weight:800; font-size:24px; line-height:1.3; letter-spacing:0; color:var(--ink); }
+@media(max-width:800px) { .detail .timeline-stamp strong { font-size:19px; padding:0; } }
+.detail .timeline-stamp small { grid-column:1; display:block; padding-right:8px; font-size:14px; line-height:1.5; color:var(--muted); }
+@media(max-width:800px) { .detail .timeline-stamp small { padding:0; } }
+/* 순번 동그라미: 레일 가운데(폭 34px 의 절반 17px 만큼 왼쪽으로). background·color 의 !important 는 calm.css 의
+   공통 규칙을 이기던 값을 그대로 둔 것이다(5-5 에서 공통 규칙을 정리하면 뗄 수 있다). */
+.detail .stop-number { position:absolute; top:0; right:auto; left:calc(var(--time) + var(--rail) / 2 - 17px); z-index:1; order:0;
+  display:grid; place-items:center; width:34px; height:34px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; box-shadow:none;
+  font-family:var(--font-head); font-size:15px; font-weight:800; background:#fff!important; color:var(--hong)!important; }
+@media(max-width:800px) { .detail .stop-number { top:0; left:calc(var(--rail) / 2 - 17px); } }
+
+/* 내용 칸 */
+.detail .stop .timeline-card { grid-column:3; grid-row:1; min-width:0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; }
+@media(max-width:800px) { .detail .stop .timeline-card { grid-column:2; grid-row:2; padding-left:0; } }
+.detail .timeline-card>h4 { margin:2px 0 6px; font-size:21px; line-height:1.4; letter-spacing:-.7px; color:var(--ink); overflow-wrap:anywhere; }
+/* 한 줄 요약: 분류 · 비용 · 머무는 시간 */
+.detail .stop-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:0 0 10px; font-size:15px; line-height:1.6; color:var(--ink); }
+.detail .stop-meta .step-category { margin:0; font-size:14px; padding:3px 10px; }
+/* 비용: 예전 알약 모양의 흔적(width·border-radius·float)은 테두리·바탕이 없어 보이지 않지만 계산값 보존용으로 둔다.
+   !important 는 line.css 공통 규칙 정리(5-5) 전까지 유지. */
+.detail .stop-meta .stop-cost { display:inline; width:fit-content; margin:0; border-radius:999px; font-size:15px; font-weight:700; line-height:1.65;
+  white-space:nowrap; font-variant-numeric:tabular-nums; background:none!important; border:0!important; padding:0!important; color:var(--ink)!important; }
+@media(max-width:600px) { .detail .stop-meta .stop-cost { float:none; max-width:100%; } }
+.detail .stop-meta .stop-stay { color:var(--muted); white-space:nowrap; }
+
+/* 장소 단추·링크 줄: 점선 위 구분, 글자 길이만큼의 단추. display:flex!important 는 예전 값 그대로(5-5 에서 확인 후 뗀다). */
+.detail .stop .actions { display:flex!important; flex-wrap:wrap; gap:8px; margin-top:16px; padding-top:13px; border-top:1px dashed var(--line); }
+.detail .stop .actions>button { flex:0 1 auto; width:auto!important; min-height:44px; padding:8px 14px; font-size:14px; white-space:nowrap; }
+/* 링크(네이버 지도 등)는 단추처럼 보이게. 테두리·바탕·글자색 !important 는 공통 단추 규칙과 같은 값. */
+.detail .stop .actions>a { flex:0 1 auto; width:auto!important; min-height:44px; padding:8px 14px; font-size:14px; font-weight:600; white-space:nowrap;
+  text-decoration:none; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; color:var(--ink)!important; }
+
+@media(forced-colors:active) { .stop::before { forced-color-adjust:none; } }
+@media print {
+  .stop { break-inside:auto; }
+  .detail .stop::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+}

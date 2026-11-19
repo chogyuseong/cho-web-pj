@@ -524,7 +524,7 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .price-blog-evidence strong { font-size:14px; color:var(--ink); }
 .price-blog-evidence a { display:block; font-size:14px; line-height:1.7; overflow-wrap:anywhere; word-break:break-word; color:var(--cheong); }
 /* 합계 줄 */
-.detail .total-row { display:flex; justify-content:space-between; gap:16px; margin:8px 0; padding:12px 0; background:none; border:0; border-radius:0;
+.detail .total-row { display:flex; justify-content:space-between; gap:16px; margin:8px 0; padding:12px 0; background:none; border:0; border-bottom:1px solid var(--line); border-radius:0;
   font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; }
 @media(max-width:480px) { .detail .total-row { gap:4px 12px; flex-wrap:wrap; } }
 .detail .total-row>span:last-child { flex-shrink:0; font-variant-numeric:tabular-nums; font-weight:800; color:var(--ink); }
@@ -534,12 +534,12 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .verification-notes>summary { cursor:pointer; font-weight:600; padding:8px 0; }
 
 /* 실행 요약: 항목마다 [이름 6.5em | 내용] 두 칸, 위아래 선. grid-template-columns 는 display:block 이라 쓰이지 않지만 계산값 보존용. */
-.execution-summary { min-width:0; margin:20px 0; padding:20px 0 4px; background:#fff; border:0; border-radius:0; box-shadow:none; }
+.execution-summary { min-width:0; margin:20px 0; padding:20px 0 4px; background:#fff; border:0; border-top:1px solid var(--line); border-radius:0; box-shadow:none; }
 .execution-summary h3 { margin:0; font-size:19px; letter-spacing:-0.4px; color:var(--ink); }
 .execution-summary .execution-grid { display:block; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:12px 0 16px; }
 @media(max-width:480px) { .execution-summary .execution-grid { grid-template-columns:1fr; } }
 .execution-summary .execution-grid>div { display:grid; grid-template-columns:6.5em minmax(0,1fr); gap:0 16px; align-items:baseline; min-width:0; padding:10px 0;
-  background:none; border:0; border-radius:0; box-shadow:none; }
+  background:none; border:0; border-bottom:1px solid var(--line); border-radius:0; box-shadow:none; }
 .execution-summary .execution-grid>div:first-child { border-top:1px solid var(--line); }
 .execution-summary .execution-grid strong { display:inline-block; margin:0; color:var(--muted); font-size:15px; font-weight:700; }
 .execution-summary .execution-grid p { margin:0; font-size:16px; line-height:1.75; color:var(--ink); overflow-wrap:anywhere; }
@@ -583,8 +583,9 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
    예전 출처: style·clarity·line 의 규칙 약 35개. 선택자는 예전 그대로라 명시도는 바뀌지 않았다.
    남겨 둔 공통 규칙: style.css 인쇄의 '#results 의 다른 자식 숨김' 목록(#festival-section·#festival-origin-note 포함). */
 
-#festival-section { padding:20px 0 8px; background:#fff; border:0; border-radius:0; box-shadow:none; }
-.festival-panel { min-width:0; margin-top:24px; padding:20px 0 8px; scroll-margin-top:100px; background:#fff; border:0; border-radius:0; box-shadow:none; }
+/* 축제 구역은 위쪽 굵은 청색 띠로 일정과 구분한다. */
+#festival-section { padding:20px 0 8px; background:#fff; border:0; border-top:8px solid var(--cheong); border-radius:0; box-shadow:none; }
+.festival-panel { min-width:0; margin-top:24px; padding:20px 0 8px; scroll-margin-top:100px; background:#fff; border:0; border-top:8px solid var(--cheong); border-radius:0; box-shadow:none; }
 .festival-panel .section-heading h3 { margin:0; font-size:18px; letter-spacing:-.5px; color:var(--cheong); }
 .festival-jump { padding:6px 14px; font-size:13px; white-space:nowrap; }
 .festival-demo-note { padding:8px 12px; background:var(--platform); border-radius:0; color:var(--ink); }
@@ -605,7 +606,7 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .festival-photo-credit { font-size:14px; color:var(--muted); text-align:left; }
 
 /* 출발지로 고른 축제 안내 */
-.festival-origin-note { display:grid; gap:6px; margin:12px 0; padding:14px 16px; border:0; border-radius:0; background:var(--platform); color:var(--ink); }
+.festival-origin-note { display:grid; gap:6px; margin:12px 0; padding:14px 16px; border:0; border-left:8px solid var(--cheong); border-radius:0; background:var(--platform); color:var(--ink); }
 .festival-origin-note[hidden] { display:none; }
 #festival-origin-note { margin:0 0 12px; }
 /* 제목·축제 설명 글자색 !important 는 예전 값 그대로(line.css 공통 규칙 정리 5-5 에서 다시 본다). */
@@ -626,7 +627,7 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
    .results-area .actions>:is(button,a)(800px 이하 폭 100%). 레저 단추 줄은 이 규칙이 정하던 값을 그대로 따른다
    (예전 editorial 의 gap:10px, 600px 이하 display:flex 는 이 규칙에 늘 졌으므로 옮기지 않았다). */
 
-.leisure-course-panel { box-sizing:border-box; min-width:0; margin:22px 0; padding:24px 0; border:0; border-radius:0; background:#fff; box-shadow:none; }
+.leisure-course-panel { box-sizing:border-box; min-width:0; margin:22px 0; padding:24px 0; border:0; border-top:1px solid var(--line); border-radius:0; background:#fff; box-shadow:none; }
 .leisure-course-panel>h3 { margin:0 0 8px; font-size:22px; line-height:1.5; overflow-wrap:anywhere; color:var(--ink); }
 @media(max-width:600px) { .leisure-course-panel>h3 { font-size:20px; } }
 .leisure-course-panel>.hint { margin:0 0 16px; }

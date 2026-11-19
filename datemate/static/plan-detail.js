@@ -45,6 +45,8 @@ function renderDetail() {
   if (transitNote) box.append(transitNote);
   // TMAP 키가 있으면 「지하철·버스 비교하기」 단추. 누르면 각 대중교통 구간 줄 아래(transitComparePanel)에 선택지가 나온다(transit-compare.js).
   box.append(transitCompareIntro(p));
+  // 지금 늦으면 어디서 처음 문제가 생기는지(읽기 전용, delay-check.js). 저장된 코스(id)가 있을 때만.
+  if (p.id && typeof delayCheckPanel === 'function') box.append(delayCheckPanel(p));
   p.places.forEach((place, i) => {
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`), transitComparePanel(p, i));
     const stop = node('article', undefined, 'stop');

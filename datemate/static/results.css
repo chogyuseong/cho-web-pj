@@ -855,3 +855,15 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 
 /* 합의 초안을 적용하려는데 계산 뒤 의견이 바뀐 경우(experience.js showDraft): 바뀐 장소를 한 줄씩. */
 .draft-stale .stale-change { display:block; margin-top:4px; }
+
+/* '늦어지면 어디서 문제가 생길까?' 읽기 전용 확인(delay-check.js). 일정 위 접힌 상자. */
+.delay-check { margin:0 0 16px; padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; }
+.delay-check>summary { cursor:pointer; font-weight:700; color:var(--ink); min-height:44px; display:flex; align-items:center; }
+.delay-check-form { display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px 14px; margin:8px 0; }
+.delay-check-form label { display:grid; gap:4px; font-size:14px; min-width:0; }
+.delay-check-form select { max-width:100%; }
+.delay-check-form input { width:7em; }
+.delay-check-rows { margin:8px 0; padding-left:20px; }
+.delay-check-rows li { margin:4px 0; overflow-wrap:anywhere; }
+.delay-check-bad { color:var(--hong); font-weight:700; }
+@media print { .delay-check { display:none; } }

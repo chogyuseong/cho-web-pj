@@ -37,6 +37,18 @@ def candidates(c):
     rows.sort(key=lambda p:-place_score(p,c))
     return rows
 
+def visit_window(p,arrival):
+    """도착 시각(하루의 분)에 이 장소를 이용할 수 있는지 본다. 추천 계산(evaluate)과 지각 확인(app/delay_check.py)이 같이 쓴다.
+    개점 전이면 개점까지 기다리고, 휴게 시간과 겹치면 휴게가 끝날 때까지 기다린 뒤 이용을 시작한다.
+    그다음 마지막 입장(이용 시작 > last_entry)과 영업 종료(이용 시작 + 체류 > 종료)를 차례로 확인한다.
+    p 의 hours·stay 는 채워져 있어야 한다. 반환: (이용 시작, 문제 dict 또는 None). 문제 = reason·kind·limit(분)."""
+    opening,closing=p['hours']; now=max(arrival,opening)
+    for start,finish in p.get('breaks') or []:
+        if now<finish and now+p['stay']>start:now=finish
+    if p['last_entry'] is not None and now>p['last_entry']:return now,dict(reason='마지막 입장 시간 초과',kind='last_entry',limit=p['last_entry'])
+    if now+p['stay']>closing:return now,dict(reason='영업시간 밖 방문',kind='closing',limit=closing)
+    return now,None
+
 def route_leg(a,b,route_conditions,mode,verify_routes=False,route_fallback=False):
     """한 구간의 이동. 예외 수단이 있을 때만 그 구간의 수단을 바꿔 계산한다.
     실제 길찾기는 자동차 구간에만 부르고, route_fallback이면 조회 실패 구간을 추정으로 바꾼다."""
@@ -81,11 +93,9 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         walking+=route['walking'] or 0
         if c.max_walk is not None and route['walking'] is None:return None,'전체 도보 시간 확인 불가'
         route['buffer_minutes']=c.transition_buffer_minutes
-        now+=route['minutes']+c.transition_buffer_minutes; opening,closing=p['hours']; now=max(now,opening)
-        for start,finish in p.get('breaks') or []:
-            if now<finish and now+p['stay']>start:now=finish
-        if p['last_entry'] is not None and now>p['last_entry']:return fail('마지막 입장 시간 초과',place=p['name'],limit=clock(p['last_entry']),arrival=clock(now))
-        if now+p['stay']>closing:return fail('영업시간 밖 방문',place=p['name'],limit=clock(closing),arrival=clock(now))
+        now+=route['minutes']+c.transition_buffer_minutes
+        now,problem=visit_window(p,now)
+        if problem:return fail(problem['reason'],place=p['name'],limit=clock(problem['limit']),arrival=clock(now))
         timeline.append(dict(place_id=p['id'],arrival=clock(now),departure=clock(now+p['stay']),stay=p['stay']))
         now+=p['stay']; legs.append(route)
         quantity=c.people if p['price_unit']=='person' else 1

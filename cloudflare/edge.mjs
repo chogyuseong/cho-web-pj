@@ -63,6 +63,43 @@ export function feedbackEnabled(value) {
   return !["0", "false", "off", "no"].includes(text);
 }
 
+// robots.txt·sitemap.xml 은 컨테이너를 거치지 않고 Worker 가 늘 직접 답한다(2026-11-19).
+// 왜: 컨테이너가 잠들어 있으면 이 두 주소는 깨어날 때까지 기다렸고, 구글 서치 콘솔이 /sitemap.xml 을 '가져올 수 없음'으로 남겼다
+//     (사람 브라우저로는 늘 200 이 보여 원인이 가려졌다). 내용은 PUBLIC_ORIGIN 만으로 정해져 컨테이너 상태·배포 버전과 섞일 일이 없다.
+// 내용은 datemate/app/search_robots.py 와 글자까지 같아야 한다(DISALLOWED·SITEMAP_PATHS·CACHE). 한쪽을 바꾸면 다른 쪽도 바꾼다.
+//   cloudflare/edge.test.mjs 가 이 문자열을, datemate/tests 의 search_robots 테스트가 앱 쪽을 확인한다.
+export const CRAWLER_CACHE_CONTROL = "public, max-age=3600";
+const ROBOTS_DISALLOWED = ["/api/"];
+const SITEMAP_PATHS = ["/"];
+
+function xmlEscape(text) {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+export function crawlerFile(pathname, origin) {
+  if (pathname === "/robots.txt") {
+    const lines = ["User-agent: *", ...ROBOTS_DISALLOWED.map((path) => `Disallow: ${path}`), "", `Sitemap: ${origin}/sitemap.xml`];
+    return { type: "text/plain; charset=utf-8", body: lines.join("\n") + "\n" };
+  }
+  if (pathname === "/sitemap.xml") {
+    const urls = SITEMAP_PATHS.map((path) => `  <url><loc>${xmlEscape(origin + path)}</loc></url>\n`).join("");
+    return {
+      type: "application/xml",
+      body: '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + "</urlset>\n",
+    };
+  }
+  return null;
+}
+
+function crawlerResponse(pathname, method, origin) {
+  if (method !== "GET" && method !== "HEAD") return null;
+  const file = crawlerFile(pathname, origin);
+  if (!file) return null;
+  const headers = securityHeaders(new Headers({ "content-type": file.type }), false);
+  headers.set("Cache-Control", CRAWLER_CACHE_CONTROL);
+  return new Response(method === "HEAD" ? null : file.body, { status: 200, headers });
+}
+
 function notFound(method) {
   const headers = securityHeaders(new Headers({ "content-type": "application/json" }), true);
   return new Response(method === "HEAD" ? null : JSON.stringify({ detail: "Not Found" }), { status: 404, headers });
@@ -186,6 +223,9 @@ export async function handleFetch(request, env, container, pages) {
       },
     });
   }
+  // 검색 엔진용 두 파일은 컨테이너를 깨우지 않고 여기서 답한다(위 crawlerFile 설명).
+  const crawler = crawlerResponse(url.pathname, request.method, env.PUBLIC_ORIGIN);
+  if (crawler) return crawler;
   const response = await container().fetch(request);
   const route = edgeRoute(request.method, url.pathname);
   if (!route || response.headers.get(EDGE_SIGNAL) !== "serve") return response;

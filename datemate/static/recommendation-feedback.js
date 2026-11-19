@@ -13,7 +13,8 @@ function courseTitle(plan){
 function compactConditionSummary(plan){
   const root=node('div',undefined,'compact-condition-summary'),checks=plan.condition_checks||[];
   const labelList=rows=>[...new Set(rows.map(r=>{
-    if(r.condition==='budget')return budgetUnlimited(plan)?'예산 무관':r.state==='unmet'?`예산 ${won(Math.max(0,plan.total[1]-plan.conditions.budget))} 초과`:`비용 ${range(plan.total)}`;
+    // 가격을 못 찾아 계획용 가정으로 채운 곳이 있으면 비용 옆에 그 수를 함께 적는다(설명은 title 에만 있어 휴대폰에서 보이지 않았다).
+    if(r.condition==='budget'){const assumed=(plan.costs||[]).filter(c=>c.price_kind==='planning_assumption').length;return budgetUnlimited(plan)?'예산 무관':r.state==='unmet'?`예산 ${won(Math.max(0,plan.total[1]-plan.conditions.budget))} 초과`:`비용 ${range(plan.total)}`+(assumed?` · 가정 가격 ${assumed}곳 포함`:'');}
     if(r.condition==='people')return plan.conditions.people+'명';
     if(r.condition==='end')return plan.finish+' 종료';
     if(r.condition==='count')return plan.places.length+'곳 방문';
@@ -54,12 +55,23 @@ function conditionDifferences(plan){
   box.append(list);
   if((plan.deviations||[]).some(item=>item.condition==='meal'&&item.state==='unmet'))box.append(mealRescuePanel(plan));
   if(plan.confirmed_facts?.length){const facts=node('details',undefined,'verified-facts');facts.append(node('summary','공식 자료로 확인한 장소 정보 '+plan.confirmed_facts.length+'곳'));for(const item of plan.confirmed_facts){const row=node('p');row.append(link(item.name+' · 자료 '+item.checked_at,item.source),node('span',' — '+item.scope));facts.append(row);}box.append(facts);}
+  // 개선안 21: 확인할 것이 여러 개면 일정 전체를 바꿀 수 있는 것 하나를 접힘 밖 위에 올린다.
+  // 순서: 영업시간·휴무 → 구간 이동 → 예산 → 예약 → 인원 → 그 밖(날씨·계절·MBTI 같은 참고성 항목은 맨 뒤).
+  const first=topPendingCheck(plan.deviations||[]);
+  if(first){const top=node('p',undefined,'warning first-check');top.append(node('strong','출발 전 하나만 확인한다면: '),node('span',(first.label||labels[first.condition]||'기타')+' — '+first.message));box.append(top);}
   if(pending.children.length){const notes=node('details',undefined,'verification-notes');notes.append(node('summary','방문 전 확인할 사항 '+pending.children.length+'건'),pending);box.append(notes);}
   if(plan.condition_checks?.length){
     const all=node('details',undefined,'all-condition-checks');all.append(node('summary','전체 조건 확인'));
     all.append(compactConditionSummary(plan));box.append(all);
   }
   return box;
+}
+const PENDING_IMPACT=['visit_date','max_leg','max_walk','budget','reservation','people','car_position','avoid','request','weather_forecast','season','mbti'];
+function topPendingCheck(deviations){
+  const pending=deviations.filter(item=>item.state==='unknown');
+  if(pending.length<2)return null; // 하나뿐이면 목록 그 자체가 답이다.
+  const rank=item=>{const i=PENDING_IMPACT.indexOf(item.condition);return i<0?PENDING_IMPACT.length-3:i;};
+  return pending.slice().sort((a,b)=>rank(a)-rank(b))[0];
 }
 function emptyRecommendation(result){
   const box=node('div',undefined,'empty-state');

@@ -110,3 +110,23 @@ def shared_page():
     # 개인 공유 링크 화면은 검색에 나오지 않게 한다. robots.txt 로 막으면 로봇이 이 noindex 를 읽지 못하므로 막지 않는다.
     return HTMLResponse(versioned_page('shared.html'), headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer',
                                                                'X-Robots-Tag':'noindex, nofollow'})
+
+
+@router.get('/api/plans/{plan_id}/shares')
+def share_status(plan_id: str, request: Request):
+    """만든 브라우저만: 이 코스와 이전 버전(부모 코스)들의 열려 있는 공유 링크 수와 가장 늦은 만료 시각(개선안 31·32).
+    링크는 코스 하나에 묶여 있어, 장소를 바꿔 새 버전(자식 코스)이 생겨도 예전 링크를 받은 사람은 바뀌기 전 코스를 본다.
+    토큰 값은 돌려주지 않는다(저장소에도 해시만 있다)."""
+    owned(plan_id, request.state.owner)
+    now = time.time()
+    chain, current, seen = [], plan_id, set()
+    with store.connect() as db:
+        while current and current not in seen and len(chain) < 20:
+            seen.add(current)
+            row = db.execute('SELECT owner,parent FROM plans WHERE id=?', (current,)).fetchone()
+            if not row or row['owner'] != request.state.owner:
+                break
+            shares = db.execute('SELECT COUNT(*) AS n, MAX(expires) AS until FROM plan_shares WHERE plan_id=? AND expires>?', (current, now)).fetchone()
+            chain.append(dict(plan_id=current, active=shares['n'], expires=shares['until']))
+            current = row['parent']
+    return {'current': chain[0], 'earlier': [c for c in chain[1:] if c['active']]}

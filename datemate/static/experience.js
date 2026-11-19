@@ -286,20 +286,39 @@ function partnerAgreementPanel(plan) {
       const fields = [];
       for (const place of plan.places) {
         const row = experienceSelect(place.name, 'vote_' + place.id, [
+          ['', '아직 안 정했어요'],
           ['neutral', '상관없어요'],
           ['yes', '좋아요'],
           ['must', '꼭 가고 싶어요'],
           ['no', '빼주세요']
         ]);
-        row.querySelector('select').value = status.mine[place.id] || 'neutral';
+        row.querySelector('select').value = status.mine[place.id] || '';
         const counts = status.places[place.id];
         row.append(node('small', `꼭 가고 싶음 ${counts.must||0} · 좋아요 ${counts.yes} · 빼주세요 ${counts.no}`, 'hint'));
         fields.push([place.id, row.querySelector('select')]);
         content.append(row);
       }
-      content.append(button('내 의견 저장', async () => {
+      // 개선안 28·34: 고른 곳만 저장하고, 저장한 의견과 지금 선택이 다르면 알린다.
+      const chosen = () => Object.fromEntries(fields.map(([id, input]) => [id, input.value]).filter(([, value]) => value));
+      const dirty = node('p', undefined, 'hint agreement-dirty');
+      dirty.setAttribute('aria-live', 'polite');
+      const showDirty = () => {
+        const now = chosen(),
+          ids = new Set([...Object.keys(now), ...Object.keys(status.mine || {})]);
+        const changed = [...ids].filter(id => now[id] !== status.mine?.[id]).length;
+        dirty.textContent = changed ? `바꿨지만 아직 저장하지 않은 곳이 ${changed}곳 있어요.` : Object.keys(status.mine || {}).length ? '저장한 의견과 지금 선택이 같아요.' : '아직 저장한 의견이 없어요. 원하는 곳만 골라도 돼요.';
+      };
+      fields.forEach(([, input]) => input.addEventListener('change', showDirty));
+      showDirty();
+      if (status.answered) content.append(node('p', `의견을 준 곳: 나 ${status.answered.mine}/${status.place_count}곳` + status.answered.others.map(n => ` · 상대 ${n}/${status.place_count}곳`).join('') + ' · 고르지 않은 곳은 아직 안 정함', 'hint'));
+      content.append(dirty, button('내 의견 저장', async () => {
+        const choices = chosen();
+        if (!Object.keys(choices).length) {
+          toast('한 곳 이상 의견을 골라 주세요.');
+          return;
+        }
         await api('/plans/' + plan.id + '/agreement', {
-          choices: Object.fromEntries(fields.map(([id, input]) => [id, input.value]))
+          choices
         });
         await loadAgreement();
         toast('의견을 저장했어요.');

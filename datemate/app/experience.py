@@ -169,15 +169,22 @@ def vote_status(plan,viewer):
     with store.connect() as db:rows=db.execute('SELECT owner,payload FROM partner_votes WHERE plan_id=?',(plan['id'],)).fetchall()
     mine=next((json.loads(r['payload']) for r in rows if r['owner']==viewer),{})
     counts={p['id']:dict(yes=0,no=0,neutral=0,must=0) for p in plan['places']}
+    answered={}  # 브라우저별로 의견을 준 장소 수(무응답은 세지 않는다)
     for row in rows:
         for pid,value in json.loads(row['payload']).items():
-            if pid in counts and value in counts[pid]:counts[pid][value]+=1
+            if pid in counts and value in counts[pid]:counts[pid][value]+=1;answered[row['owner']]=answered.get(row['owner'],0)+1
     conflicts=[p['name'] for p in plan['places'] if counts[p['id']]['must'] and counts[p['id']]['no']]
-    return dict(participants=len(rows),mine=mine,places=counts,conflicts=conflicts,verification='브라우저별 의견 · 실제 신원·방문 인증 아님')
+    # answered: 몇 곳에 의견을 줬는지(본인 mine, 다른 브라우저 others). 계산에는 쓰지 않는다(vote_snapshot 은 places 만 비교).
+    return dict(participants=len(rows),mine=mine,places=counts,conflicts=conflicts,place_count=len(plan['places']),
+                answered=dict(mine=answered.get(viewer,0),others=[v for k,v in answered.items() if k!=viewer]),
+                verification='브라우저별 의견 · 실제 신원·방문 인증 아님')
 
 def save_votes(plan,viewer,plan_owner,choices,share_token=None):
     ids={p['id'] for p in plan['places']}
-    if set(choices)!=ids:raise ValueError('모든 장소의 의견을 선택해 주세요.')
+    # 개선안 28: 고른 장소만 저장한다. 고르지 않은 장소는 '아직 안 정함'(무응답)으로 남고 '상관없어요'(neutral)와 섞이지 않는다.
+    # 아무것도 고르지 않은 저장은 막는다. 이미 저장된 옛 의견(모든 장소가 채워진 값)은 그대로 두고 다시 분류하지 않는다.
+    if not choices:raise ValueError('한 곳 이상 의견을 골라 주세요. 고르지 않은 곳은 아직 안 정한 것으로 남아요.')
+    if not set(choices)<=ids:raise ValueError('이 코스에 없는 장소의 의견이 있어요. 화면을 새로고침해 주세요.')
     with store.connect() as db:
         db.execute('BEGIN IMMEDIATE')
         if share_token is not None and not db.execute('SELECT 1 FROM plan_shares WHERE token_hash=? AND plan_id=? AND expires>?',(share_token,plan['id'],time.time())).fetchone():

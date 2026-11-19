@@ -79,6 +79,8 @@ def test_input_result_share_and_mobile_flow(tmp_path):
             shared=guest.new_page();shared.on('pageerror',lambda e:errors.append(str(e)))
             shared.goto(base+share,wait_until='networkidle')
             assert shared.locator('#shared-form').is_visible()
+            # 2026-11-19(개선안 28)부터 고른 곳만 보낸다. 아무것도 고르지 않으면 전달을 막으므로 한 곳을 고른다.
+            shared.locator('#shared-places select').first.select_option('yes')
             shared.get_by_role('button',name='내 의견 전달하기').click()
             playwright.expect(shared.locator('#shared-status')).to_contain_text('의견을 전달했어요.')
             playwright.expect(shared.locator('#shared-status')).to_contain_text('두 사람의 취향으로 다시 계산')

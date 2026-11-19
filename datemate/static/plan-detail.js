@@ -1,4 +1,15 @@
 // 모든 구간의 설명(source)이 같으면 그 문장, 아니면 null. 같을 때는 일정 위에 한 번만 적고 구간마다 반복하지 않는다.
+// 비용 표 '상태' 칸. 합계에 들어갔는지까지 한 칸에 적는다(개선안 22).
+// 금액이 없으면 합계에서 빠진 미확인, 계획용 가정 범위면 합계에 들어간 가정(실제 단가 아님), 나머지는 확정·추정.
+function costStatusLabel(c) {
+  if (c.amount == null) return '미확인 · 합계에서 빠짐';
+  if (c.price_kind === 'planning_assumption') return '가정 · 실제 단가 아님 · 합계에 포함';
+  return {
+    confirmed: '확정',
+    estimated: '추정'
+  } [c.status] || c.status;
+}
+
 function sharedLegSource(plan) {
   const sources = (plan.legs || []).map(leg => leg.source).filter(Boolean);
   return sources.length > 1 && sources.every(source => source === sources[0]) ? sources[0] : null;
@@ -47,6 +58,8 @@ function renderDetail() {
   box.append(transitCompareIntro(p));
   // 지금 늦으면 어디서 처음 문제가 생기는지(읽기 전용, delay-check.js). 저장된 코스(id)가 있을 때만.
   if (p.id && typeof delayCheckPanel === 'function') box.append(delayCheckPanel(p));
+  // 약속 당일 도구(day-of.js): 마지막 출발 시각, 한 곳씩 크게 보기, 현장용 일정 복사. 서버에 묻지 않는다.
+  if (typeof dayOfTools === 'function') box.append(dayOfTools(p));
   p.places.forEach((place, i) => {
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`), transitComparePanel(p, i));
     const stop = node('article', undefined, 'stop');
@@ -117,11 +130,7 @@ function renderDetail() {
   const tbody = node('tbody');
   for (const c of p.costs) {
     const r = node('tr');
-    [`${c.category} / ${c.name}`, range(c.unit), String(c.quantity), c.formula, range(c.amount), {
-      confirmed: '확정',
-      estimated: '추정',
-      unknown: '미확인'
-    } [c.status] || c.status, `${c.source} / ${c.checked_at||'시점 미확인'}`].forEach(v => r.append(node('td', v)));
+    [`${c.category} / ${c.name}`, range(c.unit), String(c.quantity), c.formula, range(c.amount), costStatusLabel(c), `${c.source} / ${c.checked_at||'시점 미확인'}`].forEach(v => r.append(node('td', v)));
     const cells = r.children;
     for (const [index, value] of [
         [1, c.unit],
@@ -152,7 +161,10 @@ function renderDetail() {
     row.append(node('span', label), node('span', value));
     box.append(row);
   }
-  if (p.unknown.length) box.append(node('p', '추가 확인 필요: ' + p.unknown.join(', ') + ' · 0원으로 처리하지 않았습니다.', 'warning'));
+  // 합계에 무엇이 들어갔고 무엇이 빠졌는지(개선안 22). 가정 가격은 합계에 '들어간' 추정이고, 미확인은 합계에서 '빠진' 항목이다.
+  const assumed = p.costs.filter(c => c.price_kind === 'planning_assumption');
+  if (assumed.length) box.append(node('p', '합계에 들어간 가정 가격(실제 단가 아님): ' + assumed.map(c => `${c.name} ${range(c.amount)}`).join(', '), 'hint cost-assumed'));
+  if (p.unknown.length) box.append(node('p', '합계에서 빠진 항목(추가 확인 필요): ' + p.unknown.join(', ') + ' · 0원으로 처리하지 않았습니다.', 'warning'));
   // 결정·공유: 결정 패널과 공유 버튼을 한 구역에 둔다. 주 버튼은 '이 코스로 결정' 하나다.
   const share = node('section', undefined, 'plan-share');
   share.setAttribute('aria-label', '코스 결정과 공유');
@@ -165,12 +177,17 @@ function renderDetail() {
     window.print();
   });
   actions.append(button('코스 카드 저장', () => showShareCard(p)), button('공유 링크 복사', () => copyPlanShare(p)), button('공유 취소', () => revokePlanShares(p)), printButton);
-  share.append(decisionPanel(p), node('h3', '코스 저장·공유'), actions);
+  // 공유 링크 현황(개선안 31·32): 이 코스와 바뀌기 전 코스의 열린 링크, 만료 시각. 상자가 문서에 붙은 뒤 채운다.
+  const shareStatus = node('p', undefined, 'hint share-status');
+  shareStatus.dataset.plan = p.id || '';
+  shareStatus.setAttribute('aria-live', 'polite');
+  share.append(decisionPanel(p), node('h3', '코스 저장·공유'), actions, shareStatus);
   // 아이폰·아이패드: 그래도 인쇄 창이 뜨지 않는 경우가 있어 Safari 공유 시트의 프린트 경로를 함께 알린다(인쇄 때는 숨김).
   if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
     share.append(node('p', '아이폰에서 인쇄 창이 뜨지 않으면 Safari의 공유(□↑) → 프린트에서 인쇄하거나 PDF로 저장할 수 있어요.', 'hint ios-print-hint'));
   }
   box.append(share);
+  if (p.id) queueMicrotask(() => refreshShareStatus(p));
   root.append(box);
   renderPlanMapCard();
   // 부가 정보: 축제 구역 뒤 #plan-extras

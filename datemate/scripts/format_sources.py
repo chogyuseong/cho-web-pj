@@ -60,6 +60,7 @@ JAVASCRIPT = [
     "parking.js",
     "review-facts.js",
     "delay-check.js",
+    "day-of.js",
 ]
 
 

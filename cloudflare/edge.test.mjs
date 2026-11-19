@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   EDGE_SIGNAL, CONTENT_SECURITY_POLICY, FEEDBACK_NAV_LINK, assetPathFor, edgeRoute, edgeSignal,
-  feedbackEnabled, handleFetch, serveAtEdge,
+  feedbackEnabled, handleFetch, serveAtEdge, CRAWLER_CACHE_CONTROL,
 } from "./edge.mjs";
 import { DATEMATE_ROOT, buildEdgePages } from "./build-edge-pages.mjs";
 
@@ -165,8 +165,8 @@ test("asleep: missing or escaping static paths answer 404 like the app, never an
   assert.equal(assetPathFor("/static/%E0%A4%A"), null);
 });
 
-test("awake: pages, static files and the API all still come from the container", async () => {
-  for (const pathname of ["/", "/shared", "/static/app.js", "/api/status", "/feedback", "/robots.txt"]) {
+test("awake: pages, static files and the API all still come from the container (robots.txt·sitemap.xml are always the Worker's, see below)", async () => {
+  for (const pathname of ["/", "/shared", "/static/app.js", "/api/status", "/feedback"]) {
     const { response, seen } = await run(pathname, { asleep: false });
     assert.equal(await response.text(), "from container", pathname);
     assert.deepEqual(seen, [new URL(ORIGIN + pathname).pathname]);
@@ -174,10 +174,32 @@ test("awake: pages, static files and the API all still come from the container",
 });
 
 test("asleep: everything else still waits for the container (API, POST, other pages)", async () => {
-  for (const [pathname, method] of [["/api/status", "GET"], ["/", "POST"], ["/feedback", "GET"], ["/sitemap.xml", "GET"]]) {
+  for (const [pathname, method] of [["/api/status", "GET"], ["/", "POST"], ["/feedback", "GET"], ["/sitemap.xml", "POST"]]) {
     const { response } = await run(pathname, { method });
     assert.equal(response.headers.get("x-from"), "container", pathname);
   }
+});
+
+// 구글 서치 콘솔이 '가져올 수 없음'을 남긴 원인(2026-11-19): 잠든 컨테이너를 기다리던 sitemap.xml.
+// 내용은 datemate/app/search_robots.py 와 글자까지 같다(아래 기대값은 운영 앱이 실제로 준 본문).
+test("robots.txt and sitemap.xml come from the Worker, asleep or awake, without touching the container", async () => {
+  for (const asleep of [true, false]) {
+    const robots = await run("/robots.txt", { asleep });
+    assert.equal(robots.response.status, 200);
+    assert.equal(await robots.response.text(), `User-agent: *\nDisallow: /api/\n\nSitemap: ${ORIGIN}/sitemap.xml\n`);
+    assert.equal(robots.response.headers.get("content-type"), "text/plain; charset=utf-8");
+    const sitemap = await run("/sitemap.xml", { asleep });
+    assert.equal(sitemap.response.status, 200);
+    assert.equal(await sitemap.response.text(),
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url><loc>${ORIGIN}/</loc></url>\n</urlset>\n`);
+    assert.equal(sitemap.response.headers.get("content-type"), "application/xml");
+    assert.equal(sitemap.response.headers.get("cache-control"), CRAWLER_CACHE_CONTROL);
+    assert.equal(sitemap.response.headers.get("x-content-type-options"), "nosniff");
+    assert.deepEqual([...robots.seen, ...sitemap.seen], [], "the container is never asked");
+  }
+  const head = await run("/sitemap.xml", { method: "HEAD" });
+  assert.equal(head.response.status, 200);
+  assert.equal(await head.response.text(), "");
 });
 
 test("the Worker's front checks still run before the edge answers", async () => {

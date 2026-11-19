@@ -9,8 +9,10 @@
   · 그런 항목이 정확히 하나다(같은 이름이 둘이면 어느 쪽인지 모르므로 연결하지 않는다).
 
 쓰는 것:
-  · 사진 firstimage — 저작권 유형 cpyrhtDivCd 가 'Type1'(공공누리 제1유형: 출처 표시 후 자유 이용)일 때만.
-    Type3(변경 금지)·그 밖은 쓰지 않는다(카드용으로 줄이는 것이 '변경'으로 볼 여지가 있어서).
+  · 사진 firstimage — 저작권 유형 cpyrhtDivCd 가 공공누리 제1유형(출처 표시)·제3유형(출처 표시+변경 금지)일 때만.
+    축제 사진(app/festivals.py IMAGE_LICENSES)과 같은 기준. 관광공사 사진 호스트는 썸네일 서버 허용 목록
+    (app/photo_thumb.py ALLOWED_HOST_SUFFIXES)에 없어 줄이지 않고 원본 그대로 보여 주므로 '변경'이 생기지 않는다.
+    썸네일 허용 목록에 관광공사 호스트를 넣으려면 제3유형은 빼야 한다.
   · 영업 안내 detailIntro2 — 관광공사에 제공된 글 그대로(예: '10:00~18:00 (입장 마감 17:30)'). 일정 계산에 넣지 않고
     글로만 보여 준다. 언제 확인한 정보인지 알 수 없어 '방문 전 확인'을 늘 붙인다(app/festivals.py 의 축제 안내와 같은 원칙).
 캐시: 공공데이터라 하루(CACHE_SECONDS) 둔다. 키가 없거나 실패하면 빈 결과(화면은 예전처럼 '확인 필요').
@@ -77,7 +79,9 @@ def same_place(place, rows):
     names = {n for n in names if len(n) >= 2}
     found = []
     for row in rows:
-        title = str(row.get("title") or "")
+        # 관광공사 제목에는 '[K드라마 촬영지] 공근혜갤러리', '경복궁(景福宮)'처럼 앞 꼬리표·뒤 괄호가 붙기도 한다(2026-11-19 실제 응답).
+        title = re.sub(r"^\s*\[[^\]]*\]\s*", "", str(row.get("title") or ""))
+        title = re.sub(r"\s*\([^)]*\)\s*$", "", title)
         if not ({_compact(title), _compact(without_branch(title))} & names):
             continue
         try:
@@ -128,13 +132,22 @@ def tour_info(place):
                 intro = (_items(detail) or [{}])[0]
                 hours_field, rest_field = HOURS_FIELDS[type_id]
                 hours, rest = _text(intro.get(hours_field)), _text(intro.get(rest_field))
-        image = row.get("firstimage") or ""
-        photo = image if image.startswith("https://") and row.get("cpyrhtDivCd") == "Type1" else None
+        # 축제 사진과 같은 함수: 공공누리 유형·관광공사 사진 호스트(https)·주소 길이를 함께 본다.
+        # 위치 기반 목록은 사진 주소를 http:// 로 주기도 한다(2026-11-19 실제 응답). 관광공사 사진 호스트 하나만 https 로 바꾼다.
+        from .festivals import IMAGE_HOST, festival_image
+
+        upgraded = {
+            field: "https://" + str(row[field])[len("http://"):]
+            for field in ("firstimage", "firstimage2")
+            if str(row.get(field) or "").startswith("http://" + IMAGE_HOST + "/")
+        }
+        photo, license_type = festival_image(dict(row, **upgraded))
         result = dict(
             status="available",
             content_id=content_id,
             title=_text(row.get("title")),
             photo=photo,
+            license_type=license_type if photo else None,
             hours=hours,
             rest=rest,
             source_url=f"https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid={content_id}" if content_id else None,
@@ -151,7 +164,8 @@ def tour_photos(place):
     info = tour_info(place)
     if info.get("status") != "available" or not info.get("photo"):
         return []
-    label = "한국관광공사 제공 사진 · 공공누리 제1유형"
+    kind = "제1유형" if info.get("license_type") == "Type1" else "제3유형(변경 금지)"
+    label = "한국관광공사 제공 사진 · 공공누리 " + kind
     return [
         dict(
             id="tourapi-" + info["content_id"],
@@ -166,8 +180,8 @@ def tour_photos(place):
             search_url=info.get("source_url"),
             caption=label + " · 좌표 400m 안·같은 이름으로 연결한 사진이에요.",
             author="한국관광공사",
-            license="공공누리 제1유형(출처 표시)",
-            license_url="https://www.kogl.or.kr/info/licenseType1.do",
+            license="공공누리 " + kind,
+            license_url="https://www.kogl.or.kr/info/licenseType" + ("1" if kind == "제1유형" else "3") + ".do",
             taken_at=None,
             checked_at=info.get("checked_at"),
             association="한국관광공사 관광정보의 좌표·이름 대조",

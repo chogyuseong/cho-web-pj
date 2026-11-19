@@ -26,7 +26,7 @@
 | 기능 | 예전 | 지금 |
 |---|---|---|
 | 메뉴 가격(app/menus.py) | search.naver.com 검색 결과 화면 | 공식 블로그 검색 API 요약문에 나온 가격(`blog_menu`), 없으면 네이버 지도 링크 |
-| 업체 사진·업체 번호(app/public_place_photos.py) | search.naver.com·m.place.naver.com 화면 | 쓰지 않음. 등록 사진 + 한국관광공사 TourAPI 사진(공공누리 제1유형, 좌표 400m·같은 이름·하나뿐) |
+| 업체 사진·업체 번호(app/public_place_photos.py) | search.naver.com·m.place.naver.com 화면 | 쓰지 않음. 등록 사진 + 한국관광공사 TourAPI 사진(공공누리 제1·제3유형, 원본 그대로 표시, 좌표 400m·같은 이름·하나뿐) |
 | 블로그 글 사진(app/blog_photos.py) | 글 본문의 사진 | 쓰지 않음 |
 | 코스 블로그 판정·후기 요약(app/course_search.py, app/review_facts.py) | 글 본문 | 공식 API 의 제목·요약문만 |
 | 같은 업체 확인('위치' 줄) | 검색 결과 화면의 업체 번호 | 공식 지역 검색 API(app/place_identity.py: 같은 이름·400m 안·하나뿐) |

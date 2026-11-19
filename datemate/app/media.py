@@ -132,7 +132,7 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
 
     extend(ordered)
     # 2026-11-19: 네이버 화면(업체 사진·블로그 본문)을 자동으로 읽지 않으므로(app/naver_pages.py) 부족한 사진은
-    # 한국관광공사 TourAPI 의 같은 장소 사진(좌표 400m 안 + 이름 같음 + 하나뿐, 공공누리 제1유형만, app/tour_places.py)으로 채운다.
+    # 한국관광공사 TourAPI 의 같은 장소 사진(좌표 400m 안 + 이름 같음 + 하나뿐, 공공누리 제1·제3유형만, app/tour_places.py)으로 채운다.
     # 제목만 맞는 이미지 검색 결과는 여전히 쓰지 않는다(다른 장소 사진이 섞이는 문제, tests/test_photo_source_priority.py).
     official = dict(status="not_found", photos=[])
     if len(photos) < 2 and not place.get("demo"):

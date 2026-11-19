@@ -116,6 +116,32 @@ def test_tour_info_photo_license_and_hours(monkeypatch):
     assert tour_places.tour_photos(PLACE)[0]['license'].startswith('공공누리 제1유형')
     assert tour_places.tour_hours(PLACE)['source_url'].endswith('cotid=123')
     pages['row'] = tour_row('어니언', 37.5447, 127.0558, kind='Type3')
-    assert tour_places.tour_photos(PLACE) == [], '변경 금지 유형 사진은 쓰지 않는다'
+    assert '제3유형' in tour_places.tour_photos(PLACE)[0]['license'], '축제 사진과 같은 기준(원본 그대로 표시)'
+    pages['row'] = tour_row('어니언', 37.5447, 127.0558, kind='Type4')
+    assert tour_places.tour_photos(PLACE) == [], '그 밖의 유형·유형 없음은 쓰지 않는다'
     monkeypatch.setenv('TOUR_API_KEY', '')
     assert tour_places.tour_info(PLACE) == dict(status='key_missing')
+
+
+def test_tour_title_tags_and_http_images_from_the_real_api(monkeypatch):
+    """2026-11-19 실제 응답: 제목 앞 '[K드라마 촬영지]' 꼬리표, 사진 주소 http://tong.visitkorea.or.kr/..."""
+    gallery = dict(PLACE, name='공근혜갤러리')
+    row = tour_row('[K드라마 촬영지] 공근혜갤러리', 37.5447, 127.0558, image='http://tong.visitkorea.or.kr/cms/a.jpg', type_id='14')
+    assert tour_places.same_place(gallery, [row]) is row
+    assert tour_places.same_place(dict(PLACE, name='경복궁'), [tour_row('경복궁(景福宮)', 37.5447, 127.0558)]) is not None
+    monkeypatch.setenv('TOUR_API_KEY', 'test-key')
+    monkeypatch.setattr('app.store.cached', lambda key: None)
+    monkeypatch.setattr('app.store.cache', lambda *a: None)
+
+    def handler(request):
+        item = row if request.url.path.endswith('locationBasedList2') else dict(usetimeculture='10:30 ~ 17:30', restdateculture='매주 일, 월 휴무')
+        return httpx.Response(200, json=dict(response=dict(header=dict(resultCode='0000'), body=dict(items=dict(item=[item])))))
+
+    real = httpx.Client.__init__
+    monkeypatch.setattr(httpx.Client, '__init__', lambda self, *a, **k: real(self, *a, **dict(k, transport=httpx.MockTransport(handler))))
+    photo = tour_places.tour_photos(gallery)[0]
+    assert photo['image_url'] == 'https://tong.visitkorea.or.kr/cms/a.jpg'
+    assert tour_places.tour_hours(gallery)['hours'] == '10:30 ~ 17:30'
+    other = dict(row, firstimage='http://example.com/a.jpg', firstimage2='')
+    monkeypatch.setattr(tour_places, 'same_place', lambda place, rows: other)
+    assert tour_places.tour_photos(gallery) == [], '관광공사 사진 호스트가 아니면 쓰지 않는다'

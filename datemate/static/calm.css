@@ -20,7 +20,7 @@ main{max-width:1400px;padding:0 40px}button,input,select,textarea{font:inherit}b
 @media(min-width:1280px){main:has(.has-plan-map){max-width:1760px}.workspace.has-plan-map{grid-template-columns:280px minmax(0,1fr) 340px;gap:24px}.has-plan-map .conditions.panel{padding:18px}}
 @media(min-width:801px) and (max-width:1279px){.workspace.has-plan-map{grid-template-columns:minmax(0,1fr) 340px;gap:24px}.has-plan-map>.conditions{grid-column:1 / -1}.has-plan-map>.results-area{grid-column:1;grid-row:2}.has-plan-map>.plan-map-rail{grid-column:2;grid-row:2}}
 @media(max-width:800px){.workspace.has-plan-map{display:flex;flex-direction:column}}
-@media print{.plan-map-rail{display:none!important}.workspace.has-plan-map{display:block}}.experience-controls .hint{font-size:14px;line-height:1.75}
+@media print{.plan-map-rail{display:none!important}.workspace.has-plan-map{display:block}}
 body{font-size:16px;line-height:1.75}
 button,input,select,textarea{font-size:15px}
 .conditions label,.conditions legend{font-size:14px}

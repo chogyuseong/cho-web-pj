@@ -690,3 +690,64 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .leisure-photo-empty { display:grid; place-items:center; box-sizing:border-box; aspect-ratio:3/2; margin:0; padding:12px; text-align:center; color:var(--muted);
   border:1px dashed var(--line); border-radius:0; background:var(--platform); }
 @media(max-width:480px) { .leisure-photo-empty { aspect-ratio:1/1; } }
+
+
+/* ---------------------------------------------------------------- 「더 보기」 묶음: 코스 검색 근거·대화·후기·함께 고르기 (5-3g-3)
+   만드는 곳: plan-detail.js 의 section.detail.panel.plan-extras-panel(#plan-extras 안) — 레저, 지역 맛집, details.course-evidence(.course-search-panel),
+   experience.js 의 section.experience-panel(details 들, fieldset.experience-controls), 장소 정보·질문 대화(.chat-box, form.chat-form),
+   후기(.review, .review-body, .review-meta, 신고 .review-report), 공유(.plan-share).
+   예전 출처: style·place-photos·selle·calm·editorial·readability·line 의 규칙 약 40개. 선택자는 예전 그대로다.
+   지운 죽은 규칙: .plan-extras-panel(같은 요소의 .detail.panel 이 더 구체적이라 늘 졌다),
+   .experience-controls .hint(이 상자는 .detail 안이라 .detail .hint 가 늘 이겼다).
+   남겨 둔 공통 규칙: style.css 인쇄 숨김 목록(.review-form, #plan-extras 등), readability.css 의 main :is(…,.review-meta,…) 글자 크기. */
+
+#plan-extras>.plan-extras-panel { margin-top:24px; }
+
+/* 코스 검색 근거(추천에 참고한 블로그·장소 정보). 상자 모양 !important 는 line.css 의 같은 모양 상자 목록과 맞춘 값. */
+.course-evidence { padding-bottom:0; }
+.course-evidence>summary { color:var(--ink)!important; }
+.course-search-panel { margin-bottom:22px; padding:23px; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+.course-evidence .course-search-panel { margin-bottom:0; }
+.course-search-panel h3 { margin:6px 0; font-size:22px; }
+
+/* 둘이 함께 고르기·반드시 지킬 조건·다녀온 뒤 피드백 */
+.experience-panel { margin:25px 0; }
+.experience-panel>details { padding:20px; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
+@media(max-width:760px) { .experience-panel>details { padding:15px; } }
+.experience-panel summary { font-size:14px; color:var(--ink)!important; }
+.experience-panel button { margin:5px; }
+@media(max-width:760px) { .experience-panel button { margin:5px 0; width:100%; } }
+.experience-panel select { background:white; }
+.experience-controls { margin-top:18px; padding:16px; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+.experience-controls legend { color:var(--hong); }
+
+/* 장소 정보·질문 대화 */
+.chat-box { max-height:280px; overflow:auto; margin:10px 0; padding:15px; white-space:pre-wrap; font-size:12px; background:var(--platform); border:0; border-radius:0; }
+.detail .chat-box { font-size:16px; line-height:1.85; }
+.chat-box .message { white-space:pre-wrap; overflow-wrap:anywhere; }
+.chat-form { display:flex; gap:8px; }
+.chat-form input { flex:1; min-width:0; }
+.detail .chat-form button { font-size:16px; }
+/* 480px 이하: 입력칸 한 줄, 단추는 아래 줄 전체 */
+@media(max-width:480px) {
+  .detail .chat-form { flex-wrap:wrap; }
+  .detail .chat-form input { flex-basis:100%; }
+  .detail .chat-form button { width:100%; min-height:46px; }
+}
+
+/* 후기 */
+.review { padding:15px 0; border-top:1px solid var(--line); }
+.review-body { max-height:250px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; }
+.review-meta { font-size:11px; color:var(--muted); }
+/* 후기 신고 사유 입력칸(reviews.js, prompt() 대신). */
+.review-report { display:grid; gap:8px; margin-top:10px; }
+.review-report label { margin:0; }
+.review-report button { justify-self:start; }
+
+/* 공유 */
+.plan-share { margin-top:28px; }
+.plan-share>h3 { margin:20px 0 0; font-size:19px; }
+
+@media print {
+  .chat-form,.plan-share,.review-report { display:none!important; }
+}

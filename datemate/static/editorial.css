@@ -142,8 +142,6 @@ input:focus,textarea:focus,select:focus{
 
 /* Sticky Plan Map Card */
 .condition-differences{background-color:var(--warn-bg)!important;border:1px solid var(--line)!important;border-radius:16px}
-.chat-box{background-color:#fff;border:1px solid var(--line);border-radius:16px}
-.chat-form input{min-width:0}
 .message{line-height:1.8}
 .source-search-fallback{color:var(--hong);font-weight:600}
 

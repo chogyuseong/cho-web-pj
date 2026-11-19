@@ -116,8 +116,6 @@ header .brand-name small { font-size:13px; color:var(--muted); }
   .results-area .actions:has(>:nth-child(3))>:last-child:nth-child(odd) { grid-column:1 / -1; }
   .results-area .actions>:is(button,a) { width:100%; }
 }
-.detail .chat-box { font-size:16px; line-height:1.85; }
-.detail .chat-form button { font-size:16px; }
 
 
 .place-card h3 { font-size:20px; line-height:1.5; }
@@ -182,9 +180,6 @@ footer,footer small { font-size:14px; line-height:1.75; }
   main .hero .hero-description { font-size:17px!important; }
   .conditions.panel,.detail.panel { padding:20px 16px; }
   .conditions .field-grid { gap:12px; }
-  .detail .chat-form { flex-wrap:wrap; }
-  .detail .chat-form input { flex-basis:100%; }
-  .detail .chat-form button { width:100%; min-height:46px; }
 }
 @media print { .skip-to-content { display:none; } }
 
@@ -198,9 +193,6 @@ html { scroll-padding-top:calc(var(--site-header-height,88px) + 16px); }
 
 
 /* 결과 화면 구역 간격(사용자 흐름 순서: 코스 카드 → 지도 → 일정 → 확인 → 결정·공유 → 축제 → 부가 정보) */
-.plan-share { margin-top:28px; }
-.plan-share>h3 { font-size:19px; margin:20px 0 0; }
-#plan-extras>.plan-extras-panel { margin-top:24px; }
 .plan-photo-details { margin-top:14px; }
 /* 휴대폰: 조건 칩·소분류 칩을 손가락으로 누르기 쉽게 44px 높이로(전 34~38px). 넓은 화면은 그대로. */
 @media (max-width:720px) {

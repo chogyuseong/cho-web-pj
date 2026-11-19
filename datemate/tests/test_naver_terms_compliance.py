@@ -104,7 +104,7 @@ def test_tour_info_photo_license_and_hours(monkeypatch):
     pages = {}
 
     def handler(request):
-        if request.url.path.endswith('locationBasedList2'):
+        if request.url.path.endswith('searchKeyword2'):
             return httpx.Response(200, json=dict(response=dict(header=dict(resultCode='0000'), body=dict(items=dict(item=[pages['row']])))))
         return httpx.Response(200, json=dict(response=dict(header=dict(resultCode='0000'), body=dict(items=dict(item=[dict(opentimefood='10:00~22:00<br>(라스트오더 21:30)', restdatefood='연중무휴')])))))
 
@@ -134,7 +134,7 @@ def test_tour_title_tags_and_http_images_from_the_real_api(monkeypatch):
     monkeypatch.setattr('app.store.cache', lambda *a: None)
 
     def handler(request):
-        item = row if request.url.path.endswith('locationBasedList2') else dict(usetimeculture='10:30 ~ 17:30', restdateculture='매주 일, 월 휴무')
+        item = row if request.url.path.endswith('searchKeyword2') else dict(usetimeculture='10:30 ~ 17:30', restdateculture='매주 일, 월 휴무')
         return httpx.Response(200, json=dict(response=dict(header=dict(resultCode='0000'), body=dict(items=dict(item=[item])))))
 
     real = httpx.Client.__init__

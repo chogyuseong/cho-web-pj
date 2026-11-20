@@ -56,11 +56,13 @@ def search_places(query):
     """역·가게·명소 이름을 네이버 지역 검색으로 찾는다. 검색 키가 없거나 실패하면 빈 목록.
 
     name 은 주소(도로명 우선)로 두어 주소 결과와 같은 방식으로 시·도를 판정하고 출발지 이름을 만든다.
-    장소 이름은 place_name 에 따로 싣는다(화면은 텍스트로만 넣는다)."""
-    from .explore import local_coordinates,lookup
+    장소 이름은 place_name 에 따로 싣는다(화면은 텍스트로만 넣는다).
+    결과는 받은 순서 그대로 사용자에게 보여 주는 목록이고(화면: '네이버 검색결과' 블록), 사용자가 고른 한 곳의 좌표만 출발지가 된다.
+    추천 후보·점수에는 쓰지 않는다. 고른 출발지 좌표가 거리 계산의 기준점이 되는 것은 남은 위험이다(docs/naver-terms-stage2-design.ko.md 5-3)."""
+    from .naver_local import local_coordinates,lookup
     from .image_search import plain,search_enabled
     if not search_enabled():return []
-    # explore 와 같은 조회 함수: 같은 검색어는 1시간 캐시(키는 검색어 해시), 실패는 빈 목록.
+    # 둘러보기의 '네이버에서 더 찾기'와 같은 조회 함수: 같은 사용자의 같은 검색어는 1시간 보관(키는 검색어 해시), 실패는 빈 목록.
     with httpx.Client(timeout=8) as client:
         _,items,_=lookup(client,query)
     results=[]

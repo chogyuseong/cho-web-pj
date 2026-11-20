@@ -172,11 +172,15 @@ const PopupView = {
   block(data, options = {}) {
     const posts = Array.isArray(data.posts) ? data.posts : [],
       size = options.size || this.firstPage;
-    const block = node('section', undefined, 'popup-list popup-naver-block');
+    // 블록 공통 부품(naver-attribution.js naverResultBlock): 머리글(건수 제목 + 출처 표시) + 본문(받은 글).
+    const block = naverResultBlock('블로그 검색', this.searchUrl(data), {
+      className: 'popup-list popup-naver-block',
+      heading: node(options.heading || 'h3', `네이버 블로그 검색 결과 ${posts.length}건`)
+    });
     const items = node('div', undefined, 'popup-items');
     const render = rows => items.append(...rows.map(post => this.card(post, options.titleTag)));
     render(posts.slice(0, size));
-    block.append(node(options.heading || 'h3', `네이버 블로그 검색 결과 ${posts.length}건`), naverAttribution('블로그 검색', this.searchUrl(data)), items);
+    block.body.append(items);
     if (posts.length > size) {
       const more = button(`글 더 보기 (${posts.length - size}건)`, () => {
         more.remove();

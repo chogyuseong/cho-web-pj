@@ -168,6 +168,21 @@ def naver_session():
         client.close()
 
 
+PUBLIC_DATA_HOST='apis.data.go.kr'
+
+
+def provider_of(url):
+    """제공자 이름(시간당 예산·지표의 단위). 호스트 이름이고, 공공데이터포털만 기관 코드까지 붙인다.
+
+    공공데이터포털은 한 호스트에 기관별 API 가 모여 있고 한도가 API 마다 따로다(한국관광공사 B551011 하루 1,000건 등).
+    호스트만 쓰면 관광공사·상가정보(B553077)·인허가(1741000) 호출이 한 줄로 합쳐져 어느 한도가 차는지 볼 수 없다."""
+    parts=urlsplit(url);host=parts.hostname or 'unknown'
+    if host==PUBLIC_DATA_HOST:
+        head=parts.path.strip('/').split('/',1)[0]
+        if head.isalnum() and len(head)<=12:return host+'/'+head
+    return host
+
+
 def observed_http(call,url,hold_slot=True,**kwargs):
     from .perf_trace import call_kind,connection_probe
     # 진짜 httpx.get 으로 네이버 API 허브를 부를 때만 작업의 연결 풀로 보낸다.
@@ -175,7 +190,7 @@ def observed_http(call,url,hold_slot=True,**kwargs):
     if call is _REAL_GET and urlsplit(url).hostname==NAVER_API_HOST:
         session=_naver_session.get()
         if session is not None:call=session.get
-    with operation(urlsplit(url).hostname or 'unknown',call_kind(url),hold_slot) as state:
+    with operation(provider_of(url),call_kind(url),hold_slot) as state:
         state['probe']=connection_probe(getattr(call,'__self__',None),kwargs)
         if urlsplit(url).hostname==NAVER_API_HOST:
             # 요청(또는 추천 작업) 하나가 실제로 부른 네이버 검색 API 수(app/naver_cache.calls). 공용 캐시를 없앤 뒤 호출 수 확인용.

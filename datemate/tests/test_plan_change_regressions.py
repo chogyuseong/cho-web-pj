@@ -4,50 +4,37 @@ import pytest
 from test_leisure_results import fixture_plan
 
 
-def test_real_leisure_null_address_uses_area_and_concurrent_discovery(monkeypatch):
-    # 종목마다 검색하던 방식에서 묶음 검색어(최대 12건)로 바뀌었다. 주소가 없으면 출발지의 구로 찾는다.
-    from app.leisure import options, LEISURE_SEARCHES, MAX_LEISURE_LOOKUPS
-    from app import store
+def test_real_leisure_discovery_uses_public_data_around_the_stop(monkeypatch):
+    # 레저 후보는 코스 장소의 좌표로 공공 자료에서 찾는다(주소가 없어도 된다). 네이버 지역 검색은 부르지 않는다.
+    from app.leisure import options
+    from public_fakes import calls, fake_public_api
+    api=fake_public_api(monkeypatch)
+    monkeypatch.setattr('app.naver_local.lookup',lambda *a,**k:pytest.fail('네이버 지역 검색 호출'))
     plan=fixture_plan()
     plan['conditions'].update(mode='real',allow_estimates=True)
-    plan['conditions']['origin']['name']='종로구'
     plan['places'][0]['address']=None
-    cache={}
-    monkeypatch.setattr(store,'cached',lambda key:cache.get(key))
-    monkeypatch.setattr(store,'cache',lambda key,value,ttl:cache.__setitem__(key,value))
-    searches=[]
-    monkeypatch.setattr('app.intent_discovery.search_enabled',lambda:True)
-    def lookup(term,area,**kwargs):
-        searches.append((term,area))
-        return [],'available'
-    monkeypatch.setattr('app.intent_discovery.local_lookup',lookup)
     monkeypatch.setattr('app.leisure.nearby_sports',lambda *args:[])
     diagnostics={}
     assert options(plan,0,[],discover=True,diagnostics=diagnostics)==[]
-    assert len(searches)==len(LEISURE_SEARCHES)<=MAX_LEISURE_LOOKUPS
-    assert all(area.startswith('서울') for _,area in searches)
-    assert any(area=='서울 종로구' for _,area in searches)
-    assert diagnostics['search_status']=='complete' and diagnostics['lookups']==len(searches)
+    assert [s['source'] for s in diagnostics['sources']]==['tour','store:play'] and diagnostics['lookups']==2
+    # 주변에 약국 자료가 없어 시·군·구를 모르면 관광공사 목록은 받지 않는다. 상가정보는 예술·스포츠 업종만 받는다.
+    assert not calls(api,'tour_district') and calls(api,'store') and all(p['indsLclsCd']=='R1' for p in calls(api,'store'))
+    assert diagnostics['search_status']=='complete' and not api['naver']
     assert diagnostics['nearby_count']==0 and diagnostics['rejected']=={}
 
 
-def test_generic_sports_category_with_specific_business_name(monkeypatch):
+def test_sports_facility_is_classified_by_its_business_name(monkeypatch):
     from app.models import Conditions
     from app.intent_discovery import discover_requested_places
-    from app import store
-    cache={}
-    monkeypatch.setattr(store,'cached',lambda key:cache.get(key))
-    monkeypatch.setattr(store,'cache',lambda key,value,ttl:cache.__setitem__(key,value))
-    # 한 번에 읽고 쓰는 저장 함수도 같은 임시 저장소를 쓰게 한다(실제 DB에 테스트 장소가 남지 않게).
-    monkeypatch.setattr(store,'cached_many',lambda keys:{k:cache[k] for k in keys if k in cache})
-    monkeypatch.setattr(store,'cache_many',lambda entries:[cache.__setitem__(k,v) for k,v,_ in entries])
+    from app import public_places
+    from public_fakes import fake_public_api, store_item
+    api=fake_public_api(monkeypatch)
+    api['stores']+=[store_item('G1','종로 배드민턴 체육관',37.575,126.985,code='R10306',label='종합 스포츠시설',address='서울특별시 종로구 율곡로 10'),
+                    store_item('G2','종로 배드민턴 용품점',37.575,126.985,code='R10314',label='기타 스포츠시설 운영업',address='서울특별시 종로구 율곡로 12')]
     c=Conditions(mode='real',visit_date='2026-11-01',request='배드민턴',origin={'name':'종로구','lat':37.575,'lon':126.985})
-    monkeypatch.setattr('app.intent_discovery.search_enabled',lambda:True)
-    monkeypatch.setattr('app.intent_discovery.local_lookup',lambda *args:([
-        {'title':'종로 배드민턴 체육관','category':'스포츠시설>체육관','roadAddress':'서울특별시 종로구 율곡로 10','mapx':1269850000,'mapy':375750000},
-        {'title':'종로 배드민턴 용품점','category':'쇼핑>스포츠용품','roadAddress':'서울특별시 종로구 율곡로 12','mapx':1269850000,'mapy':375750000}], 'available'))
     result=discover_requested_places(c)
-    assert result['resolved']==1
+    assert result['kind_stats']['badminton']['adopted']==1
+    assert [p['name'] for p in public_places.candidates() if 'badminton' in p['tags']]==['종로 배드민턴 체육관']
 
 
 def test_saved_change_refreshes_metadata_group_and_undo_locks():

@@ -37,6 +37,11 @@ PURPOSE_BY_PREFIX = (
     ("meal-rescue-", "plan"),
     ("restaurant:", "plan"),
     ("parking-", "plan"),
+    # 공공 자료에서 찾은 추천 후보(app/public_places.py). 네이버 결과가 아니지만 같은 틀(사용자별·24시간·새 추천 때 비움)에 둔다.
+    ("public-candidate:", "plan"),
+    ("public-nearby:", "plan"),
+    ("public-discovery-", "plan"),
+    ("public-leisure-", "plan"),
     ("explore-", "explore"),
     ("popup", "popups"),
 )

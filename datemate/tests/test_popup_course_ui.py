@@ -178,7 +178,7 @@ def test_naver_block_keeps_order_and_hub_list_is_separate_from_the_posts(audit_p
         f"네이버 블로그 검색 ‘{QUERY}’ · 최신순 7건"
     )
     assert page.locator("#popup-course-results .popup-naver-block").count() == 1
-    assert page.locator("#popup-course-results .popup-naver-block>h4").inner_text() == (
+    assert page.locator("#popup-course-results .popup-naver-block .naver-result-head>h4").inner_text() == (
         "네이버 블로그 검색 결과 7건"
     )
     assert titles(page) == [p["title"] for p in POSTS[:6]]

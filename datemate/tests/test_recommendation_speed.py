@@ -1,10 +1,12 @@
 """추천 대기 시간 줄이기(2026-11-14)의 동작 확인. 외부 호출 없음.
 
-1) 고정 입력 비교: 네이버 검색을 고정 자료로 흉내 내고 실제 장소 모드 추천 전체(generate)를 돌려,
+1) 고정 입력 비교: 공공 자료(한국관광공사·소상공인 상가정보)와 네이버 블로그 검색을 고정 자료로 흉내 내고 실제 장소 모드 추천 전체(generate)를 돌려,
    3안의 장소·순서·이름·비용과 조건 확인이 기준 파일과 같은지 본다. 캐시가 빈 상태와 찬 상태 모두.
    기준 파일은 DATEMATE_WRITE_RECOMMENDATION_GOLDEN=1 로 이 테스트를 돌려 만든다.
    2026-11-20(네이버 검색 API 특약 2단계)에 다시 만들었다: 블로그 글을 추천 계산에 쓰지 않고(가산점·이유 문장 없음),
    블로그 요약에서 가격을 읽지 않아(가격 검색 호출 0건) 3안과 비용이 달라졌다. 블로그 결과와 추천의 분리는 tests/test_blog_independent_block.py.
+   같은 날 2단계 나머지(3.8(b))에서 한 번 더 만들었다: 후보가 네이버 지역 검색 결과가 아니라 공공 자료에서 나온다(tests/test_public_candidates.py).
+   지역 검색 호출은 0건이고 대신 공공 API 호출(관광공사 시·군·구 목록 + 상가정보)이 생긴다.
 2) 바꾼 부분 단위 확인: 저장 묶음(store.cached_many·cache_many), 외부 호출 지표 묶어 쓰기, 긴 폴링(단계가 바뀔 때·취소될 때 바로 답함).
 """
 import asyncio
@@ -43,20 +45,19 @@ SCENARIOS = {
     'seongsu': card('서울', SEONGSU, '지적인 데이트', '콘셉트별'),
 }
 
-# 지역 검색 검색어(마지막 낱말)별 결과: (상호, 업종, 위도 차, 경도 차). 출발지 반경 2km 안에 흩어 둔다.
-LOCAL = {
-    '맛집': [('한옥 비빔밥', '음식점>한식>비빔밥', .002, .001), ('골목 칼국수', '음식점>한식>칼국수,만두', -.003, .002)],
-    '음식점': [('남문 피순대', '음식점>한식>순대,순댓국', .004, -.002), ('카페 담', '음식점>카페,디저트', .001, .003)],
-    '카페': [('한옥 찻집', '카페,디저트>전통찻집', -.002, -.001), ('기와 로스터리', '카페,디저트>카페', .003, .004)],
-    '전시': [('골목 갤러리', '문화,예술>갤러리,화랑', -.004, .001), ('행사 대행사', '지원,대행>전시,행사대행', .001, .001)],
-    '미술관': [('작은 미술관', '문화,예술>미술관', .005, .002)],
-    '공원': [('오목대 공원', '여행,명소>공원', -.001, -.004)],
-    '산책': [('천변 산책로', '여행,명소>산책로', .006, -.003)],
-    '공방': [('한지 공방', '공예,공방>한지공예', -.005, -.003), ('도자기 체험', '공예,공방>도자기', .002, -.005)],
-    '식당': [('전주 백반', '음식점>한식>백반,가정식', -.006, .002)],
-    '디저트': [('초코 디저트', '카페,디저트>디저트', .004, .005)],
-    '갤러리': [], '명소': [], '체험': [],
-}
+# 공공 자료 고정값: (자료, 이름, 분류 코드, 위도 차, 경도 차). 출발지 반경 2km 안에 흩어 둔다.
+# tour = 한국관광공사 소분류(cat3), store = 상가정보 소분류(indsSclsCd). '행사 컨벤션'(컨벤션센터)·'전주푸드'(회사 이름)는 후보가 되면 안 된다.
+PUBLIC = [
+    ('tour', '한옥 비빔밥', 'A05020100', .002, .001), ('tour', '골목 칼국수', 'A05020100', -.003, .002),
+    ('tour', '한옥 찻집', 'A05020900', -.002, -.001), ('tour', '골목 갤러리', 'A02060500', -.004, .001),
+    ('tour', '행사 컨벤션', 'A02060400', .001, .001), ('tour', '작은 미술관', 'A02060500', .005, .002),
+    ('tour', '오목대 공원', 'A02020700', -.001, -.004), ('tour', '천변 산책로', 'A02030600', .006, -.003),
+    ('tour', '한지 공방', 'A04010700', -.005, -.003),
+    ('store', '남문 피순대', 'I20102', .004, -.002), ('store', '카페 담', 'I21201', .001, .003),
+    ('store', '기와 로스터리', 'I21201', .003, .004), ('store', '도자기 체험 공방', 'P10613', .002, -.005),
+    ('store', '전주 백반', 'I20101', -.006, .002), ('store', '초코 디저트', 'I21008', .004, .005), ('store', '전주푸드', 'I20101', .0005, .0005),
+]
+TOUR_TYPES = {'A05': '39', 'A04': '38', 'A02': '14'}
 ADDRESS = {'전북': '전북특별자치도 전주시 완산구 기린대로', '서울': '서울특별시 성동구 왕십리로'}
 
 # 블로그 본문: 이미 있는 장소(서울숲 등)와 지역 검색으로 찾을 장소를 섞어 언급한다.
@@ -76,11 +77,20 @@ def blog_items(query):
         dict(title='같은 작성자 다른 글', description='중복', link='https://blog.naver.com/author0/223999999999', postdate=POSTDATE)]
 
 
-def local_items(query, region):
-    term = query.split()[-1]
-    lat, lon = (JEONJU if region == '전북' else SEONGSU)['lat'], (JEONJU if region == '전북' else SEONGSU)['lon']
-    return [dict(title=title, category=category, roadAddress=f'{ADDRESS[region]} {i + 1}',
-                 mapx=str(lon + dlon), mapy=str(lat + dlat)) for i, (title, category, dlat, dlon) in enumerate(LOCAL.get(term, []))]
+def public_items(region):
+    """한 지역(출발지 주변)의 고정 공공 자료: (관광공사 항목들, 상가정보 업소들)."""
+    from public_fakes import store_item, tour_item
+    origin = JEONJU if region == '전북' else SEONGSU
+    tour, stores = [], []
+    for i, (source, name, code, dlat, dlon) in enumerate(PUBLIC):
+        lat, lon, address = origin['lat'] + dlat, origin['lon'] + dlon, f'{ADDRESS[region]} {i + 1}'
+        if source == 'tour':
+            content_id = (1000 if region == '전북' else 2000) + i
+            type_id = '12' if code in ('A02020700', 'A02030600') else TOUR_TYPES[code[:3]]
+            tour.append(tour_item(content_id, name, lat, lon, cat3=code, type_id=type_id, address=address))
+        else:
+            stores.append(store_item(f'{region}-{i}', name, lat, lon, code=code, label=name, address=address))
+    return tour, stores
 
 
 class FixedDatetime(real_datetime):
@@ -91,7 +101,8 @@ class FixedDatetime(real_datetime):
 
 @pytest.fixture
 def naver(monkeypatch):
-    """네이버 검색 키가 있는 것처럼 하고, 모든 외부 호출을 고정 자료로 답한다.
+    """네이버 검색 키·공공데이터포털 키가 있는 것처럼 하고, 모든 외부 호출을 고정 자료로 답한다.
+    후보는 공공 자료(PUBLIC)에서만 나온다. 네이버 지역 검색은 나가면 안 되므로 나가면 호출 기록에 '/search/v1/local' 이 남는다.
     blog 에 함수를 넣으면 블로그 검색 응답(items)을 바꿀 수 있다(검색어를 받음). 코스 블로그 검색(display=20)이 아닌 블로그 검색
     (예전의 가격 검색)은 나가면 안 되므로 호출 기록에 'unexpected-blog'로 남긴다."""
     from app import course_search
@@ -99,16 +110,24 @@ def naver(monkeypatch):
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'test-secret')
     monkeypatch.setenv('DATEMATE_OPTION_SELECTOR', 'experience')
     monkeypatch.setattr(course_search, 'datetime', FixedDatetime)
+    from public_fakes import fake_public_api
+    public = fake_public_api(monkeypatch)
+    for name in ('전북', '서울'):
+        tour, stores = public_items(name)
+        public['tour'] += tour
+        public['stores'] += stores
+    public_get = httpx.get
     calls = []
     region = {}
-    state = SimpleNamespace(calls=calls, region=region, blog=blog_items)
+    state = SimpleNamespace(calls=calls, region=region, blog=blog_items, public=public)
 
     def fake_get(url, params=None, **kwargs):
         query = (params or {}).get('query', '')
         path = httpx.URL(url).path
-        if path == '/search/v1/local':
-            items = local_items(query, region['name'])
-        elif path == '/search/v1/blog' and params.get('display') == 20:
+        if not path.startswith('/search/v1/'):
+            calls.append(path)
+            return public_get(url, params=params, **kwargs)
+        if path == '/search/v1/blog' and params.get('display') == 20:
             items = state.blog(query)
         else:
             path = 'unexpected-blog' if path == '/search/v1/blog' else path
@@ -127,18 +146,15 @@ def naver(monkeypatch):
 
 def discovered_keys():
     with store.connect() as db:
-        return {row[0] for row in db.execute("SELECT key FROM cache WHERE key LIKE 'discovered-place:%'")}
+        return {row[0] for row in db.execute("SELECT key FROM cache WHERE key LIKE '%public-candidate:%'")}
 
 
 def clean_region(region):
-    """다른 테스트가 남긴 같은 지역의 찾은 장소·검색 캐시를 지워 매번 같은 출발 상태에서 시작한다."""
+    """다른 테스트가 남긴 공공 자료 캐시·검색 캐시를 지워 매번 같은 출발 상태에서 시작한다."""
     with store.connect() as db:
-        rows = db.execute("SELECT key,payload FROM cache WHERE key LIKE 'discovered-place:%'").fetchall()
-        for key, payload in rows:
-            if json.loads(payload).get('region') == region:
-                db.execute('DELETE FROM cache WHERE key=?', (key,))
-        for prefix in ('course-blog-v4:', 'intent-local-v6'):
-            db.execute('DELETE FROM cache WHERE key LIKE ?', (prefix + '%',))
+        for pattern in ('course-blog-v4:%', 'public-tour-%', 'public-store-%', 'public-district-%', '%public-candidate:%', '%public-discovery-%',
+                        'tour-listed-%'):
+            db.execute('DELETE FROM cache WHERE key LIKE ?', (pattern,))
 
 
 VOLATILE = {'checked_at', 'pricing_checked_at', 'recommendation_group_id', 'timing', 'created'}
@@ -196,6 +212,11 @@ def test_same_input_and_cache_state_give_the_same_recommendation_as_before(name,
     assert got['cold_calls'] == expected['cold_calls']
     # 블로그 검색은 코스 조사 패널용 한 번뿐이다(가격을 찾는 블로그 검색 없음). 같은 사용자의 같은 조건 재추천은 외부 호출이 없다.
     assert cold_calls.count('/search/v1/blog') == 1 and 'unexpected-blog' not in naver.calls
+    # 네이버 지역 검색은 한 번도 부르지 않는다. 후보는 공공 자료에서만 나온다.
+    assert '/search/v1/local' not in naver.calls
+    # 관광공사 시·군·구 목록은 관광 타입마다 1건(처음 보는 시·군·구 하나 = 5건). 그 뒤 7일은 누구의 추천에서도 다시 부르지 않는다.
+    assert cold_calls.count('/B551011/KorService2/areaBasedList2') == 5
+    assert all(p['id'].startswith(('public:', 'Q', 'seoul:', 'food:')) for plan in cold['plans'] for p in plan['places'])
     assert naver.calls == cold_calls
     assert json.loads(json.dumps(got, ensure_ascii=False, sort_keys=True)) == expected
 
@@ -235,61 +256,27 @@ def test_provider_metrics_are_written_once_when_the_recommendation_ends():
     assert metric() == (before[0] + 4, before[1] + 1)
 
 
-def test_parallel_lookups_share_one_permission_check_and_keep_partial_failures(monkeypatch):
-    from app import intent_discovery, discovery
-    from app.request_usage import measure
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test-id')
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'test-secret')
-    reads = []
-    original = store.cached
-    monkeypatch.setattr(discovery.store, 'cached', lambda key: (reads.append(key), original(key))[1])
-
-    def fake_get(url, params=None, **kwargs):
-        term = params['query'].split()[-1]
-        if term == '실패':
-            raise httpx.ConnectTimeout('boom')
-        if term == '권한':
-            return httpx.Response(401, request=httpx.Request('GET', url))
-        return httpx.Response(200, json=dict(items=[{'title': term}]), request=httpx.Request('GET', url))
-
-    monkeypatch.setattr(httpx, 'get', fake_get)
-    try:
-        with measure():
-            found = intent_discovery.lookup_all([('k', t, '전북 전주') for t in ('카페', '실패', '공원', '권한')])
-        assert [s for _, s in found] == ['available', 'unavailable', 'available', 'permission_required']
-        assert found[0][0] == [{'title': '카페'}]
-        assert reads.count('discovery-local-permission') == 1
-        # 권한 없음이 기록되면 다음 묶음은 검색하지 않는다(전과 같음).
-        assert intent_discovery.lookup_all([('k', '카페', '전북 전주')]) == [([], 'permission_required')]
-        # 묶음 밖의 단건 검색은 전처럼 스스로 권한 표시를 확인한다.
-        assert discovery.local_lookup('카페', '전북 전주') == ([], 'permission_required')
-    finally:
-        with store.connect() as db:
-            db.execute("DELETE FROM cache WHERE key='discovery-local-permission'")
-
-
-def test_discovered_places_are_saved_in_one_write_without_overwriting_richer_rows(monkeypatch, naver):
-    from app import intent_discovery
+def test_public_candidates_are_saved_in_one_write(monkeypatch, naver):
+    from app import intent_discovery, public_places
     from app.perf_trace import recording
     clean_region('전북')
     naver.region['name'] = '전북'
     data = Conditions(**SCENARIOS['jeonju']).model_copy(update={'area_center': Conditions(**SCENARIOS['jeonju']).origin})
-    existing = local_items('전북 맛집', '전북')[0]
-    import hashlib
-    address = existing['roadAddress']
-    pid = 'discovered:' + hashlib.sha256((existing['title'] + address).encode()).hexdigest()[:20]
-    from app import naver_cache
-    naver_cache.cache('discovered-place:' + pid, dict(id=pid, name=existing['title'], region='전북', lat=JEONJU['lat'], lon=JEONJU['lon'],
-                                                 category='카페·미식', discovery_evidence={'quote': '블로그 인용'}), 600)
     with recording() as trace:
         result = intent_discovery.discover_requested_places(data)
         timing = trace.summary()
     assert result['status'] == 'available' and result['resolved'] >= 5
-    assert naver_cache.cached('discovered-place:' + pid)['discovery_evidence'] == {'quote': '블로그 인용'}
-    saved = naver_cache.cached_many('discovered-place:' + p for p in [pid])
-    assert saved
-    # 찾은 장소가 여러 곳이어도 DB 사용은 몇 번뿐이다(전에는 장소마다 읽기·쓰기 2번).
-    assert timing['db']['count'] <= 8 + 2 * result['lookups'], timing['db']
+    assert len(public_places.candidates()) == result['resolved']
+    # 처음 보는 동네: 공공 API 호출마다 캐시 읽기·쓰기와 하루·시간당 호출 상한 확인이 든다(시·군·구 알아내기 1 + 관광공사 타입 5 + 상가정보).
+    assert timing['db']['count'] <= 70, timing['db']
+    # 다른 사용자가 같은 동네를 찾으면 공공 API 를 부르지 않고(공용 캐시) DB 사용도 몇 번뿐이다. 찾은 장소 수와 무관하다.
+    from app import naver_cache
+    used = len(naver.calls)
+    with naver_cache.scope(store.owner_of('speed-second-' + uuid.uuid4().hex)), recording() as trace:
+        again = intent_discovery.discover_requested_places(data)
+        warm = trace.summary()
+    assert again['resolved'] == result['resolved'] and len(naver.calls) == used
+    assert warm['db']['count'] <= 16, warm['db']
 
 
 # --- 제공자 예산 미리 잡기 ---

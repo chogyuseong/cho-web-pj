@@ -155,6 +155,8 @@ def _record(owner, started, trace=None, **values):
 def _research(data):
     """후보 장소를 찾고 코스를 짠다.
 
+    후보는 우리 카탈로그와 공공 자료(한국관광공사·소상공인 상가정보, app/intent_discovery.py)에서만 나온다.
+    네이버 지역 검색 결과는 후보·점수·필터·이유 문장에 쓰지 않는다(tests/test_public_candidates.py).
     네이버 블로그 검색 결과(evidence)는 화면의 독립 블록에 그대로 보여 주려고 싣기만 한다(특약 2.2).
     추천이 쓰는 것은 조건에서 만든 검색어 문자열(requested_query)뿐이고, 글의 내용·순위·건수·검색 성공 여부는 쓰지 않는다
     (tests/test_blog_independent_block.py).
@@ -191,10 +193,12 @@ def _research(data):
                 "trust_mode": "balanced",
             }
         )
-        from .image_search import search_enabled
+        from . import public_places
 
-        # 다시 찾을지는 조건에서 만든 검색어가 달라지는지(취향 낱말이 있었는지)와 키 유무로만 정한다. 블로그 검색 결과는 보지 않는다.
-        if search_enabled() and (course_query(local) != course_query(data) or not result["plans"]):
+        # 다시 찾을지는 조건에서 만든 검색어가 달라지는지(취향 낱말이 있었는지)와 공공 자료 키 유무로만 정한다. 블로그 검색 결과는 보지 않는다.
+        if public_places.enabled() and (
+            course_query(local) != course_query(data) or not result["plans"]
+        ):
             with span("compose.retry_search"):
                 discover_requested_places(local)
             with span("compose.retry_recommend"):

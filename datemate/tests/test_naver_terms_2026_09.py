@@ -81,15 +81,22 @@ def test_new_query_replaces_previous_results_of_the_same_purpose():
         assert naver_cache.cached('discovered-place:keep') is None
 
 
-def test_derived_places_are_not_shared_with_other_users():
+def test_found_candidates_are_not_shared_with_other_users():
+    """찾은 후보(2단계부터 공공 자료, app/public_places.py)는 그 사용자의 추천 범위에만 합친다. 네이버 검색 장소는 후보로 읽지 않는다."""
+    from app import public_places
     from app.catalog import places
 
+    candidate = dict(NAVER_PLACE, id='public:store-T1', source_type='소상공인시장진흥공단 상가(상권)정보 · 공공데이터', naver_result=False,
+                     license='공공데이터(이용허락범위 제한 없음)')
+    public_places.remember([candidate])
+    # 예전 방식으로 남아 있는 네이버 검색 장소(discovered-place)는 더 이상 후보로 읽지 않는다.
     naver_cache.cache('discovered-place:' + NAVER_PLACE['id'], dict(NAVER_PLACE), 3600)
-    assert NAVER_PLACE['id'] in {p['id'] for p in places('real')}
+    ids = {p['id'] for p in places('real')}
+    assert candidate['id'] in ids and NAVER_PLACE['id'] not in ids
     with naver_cache.scope(OTHER):
-        assert NAVER_PLACE['id'] not in {p['id'] for p in places('real')}
+        assert candidate['id'] not in {p['id'] for p in places('real')}
     with naver_cache.scope(None):
-        assert NAVER_PLACE['id'] not in {p['id'] for p in places('real')}
+        assert candidate['id'] not in {p['id'] for p in places('real')}
 
 
 def test_old_shared_rows_are_removed_by_migration_cleanup():
@@ -158,10 +165,12 @@ def test_place_detail_falls_back_to_the_owners_recent_plan():
 
 def test_blog_place_extraction_is_gone():
     """블로그 글에서 장소를 뽑던 경로(LLM 추출 → 지역 검색 연결)는 2단계에서 코드째 없앴다(검색 결과를 추천 계산에 쓰지 않음)."""
-    from app import course_search, discovery
+    import importlib.util
 
-    for name in ('extract', 'resolve', 'discover'):
-        assert not hasattr(discovery, name), name
+    from app import course_search
+
+    # 지역 검색 결과를 후보로 쓰던 app/discovery.py 는 2단계 나머지(3.8(b))에서 파일째 없앴다.
+    assert importlib.util.find_spec('app.discovery') is None
     for name in ('select_posts', 'match_places', 'priority', 'public_body'):
         assert not hasattr(course_search, name), name
 
@@ -223,7 +232,8 @@ def test_search_photos_are_not_resized_or_cached():
 # ---------------------------------------------------------------- 호출 수(같은 사용자는 다시 부르지 않음)
 
 
-def test_explore_calls_once_per_user_and_again_for_another_user(monkeypatch):
+def test_naver_blocks_call_once_per_user_and_again_for_another_user(monkeypatch):
+    """둘러보기의 '네이버에서 더 찾기'(app/explore.naver_blocks)는 네이버 결과라 사용자별로만 보관한다. 공용 캐시가 없다."""
     from fastapi.testclient import TestClient
     from app import explore
     from app.main import app
@@ -238,17 +248,16 @@ def test_explore_calls_once_per_user_and_again_for_another_user(monkeypatch):
     monkeypatch.setattr(explore, 'lookup', lookup)
     first = TestClient(app)
     params = dict(region='서울', activity='카페', q='호출세기')
-    data = first.get('/api/explore', params=params).json()
+    data = first.get('/api/explore/naver', params=params).json()
     used = len(calls)
-    assert data['status'] == 'ready' and 0 < used <= explore.MAX_QUERIES
-    first.get('/api/explore', params=params)
+    assert data['status'] == 'ready' and 0 < used <= explore.MAX_NAVER_QUERIES
+    first.get('/api/explore/naver', params=params)
     assert len(calls) == used  # 같은 사용자: 개인화 보관에서
-    place = data['places'][0]
-    assert first.get('/api/places/' + place['id'], params={'mode': 'real'}).status_code == 200
     second = TestClient(app)
-    assert second.get('/api/places/' + place['id'], params={'mode': 'real'}).status_code == 404
-    second.get('/api/explore', params=params)
+    second.get('/api/explore/naver', params=params)
     assert len(calls) == 2 * used  # 다른 사용자: 공용 캐시가 없어 다시 부른다
+    with store.connect() as db:
+        assert not db.execute("SELECT 1 FROM cache WHERE key NOT LIKE 'nv:%' AND payload LIKE '%호출세기카페%'").fetchone()
 
 
 # ---------------------------------------------------------------- 표시(2.1·2.2)
@@ -265,25 +274,28 @@ def test_attribution_script_is_loaded_and_used():
     # 비용 표(price-controls.js)에는 더 이상 네이버 검색 자료가 없다(블로그 가격을 읽지 않음).
     assert 'naverBlogBlock(' in (ROOT / 'static/course-search.js').read_text('utf-8')
     assert 'naverAttribution(' not in (ROOT / 'static/price-controls.js').read_text('utf-8')
-    for name in ('explore.js', 'plan-detail.js', 'meal-suggestions.js',
-                 'place-blogs.js', 'leisure.js', 'parking.js', 'popups.js', 'place-dialog.js', 'location-picker.js', 'shared.js'):
+    # 예전에 저장한 코스의 네이버 검색 장소(21일 뒤 지워짐)에 출처 줄을 다는 화면.
+    for name in ('plan-detail.js', 'place-dialog.js', 'shared.js', 'maps.js'):
         assert 'naverAttribution(' in (ROOT / 'static' / name).read_text('utf-8'), name
+    # 화면에 남는 네이버 검색 결과는 블록 공통 부품(naverResultBlock)으로 그린다(2단계 3.7(a)). 블록의 머리글이 출처 표시다.
+    assert 'function naverResultBlock(' in script and "naverAttribution(kind, originalUrl)" in script
+    for name in ('explore.js', 'place-blogs.js', 'popups.js', 'location-picker.js'):
+        assert 'naverResultBlock(' in (ROOT / 'static' / name).read_text('utf-8'), name
+    # 주변 식당·레저·주차장은 공공 자료만 쓰므로 네이버 출처 표시가 없다.
+    for name in ('meal-suggestions.js', 'leisure.js', 'parking.js'):
+        source = (ROOT / 'static' / name).read_text('utf-8')
+        assert 'naverAttribution(' not in source and 'naverResultBlock(' not in source, name
 
 
-def test_restaurant_results_link_each_item_to_its_original(monkeypatch):
-    from app import restaurants
-
-    class Response:
-        status_code = 200
-
-        def raise_for_status(self):
-            pass
-
-        def json(self):
-            return dict(items=[dict(title='원본식당', roadAddress='서울특별시 중구 원본로 1', category='음식점>한식', mapx='1269900000', mapy='375600000')])
-
-    monkeypatch.setattr(restaurants, 'observed_http', lambda *a, **k: Response())
-    monkeypatch.setattr('app.image_search.search_enabled', lambda: True)
-    plan = dict(conditions=dict(mode='real', region='서울'), places=[dict(name='기준', lat=37.56, lon=126.99, address='서울 중구')])
-    found = restaurants.search_nearby(plan, 0, radius_m=5000)['restaurants'][0]
-    assert found['naver_result'] and found['source'].startswith('https://map.naver.com/p/search/') and '원본식당' not in found['search_url']
+def test_only_display_modules_call_the_naver_search_api():
+    """네이버 검색 API 를 부르는 모듈은 결과를 받은 그대로 보여 주는 곳뿐이다(2단계 3.8(b)).
+    추천 후보·주변 식당·레저·주차장·같은 업체 확인 모듈은 검색 API 주소도, 지역 검색 호출 모듈(naver_local)도 쓰지 않는다."""
+    callers = {path.name for path in (ROOT / 'app').glob('*.py') if 'naverapihub.apigw.ntruss.com/search' in path.read_text('utf-8')}
+    assert callers == {'naver_local.py', 'blog_search.py', 'popup_api.py'}
+    users = {path.name for path in (ROOT / 'app').glob('*.py') if 'naver_local' in path.read_text('utf-8') and path.name != 'naver_local.py'}
+    assert users == {'explore.py', 'geocoding.py'}
+    # 네이버 검색 키가 있는지(search_enabled)도 보지 않는다: 키가 있든 없든 같은 후보가 나온다.
+    for name in ('intent_discovery.py', 'leisure.py', 'restaurants.py', 'parking.py', 'catalog.py', 'place_identity.py', 'public_places.py',
+                 'quality.py', 'planner.py'):
+        source = (ROOT / 'app' / name).read_text('utf-8')
+        assert 'search_enabled' not in source and 'naverapihub' not in source, name

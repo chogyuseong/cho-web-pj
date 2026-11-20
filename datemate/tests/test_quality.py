@@ -1,7 +1,6 @@
 from datetime import date
 from app.models import Conditions
 from app.quality import configure,in_area,meal_penalty,meal_due
-from app import discovery
 
 
 def test_area_uses_searched_neighborhood_not_distant_origin():
@@ -30,6 +29,8 @@ def test_meal_requires_real_food_and_lunch_window():
     assert not meal_due(c.model_copy(update={'start':'15:00','end':'16:00'}))
 
 
-def test_blog_discovery_path_is_removed():
-    # 네이버 검색 API 특약 2.2·2.3(2026-09): 블로그 검색 결과에서 장소를 뽑아 후보로 쓰지 않는다. LLM 추출·주소 연결 코드를 없앴다.
-    assert not any(hasattr(discovery,name) for name in ('llm','extract','resolve','discover'))
+def test_search_result_discovery_module_is_removed():
+    # 네이버 검색 API 특약 2.1·2.2(2026-09): 블로그 글에서 장소를 뽑던 코드(1단계)에 이어, 지역 검색 결과를 후보로 쓰던
+    # app/discovery.py 자체를 없앴다(2단계 3.8(b)). 후보는 app/public_places.py 의 공공 자료에서만 나온다.
+    import importlib.util
+    assert importlib.util.find_spec('app.discovery') is None

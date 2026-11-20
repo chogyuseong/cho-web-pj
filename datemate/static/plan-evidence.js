@@ -200,6 +200,9 @@ function placeEvidencePanel(plan,index){
   const details=node('details',undefined,'place-evidence'),summary=node('summary','추천 이유 · 정보 확인');details.append(summary);
   details.append(linkedText('p',fact?.reason||plan.reasons?.[index]||'입력 조건으로 비교한 후보','hint'));
   details.append(node('p',fact?.address||place.address||'주소 미확인','hint'));
+  // 공공 자료에서 찾은 곳은 '확인 필요'가 많은 까닭을 한 줄로 밝힌다(naver-attribution.js publicDataNote).
+  const dataNote=typeof publicDataNote==='function'?publicDataNote(place):null;
+  if(dataNote)details.append(dataNote);
   if(fact){
     const list=node('ul',undefined,'evidence-list');list.setAttribute('aria-label','장소 정보 확인 상태');
     list.append(identityEvidence(place));

@@ -23,6 +23,13 @@ KNOWN_PATHS = {
     "/map-direction/v1/driving": "driving_route",
     "/map-reversegeocode/v2/gc": "reverse_geocode",
     "/map-geocode/v2/geocode": "geocode",
+    # 공공데이터포털(app/public_places.py, tour_places.py, place_identity.py).
+    "/B551011/KorService2/areaBasedList2": "tour_area",
+    "/B551011/KorService2/searchKeyword2": "tour_keyword",
+    "/B551011/KorService2/detailIntro2": "tour_detail",
+    "/B553077/api/open/sdsc2/storeListInRadius": "store_radius",
+    "/1741000/general_restaurants/info": "license",
+    "/1741000/rest_cafes/info": "license",
 }
 BLOG_HOSTS = ("blog.naver.com", "m.blog.naver.com")
 

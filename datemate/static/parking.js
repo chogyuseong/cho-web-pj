@@ -1,7 +1,8 @@
-// 자동차로 도착하는 장소 근처 주차장(네이버 지역 검색 + 공공데이터 요금·운영시간). 일정·비용에는 넣지 않는다.
+// 자동차로 도착하는 장소 근처 주차장(공공데이터 전국주차장정보표준데이터, app/parking.py). 일정·비용에는 넣지 않는다.
+// 민영 주차장처럼 공공데이터에 없는 곳은 '네이버 지도에서 주차장 찾기' 링크로 잇는다(검색 결과를 받아 쓰지 않는 바깥 링크).
 // 첫 주차장 패널이 화면에 보일 때 코스(plan id)마다 한 번만 요청하고, 일정 패널과 지도가 같은 응답을 쓴다.
 const parkingState = new Map();
-const PARKING_SOURCE_NOTE = '주차 시간·요금은 일정과 비용에 포함하지 않았어요. 출처: 네이버 지역 검색 · 공공데이터포털 전국주차장정보표준데이터';
+const PARKING_SOURCE_NOTE = '주차 시간·요금은 일정과 비용에 포함하지 않았어요. 출처: 공공데이터포털 전국주차장정보표준데이터(공영 주차장 위주). 민영 주차장은 네이버 지도에서 찾아 주세요.';
 
 function parkingEntry(planId) {
   if (!parkingState.has(planId)) parkingState.set(planId, {
@@ -44,7 +45,7 @@ function onParkingLoaded(plan, listener) {
 }
 
 function parkingSearchLink(place) {
-  return link(`지도에서 '${place.name} 주차장' 찾기 ↗`, 'https://map.naver.com/p/search/' + encodeURIComponent(place.name + ' 주차장'));
+  return link(`네이버 지도에서 '${place.name} 주차장' 찾기 ↗`, 'https://map.naver.com/p/search/' + encodeURIComponent(place.name + ' 주차장'));
 }
 
 function parkingLotItem(lot) {
@@ -53,7 +54,6 @@ function parkingLotItem(lot) {
     info = lot.public;
   title.append(node('strong', lot.name));
   if (info?.kind) title.append(node('span', info.kind, 'tag parking-public'));
-  else if (lot.public_by_name) title.append(node('span', '공영(이름 기준)', 'tag parking-public'));
   item.append(title,
     node('p', `직선 ${Number(lot.distance_m).toLocaleString()}m · 걸어서 약 ${lot.walk_minutes}분(추정)`, 'parking-distance'),
     node('p', lot.address || '주소는 지도에서 확인해 주세요.', 'parking-address'));
@@ -67,15 +67,10 @@ function parkingLotItem(lot) {
       time = (live.updated || '').slice(11, 16);
     item.append(node('p', `실시간 남은 자리 약 ${left.toLocaleString()}면 (${live.now.toLocaleString()}/${live.total.toLocaleString()}대 주차 중${time ? ' · ' + time + ' 기준' : ''})`, 'parking-live'));
   }
-  if (info) {
-    item.append(node('p', `공공데이터 기준일 ${info.as_of || '미상'} · 지금은 바뀌었을 수 있어요.${info.live ? '' : ' 만차 여부는 알 수 없어요.'}`, 'hint parking-as-of'));
-    if (!info.fee || !info.hours) item.append(node('p', '빠진 정보는 네이버 지도에서 볼 수 있어요.', 'hint parking-unverified'));
-  } else {
-    item.append(node('p', '요금·운영시간은 네이버 지도에서 바로 볼 수 있어요. 만차 여부는 알 수 없어요.', 'hint parking-unverified'));
-  }
+  // 주차장은 모두 공공데이터에서 온다(app/parking.py). 빠진 요금·운영시간은 네이버 지도 링크로 잇는다.
+  item.append(node('p', `공공데이터 기준일 ${info?.as_of || '미상'} · 지금은 바뀌었을 수 있어요.${info?.live ? '' : ' 만차 여부는 알 수 없어요.'}`, 'hint parking-as-of'));
+  if (!info?.fee || !info?.hours) item.append(node('p', '빠진 정보는 네이버 지도에서 볼 수 있어요.', 'hint parking-unverified'));
   item.append(placeMapLink(info?.fee && info?.hours ? '네이버 지도에서 보기 ↗' : '네이버 지도에서 요금·운영시간 보기 ↗', lot));
-  // 네이버 지역 검색으로 찾은 주차장: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2). 공공데이터만으로 찾은 곳은 표시하지 않는다.
-  if (isNaverResult(lot)) item.append(naverAttribution('지역 검색', placeMapUrl(lot)));
   return item;
 }
 
@@ -104,13 +99,10 @@ function parkingPanel(plan, index) {
     if (stop.lots?.length) {
       const list = node('ul', undefined, 'parking-lots');
       stop.lots.forEach(lot => list.append(parkingLotItem(lot)));
-      body.replaceChildren(list);
-    } else if (stop.status === 'unavailable') {
-      body.replaceChildren(node('p', '주차장 검색에 연결하지 못했어요.', 'hint'), button('다시 찾기', retry, 'secondary parking-retry'));
-    } else if (stop.status === 'key_missing' || stop.status === 'permission_required' || data.status === 'key_missing') {
-      body.replaceChildren(node('p', stop.message || data.message, 'hint'), parkingSearchLink(place));
+      // 공공데이터에 없는 민영 주차장도 찾을 수 있게 목록 아래에 지도 검색 링크를 둔다.
+      body.replaceChildren(list, parkingSearchLink(place));
     } else {
-      body.replaceChildren(node('p', '이 장소 800m 안에서 주차장을 찾지 못했어요.', 'hint'), parkingSearchLink(place));
+      body.replaceChildren(node('p', stop.message || '이 장소 800m 안에는 공공데이터에 실린 주차장이 없어요. 민영 주차장은 네이버 지도에서 찾아 주세요.', 'hint'), parkingSearchLink(place));
     }
   }
   // 이미 받은 응답은 바로 그린다(패널이 아직 문서에 붙기 전). 그 뒤 다시 그려져 떨어진 패널은 구독을 끝낸다.

@@ -14,9 +14,10 @@ function naverBlogItem(post){
   return item;
 }
 function naverBlogBlock(posts,searchUrl,first=5){
-  const wrap=document.createDocumentFragment(),block=node('div',undefined,'naver-result-block'),list=node('ol',undefined,'blog-post-list');
+  // 블록 공통 부품(naver-attribution.js naverResultBlock): 머리글(출처 표시) + 본문(받은 글 목록).
+  const wrap=document.createDocumentFragment(),block=naverResultBlock('블로그 검색',searchUrl,{tag:'div'}),list=node('ol',undefined,'blog-post-list');
   list.append(...posts.slice(0,first).map(naverBlogItem));
-  block.append(naverAttribution('블로그 검색',searchUrl),list);
+  block.body.append(list);
   wrap.append(block);
   if(posts.length>first){
     const more=button(`나머지 ${posts.length-first}건 더 보기`,()=>{more.remove();list.append(...posts.slice(first).map(naverBlogItem));},'secondary blog-more');

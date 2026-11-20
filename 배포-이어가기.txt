@@ -13,6 +13,11 @@
     (2026-11-20 사용자가 보냄, 문의유형 Application Services > NAVER API HUB, 캡처 3장 첨부. 답은 고객지원 > 나의 문의내역),
     Q3 팝업은 글 목록만, Q4 카카오 검토 안 함, Q5 Google Places 제외, Q6·Q7 검색 사진 제거·비용은 가정 범위 중심 수용, Q8 계정 소유자 작업.
   · 다음 구현: 3.4(c)·3.6(b)·3.1(a)·3.2(a)·3.3 글 목록만 → Fable(ccf) 새 세션에서.
+  · Q8 공공 API 활용신청 완료(2026-11-20, 사용자). 같은 공공데이터포털 계정 키 = datemate/.env 의 TOUR_API_KEY(64자, 작은따옴표로 감싸 있음 → 읽을 때 따옴표 제거).
+    로컬에서 호출 확인: TourAPI areaBasedList2 정상, 상가정보 B553077/api/open/sdsc2/storeListInRadius 정상,
+    인허가 일반음식점 1741000/general_restaurants/info 정상(첫 호출 수 초), 휴게음식점 1741000/rest_cafes/info 정상이나 33초 걸림(첫 시도는 25초 시간 초과)
+    → 요청마다 부르지 말고 캐시·배치 조회 필요. 인허가 좌표 CRD_INFO_X/Y 값(예: 130194, -30956)이 설계 문서의 EPSG:5174 가정과 맞는지 구현 때 실제 주소로 검증할 것.
+    운영 Cloudflare 비밀값 TOUR_API_KEY 가 이 계정 키와 같은지는 미확인(운영 TourAPI 는 동작 중) — 2단계 배포 전에 확인.
   · 사용자 할 일: 네이버 질의 보내기, 공공데이터포털 상가정보·인허가 활용신청·TourAPI 증량(Q8), 휴대폰으로 출처 표시·공유 화면 확인, 서치 콘솔 sitemap 재제출(필요 시).
 
 공개 주소: https://datemate.guseong-family.workers.dev

@@ -15,9 +15,10 @@ for(const type of ['input','change'])document.getElementById('conditions').addEv
   if(FormState.allowed.has(event.target.name))FormState.edited.add(event.target.name);
 });
 /* 네이버 검색 API 결과에서 온 출발지(특약 2.4 기기 보관: 24시간 또는 새 질의 시까지 중 짧은 기간).
-   지역 검색으로 고른 곳(이름·주소·좌표가 검색 결과)과 팝업 거점(좌표가 지역 검색 결과)은 출발지에 naver_at(결과를 받은 시각, ms)과
-   naver_query(어느 검색에서 왔는지: 'local' 출발지 검색, 'popups' 팝업 검색)를 붙인다. 동네 칩·현재 위치·지도에서 고른 곳·주소 검색(지오코딩)·
-   축제(관광공사)는 네이버 검색 결과가 아니라 붙이지 않고 기한 없이 그대로 둔다.
+   지역 검색으로 고른 곳(이름·주소·좌표가 검색 결과)은 출발지에 naver_at(결과를 받은 시각, ms)과
+   naver_query(어느 검색에서 왔는지: 지금은 'local' 출발지 검색 하나)를 붙인다. 동네 칩·현재 위치·지도에서 고른 곳·주소 검색(지오코딩)·
+   축제(관광공사)·팝업 거점(우리 거점 사전, 좌표는 관광공사 자료. 2026-11-20 부터)은 네이버 검색 결과가 아니라 붙이지 않고 기한 없이 그대로 둔다.
+   2026-11-20 전에 팝업 거점으로 저장된 출발지(naver_query 'popups', 좌표가 지역 검색 결과)는 받은 지 24시간이 지나면 아래 규칙으로 지워진다.
    기기에 남기는 곳은 ‘지난번처럼 추천’(LastConditions) 하나다. 24시간이 지나거나 같은 종류의 새 검색을 하면 그 출발지만 지우고 나머지 조건은 둔다. */
 const NaverDeviceRetention={
   maxMs:86400000,

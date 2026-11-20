@@ -147,7 +147,7 @@ FLAT_ERROR = dict(responseTime='2026-11-20T22:34:08.379', resultCode='11', resul
 @pytest.fixture
 def tour(monkeypatch):
     """httpx.get(목록·영업 안내·추가 사진)은 public_fakes, httpx.Client(이름 검색 searchKeyword2·detailIntro2)는 여기서 답한다.
-    box['search'] 에 응답(httpx.Response·dict)을 넣으면 이름 검색이 그대로 돌려준다. box['searches'] 는 이름 검색 조건 기록."""
+    box['search'] 에 응답(httpx.Response·dict, 또는 검색 조건을 받아 응답을 주는 함수)을 넣으면 이름 검색이 그대로 돌려준다. box['searches'] 는 이름 검색 조건 기록."""
     box = fake_public_api(monkeypatch)
     box.update(rows=list(HANDAM), search=None, searches=[], intro={})
 
@@ -156,7 +156,7 @@ def tour(monkeypatch):
         if request.url.path.endswith('searchKeyword2'):
             box['searches'].append(params)
             if box['search'] is not None:
-                answer = box['search']
+                answer = box['search'](params) if callable(box['search']) else box['search']
                 return answer if isinstance(answer, httpx.Response) else httpx.Response(200, json=answer)
             found = [item for item in box['rows'] if params['keyword'] in item['title']
                      and (not params.get('lDongRegnCd') or item['addr1'].startswith('제주') == (params['lDongRegnCd'] == '50'))]
@@ -195,6 +195,19 @@ def test_place_without_a_main_photo_gets_the_detail_images(tour):
     # 사진 칸 응답: 사진이 있으면 다시 불러오기는 뜻이 없다.
     data = media.media_info(beach)
     assert len(data['photos']) == 5 and data['photo_retry'] is False
+
+
+def test_cut_off_name_search_is_not_linked(tour):
+    """이름 검색 결과가 100건을 넘어 잘리면 받지 못한 항목에 같은 이름이 또 있을 수 있다. 이름 전체로 한 번 더 찾고, 그래도 잘리면 연결하지 않는다."""
+    tour['search'] = tour_json([HANDAM[2]], total=150)
+    assert tour_places.tour_info(place('애월 한담해변')) == dict(status='not_found')
+    assert [search['keyword'] for search in tour['searches']] == ['한담해변', '애월 한담해변'], '낱말 → 이름 전체, 두 번'
+    assert not calls(tour, 'tour_detail')
+    # 이름 전체로 찾은 결과가 다 왔으면 그것으로 맞춘다.
+    tour['searches'].clear()
+    tour['search'] = lambda params: tour_json([HANDAM[2]], total=150 if params['keyword'] == '한담해변' else 1)
+    assert tour_places.tour_info(place('제주 한담해변'))['content_id'] == '2723542'
+    assert [search['keyword'] for search in tour['searches']] == ['한담해변', '제주 한담해변']
 
 
 def test_loose_name_caption_says_how_it_was_linked(tour):

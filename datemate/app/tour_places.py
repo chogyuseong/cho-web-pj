@@ -299,11 +299,11 @@ def _region_code(place):
 
 def _search_rows(place, client, base):
     """searchKeyword2 로 받은 항목들(호출 1건). 찾는 낱말(search_keyword)의 결과가 LIST_ROWS 를 넘어 잘렸으면 '하나뿐'인지 알 수 없으므로
-    이름 전체로 한 번 더 좁혀 찾는다(드묾: '더 현대 서울'처럼 흔한 낱말 하나로 찾게 되는 이름)."""
+    이름 전체로 한 번 더 좁혀 찾는다(드묾: '더 현대 서울'처럼 흔한 낱말 하나로 찾게 되는 이름).
+    그래도 잘렸으면 빈 목록을 돌려준다: 받지 못한 항목 중에 같은 이름이 또 있을 수 있어 '반경 안에 하나뿐'을 지킬 수 없다(연결하지 않음)."""
     from .course_search import without_branch
 
     name = " ".join(without_branch(clean_title(place.get("name"))).split()) or str(place.get("name"))
-    rows = []
     for keyword in dict.fromkeys((search_keyword(place), name)):
         params = dict(base, keyword=keyword, arrange="A", numOfRows=LIST_ROWS, pageNo=1)
         if _region_code(place):
@@ -314,8 +314,8 @@ def _search_rows(place, client, base):
             raise ValueError("oversized_response")
         rows = _items(listing)
         if int(tour_body(listing).get("totalCount") or 0) <= len(rows):
-            break
-    return rows
+            return rows
+    return []
 
 
 # ---------------------------------------------------------------- 조회

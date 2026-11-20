@@ -45,6 +45,8 @@
     '검색 사진'으로 원본·검색 링크와 함께 보여 준다. 다른 지점·다른 가게·동네 없는 제목·모음 글·다른 시·도 제목은 뺀다
     (app/image_search.strict_title_match, tests/test_strict_image_search.py). 끝내 없으면 사진 칸에 네이버 지도 링크.
   - 팝업 글 소개 옆에도 행사명·거점·'팝업'·올해가 맞는 이미지 검색 사진 한 장을 작은 칸으로 둔다(app/popup_api.post_photos).
+  - 2026-11-20 다시 바뀜(2단계, 브랜치 fix/naver-terms-stage2-a): 위 두 가지 검색 사진을 모두 없앴다. 이미지 검색 결과를 골라 쓰는 것이
+    특약 2.2 와 맞지 않아서다. 사진이 없으면 네이버 지도 링크만 나온다(docs/naver-terms-stage2-design.ko.md 3.4·5-2).
 
 ## 남은 일
 

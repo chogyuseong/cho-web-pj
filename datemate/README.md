@@ -20,7 +20,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 
 | 변수 | 용도 | 필요 조건 |
 | --- | --- | --- |
-| `NAVER_SEARCH_CLIENT_ID`, `NAVER_SEARCH_CLIENT_SECRET` | 장소·블로그 검색 | 현재 구현은 NAVER API HUB의 NAVER 검색 엔드포인트 사용. 발급 Application에서 지역·블로그 권한 활성화(이미지 검색은 2026-11-20부터 쓰지 않음) |
+| `NAVER_SEARCH_CLIENT_ID`, `NAVER_SEARCH_CLIENT_SECRET` | 블로그·팝업 글, '네이버에서 더 찾기'·출발지 이름 검색(추천 후보에는 쓰지 않음) | 현재 구현은 NAVER API HUB의 NAVER 검색 엔드포인트 사용. 발급 Application에서 지역·블로그 권한 활성화(이미지 검색은 2026-11-20부터 쓰지 않음) |
 | `NAVER_MAPS_KEY_ID`, `NAVER_MAPS_KEY` | 주소 검색, 역지오코딩, 자동차 경로 | 해당 Maps API 사용 권한 |
 | `NAVER_MAPS_JS_KEY_ID` | 브라우저 네이버 지도 | Dynamic Map 활성화 및 접속 Web 서비스 URL 등록 |
 | `TOUR_API_KEY` | 축제·행사 조회, 장소 사진·영업 안내(TourAPI), 같은 업체 확인(상가정보·인허가) | 공공데이터포털 계정의 일반 인증키(Decoding) 하나. "한국관광공사_국문 관광정보 서비스_GW", "소상공인시장진흥공단_상가(상권)정보", "행정안전부_식품_일반음식점 조회서비스", "행정안전부_식품_휴게음식점 조회서비스"를 같은 계정에서 활용신청. `%`가 들어간 Encoding 키는 인증 실패 |

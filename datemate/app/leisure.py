@@ -339,7 +339,7 @@ def options(plan, index, locked, discover=False, diagnostics=None):
             continue
         from .pricing import apply_prices
 
-        updated = apply_prices(updated, {})
+        updated = apply_prices(updated)
         if plan.get("best_effort"):
             updated = annotate(updated, c)
         updated = audit_plan(updated, c)

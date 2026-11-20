@@ -156,13 +156,14 @@ def test_place_detail_falls_back_to_the_owners_recent_plan():
 # ---------------------------------------------------------------- AI 차단(2.3)
 
 
-def test_blog_place_extraction_never_calls_a_model(monkeypatch):
-    from app import discovery, telemetry
+def test_blog_place_extraction_is_gone():
+    """블로그 글에서 장소를 뽑던 경로(LLM 추출 → 지역 검색 연결)는 2단계에서 코드째 없앴다(검색 결과를 추천 계산에 쓰지 않음)."""
+    from app import course_search, discovery
 
-    monkeypatch.setenv('GMS_KEY', 'test')
-    monkeypatch.setattr(telemetry, 'invoke_model', lambda *a: pytest.fail('LLM 호출'))
-    mentions, status = discovery.extract([dict(rank=1, title='연남동 비밀정원카페', description='서울 마포구 비밀로 7')])
-    assert mentions == [] and status == 'ai_blocked_by_naver_terms'
+    for name in ('extract', 'resolve', 'discover'):
+        assert not hasattr(discovery, name), name
+    for name in ('select_posts', 'match_places', 'priority', 'public_body'):
+        assert not hasattr(course_search, name), name
 
 
 def test_rag_evidence_has_no_naver_data(monkeypatch):
@@ -211,9 +212,11 @@ def test_naver_photos_are_not_sent_to_a_vision_model(monkeypatch):
 
 
 def test_search_photos_are_not_resized_or_cached():
+    """네이버 검색 API 에서 온 사진(지금은 꺼져 있는 블로그 후기 사진 경로)은 줄이거나 서버에 담아 두지 않는다.
+    이미지 검색 사진은 2026-11-20 에 아예 없앴다(tests/test_photo_source_priority.py)."""
     from app.photo_thumb import with_thumbs
 
-    data = with_thumbs(dict(photos=[dict(kind='image_search', image_url='https://postfiles.pstatic.net/a.jpg')]))
+    data = with_thumbs(dict(photos=[dict(kind='place_public', source_type='blog_review', image_url='https://postfiles.pstatic.net/a.jpg')]))
     assert 'thumb_url' not in data['photos'][0]
 
 
@@ -258,7 +261,11 @@ def test_attribution_script_is_loaded_and_used():
     assert 'naver-attribution.js' in shared
     script = (ROOT / 'static/naver-attribution.js').read_text('utf-8')
     assert '네이버 검색결과' in script and 'NAVERAPIHUB' in script
-    for name in ('explore.js', 'plan-detail.js', 'price-controls.js', 'meal-suggestions.js', 'course-search.js',
+    # 코스 조사 패널(course-search.js)은 place-blogs.js 의 블록(naverBlogBlock)으로 출처 표시를 단다.
+    # 비용 표(price-controls.js)에는 더 이상 네이버 검색 자료가 없다(블로그 가격을 읽지 않음).
+    assert 'naverBlogBlock(' in (ROOT / 'static/course-search.js').read_text('utf-8')
+    assert 'naverAttribution(' not in (ROOT / 'static/price-controls.js').read_text('utf-8')
+    for name in ('explore.js', 'plan-detail.js', 'meal-suggestions.js',
                  'place-blogs.js', 'leisure.js', 'parking.js', 'popups.js', 'place-dialog.js', 'location-picker.js', 'shared.js'):
         assert 'naverAttribution(' in (ROOT / 'static' / name).read_text('utf-8'), name
 

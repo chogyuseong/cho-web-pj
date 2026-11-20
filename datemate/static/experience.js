@@ -187,7 +187,7 @@ async function showMealChange(food, plan, afterIndex = 0) {
         menus.append(option);
       });
     } else {
-      const option = node('option', '확인된 메뉴 단가 없음 · 웹 참고/계획용 비용을 구분해 계산');
+      const option = node('option', '확인된 메뉴 단가 없음 · 계획용 가정 범위(또는 미확인)로 계산');
       option.value = 0;
       menus.append(option);
     }
@@ -221,7 +221,7 @@ function showDraft(original, draft, recompute) {
   }
   root.append(table);
   if (draft.plan.route_verification) root.append(node('p', draft.plan.route_verification, 'hint'));
-  for (const c of draft.plan.costs.filter(c => c.price_kind === 'naver_menu')) root.append(node('p', c.name + ' · ' + c.price_basis, 'hint'));
+  for (const c of draft.plan.costs.filter(c => c.price_kind === 'operator_menu' || c.price_kind === 'naver_menu')) root.append(node('p', c.name + ' · ' + c.price_basis, 'hint'));
   const differences = draft.plan.deviations?.filter(d => d.state === 'unmet') || [];
   if (differences.length) root.append(node('p', '변경 후 조건 차이: ' + differences.map(d => d.message).join(' / '), 'warning'));
   if (draft.blocking.length) root.append(node('p', '필수 조건 때문에 적용할 수 없어요: ' + draft.blocking.map(c => c.label).join(' · '), 'warning'));

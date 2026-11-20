@@ -1,7 +1,6 @@
 import pytest
 import json
 from app.public_place_photos import extract_place_photos
-from app.image_search import search_place_images
 
 def fixture(name='검증카페',lat=37.56,lon=126.99):
     base={'__typename':'PlaceDetailBase','id':'123','name':name,'coordinate':{'x':str(lon),'y':str(lat)},'roadAddress':'서울 중구 검증로 1'}
@@ -21,13 +20,6 @@ def test_ambiguous_business_and_external_host_rejected():
     state=fixture();state['ROOT_QUERY']['detail']['images']['images'][0]['origin']='https://unrelated.example/image.jpg'
     assert not extract_place_photos('window.__APOLLO_STATE__ = '+json.dumps(state),{'name':'검증카페','lat':37.56,'lon':126.99})[0]
 
-def test_https_thumbnail_is_usable_with_http_original(monkeypatch):
-    import httpx
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID','test');monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET','test')
-    def get(self,url,**kwargs):return httpx.Response(200,request=httpx.Request('GET',url),json={'items':[{'title':'검증카페','thumbnail':'https://search.pstatic.net/thumbnail.jpg','link':'http://example.com/original.jpg'}]})
-    monkeypatch.setattr(httpx.Client,'get',get)
-    result=search_place_images({'name':'검증카페'})
-    assert result['photos'][0]['image_url'].startswith('https://')
 
 def test_api_empty_result_uses_identified_place_photo(monkeypatch):
     from app.media import media_info

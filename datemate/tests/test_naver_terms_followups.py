@@ -145,7 +145,7 @@ def test_expired_plan_opens_but_recalculation_is_refused():
         assert client.get(f'/api/plans/{pid}/delay-check').status_code == 200
         assert client.get(f'/api/plans/{pid}/reviews').status_code == 200
         refused = [
-            ('POST', 'prices', None), ('GET', 'restaurant-matches', None), ('GET', 'restaurants', None),
+            ('GET', 'restaurant-matches', None), ('GET', 'restaurants', None),
             ('GET', 'parking', None), ('GET', 'meal-rescue', None), ('POST', 'alternatives', {'index': 1}),
             ('POST', 'replace', {'index': 1, 'replacement_id': 'x'}), ('POST', 'transport', {'default': 'car'}),
             ('POST', 'leisure-options', {'index': 1}), ('POST', 'leisure-select', {'index': 1, 'replacement_id': 'x'}),
@@ -179,6 +179,8 @@ def test_expired_plan_screen_hides_recalculation(audit_page):
     assert changes.count() == page.evaluate('selected.places.length')
     assert all(changes.nth(i).is_disabled() for i in range(changes.count()))
     assert detail.locator('.route-mode-toggle, .transport-bulk, .parking-panel, .meal-suggestions').count() == 0
+    # 좌표를 지운 장소에는 '네이버 지도에서 가격 확인' 링크도 두지 않는다(찾을 이름이 없음).
+    assert detail.locator('.cost-table tbody tr').first.locator('a.price-map-check').count() == 0
     assert detail.get_by_role('button', name='현재 단가 다시 검색').count() == 0
     # 이름을 지운 장소는 '네이버 지도에서 찾기' 목록에 넣지 않는다.
     assert '보관 기간이 지난 검색 장소' not in detail.locator('.map-link-list').inner_text()

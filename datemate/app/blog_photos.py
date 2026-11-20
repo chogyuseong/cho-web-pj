@@ -235,7 +235,9 @@ def blog_photos(place, force=False):
     posts = place_blogs(search_place)
     with ThreadPoolExecutor(max_workers=2) as pool:
         batches = context_map(
-            pool, lambda post: read_post(post, search_place), posts.get("posts", [])[:3]
+            pool,
+            lambda post: read_post(post, search_place),
+            [p for p in posts.get("posts", []) if p.get("url")][:3],
         )
     photos = []
     seen = set()

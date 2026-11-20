@@ -153,26 +153,33 @@ def _record(owner, started, trace=None, **values):
 
 
 def _research(data):
-    report("장소 검색", "선택 지역의 후기와 실제 장소를 찾고 있어요")
-    from .course_search import search_courses, priority
+    """후보 장소를 찾고 코스를 짠다.
+
+    네이버 블로그 검색 결과(evidence)는 화면의 독립 블록에 그대로 보여 주려고 싣기만 한다(특약 2.2).
+    추천이 쓰는 것은 조건에서 만든 검색어 문자열(requested_query)뿐이고, 글의 내용·순위·건수·검색 성공 여부는 쓰지 않는다
+    (tests/test_blog_independent_block.py).
+    """
+    report("장소 검색", "선택 지역의 실제 장소를 찾고 있어요")
+    from .course_search import course_query, search_courses
 
     with span("research.course_search"):
         evidence = search_courses(data) if data.mode == "real" else None
+    intent_discovery = None
     if data.mode == "real":
         from .quality import configure
 
-        data = configure(data, evidence["query"])
+        data = configure(data, evidence["requested_query"])
         from .intent_discovery import discover_requested_places
 
         with span("research.intent_discovery"):
-            evidence["intent_discovery"] = discover_requested_places(data)
+            intent_discovery = discover_requested_places(data)
     report("코스 구성", "취향·필수 조건·이동 동선을 비교하고 있어요")
     with span("compose.recommend"):
-        result = recommend(data, evidence)
+        result = recommend(data)
     if data.mode == "real" and (
         not result["plans"] or any(p.get("search_adjustments") for p in result["plans"])
     ):
-        # Retry live research without taste keywords before accepting a wider-area fallback.
+        # 더 넓은 범위의 대안을 받아들이기 전에, 취향 낱말 없이 같은 지역의 후보(요청 활동·부족한 종류)를 한 번 더 찾아 다시 짠다.
         local = data.model_copy(
             update={
                 "course_query": "",
@@ -184,36 +191,27 @@ def _research(data):
                 "trust_mode": "balanced",
             }
         )
-        with span("compose.retry_search"):
-            broad = search_courses(local)
-            discover_requested_places(local)
-        if broad["status"] == "available" and (
-            broad["query"] != evidence["query"] or not result["plans"]
-        ):
-            original_query = evidence["query"]
-            broad["search_history"] = [
-                *evidence.get("search_history", []),
-                *broad.get("search_history", []),
-            ]
-            broad["requested_query"] = original_query
-            broad["search_relaxed"] = broad["query"] != original_query
-            broad["relaxation_note"] = (
-                "위치는 유지하고 취향 검색어를 줄여 같은 지역의 일반 데이트 후기를 다시 검색했어요."
-            )
+        from .image_search import search_enabled
+
+        # 다시 찾을지는 조건에서 만든 검색어가 달라지는지(취향 낱말이 있었는지)와 키 유무로만 정한다. 블로그 검색 결과는 보지 않는다.
+        if search_enabled() and (course_query(local) != course_query(data) or not result["plans"]):
+            with span("compose.retry_search"):
+                discover_requested_places(local)
             with span("compose.retry_recommend"):
-                retried = recommend(data, broad)
+                retried = recommend(data)
             if retried["plans"]:
                 result = retried
-                evidence = broad
                 for p in result["plans"] + result.get("reserve", []):
-                    adjustments = p.setdefault(
+                    p.setdefault(
                         "search_adjustments",
                         dict(
                             stage="same_location",
                             origin_unchanged=True,
                             original_radius_km=data.neighborhood_radius_km,
                             effective_radius_km=data.neighborhood_radius_km,
-                            messages=[],
+                            messages=[
+                                "위치는 그대로 두고, 취향 낱말 없이 같은 지역의 장소를 한 번 더 찾아 코스를 다시 짰어요."
+                            ],
                             differences=[
                                 dict(label=r["label"], message=r["message"])
                                 for r in p.get("condition_checks", [])
@@ -221,10 +219,6 @@ def _research(data):
                             ],
                         ),
                     )
-                    if original_query != broad["query"]:
-                        adjustments["messages"].insert(
-                            0, f"후기 검색어를 ‘{original_query}’ → ‘{broad['query']}’로 넓혔어요."
-                        )
     if not result["plans"] and data.area_center:
         result.setdefault("suggestions", []).insert(
             0,
@@ -232,21 +226,10 @@ def _research(data):
         )
     if evidence:
         result["course_search"] = evidence
+        if intent_discovery is not None:
+            result.setdefault("diagnostics", {})["intent_discovery"] = intent_discovery
         for plan in result["plans"] + result.get("reserve", []):
             plan["course_search"] = evidence
-            plan["blog_score"] = priority(plan, evidence)
-            plan["recommendation_method"] = (
-                "naver_blog_selected5" if plan["blog_score"] else "conditions_fallback"
-            )
-            for i, place in enumerate(plan["places"]):
-                matched = evidence["matches"].get(place["id"])
-                if matched:
-                    plan["reasons"][i] = (
-                        "네이버 코스 검색 "
-                        + ", ".join(str(n) + "위 글" for n in matched["ranks"])
-                        + "에 등장 · "
-                        + plan["reasons"][i]
-                    )
     return data, result
 
 
@@ -280,13 +263,13 @@ def _shape(plans):
     ]
 
 
-def _count_pricing(before, plans, price_stats, refill_stats):
-    """가격 확인이 3안을 얼마나 바꿨는지와 조회한 가격이 최종 안에 쓰였는지를 개수로만 남긴다(timing.counts)."""
+def _count_pricing(before, plans):
+    """비용 계산(등록 단가·계획용 가정)과 필수 조건 확인이 3안을 얼마나 바꿨는지를 개수로만 남긴다(timing.counts).
+    가격을 찾는 외부 조회는 없다(블로그 요약에서 금액을 읽지 않음, app/pricing.py)."""
     from .perf_trace import count
 
     try:
         after = _shape(plans)
-        final_places = {pid for ids, _, _ in after for pid in ids}
         count("price.plans_before", len(before))
         count("price.plans_after", len(after))
         for i, (ids, purpose, description) in enumerate(before):
@@ -308,22 +291,12 @@ def _count_pricing(before, plans, price_stats, refill_stats):
         count(
             "price.plans_added", sum(not any(set(r[0]) == set(b[0]) for b in before) for r in after)
         )
-        for prefix, stats in (("price", price_stats), ("price.refill", refill_stats)):
-            looked = stats.get("looked_up") or set()
-            count(prefix + ".places", stats.get("places", 0))
-            count(prefix + ".cached", stats.get("cached", 0))
-            count(prefix + ".lookups", len(looked))
-            count(prefix + ".lookups_used", len(looked & final_places))
-            for status, n in (stats.get("statuses") or {}).items():
-                if status in ("available", "not_found", "unavailable", "key_missing"):
-                    count(prefix + ".status_" + status, n)
     except Exception:
         logging.getLogger(__name__).warning("pricing_counts_failed")
 
 
-# 가격 확인 뒤 빠진 코스를 예비 후보로 채울 때의 추가 외부 호출 상한.
+# 비용 계산 뒤 빠진 코스를 채울 때 다시 검증하는 예비 후보 수(자동차면 후보마다 길찾기 호출이 든다).
 REFILL_PLANS = 2
-REFILL_PRICE_LOOKUPS = 6
 
 
 def _refill(data, kept, reserve):
@@ -333,19 +306,7 @@ def _refill(data, kept, reserve):
     from .preferences import filter_required
     from .request_usage import current
 
-    candidates = refill_candidates(kept, reserve, data, limit=REFILL_PLANS)
-    looked_up = {p["id"] for plan in kept for p in plan["places"]}
-    chosen, lookups = [], set()
-    for plan in candidates:
-        needed = {
-            p["id"]
-            for p in plan["places"]
-            if data.mode == "real" and p.get("price") is None and p["id"] not in looked_up
-        }
-        if len(lookups | needed) > REFILL_PRICE_LOOKUPS:
-            continue
-        chosen.append(plan)
-        lookups |= needed
+    chosen = refill_candidates(kept, reserve, data, limit=REFILL_PLANS)
     if not chosen:
         return []
     route_calls = (
@@ -356,7 +317,7 @@ def _refill(data, kept, reserve):
         snapshot = usage.snapshot()
         if (
             snapshot["budget_exhausted"]
-            or snapshot["limit"] - snapshot["total_calls"] < len(lookups) + route_calls
+            or snapshot["limit"] - snapshot["total_calls"] < route_calls
         ):
             return []
     if route_calls:
@@ -386,10 +347,8 @@ def _finish(data, result, owner):
             for plan in result["plans"]
         ],
     )
-    from .pricing import collecting_stats
-
     before_pricing = _shape(result["plans"])
-    with span("price.price_plans"), collecting_stats() as price_stats:
+    with span("price.price_plans"):
         result["plans"] = price_plans(result["plans"])
     from .preferences import filter_required, hard_blocks
 
@@ -398,9 +357,8 @@ def _finish(data, result, owner):
     result["plans"] = filter_required(result["plans"])
     dropped = priced - len(result["plans"])
     refilled = []
-    refill_stats = {}
     if experience and dropped and reserve:
-        with span("price.refill"), collecting_stats() as refill_stats:
+        with span("price.refill"):
             refilled = _refill(data, result["plans"], reserve)
         result["plans"] += refilled
     if blocked and not result["plans"]:
@@ -445,7 +403,7 @@ def _finish(data, result, owner):
     with span("price.enrich"):
         for p in result["plans"]:
             enrich(p)
-    _count_pricing(before_pricing, result["plans"], price_stats, refill_stats)
+    _count_pricing(before_pricing, result["plans"])
     from .plan_jobs import check_current
 
     check_current()

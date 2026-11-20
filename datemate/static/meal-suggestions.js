@@ -35,7 +35,8 @@ function restaurantMenuPanel(food){
       if(data.menu_images?.length){
         box.append(node('p',data.message,'hint'));const preview=node('div',undefined,'menu-image-preview');for(const url of data.menu_images.slice(0,2))preview.append(menuImage(url,food.name));box.append(preview,button('메뉴판 크게 보기 · '+data.menu_images.length+'장',()=>showMenuImages(food,data),'secondary'),node('small',data.note,'menu-checked'));
       }else if(!data.items?.length)box.append(node('p',data.message||'공개 메뉴 자료가 없습니다.','hint'),link('지도에서 메뉴 확인 ↗',data.source_url||placeMapUrl(food)));
-      box.append(button('메뉴 새로 조회',()=>load(true),'secondary menu-refresh'));
+      // 모아 둔 메뉴 자료가 없는 식당(서버 reason not_collected)은 다시 조회해도 달라지지 않아 단추를 두지 않는다.
+      if(data.reason!=='not_collected')box.append(button('메뉴 새로 조회',()=>load(true),'secondary menu-refresh'));
     }catch(error){box.replaceChildren(node('p','메뉴 조회를 완료하지 못했어요. '+error.message,'hint'),button('메뉴 다시 확인',()=>load(true)));}
   }
   if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){observer.disconnect();load();}},{rootMargin:'100px'});observer.observe(box);}else load();

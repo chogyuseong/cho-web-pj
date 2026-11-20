@@ -56,11 +56,9 @@ def enrich(plan):
     changes=(plan.get('search_adjustments') or {}).get('messages',[])
     plan['decision_summary']=dict(title=names.get(category,category+' 중심의 하루')+' · '+(plan.get('option_purpose') or '추천 코스'),travel_minutes=travel,travel_mode=mode,
         reason=' · '.join(filter(None,[plan.get('option_purpose'),f"{len(plan['places'])}곳 · {mode['name']} 이동 약 {travel}분",'조건 변경 있음' if changes else '상세 조건 확인 가능'])))
-    matches=(plan.get('course_search') or {}).get('matches') or {}
     facts=[]
     for i,p in enumerate(plan['places']):
         row=plan.get('costs',[])[i] if i<len(plan.get('costs',[])) else {}
-        quotes=row.get('price_evidence') or []
         age=None
         try:age=(today()-datetime.fromisoformat(p.get('operations_checked_at') or '').date()).days
         except (ValueError,TypeError):pass
@@ -68,11 +66,10 @@ def enrich(plan):
             identity='등록된 주소로 지도 위치를 찾았어요 · 같은 지점인지는 확인하지 못했어요',
             operating_age_days=age,operating_current=age is not None and 0<=age<=90,
             operating_status='최근 90일 안에 확인한 영업 자료가 있어요' if age is not None and 0<=age<=90 else '최근 영업 정보를 확인하지 못했어요 · 방문 전 확인해 주세요',
-            blog_match=bool(matches.get(p['id'])),price_kind=row.get('price_kind') or row.get('status','unknown'),
-            price_checked_at=row.get('checked_at'),price_sources=quotes,
+            price_kind=row.get('price_kind') or row.get('status','unknown'),
+            price_checked_at=row.get('checked_at'),
             reason=(plan.get('reasons') or [''])[i] if i<len((plan.get('reasons') or [])) else '조건 기반 후보'))
     plan['place_evidence']=facts
-    plan['decision_summary']['source_matched_places']=sum(f['blog_match'] for f in facts)
     plan['decision_summary']['unknown_prices']=sum(r.get('amount') is None for r in plan.get('costs',[]))
     plan['decision_summary']['assumed_prices']=sum(r.get('price_kind')=='planning_assumption' for r in plan.get('costs',[]))
     from .request_intent import interpret,matches,INTENTS,ignored_ids

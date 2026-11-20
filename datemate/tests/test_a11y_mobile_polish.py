@@ -48,7 +48,8 @@ def test_focus_returns_to_the_same_place_after_the_plan_is_redrawn(audit_page):
     # 두 번째 장소 카드 안의 단추에서 대화상자를 열고, 열린 동안 결과를 다시 그린 뒤(장소 교체와 같은 경로) 닫는다.
     page.evaluate("""()=>{
       const stop=document.querySelectorAll('#plan-detail .stop')[1];
-      const opener=stop.querySelector('button,a[href]');opener.focus();
+      // 닫힌 접기 안의 링크('위치' 줄의 지도 링크 등)는 포커스를 받을 수 없으므로 접기 밖의 첫 단추·링크를 고른다.
+      const opener=[...stop.querySelectorAll('button,a[href]')].find(el=>!el.closest('details:not([open])'));opener.focus();
       openDialog('장소 바꾸기');renderResults();renderDetail();
       document.querySelector('#dialog').close();}""")
     page.wait_for_function("document.activeElement&&document.activeElement!==document.body")

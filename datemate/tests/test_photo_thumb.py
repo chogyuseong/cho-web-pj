@@ -144,7 +144,7 @@ def test_media_response_adds_thumb_urls_and_allows_only_those(monkeypatch):
     from app import main as app_main
     allowed, other = source_url(), 'https://example.com/a.jpg'
     data = dict(status='available', photos=[dict(kind='place_public', image_url=allowed, url=allowed, title='a'),
-                                            dict(kind='search_result', image_url=other, source=other, title='b')])
+                                            dict(kind='place_public', image_url=other, source=other, title='b')])
     ttls = []
     real = store.cache_many
     monkeypatch.setattr(store, 'cache_many', lambda entries: (ttls.extend(t for _, _, t in entries), real(entries))[1])

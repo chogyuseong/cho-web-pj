@@ -30,7 +30,7 @@ with sync_playwright() as pw:
     blog=page.locator('#plan-detail .place-blogs').first
     blog.locator('summary').click()
     page.wait_for_function('Boolean(document.querySelector("#plan-detail .place-blog-content")?.textContent.trim())&&!document.querySelector("#plan-detail .place-blog-content").textContent.includes("찾고 있어요")',timeout=30000)
-    excerpts=page.locator('#plan-detail .blog-excerpt').count()
+    excerpts=page.locator('#plan-detail .blog-summary').count()
     # An empty provider result must remain a usable, honest empty state.
     assert page.locator('#plan-detail .place-blog-content').first.inner_text()
     photo=page.locator('#plan-detail .place-photo-panel').first

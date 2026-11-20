@@ -1,23 +1,21 @@
+/* 코스 조사 패널: 코스를 어떻게 짰는지에 대한 우리 메모(콘셉트 단서·요청 해석·동네 범위)와, 같은 지역 검색어로 찾은 네이버 블로그 글 블록.
+   블로그 글은 추천 계산에 쓰지 않는다(app/course_search.py). 글 블록은 네이버가 준 순서·건수·제목·요약 그대로이고(place-blogs.js naverBlogBlock),
+   우리 메모는 블록 밖(위)에만 둔다. 예전 형식(우리가 고른 5건, format 없음)은 그리지 않는다(plan-detail.js 가 format 을 본다). */
 function courseSearchPanel(evidence,plan){
   const box=node('section',undefined,'course-search-panel');
-  box.append(node('p','네이버 블로그 코스 조사','hint'),naverAttribution('블로그 검색'),node('h3',evidence.query),node('p',evidence.provider+' · 통합검색 화면 순위와 다를 수 있어요.','hint'));
-  if(evidence.concept)box.append(node('p','선택한 콘셉트: '+evidence.concept+' · 장소명과 설명의 관련 단서를 우선 반영해요.','hint'));
-  if(evidence.search_relaxed)box.append(node('p',evidence.relaxation_note||'콘셉트 검색 결과가 없어 지역 기본 검색으로 넓혔어요. 콘셉트 적합성이 보장되는 결과는 아니에요.','warning'));
-  if(evidence.search_history?.length){const history=node('details'),items=node('div');history.append(node('summary','실제 검색 기록 보기'));for(const item of evidence.search_history)items.append(node('p',item.query+' · 검색 결과 '+item.result_count+'개','hint'));history.append(items);box.append(history);}
   if(plan){const reasons=node('div',undefined,'concept-place-reasons');for(const place of plan.places){const row=plan.concept_matches?.find(r=>r.place_id===place.id);if(row)reasons.append(node('p',place.name+' · '+(row.signals.length?'콘셉트 단서: '+row.signals.join(', '):'구체적인 콘셉트 단서 부족 · 조건 보완 후보'),'hint'));}box.append(reasons);}
   if(plan?.request_interpretation){const parsed=plan.request_interpretation;if(parsed.intents.length)box.append(node('p','입력에서 반영한 활동: '+parsed.intents.join(' · '),'hint'));if(parsed.excluded.length)box.append(node('p','제외한 활동: '+parsed.excluded.join(' · '),'hint'));}
-  const count=plan?.places.filter(p=>evidence.matches[p.id]).length||0;
   if(plan?.conditions.area_center)box.append(node('p',`${plan.conditions.area_center.name} 반경 ${plan.conditions.neighborhood_radius_km}km · ${plan.conditions.include_meal?'식사 시간대 밥집 포함 우선':'식사 자유 선택'}`,'hint'));
-  const discovery=evidence.discovery;
-  if(discovery){box.append(node('p',`블로그 발견 장소 ${discovery.extracted}곳 중 주소·좌표 연결 ${discovery.resolved}곳`,'hint'));if(discovery.local_permission_required)box.append(node('p','새 업체 연결 확대: NAVER API HUB의 기존 Application에서 NAVER 검색 → 지역 API를 활성화해 주세요. 현재는 글에 주소가 있는 곳을 주소 검색으로 연결해요.','warning'));if(discovery.status==='extraction_unavailable')box.append(node('p','새 장소 추출에 실패하여 확인된 기존 장소로 보완했어요.','hint'));}
   if(plan?.route_verification)box.append(node('p',plan.route_verification,'hint'));
-  box.append(node('p',count?`이번 코스 ${count}곳이 상위 글에서 확인됐어요. 나머지는 입력 조건에 맞춰 보완했어요.`:evidence.message||'검색 근거를 확보하지 못해 기존 조건 기반 코스를 표시해요.','hint'));
-  if(evidence.selection_note)box.append(node('p',evidence.selection_note,'hint'));
-  // 네이버가 자른 제목·요약은 장소 블로그 패널과 같은 기준으로 다듬는다(place-blogs.js). 전체 제목은 title 속성에 남긴다.
-  for(const post of evidence.posts){const item=node('div',undefined,'course-source'),links=sourceLinks(`${post.rank}. ${blogTitleText(post.title).text}`,post.url,post.title),anchor=links.querySelector('a');if(anchor)anchor.title=blogCleanText(post.title);item.append(links,node('small',post.content_scope+' · '+(post.posted_at||'작성일 미제공')));if(post.selection_reason)item.append(node('p',post.selection_reason,'hint'));if(post.evidence_note)item.append(node('p',post.evidence_note,'hint'));if(post.summary)item.append(node('p',blogExcerptText(post.summary).text));if(post.mentioned_places?.length)item.append(node('p','확인한 장소: '+post.mentioned_places.join(' · '),'hint'));box.append(item);}
-  box.append(node('p',evidence.rating_note,'hint'));return box;
+  const posts=Array.isArray(evidence.posts)?evidence.posts:[];
+  box.append(node('h3','네이버 블로그 글 · ‘'+evidence.query+'’'));
+  box.append(node('p','이 검색어로 찾은 네이버 블로그 글을 네이버가 준 순서 그대로 보여 드려요. 코스 추천 계산에는 쓰지 않았어요. 광고·협찬 글이 섞여 있을 수 있어요.','hint course-search-note'));
+  if(evidence.search_relaxed)box.append(node('p',`‘${evidence.requested_query}’로는 글이 없어 ‘${evidence.query}’로 다시 찾았어요.`,'hint'));
+  if(posts.length)box.append(naverBlogBlock(posts,'https://search.naver.com/search.naver?'+new URLSearchParams({where:'blog',query:evidence.query}),5));
+  else box.append(node('p',evidence.message||'보여 드릴 블로그 글이 없어요.','hint'));
+  return box;
 }
-(()=>{const label=node('label','네이버에서 찾을 데이트 코스');const input=node('input');input.name='course_query';input.maxLength=120;input.placeholder='예: 연남동 데이트 코스 (비우면 선택한 지역 기준)';label.append(input,node('small','지역만 선택해도 후기를 검색해요. 선정한 후기 최대 5개에서 확인한 장소를 우선 추천해요.','hint'));form.prepend(label);})();
+(()=>{const label=node('label','찾고 싶은 데이트 코스·동네');const input=node('input');input.name='course_query';input.maxLength=120;input.placeholder='예: 연남동 데이트 코스 (비우면 선택한 지역 기준)';label.append(input,node('small','적은 동네·활동을 기준으로 장소를 찾아요. 같은 검색어의 네이버 블로그 글은 결과 아래에 따로 보여 드려요(추천 계산에는 쓰지 않아요).','hint'));form.prepend(label);})();
 (()=>{
   const label=node('label','동네 안에서 이동할 범위'),select=node('select');select.name='neighborhood_radius_km';
   for(const [value,text] of [[1.5,'가까운 골목 위주 · 반경 1.5km'],[2.5,'인근 동네까지 · 반경 2.5km'],[5,'넓게 둘러보기 · 반경 5km']]){const o=node('option',text);o.value=value;o.selected=value===2.5;select.append(o);}label.append(select);

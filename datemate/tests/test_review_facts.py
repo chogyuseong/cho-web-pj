@@ -4,7 +4,7 @@ import uuid
 import pytest
 from fastapi.testclient import TestClient
 
-from app import blog_search, course_search, review_facts, web_security
+from app import blog_search, review_facts, web_security
 from app.main import app
 
 
@@ -59,7 +59,7 @@ def fake(monkeypatch, naver_pages_allowed):
         return state['bodies'].get(url, '')
 
     monkeypatch.setattr(blog_search, 'place_blogs', blogs)
-    monkeypatch.setattr(course_search, 'public_body', body)
+    monkeypatch.setattr(review_facts, 'public_body', body)
     return state
 
 

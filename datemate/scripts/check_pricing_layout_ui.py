@@ -26,15 +26,12 @@ with sync_playwright() as pw:
     page.locator('[name=people]').fill('3')
     assert page.locator('.price-input-preview').inner_text()!=before
     page.locator('[name=people]').fill('2')
-    first_id=page.evaluate('selected.id')
-    page.locator('.price-refresh-control button').click()
-    page.wait_for_function('id=>selected?.id!==id',arg=first_id,timeout=60000)
     if page.locator('.plan-option-tabs button').count()>1:
         page.locator('.plan-option-tabs button').nth(1).click()
         assert page.evaluate("document.querySelector('#plan-detail').previousElementSibling.classList.contains('selected')")
     page.wait_for_function("Array.from(document.querySelectorAll('#results .plan-card.selected .place-photo img')).filter(i=>i.naturalWidth>0).length===3",timeout=45000)
     page.locator('#results .plan-card.selected').screenshot(path=str(root/'docs/screenshots/pricing-layout.png'))
     assert not errors,errors
-    result={'price_kinds':[c.get('price_kind',c['status']) for c in costs],'cost_rows':len(costs),'inline_detail':True,'unknown_only_notice_hidden':True,'refresh_worked':True,'page_errors':errors}
+    result={'price_kinds':[c.get('price_kind',c['status']) for c in costs],'cost_rows':len(costs),'inline_detail':True,'unknown_only_notice_hidden':True,'page_errors':errors}
     (root/'docs/pricing-layout-check.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),'utf-8')
     print(json.dumps(result));browser.close()

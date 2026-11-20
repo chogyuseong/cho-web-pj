@@ -59,6 +59,7 @@ OWNER_RATE_PREFIXES = (
     "region-rate:",
     "menu-refresh:",
     "media-refresh:",
+    # price-refresh: 는 없앤 '단가 다시 검색' 요청의 제한 키다(5초 수명). 남아 있던 행을 지우려고 목록에 둔다.
     "price-refresh:",
     "local-rate:",
 )

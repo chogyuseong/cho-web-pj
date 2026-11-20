@@ -32,7 +32,7 @@ def test_real_plan_assets_and_map_fallback():
                     return request.fulfill(body=PNG,content_type='image/png')
                 if not url.startswith(base):return request.abort()
                 if path.endswith('/media'):
-                    return request.fulfill(json={'status':'available','photos':[{'kind':'search_result','title':'검증 사진','source':base+'/asset-test.png','image_url':base+'/asset-test.png','search_url':base,'checked_at':'2026-10-25'}]})
+                    return request.fulfill(json={'status':'available','photos':[{'kind':'place_public','title':'검증 사진','source':base+'/asset-test.png','image_url':base+'/asset-test.png','search_url':base,'checked_at':'2026-10-25'}]})
                 if path.endswith('/menu'):
                     return request.fulfill(json={'status':'available','items':[{'name':'대표 메뉴','display_price':'12,000원'}],'menu_images':[base+'/asset-test.png'],'checked_at':'2026-10-25','source_url':base})
                 if path.endswith('/blogs'):return request.fulfill(json={'items':[],'blogs':[]})

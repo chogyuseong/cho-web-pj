@@ -1,7 +1,7 @@
 import pytest
-"""Business photos first. An image search result enters the gallery only when its title names the shop
-(with its branch) and the shop's neighbourhood together (2026-11-19, app/image_search.strict_title_match);
-a title that only matches the name is still rejected."""
+"""Business photos first, then registered and Korea Tourism photos. Naver image search results are never
+used as place photos (2026-11-20, 특약 2.2 — docs/naver-terms-stage2-design.ko.md 3.4(c)); a place without
+such photos gets the Naver Map link instead."""
 import json
 from app.media import media_info
 from app.public_place_photos import extract_photo_records
@@ -26,7 +26,6 @@ def test_explicit_owner_photos_sorted_before_reviews_without_cdn_guess():
 
 def test_owner_first_then_same_business_review_without_blog_call(monkeypatch):
     monkeypatch.setattr('app.media.search_enabled',lambda:True)
-    monkeypatch.setattr('app.image_search.search_place_images',lambda *a:(_ for _ in ()).throw(AssertionError('loose image search must not run')))
     monkeypatch.setattr('app.blog_photos.blog_photos',lambda *a:(_ for _ in ()).throw(AssertionError('owner exists')))
     owner={'id':'owner','owner_verified':True,'source_label':'업체 등록 사진'}
     monkeypatch.setattr('app.public_place_photos.public_place_photos',lambda *a:{'photos':[{'id':'review'},owner],'photo_source':'naver_public_place'})
@@ -72,48 +71,43 @@ def test_explicit_image_caption_name_and_branch_required():
     assert len(extract_blog_images(html,place))==1
 
 
-def test_no_matching_source_does_not_fall_back_to_arbitrary_image_api(monkeypatch):
-    """이름만 맞는 이미지 검색 결과(다른 지점·다른 가게·동네 없음·모음 글)는 여전히 갤러리에 들어오지 않는다.
-    엄격한 검색(strict_place_images)은 부르지만 그 안의 제목 거르기를 통과한 사진이 없다. 느슨한 search_place_images 는 부르지 않는다."""
+def test_image_search_is_never_called_for_place_photos(monkeypatch):
+    """등록·관광공사 사진이 없는 음식점·카페도 네이버 이미지 검색을 부르지 않는다(키가 있어도). 사진 대신 네이버 지도 링크와 까닭 한 줄이 나온다."""
     import httpx
     monkeypatch.setattr('app.media.search_enabled',lambda:True)
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID','test');monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET','test')
     monkeypatch.setattr('app.public_place_photos.public_place_photos',lambda *a:{'photos':[],'status':'not_found'})
     monkeypatch.setattr('app.blog_photos.blog_photos',lambda *a:{'photos':[],'status':'not_found'})
-    monkeypatch.setattr('app.image_search.search_place_images',lambda *a:(_ for _ in ()).throw(AssertionError('title only image rejected')))
-    titles=['검증카페 방문 후기','검증카페 강남점 중구','레드검증카페 중구','서울 중구 카페 BEST 5 검증카페','검증카페 부산 중구']
-    def get(self,url,**kwargs):
-        return httpx.Response(200,request=httpx.Request('GET',url),json={'items':[
-            {'title':t,'thumbnail':f'https://search.pstatic.net/t{i}.jpg','link':f'https://postfiles.pstatic.net/o{i}.jpg'} for i,t in enumerate(titles)]})
-    monkeypatch.setattr(httpx.Client,'get',get)
-    result=media_info(PLACE|{'id':'source-priority-loose-'+str(id(titles))})
-    assert not result['photos'] and result['image_search_status']=='not_found'
-    # 사진이 끝내 없으면 빈칸 대신 네이버 지도 링크(이름 + 도로명 주소)를 준다.
-    assert result['map_url'].startswith('https://map.naver.com/p/search/')
+    monkeypatch.setattr('app.media.photos_for',lambda *a:[])
+    def no_call(*args,**kwargs):raise AssertionError('외부 호출 금지: '+str(args[1:2]))
+    monkeypatch.setattr(httpx.Client,'get',no_call);monkeypatch.setattr(httpx,'get',no_call)
+    for place in (PLACE,PLACE|{'meal':True,'category':'미식'},PLACE|{'category':'레저·활동'}):
+        result=media_info(place)
+        assert result['photos']==[] and result['status']=='not_found' and 'image_search_status' not in result
+        # 사진이 없으면 빈칸 대신 네이버 지도 링크(이름 + 도로명 주소)를 준다.
+        assert result['map_url'].startswith('https://map.naver.com/p/search/')
+        assert '네이버 지도에서 사진을 확인' in result['message'] and '골라 쓰지 않아요' in result['message']
 
 
-def test_strict_image_search_fills_a_short_food_gallery(monkeypatch):
-    """등록·관광공사 사진으로 2장이 안 되는 카페·미식 장소만 엄격한 검색 사진('검색 사진')으로 채운다."""
+def test_image_search_code_is_gone():
+    """검색 사진을 만들던 함수와 그 사진을 위한 썸네일 허용 호스트가 남아 있지 않다."""
+    from app import image_search,media,photo_thumb
+    for name in ('search_place_images','strict_place_images','strict_title_match','_search_place_images'):
+        assert not hasattr(image_search,name)
+    assert not hasattr(media,'strict_search_applies')
+    assert photo_thumb.ALLOWED_HOST_SUFFIXES==('.pstatic.net','upload.wikimedia.org')
+    assert not photo_thumb.allowed_source('https://imgnews.naver.net/a.jpg') and not photo_thumb.allowed_source('https://t1.daumcdn.net/a.jpg')
+
+
+def test_one_registered_photo_keeps_the_map_link(monkeypatch):
+    """사진이 한 장뿐이면 그대로 보여 주고, 더 볼 곳으로 네이버 지도 링크를 준다(검색 사진으로 채우지 않음)."""
     monkeypatch.setattr('app.media.search_enabled',lambda:False)
-    monkeypatch.setattr('app.media.photos_for',lambda *a:[])
     monkeypatch.setattr('app.blog_photos.blog_photos',lambda *a:{'photos':[],'status':'not_found'})
-    searched=dict(id='image-search-1',kind='image_search',source_label='검색 사진',title='검증카페 중구',image_url='https://postfiles.pstatic.net/a.jpg',
-                  url='https://search.pstatic.net/a.jpg',source='https://postfiles.pstatic.net/a.jpg')
-    calls=[]
-    def strict(place,force=False):calls.append(place['id']);return {'status':'available','photos':[searched]}
-    monkeypatch.setattr('app.image_search.strict_place_images',strict)
+    one=[dict(id='r0',url='https://upload.wikimedia.org/wikipedia/commons/0.jpg')]
+    monkeypatch.setattr('app.media.photos_for',lambda *a:one)
     result=media_info(PLACE)
-    assert [p['id'] for p in result['photos']]==['image-search-1'] and "'검색 사진'" in result['message']
-    assert result['photo_source']=='priority_place_photos' and result['map_url'].startswith('https://map.naver.com/p/search/')
-    # 카페·미식이 아닌 장소, 등록 사진이 2장 이상인 장소, 업체 사진만 고르는 요청(fallback=place)은 부르지 않는다.
-    assert media_info(PLACE|{'category':'레저·활동'})['photos']==[]
-    two=[dict(id=f'r{i}',url=f'https://upload.wikimedia.org/wikipedia/commons/{i}.jpg') for i in range(2)]
-    monkeypatch.setattr('app.media.photos_for',lambda *a:two)
-    assert [p['id'] for p in media_info(PLACE)['photos']]==['r0','r1']
-    monkeypatch.setattr('app.media.photos_for',lambda *a:[])
-    assert media_info(PLACE,prefer_public=True)['photos']==[]
-    assert calls==['source-priority-venue']
-
+    assert [p['id'] for p in result['photos']]==['r0'] and result['photo_lookup_incomplete'] is True
+    assert result['map_url'].startswith('https://map.naver.com/p/search/') and '네이버 지도에서 확인' in result['message']
 
 def test_business_tab_uses_only_explicit_owner_images_for_same_id(monkeypatch):
     import httpx

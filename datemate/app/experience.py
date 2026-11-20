@@ -143,7 +143,9 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     if options:
         if not 0<=menu_index<len(options):raise ValueError('선택한 메뉴가 바뀌었어요. 메뉴를 다시 확인해 주세요.')
         selected_menu=options[menu_index];food.update(price=[selected_menu['amount']]*2,price_status='estimated')
-        food['menu_pricing']=dict(price_kind='naver_menu',price_basis=selected_menu['name']+' 1개/인 가정 · '+menu.get('source_label','공개 메뉴')+' 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
+        # 운영자가 확인한 제공 메뉴(operating_evidence)는 operator_menu. naver_menu 는 네이버 화면에서 읽던 메뉴로, 지금은 꺼져 있다(naver_pages).
+        menu_kind='operator_menu' if menu.get('source_kind')=='operator_reviewed_menu' else 'naver_menu'
+        food['menu_pricing']=dict(price_kind=menu_kind,price_basis=selected_menu['name']+' 1개/인 가정 · '+menu.get('source_label','공개 메뉴')+' 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
     chosen.insert(target,food)
     mapping={i+(i>=target):pid for i,pid in mapping.items()}
     c=c.model_copy(update={'count':len(chosen),'locked':mapping,'include_meal':True})
@@ -152,9 +154,6 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     if error and c.mode=='real' and uses_car(c) and c.allow_estimates:
         plan,error=evaluate(chosen,c,soft=True);route_note='자동차 경로 조회 실패로 추정 동선을 유지했어요.'
     if error:raise ValueError(error)
-    if selected_menu:
-        row=plan['costs'][target]
-        row.update(price_kind='naver_menu',price_basis=selected_menu['name']+' 1개/인 가정 · '+menu.get('source_label','공개 메뉴')+' 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
     if original.get('course_search'):plan['course_search']=original['course_search']
     plan=price_plans([plan])[0];plan=audit_plan(plan,c)
     plan['undo_locks']=undo_locks
@@ -213,7 +212,7 @@ def agreement_draft(plan,owner,ui_locked=None):
         votes=status['places'][p['id']]
         if votes['yes']+votes['must']==2 or votes['must'] and not votes['no']:locked[i]=p['id']
     c=c.model_copy(update={'locked':locked,'excluded_place_ids':list(set(c.excluded_place_ids)|disliked)})
-    result=recommend(c,plan.get('course_search'))
+    result=recommend(c)
     candidates=filter_required(price_plans(result['plans']))
     if not candidates:raise ValueError('두 사람의 의견과 필수 조건을 함께 만족하는 코스를 찾지 못했어요. 조건이나 반대 의견을 직접 조정해 주세요.')
     chosen=candidates[0]

@@ -49,7 +49,7 @@ def annotate(plan,c):
         status='조건에 가까운 대안 · 차이 확인 필요')
     return plan
 
-def suggest(c,evidence=None,out=None,stage='best_effort'):
+def suggest(c,out=None,stage='best_effort'):
     from .planner import evaluate
     from .quality import pool as quality_pool,meal_penalty,meal_due,is_meal
     pool=[p for p in quality_pool(c) if not any(w.lower() in (p['name']+' '+p['category']+' '+' '.join(p['tags'])).lower() for w in c.avoid if w)]
@@ -61,18 +61,16 @@ def suggest(c,evidence=None,out=None,stage='best_effort'):
     matching.sort(key=lambda p:-concept_score(p,c))
     from .request_intent import place_score,plan_penalty
     requested=sorted([p for p in pool if place_score(p,c)>0],key=lambda p:-place_score(p,c))
-    mentioned=[p for p in pool if p['id'] in (evidence or {}).get('matches',{})]
-    chosen={p['id']:p for p in pool[:40]+matching[:25]+requested[:30]+mentioned+[p for p in pool if p['id'] in c.locked.values()]}
+    chosen={p['id']:p for p in pool[:40]+matching[:25]+requested[:30]+[p for p in pool if p['id'] in c.locked.values()]}
     pool=list(chosen.values());beam=[[]];final=[]
     target=min(c.count,len(pool))
     if not target or any(i>=target for i in c.locked):return []
     words=re.findall(r'[가-힣A-Za-z0-9]{2,}',c.request)
     def score(plan):
         relevance=sum(w in (p['name']+' '+p['category']) for w in words for p in plan['places'])
-        from .course_search import priority
         from .preferences import fit_score
         food_penalty=meal_penalty(plan,c) if len(plan['places'])==target else max(0,sum(is_meal(p) for p in plan['places'])-1) if meal_due(c) else 0
-        return (plan_penalty(plan,c),food_penalty,-fit_score(plan,c),-priority(plan,evidence or {}),plan['penalty'],sum(r['minutes'] for r in plan['legs'])-.1*relevance,plan['total'][1])
+        return (plan_penalty(plan,c),food_penalty,-fit_score(plan,c),plan['penalty'],sum(r['minutes'] for r in plan['legs'])-.1*relevance,plan['total'][1])
     for position in range(target):
         options=[]
         for selected in beam:
@@ -87,7 +85,7 @@ def suggest(c,evidence=None,out=None,stage='best_effort'):
         if not options:break
         from .option_diversity import composition_beam
         # 엄격 탐색과 같은 구성 할당. 조건 차이 점수(penalty)까지 같은 후보끼리만 자리를 옮기고, 이동·비용 순서만 양보한다.
-        final=composition_beam(options,40,tier=lambda p:scores[id(p)][:5],final=position==target-1,enabled=c.theme_mode!='focus')
+        final=composition_beam(options,40,tier=lambda p:scores[id(p)][:4],final=position==target-1,enabled=c.theme_mode!='focus')
         beam=[p['places'] for p in final]
     results=[];seen=set()
     for plan in final:
@@ -104,8 +102,3 @@ def suggest(c,evidence=None,out=None,stage='best_effort'):
         out['diagnostics']=diagnostics
         if option_selector()=='experience':out['reserve']=reserve_candidates(results,chosen,c,limit=12)
     return chosen
-
-
-def progressive_suggest(c,evidence=None):
-    from .search_relaxation import search_progressively
-    return search_progressively(c,evidence)

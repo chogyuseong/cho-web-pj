@@ -83,7 +83,7 @@ def test_price_check_keeps_remaining_null_and_no_over_budget_status(unlimited):
     from app.pricing import apply_prices
     plan = planner.recommend(Conditions(**BASE, budget_unlimited=True))['plans'][0]
     plan['conditions'] = dict(plan['conditions'], mode='real', allow_estimates=True, budget_unlimited=unlimited)
-    priced = apply_prices(plan, {})
+    priced = apply_prices(plan)
     if unlimited:
         assert priced['remaining'] is None and not priced['status'].startswith('예산을 넘는') and not priced.get('best_effort')
         assert_unlimited(priced)

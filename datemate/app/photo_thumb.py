@@ -9,7 +9,7 @@
 
 보안(SSRF·열린 중계 막기) — 이 경로는 남의 서버에서 받아 오므로 아래를 모두 지킨다:
   · 우리 media 응답이 내보낸 주소만(허용 목록 photo-thumb-ok:sha256(주소), TTL ALLOW_SECONDS). 목록에 없으면 받지 않고 404.
-  · https, 계정 정보 없음, 호스트가 ALLOWED_HOST_SUFFIXES 중 하나(네이버 이미지·뉴스 사진 서버, 다음·카카오 사진 서버, 위키미디어). 리다이렉트는 따르지 않음.
+  · https, 계정 정보 없음, 호스트가 ALLOWED_HOST_SUFFIXES 중 하나(네이버 이미지 서버, 위키미디어). 리다이렉트는 따르지 않음.
   · 받을 수 있는 최대 크기 MAX_SOURCE_BYTES, 시간 FETCH_TIMEOUT, 그림 픽셀 MAX_PIXELS(해독 폭탄 방지), 동시 변환 _work(2개).
   · IP 범위 분당 한도(main.py 라우트, DATEMATE_IP_PHOTO_THUMBS_PER_MINUTE).
   외부 API 호출 예산(telemetry.observed_http 의 공급자별 시간당 한도)에는 넣지 않는다 — 사진이 많은 날 검색 API 까지 막히지 않게. 대신 위 한도로 막는다.
@@ -20,7 +20,7 @@
 권리: 사진은 각 권리자의 자료다. 크기만 줄이고(내용 변경 없음) 화면의 출처 줄·원본 링크는 그대로 둔다(README 에 적음).
 
 함께 맞출 값: WIDTHS ↔ static/place-photos.js 가 요청하는 w(960). ALLOWED_HOST_SUFFIXES ↔ 사진을 만드는 곳(public_place_photos 의 .pstatic.net 검사,
-              blog_photos, media.REGISTRY 의 upload.wikimedia.org, image_search.strict_place_images 의 검색 사진 원본). 새 사진 공급처를 더하면 여기에도 더해야 카드가 줄인 사진을 쓴다(안 더하면 원본으로 동작).
+              blog_photos, media.REGISTRY 의 upload.wikimedia.org). 새 사진 공급처를 더하면 여기에도 더해야 카드가 줄인 사진을 쓴다(안 더하면 원본으로 동작).
 """
 
 import hashlib
@@ -35,9 +35,8 @@ from . import store
 
 WIDTHS = (480, 960)
 DEFAULT_WIDTH = 960
-# 2026-11-19: 엄격한 이미지 검색 사진(app/image_search.strict_place_images)의 원본이 많이 있는 네이버 뉴스 사진 서버와
-# 다음·티스토리 블로그 사진 서버를 더했다(정확한 호스트·회사 CDN 접미사만. 임의 호스트는 받지 않는다 — 허용 목록·리다이렉트 금지는 그대로).
-ALLOWED_HOST_SUFFIXES = (".pstatic.net", "upload.wikimedia.org", "imgnews.naver.net", ".daumcdn.net", ".kakaocdn.net")
+# 2026-11-20: 네이버 이미지 검색 사진을 없애면서 그 원본 때문에 넣었던 뉴스·다음·카카오 사진 서버를 뺐다.
+ALLOWED_HOST_SUFFIXES = (".pstatic.net", "upload.wikimedia.org")
 ALLOW_SECONDS = 6 * 3600
 MAX_SOURCE_BYTES = 15_000_000
 FETCH_TIMEOUT = 8
@@ -95,12 +94,9 @@ def with_thumbs(data):
     return dict(data, photos=photos) if "photos" in data else data
 
 
-NAVER_SEARCH_KINDS = ("image_search", "search_result")
-
-
 def naver_search_photo(photo):
-    """네이버 검색 API(이미지·블로그 검색)에서 온 사진인지."""
-    return photo.get("kind") in NAVER_SEARCH_KINDS or photo.get("source_type") in ("image_search", "blog_review")
+    """네이버 검색 API(블로그 검색)에서 온 사진인지. 지금은 꺼져 있는 후기 사진 경로(app/blog_photos.py)만 해당한다."""
+    return photo.get("source_type") == "blog_review"
 
 
 def _remember(key, body):

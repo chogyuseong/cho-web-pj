@@ -344,7 +344,8 @@ def test_refill_respects_price_route_and_budget_caps(monkeypatch):
     with request_usage.measure():
         refilled = service._refill(c, kept, reserve)
     assert 1 <= len(refilled) <= service.REFILL_PLANS
-    assert len(set(looked_up)) <= service.REFILL_PRICE_LOOKUPS
+    # 가격을 찾는 외부 조회는 없다(등록 단가·가정 범위로만 계산). 남은 외부 호출은 자동차 길찾기뿐이다.
+    assert looked_up and not hasattr(service, 'REFILL_PRICE_LOOKUPS')
     assert sum(routed) <= 2 * (c.count + 1)
     # 요청별 외부 호출 예산이 모자라면 다시 검증하지 않는다.
     looked_up.clear();routed.clear()
@@ -391,28 +392,12 @@ def test_relaxation_path_records_final_selection_and_shadow_matches_place(monkey
     assert place_mode['diagnostics']['option_selection']['stage'] == 'relaxation'
 
 
-def test_sourced_best_effort_path_records_selection(monkeypatch):
-    c = demo_conditions(request='')
-    used = {x['id'] for p in recommended(monkeypatch, 'place', c)['plans'] for x in p['places']}
-    from app import planner
-    evidence = {'matches': {'demo-04': {'ranks': [1], 'score': 5}}}
-    assert 'demo-04' not in used
-    monkeypatch.setenv('DATEMATE_OPTION_SELECTOR', 'place')
-    place_mode = planner.recommend(c, evidence)
-    monkeypatch.setenv('DATEMATE_OPTION_SELECTOR', 'shadow')
-    shadow = planner.recommend(c, evidence)
-    assert plans_json(shadow) == plans_json(place_mode)
-    record = shadow['diagnostics']['option_selection']
-    assert record['stage'] == 'best_effort_sourced' and record['experience_ids']
-    assert_pool_compositions(record)
-
-
 def test_last_resort_suggest_path_records_selection(monkeypatch):
     from app import planner
     strict = planner.recommend_strict
 
-    def no_relaxed_plans(c, evidence=None, stage='planner'):
-        result = strict(c, evidence, stage)
+    def no_relaxed_plans(c, stage='planner'):
+        result = strict(c, stage)
         if stage == 'relaxation':
             result['plans'] = []
         return result

@@ -7,7 +7,8 @@
 
 ★ 지금 상태 (2026-11-21 기준)
 ----------------------------------------------------------------------
-브랜치 fix/photos-and-photo-layout (2026-11-20~21, 병합·배포 전) — 커밋 f1bd9b0(구현) + 마무리 커밋(이 기록과 함께)
+브랜치 fix/photos-and-photo-layout (2026-11-20~21, 병합·배포 전) — 커밋 f1bd9b0(구현) + c2805e6(마무리) + 이 기록 커밋
+  · CI: Run 44774888347(c2805e6) security·python-audit·container·test (sqlite)·test (postgres) 5개 성공. 첫 Run 44754879382(f1bd9b0)는 아래 '작업 100개' 문제로 sqlite 실패.
   · 범위: 네이버 검색 사진을 뺀 뒤(특약 2단계 3.4) 늘어난 사진 없는 카드를 관광공사 사진으로 더 채우고, 사진 칸 정렬(사용자 스크린샷 2026-11-20 3장)과
     공공 API 오류를 '없음'으로 저장하던 것을 고침. 규칙·측정은 datemate/docs/place-photos-measure-2026-11-20.ko.md, 규칙 테스트는 tests/test_tour_photo_rules.py.
   · ① 사진(app/tour_places.py): 대표 사진(firstimage)이 없는 관광공사 항목은 detailImage2 의 공공누리 제1·제3유형 사진(관광공사 사진 호스트만, 최대 5장, 공용 캐시 7일,

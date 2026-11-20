@@ -14,6 +14,7 @@ from . import store
 from .regions import korean_coordinates, normalize_region, region_from_address
 from .service_time import today
 from .telemetry import observed_http
+from .tour_places import tour_body
 
 router = APIRouter()
 ENDPOINT = 'https://apis.data.go.kr/B551011/KorService2/searchFestival2'
@@ -159,11 +160,8 @@ def fetch_festivals(start, end, region):
                 response.raise_for_status()
                 if len(response.content) > 5_000_000:
                     raise ValueError('oversized_response')
-                body = response.json().get('response', {})
-                header = body.get('header', {})
-                if str(header.get('resultCode', '0000')) not in ('0000', '00'):
-                    raise ValueError('provider_error')
-                payload = body.get('body', {})
+                # 머리(resultCode)가 없거나 게이트웨이 오류 본문이면 오류로 본다(app/tour_places.tour_body, 2026-11-20 키 오류 점검).
+                payload = tour_body(response)
                 total = int(payload.get('totalCount', 0))
                 group = (payload.get('items') or {}).get('item') or []
                 items.extend(group if isinstance(group, list) else [group])
@@ -207,11 +205,7 @@ def fetch_festival_detail(content_id):
             response.raise_for_status()
             if len(response.content) > 1_000_000:
                 raise ValueError('oversized_response')
-            body = response.json().get('response', {})
-            header = body.get('header', {})
-            if str(header.get('resultCode', '0000')) not in ('0000', '00'):
-                raise ValueError('provider_error')
-            group = ((body.get('body') or {}).get('items') or {}).get('item') or []
+            group = (tour_body(response).get('items') or {}).get('item') or []
             item = (group if isinstance(group, list) else [group])[:1]
             item = item[0] if item and isinstance(item[0], dict) else {}
         result = dict(

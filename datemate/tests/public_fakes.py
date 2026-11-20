@@ -4,8 +4,10 @@ fake_public_api(monkeypatch) 가 httpx.get 을 바꿔 끼우고 상자를 돌려
   box['tour']   : 관광공사 항목(tour_item 으로 만든 dict)들. 시·군·구 목록·시·도 목록·이름 검색이 모두 이 목록에서 답한다.
   box['stores'] : 상가정보 업소(store_item)들. 업종 조건(indsLclsCd·indsSclsCd)과 반경으로 걸러 답한다.
   box['calls']  : (종류, 조건 dict) 호출 기록. 종류: tour_district(시·군·구 목록)·tour_area(시·도 목록)·tour_keyword·tour_detail·
-                  store(업소)·probe(시·군·구를 알아내는 약국 조회).
+                  tour_image(detailImage2 추가 사진)·store(업소)·probe(시·군·구를 알아내는 약국 조회).
+  box['images'] : contentId → detailImage2 항목(image_item)들.
   box['fail']   : 여기에 든 종류는 500 으로 답한다.
+  box['answer'] : 종류 → 그대로 돌려줄 응답(httpx.Response 또는 JSON dict). 오류 응답 모양을 흉내 낼 때 쓴다(관광공사 종류만).
   box['naver']  : 네이버 검색 API 를 부른 URL(추천 경로에서는 블로그 검색 말고는 없어야 한다).
 약국 조회(probe)는 반경 안의 관광공사 항목·업소마다 그 주소의 시·군·구 코드를 가진 약국이 하나씩 있는 것처럼 답한다.
 """
@@ -35,6 +37,13 @@ def tour_item(content_id, title, lat, lon, cat3='A05020100', type_id='39', addre
                 modifiedtime=modified + '000000')
 
 
+def image_item(content_id, serial, kind='Type3', url=None, name=None):
+    """detailImage2 항목(2026-11-20 실제 응답 모양: originimgurl·smallimageurl·imgname·cpyrhtDivCd·serialnum)."""
+    url = url or f'https://tong.visitkorea.or.kr/cms/resource/{serial}_image2_1.jpg'
+    return dict(contentid=str(content_id), originimgurl=url, smallimageurl=url, imgname=name or f'사진 ({serial})', cpyrhtDivCd=kind,
+                serialnum=f'{serial}_1')
+
+
 def store_item(biz_id, name, lat, lon, code='I20101', label='백반/한정식', branch='', address='부산광역시 부산진구 부전동 2'):
     return dict(bizesId=str(biz_id), bizesNm=name, brchNm=branch, indsLclsCd=code[:2], indsMclsCd=code[:4], indsSclsCd=code, indsSclsNm=label,
                 rdnmAdr=address, lnoAdr='', lat=lat, lon=lon, signguCd=district_of(address))
@@ -46,7 +55,7 @@ def metres(lat1, lon1, lat2, lon2):
 
 def fake_public_api(monkeypatch, key="'test-public-key'"):
     monkeypatch.setenv('TOUR_API_KEY', key)
-    box = dict(tour=[], stores=[], calls=[], fail=set(), naver=[], detail={})
+    box = dict(tour=[], stores=[], calls=[], fail=set(), naver=[], detail={}, images={}, answer={})
 
     def tour_body(items, total=None):
         return dict(response=dict(header=dict(resultCode='0000'),
@@ -82,12 +91,19 @@ def fake_public_api(monkeypatch, key="'test-public-key'"):
         if 'storeListInRadius' in url:
             return store_answer(request, params)
         kind = ('tour_district' if 'areaBasedList2' in url and params.get('lDongSignguCd') else 'tour_area' if 'areaBasedList2' in url
-                else 'tour_keyword' if 'searchKeyword2' in url else 'tour_detail' if 'detailIntro2' in url else None)
+                else 'tour_keyword' if 'searchKeyword2' in url else 'tour_detail' if 'detailIntro2' in url
+                else 'tour_image' if 'detailImage2' in url else None)
         if kind is None:
             return httpx.Response(404, text='not mocked', request=request)
         box['calls'].append((kind, params))
         if kind in box['fail']:
             return httpx.Response(500, text='error', request=request)
+        if kind in box['answer']:
+            answer = box['answer'][kind]
+            return httpx.Response(answer.status_code, content=answer.content, request=request) if isinstance(answer, httpx.Response) \
+                else httpx.Response(200, json=answer, request=request)
+        if kind == 'tour_image':
+            return httpx.Response(200, json=tour_body(box['images'].get(str(params.get('contentId')), [])), request=request)
         if kind == 'tour_detail':
             intro = box['detail'].get(str(params.get('contentId')))
             return httpx.Response(200, json=tour_body([intro] if intro else []), request=request)

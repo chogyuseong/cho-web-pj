@@ -385,6 +385,8 @@ def verify_identity(place):
     """화면에 줄 판정. 저장된 판정만 읽는다(공공 API 를 부르지 않음). 판정이 아직 없으면 배경 조회를 맡기고 pending=True.
 
     status: open(영업 중, 인허가) · closed(폐업으로 등록됨, 인허가) · located(위치 확인, 상가정보) · unknown(판정 없음 — 링크만).
+    unknown 의 reason: checking(조회 중) · not_found(자료에서 찾지 못함 — 조회가 끝까지 성공했을 때만) · unavailable(조회 실패,
+    RETRY_SECONDS 뒤 다시 조회) · key_missing · not_applicable.
     """
     unknown = dict(status="unknown", pending=False, source=None)
     if not applies(place):
@@ -424,4 +426,7 @@ def verify_identity(place):
             checked_at=shop.get("checked_at"),
             age_days=_age_days(shop.get("checked_at")),
         )
-    return dict(unknown, pending=pending, reason="checking" if pending else "not_found")
+    # 조회가 실패해 다시 시도를 기다리는 자료가 있으면 '없음'이 아니라 '연결 실패'(unavailable)로 답한다. 2026-11-20 운영 키가 어긋났던 동안
+    # 실패한 조회가 not_found 로 보였다(금호미술관·국립현대미술관 서울). 판정 저장은 그때도 하지 않았다(실패는 RETRY_SECONDS 표시만).
+    failed = [part for part, hit in (("store", shop), ("license", permit)) if hit is None and cache_key(place, part + "-retry") in found]
+    return dict(unknown, pending=pending, reason="checking" if pending else "unavailable" if failed else "not_found")

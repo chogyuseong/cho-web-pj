@@ -1,7 +1,9 @@
 """공공데이터 '전국주차장정보표준데이터'와 서울 '공영주차장 안내 정보'(data/public_parking.json)의 요금·운영시간.
 
 scripts/build_public_parking.py 가 만든 파일을 처음 쓸 때 한 번 읽고, 0.01도 격자로 묶어 가까운 주차장을 찾는다.
-외부 호출은 없다. 파일이 없으면 빈 자료로 동작한다(주차장 칸은 네이버 지역 검색 결과만 보여 준다).
+외부 호출은 없다. 파일이 없으면 빈 자료로 동작한다(주차장 칸은 '네이버 지도에서 찾기' 링크만 보여 준다).
+좌표가 없는 행(서울 노외 주차장 일부)은 가까운 순으로 찾을 수 없어 쓰이지 않는다. 예전에는 네이버 지역 검색 결과의 좌표에 이름으로
+맞춰 붙였는데, 검색 결과를 우리 목록의 입력으로 쓰지 않기로 해 그 맞추기를 없앴다(2026-11-20 2단계, app/parking.py).
 자료는 지자체가 올린 값이고 데이터기준일자 이후 바뀌었을 수 있어, 화면에는 기준일을 함께 보인다.
 """
 
@@ -12,7 +14,6 @@ import threading
 from datetime import date
 
 from .config import ROOT
-from .regions import region_from_address
 
 PATH = ROOT / "data" / "public_parking.json"
 SOURCE = "공공데이터포털 전국주차장정보표준데이터"
@@ -38,17 +39,11 @@ def load(path=None):
             lots = [dict(zip(columns, row)) for row in payload["rows"]]
         except (OSError, ValueError, KeyError, TypeError):
             lots = []
-        grid, names = {}, {}
+        grid = {}
         for lot in lots:
             if lot.get("lat") is not None and lot.get("lon") is not None:
                 grid.setdefault(cell(lot["lat"], lot["lon"]), []).append(lot)
-            core = name_core(lot["name"])
-            if lot.get("district") and len(core) >= 3 and not bus_only(lot["name"]):
-                # 구 이름은 시·도마다 겹친다(서울 중구·부산 중구). 시·도까지 함께 본다.
-                names.setdefault(
-                    (region_from_address(lot["address"]), lot["district"], core), []
-                ).append(lot)
-        result = (lots, grid, names)
+        result = (lots, grid)
         if path is None:
             _data = result
         return result
@@ -76,7 +71,7 @@ def metres(lat1, lon1, lat2, lon2):
 
 def nearby(lat, lon, radius_m):
     """(거리 m, 주차장) 가까운 순."""
-    _, grid, _ = load()
+    _, grid = load()
     span = int(radius_m / (CELL * 111_320 * 0.7)) + 1
     base = cell(lat, lon)
     found = []
@@ -110,26 +105,6 @@ def bus_only(name):
     """버스 전용 주차장 이름인지. '승용'이 함께 있으면(버스·승용차 겸용) 아니다."""
     text = str(name or "")
     return "승용" not in text and any(word in text for word in BUS_ONLY_WORDS)
-
-
-def by_name(name, address):
-    """좌표가 없는 자료(서울 노외 주차장 등)를 같은 구 + 이름 핵심으로 찾는다. 한쪽 핵심이 다른 쪽을 품으면 같은 곳으로 본다(4글자 이상)."""
-    _, _, names = load()
-    region, gu, core = region_from_address(address), district(address), name_core(name)
-    if not region or not gu or len(core) < 3:
-        return None
-    exact = names.get((region, gu, core))
-    if exact:
-        return exact[0]
-    if len(core) >= 4:
-        for (other_region, other_gu, other), lots in names.items():
-            if (
-                (other_region, other_gu) == (region, gu)
-                and len(other) >= 4
-                and (core in other or other in core)
-            ):
-                return lots[0]
-    return None
 
 
 def won(amount):
@@ -192,20 +167,6 @@ def hours_text(lot, visit):
     if start == "00:00" and end in ("23:59", "24:00"):
         return f"방문일({label}) 24시간"
     return f"방문일({label}) {start}~{end}"
-
-
-def squeeze(text):
-    return re.sub(r"[\s()·\-]|주차장|공영|노상|노외", "", str(text or "")).casefold()
-
-
-def same_lot(naver_name, lot, distance_m):
-    """네이버 결과와 공공데이터 행이 같은 주차장인지: 60m 안이면서 이름이 겹치거나, 20m 안."""
-    if distance_m <= 20:
-        return True
-    if distance_m > 60:
-        return False
-    a, b = squeeze(naver_name), squeeze(lot["name"])
-    return bool(a and b and (a in b or b in a))
 
 
 def details(lot, visit):

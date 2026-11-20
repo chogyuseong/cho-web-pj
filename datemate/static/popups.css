@@ -42,9 +42,12 @@
 /* ---------- 네이버 블로그 검색 결과 블록 ----------
    테두리로 둘러 우리 안내·거점 목록과 나눈다. 안에는 제목 줄·출처 표시·받은 글·「글 더 보기」만 있다. */
 .popup-list { margin:24px 0 0; }
-.popup-list>h3 { font-size:19px; line-height:1.45; margin:0 0 4px; color:var(--ink); }
-.popup-naver-block { padding:16px; border:1px solid var(--line); border-radius:10px; background:var(--paper); min-width:0; }
-.popup-naver-block .naver-attribution { margin:0 0 12px; }
+.popup-naver-block .naver-result-head>h3,.popup-naver-block .naver-result-head>h4 { font-size:19px; line-height:1.45; margin:0 0 4px; color:var(--ink); }
+/* 상자·머리글 띠는 블록 공통 부품(results.css .naver-result-block)이 그린다. 여기서는 팝업 화면의 안쪽 여백만 맞춘다. */
+.popup-naver-block { background:var(--paper); min-width:0; }
+.popup-naver-block .naver-result-head { padding:12px 16px; }
+.popup-naver-block .naver-result-body { padding:0 16px 8px; }
+.popup-naver-block>.popup-more { margin:4px 16px 16px; }
 .popup-items { display:grid; grid-template-columns:minmax(0,1fr); gap:0; }
 @media(min-width:1000px) {
   .popup-items { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:24px; }
@@ -79,7 +82,7 @@
 .popup-course .section-heading h3 { margin:0; color:var(--ink); }
 .popup-course-about { font-size:14px; margin:8px 0 0; }
 .popup-course-demo { margin:12px 0 0; padding:8px 12px; background:var(--platform); color:var(--ink); font-size:14px; }
-.popup-course .popup-list>h4 { font-size:17px; line-height:1.5; margin:0 0 4px; color:var(--ink); }
+.popup-course .popup-naver-block .naver-result-head>h4 { font-size:17px; line-height:1.5; margin:0 0 4px; color:var(--ink); }
 .popup-course .popup-title { font-size:16px; }
 
 /* ---------- 팝업 거점 목록 (우리 거점 사전) ----------
@@ -229,7 +232,9 @@
 .popup-origin-note button { justify-self:start; min-height:44px; max-width:100%; white-space:normal; text-align:left; }
 
 @media(max-width:420px) {
-  .popup-naver-block { padding:12px; }
+  .popup-naver-block .naver-result-head { padding:10px 12px; }
+  .popup-naver-block .naver-result-body { padding:0 12px 8px; }
+  .popup-naver-block>.popup-more { margin:4px 12px 12px; }
   .popup-hub { padding:10px 12px; }
 }
 @media(prefers-reduced-motion:reduce) {

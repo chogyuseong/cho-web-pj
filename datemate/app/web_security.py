@@ -80,7 +80,7 @@ def api_budget(request, key=None):
 EXPENSIVE = [re.compile(pattern) for pattern in (
     r'^POST /api/plans$', r'^POST /api/plan-jobs$',
     r'^POST /api/locations/(?:search|region)$',
-    r'^GET /api/explore$', r'^GET /api/festivals(?:/[^/]+/detail)?$', r'^GET /api/popups$',
+    r'^GET /api/explore(?:/naver)?$', r'^GET /api/festivals(?:/[^/]+/detail)?$', r'^GET /api/popups$',
     r'^GET /api/places/[^/]+/(?:media|blogs|menu|review-facts|identity)$',
     r'^POST /api/plans/[^/]+/(?:leisure-options|alternatives|replace|transport)$',
     r'^GET /api/plans/[^/]+/(?:restaurants|restaurant-matches|meal-rescue|parking)$',

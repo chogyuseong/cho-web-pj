@@ -63,8 +63,8 @@ function leisureSuggestionPanel(plan, index) {
     }, 'primary');
     select.disabled = plan.can_edit === false || locks.has(index);
     actions.append(select, placeMapLink('지도에서 확인 ↗', place));
-    // 네이버 지역 검색으로 찾은 레저 장소: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2).
-    if (isNaverResult(place)) card.append(naverAttribution('지역 검색', place.source));
+    // 레저 후보는 공공 자료(한국관광공사·소상공인 상가정보)에서 찾는다(app/leisure.py). 출처 한 줄을 둔다.
+    if (isPublicDataPlace(place)) card.append(publicDataSource(place));
     card.append(leisurePhotoPanel(place, plan.conditions.mode), actions);
     return card;
   }
@@ -131,7 +131,7 @@ function leisureSuggestionPanel(plan, index) {
       content.append(...sections);
       if (!data.options.length) {
         const diagnostics = data.diagnostics || {};
-        const message = diagnostics.search_status === 'permission_required' ? '네이버 지역 검색 권한을 확인하지 못했어요. API 사용 설정을 확인해 주세요.' : diagnostics.search_status === 'unavailable' ? '실제 지역 검색을 사용할 수 없어요. 네이버 검색 키와 연결 상태를 확인해 주세요.' : diagnostics.nearby_count ? '주변 레저 장소는 찾았지만 시간·예산·필수 조건 때문에 현재 일정에 넣을 수 없어요.' : '현재 일정에 넣을 수 있는 레저 후보를 찾지 못했어요. 다른 코스 위치에서도 확인해 보세요.';
+        const message = diagnostics.search_status === 'unavailable' ? '공공 자료(한국관광공사·소상공인 상가정보)를 불러오지 못했어요. 잠시 후 다시 확인해 주세요.' : diagnostics.nearby_count ? '주변 레저 장소는 찾았지만 시간·예산·필수 조건 때문에 현재 일정에 넣을 수 없어요.' : '현재 일정에 넣을 수 있는 레저 후보를 찾지 못했어요. 다른 코스 위치에서도 확인해 보세요.';
         content.append(node('p', message, 'hint'));
         for (const reason of Object.keys(diagnostics.rejected || {})) content.append(node('p', '제외 사유: ' + reason, 'hint'));
       }

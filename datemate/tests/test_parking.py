@@ -1,15 +1,16 @@
-"""자동차로 도착하는 장소 근처 주차장: 대상 장소, 검색 건수, 거르는 규칙, 캐시, 상태, 한도. 지역 검색은 모두 가짜."""
+"""자동차로 도착하는 장소 근처 주차장: 대상 장소, 공공데이터 주차장만 쓰는 목록, 상태, 한도.
+
+2026-11-20 2단계: 네이버 지역 검색 결과를 주차장 목록의 입력으로 쓰지 않는다(app/parking.py). 외부 호출이 없다."""
 import copy
 import uuid
 from datetime import date
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 import json
 
-from app import intent_discovery, parking, public_parking, store, web_security
+from app import parking, public_parking, store, web_security
 from app.catalog import places
 from app.condition_audit import audit_plan
 from app.main import app
@@ -17,7 +18,7 @@ from app.models import Conditions
 from app.planner import evaluate
 
 ORIGIN = dict(name='서울 종로구 출발', lat=37.575, lon=126.985)
-LOT_FIELDS = {'id', 'name', 'category', 'address', 'lat', 'lon', 'distance_m', 'walk_minutes', 'public_by_name', 'public'}
+LOT_FIELDS = {'id', 'name', 'category', 'address', 'lat', 'lon', 'distance_m', 'walk_minutes', 'public'}
 COLUMNS = ['id', 'name', 'kind', 'address', 'lat', 'lon', 'fee_kind', 'base_minutes', 'base_fee', 'extra_minutes', 'extra_fee',
            'day_fee', 'days', 'weekday', 'saturday', 'holiday', 'as_of', 'provider', 'free_days', 'district']
 
@@ -54,11 +55,6 @@ def make_plan(mode='real', transport='walk', car_legs=(), places_rows=None, **fi
     return audit_plan(plan, c)
 
 
-def item(title, lat, lon, category='교통,수송>주차장', address='서울특별시 종로구 삼청로 1'):
-    return dict(title=title, category=category, roadAddress=address,
-                mapx=str(round(lon * 10000000)), mapy=str(round(lat * 10000000)))
-
-
 def public_rows(tmp_path, rows_):
     """공공데이터 주차장 파일을 tmp 에 쓰고 그 파일로 바꾼다."""
     path = tmp_path / 'public_parking.json'
@@ -83,147 +79,94 @@ def no_public_parking(tmp_path):
     public_parking.reset()
 
 
-@pytest.fixture
-def search(monkeypatch):
-    """가짜 지역 검색. answer(term, area) -> (items, status) 를 바꿔 끼운다. 부른 검색어를 남긴다."""
+@pytest.fixture(autouse=True)
+def no_naver_local_search(monkeypatch):
+    """주차장 조회는 네이버 지역 검색을 부르지 않는다. 키가 있어도 마찬가지다."""
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test')
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'secret')
-    store.cache('discovery-local-permission', False, 1)
-    state = dict(calls=[], answer=lambda term, area: ([], 'available'))
-
-    def lookup(term, area, sort='random'):
-        state['calls'].append((term, area))
-        return state['answer'](term, area)
-
-    monkeypatch.setattr(intent_discovery, 'local_lookup', lookup)
-    yield state
-    store.cache('discovery-local-permission', False, 1)
+    monkeypatch.setattr('app.naver_local.lookup', lambda *a, **k: pytest.fail('네이버 지역 검색 호출'))
+    monkeypatch.setattr('httpx.get', lambda *a, **k: pytest.fail('외부 호출'))
 
 
-def test_all_walking_course_is_not_car_and_searches_nothing(search):
+def test_all_walking_course_is_not_car():
     result = parking.parking_near(make_plan())
-    assert result['status'] == 'not_car' and result['stops'] == [] and search['calls'] == []
-    assert result['diagnostics']['lookups'] == 0
+    assert result['status'] == 'not_car' and result['stops'] == []
 
 
-def test_only_places_reached_by_car_are_searched(search):
+def test_only_places_reached_by_car_get_parking(tmp_path):
     plan = make_plan(car_legs=(0, 2))
     assert [leg['mode'] for leg in plan['legs']] == ['car', 'walk', 'car']
     result = parking.parking_near(plan)
     assert [s['index'] for s in result['stops']] == [0, 2]
     assert [s['place_id'] for s in result['stops']] == [plan['places'][0]['id'], plan['places'][2]['id']]
-    names = {area for term, area in search['calls'] if term == '주차장'}
-    assert names == {plan['places'][0]['name'], plan['places'][2]['name']}
-    # 장소마다 2건: 장소명 주차장, 동네 공영주차장.
-    assert sorted(search['calls']) == sorted([('주차장', plan['places'][0]['name']), ('공영주차장', '종로구 삼청동'),
-                                              ('주차장', plan['places'][2]['name']), ('공영주차장', '종로구 삼청동')])
-    assert result['diagnostics']['queries'] == 4 and result['diagnostics']['lookups'] == 4
-    assert result['status'] == 'not_found'
-    assert all(s['message'] == '이 장소 800m 안에서 주차장을 찾지 못했어요.' for s in result['stops'])
+    # 공공데이터에 없으면 지어내지 않고, 민영 주차장은 네이버 지도에서 찾으라고 안내한다.
+    assert result['status'] == 'not_found' and result['source_type'] == '공공데이터포털 전국주차장정보표준데이터'
+    assert all(s['lots'] == [] and '네이버 지도' in s['message'] for s in result['stops'])
 
 
-def test_return_home_by_car_is_not_a_parking_stop(search):
+def test_return_home_by_car_is_not_a_parking_stop():
     plan = make_plan(car_legs=(3,), return_home=True, home=dict(name='우리 집', lat=37.575, lon=126.995))
     assert [leg['mode'] for leg in plan['legs']] == ['walk', 'walk', 'walk', 'car']
+    assert parking.parking_near(plan)['status'] == 'not_car'
+
+
+def test_demo_status():
+    assert parking.parking_near(make_plan(mode='demo', transport='car'))['status'] == 'demo'
+
+
+def test_public_lots_are_listed_nearest_first_with_fees_and_hours(tmp_path):
+    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)  # 방문일 2026-10-24(토)
+    place = plan['places'][0]
+    lat, lon = place['lat'], place['lon']
+    public_rows(tmp_path, [
+        public_row('삼청 공영주차장', lat + 0.0012, lon),
+        # 이름에 '주차'가 없으면 붙인다.
+        public_row('삼청동 2', lat + 0.002, lon, fee_kind='무료', base_fee=0),
+        public_row('셋째', lat + 0.003, lon),
+        public_row('넷째', lat + 0.004, lon),
+        # 800m 밖, 다른 시·도 주소, 좌표 없는 행은 뺀다.
+        public_row('먼 곳', lat + 0.009, lon),
+        public_row('다른 시도', lat + 0.001, lon, address='경기도 성남시 분당구 1'),
+        public_row('좌표 없음', None, None),
+    ])
     result = parking.parking_near(plan)
-    assert result['status'] == 'not_car' and search['calls'] == []
+    lots = result['stops'][0]['lots']
+    assert result['status'] == 'available' and result['message'] == ''
+    assert [lot['name'] for lot in lots] == ['삼청 공영주차장', '삼청동 2 주차장', '셋째 주차장'], '장소당 가까운 3곳'
+    first, second, _ = lots
+    assert first['public'] == dict(fee='기본 30분 500원 · 추가 10분당 200원', hours='방문일(토) 10:00~18:00', kind='공영',
+                                   as_of='2026-04-16', source='공공데이터포털 전국주차장정보표준데이터')
+    assert second['public']['fee'] == '무료' and all(set(lot) == LOT_FIELDS and lot['id'].startswith('parking:public-') for lot in lots)
+    assert first['distance_m'] < second['distance_m'] and first['walk_minutes'] >= 1
+    assert result['diagnostics'] == dict(public_candidates=4, public_bus_only=0, live_candidates=0, live_attached=0)
 
 
-def test_five_car_stops_stay_within_ten_lookups(search):
-    plan = make_plan(transport='car', places_rows=rows(5), count=5)
-    result = parking.parking_near(plan)
-    assert len(result['stops']) == 5 and len(search['calls']) == 10 and result['diagnostics']['queries'] == 10
-
-
-def test_filters_dedupe_and_diagnostics(search):
+def test_a_lot_near_two_stops_is_listed_under_the_nearer_one(tmp_path):
     plan = make_plan(transport='car', places_rows=rows(2), count=2)
     a, b = plan['places']
-    north = 0.0045  # 약 500m
-
-    def answer(term, area):
-        if term == '공영주차장':
-            # 두 장소(약 1.1km 간격) 모두 800m 안에 드는 같은 공영주차장 → 더 가까운 a 아래에만.
-            return [item('<b>삼청</b> 공영주차장', a['lat'] + 0.004, a['lon'], address='서울특별시 종로구 삼청로 9')], 'available'
-        base = a if area == a['name'] else b
-        road = '서울특별시 종로구 삼청로 ' + ('1' if base is a else '2')
-        return [
-            item('가까운 주차장', base['lat'] + 0.001, base['lon'], address=road),
-            item('먼 주차장', base['lat'] + north, base['lon'], address=road),
-            item('한식당', base['lat'], base['lon'], category='음식점>한식', address=road),
-            item('발렛파킹 주차대행', base['lat'], base['lon'], address=road),
-            item('다른 지역 주차장', base['lat'], base['lon'], address='경기도 성남시 분당구 1'),
-            item('좌표 없는 주차장', 0, 0, address=road),
-            item('가까운  주차장', base['lat'] + 0.001, base['lon'], address=road),
-            item('900m 주차장', base['lat'] + 0.0081, base['lon'], address=road),
-        ], 'available'
-
-    search['answer'] = answer
+    middle = (a['lat'] + b['lat']) / 2 - 0.001
+    public_rows(tmp_path, [public_row('사이 주차장', middle, a['lon'])])
     result = parking.parking_near(plan)
-    assert result['status'] == 'available'
-    first, second = result['stops']
-    assert [lot['name'] for lot in first['lots']] == ['가까운 주차장', '삼청 공영주차장', '먼 주차장']
-    assert [lot['name'] for lot in second['lots']] == ['가까운 주차장', '먼 주차장']
-    public = first['lots'][1]
-    assert public['public_by_name'] is True and first['lots'][0]['public_by_name'] is False
-    near = first['lots'][0]
-    assert 100 <= near['distance_m'] <= 120 and near['walk_minutes'] == 3
-    assert set(near) == LOT_FIELDS
-    diagnostics = result['diagnostics']
-    assert diagnostics['received'] == 8 * 2 + 2
-    # 장소마다: 업종 아님 2(음식점·발렛), 다른 지역 1, 좌표 1, 800m 초과 1, 같은 이름·주소 1. 장소를 넘는 중복 1.
-    assert diagnostics['rejected'] == dict(not_parking=4, bus_only=0, other_region=2, bad_coordinates=2, out_of_radius=2, duplicate=3)
-    assert result['source_type'] == '네이버 지역 검색 · 공공데이터포털 전국주차장정보표준데이터' and '포함하지 않았어요' in result['note']
+    assert [[lot['name'] for lot in s['lots']] for s in result['stops']] == [['사이 주차장'], []]
+    assert result['stops'][1]['status'] == 'not_found' and result['status'] == 'available'
 
 
-def test_second_request_uses_the_cache(search):
+def test_bus_only_lots_are_left_out(tmp_path):
     plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)
     place = plan['places'][0]
-    search['answer'] = lambda term, area: ([item('캐시 주차장', place['lat'] + 0.001, place['lon'])], 'available')
-    first = parking.parking_near(plan)
-    calls = len(search['calls'])
-    second = parking.parking_near(plan)
-    assert calls == 2 and len(search['calls']) == 2
-    assert second['diagnostics']['cache_hit'] is True and second['diagnostics']['lookups'] == 0
-    assert second['stops'] == first['stops']
-
-
-def test_failed_search_is_unavailable_and_cached_briefly(search):
-    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)
-    search['answer'] = lambda term, area: ([], 'unavailable')
+    lat, lon = place['lat'], place['lon']
+    public_rows(tmp_path, [
+        public_row('DDP동측(양쪽) 관광버스전용 주차장(시)', lat + 0.001, lon, fee_kind='무료', base_fee=0),
+        public_row('훈련원공원 앞 관광버스 전용 주차장(시)', lat + 0.003, lon, fee_kind='무료', base_fee=0),
+        public_row('동대문 공영주차장(시)', lat + 0.002, lon),
+    ])
     result = parking.parking_near(plan)
-    assert result['status'] == 'unavailable' and result['stops'][0]['status'] == 'unavailable'
-    # 네이버 검색 결과는 사용자별 키로 보관한다(app/naver_cache.personal_key, 2026-11-20).
-    from app import naver_cache
-    key = naver_cache.personal_key(naver_cache.current_owner(), parking.cache_key(plan['places'][0], '서울'))
-    with store.connect() as db:
-        expires = db.execute('SELECT expires FROM cache WHERE key=?', (key,)).fetchone()[0]
-    import time
-    assert expires - time.time() <= parking.CACHE_EMPTY_SECONDS + 1
-
-
-def test_demo_and_missing_key_statuses(search, monkeypatch):
-    assert parking.parking_near(make_plan(mode='demo', transport='car'))['status'] == 'demo'
-    monkeypatch.delenv('NAVER_SEARCH_CLIENT_ID')
-    missing = parking.parking_near(make_plan(transport='car'))
-    assert missing['status'] == 'key_missing' and missing['message'] == '네이버 검색 키를 설정해 주세요.'
-    assert search['calls'] == []
-
-
-def test_permission_problem_from_the_provider(monkeypatch):
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test')
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'secret')
-    store.cache('discovery-local-permission', False, 1)
-    monkeypatch.setattr('app.discovery.httpx.get', lambda url, **kwargs: httpx.Response(401, request=httpx.Request('GET', url)))
-    try:
-        result = parking.parking_near(make_plan(car_legs=(0,), places_rows=rows(2), count=2))
-    finally:
-        store.cache('discovery-local-permission', False, 1)
-    assert result['status'] == 'permission_required' and '지역 API' in result['message']
-    assert 'secret' not in str(result)
+    assert [lot['name'] for lot in result['stops'][0]['lots']] == ['동대문 공영주차장(시)']
+    assert result['diagnostics']['public_bus_only'] == 2 and result['diagnostics']['public_candidates'] == 1
 
 
 @pytest.mark.usefixtures('same_rate_window')
-def test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(search, monkeypatch):
+def test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(monkeypatch, tmp_path):
     assert any(p.match('GET /api/plans/abc/parking') for p in web_security.EXPENSIVE)
     # 운영은 1초. 전체 테스트를 돌리는 느린 기계에서는 첫 응답과 둘째 요청 사이가 1초를 넘어 막히지 않은 적이 있어,
     # 이 검사에서는 막는 시간을 늘린다(막는 동작 자체를 본다).
@@ -233,21 +176,20 @@ def test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(search, monke
         client.get('/api/status')
         plan = store.save_plan(make_plan(transport='car'), store.owner_of(client.cookies['dm_session']))
         place = plan['places'][1]
-        search['answer'] = lambda term, area: ([item('경로 주차장', place['lat'] + 0.001, place['lon'])], 'available')
+        public_rows(tmp_path, [public_row('경로 주차장', place['lat'] + 0.001, place['lon'])])
         before = client.get('/api/plans/' + plan['id']).json()
         response = client.get(f"/api/plans/{plan['id']}/parking")
         assert response.status_code == 200, response.text
         body = response.json()
         assert body['status'] == 'available'
         assert set(body) == {'status', 'stops', 'note', 'source_type', 'message', 'diagnostics'}
-        # 요금·운영시간·만차 정보는 확인하지 않으므로 응답에 그런 칸이 없다.
         lots = [lot for stop in body['stops'] for lot in stop['lots']]
         assert lots and all(set(lot) == LOT_FIELDS for lot in lots)
         # 같은 브라우저의 1초 안 연속 요청은 막는다.
         assert client.get(f"/api/plans/{plan['id']}/parking").status_code == 429
         after = client.get('/api/plans/' + plan['id']).json()
         assert after['total'] == before['total'] and after['places'] == before['places'] and after['legs'] == before['legs']
-    # IP 한도는 기존 지역 검색 한도를 함께 쓴다.
+    # IP 한도는 주변 식당 조회와 함께 쓴다.
     monkeypatch.setenv('DATEMATE_IP_LOCAL_SEARCHES_PER_MINUTE', '1')
     # 같은 IP 의 다른 브라우저(세션)도 함께 센다. 계획은 만든 브라우저만 열 수 있어 각자 하나씩 만든다.
     address = unique_ip()
@@ -259,41 +201,6 @@ def test_route_is_expensive_rate_limited_and_leaves_the_plan_alone(search, monke
             response = client.get(f"/api/plans/{plan['id']}/parking")
             codes.append(response.status_code)
     assert codes == [200, 429] and response.json()['detail'] == '주차장 검색은 잠시 후 다시 시도해 주세요.'
-
-
-def test_public_data_adds_fees_hours_and_extra_lots(search, tmp_path):
-    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)  # 방문일 2026-10-24(토)
-    place = plan['places'][0]
-    lat, lon = place['lat'], place['lon']
-    public_rows(tmp_path, [
-        # 네이버 결과와 같은 곳(30m 안, 이름 겹침) → 요금·운영시간이 붙는다.
-        public_row('삼청 공영주차장', lat + 0.0012, lon),
-        # 네이버에 없던 곳 → 따로 들어간다. 이름에 '주차'가 없으면 붙인다.
-        public_row('삼청동 2', lat + 0.002, lon, fee_kind='무료', base_fee=0),
-        # 800m 밖, 다른 시·도 주소는 뺀다.
-        public_row('먼 곳', lat + 0.009, lon),
-        public_row('다른 시도', lat + 0.001, lon, address='경기도 성남시 분당구 1'),
-    ])
-    search['answer'] = lambda term, area: ([item('삼청공영주차장', lat + 0.001, lon)], 'available')
-    result = parking.parking_near(plan)
-    lots = result['stops'][0]['lots']
-    assert [lot['name'] for lot in lots] == ['삼청공영주차장', '삼청동 2 주차장']
-    matched, extra = lots
-    assert matched['public'] == dict(fee='기본 30분 500원 · 추가 10분당 200원', hours='방문일(토) 10:00~18:00', kind='공영',
-                                     as_of='2026-04-16', source='공공데이터포털 전국주차장정보표준데이터')
-    assert extra['public']['fee'] == '무료' and extra['category'] == '공공데이터 주차장' and set(extra) == LOT_FIELDS
-    assert result['diagnostics']['public_matched'] == 1 and result['diagnostics']['public_candidates'] == 2
-
-
-def test_public_data_still_shows_without_a_naver_key(search, monkeypatch, tmp_path):
-    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)
-    place = plan['places'][0]
-    public_rows(tmp_path, [public_row('키 없이 보이는 주차장', place['lat'] + 0.001, place['lon'])])
-    monkeypatch.delenv('NAVER_SEARCH_CLIENT_ID')
-    result = parking.parking_near(plan)
-    assert result['status'] == 'available' and search['calls'] == []
-    assert [lot['name'] for lot in result['stops'][0]['lots']] == ['키 없이 보이는 주차장']
-    assert result['diagnostics']['cache_hit'] is False
 
 
 def test_fee_and_hours_text():
@@ -334,33 +241,6 @@ def test_bus_only_names():
         assert not public_parking.bus_only(name), name
 
 
-def test_bus_only_lots_are_left_out(search, tmp_path):
-    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)
-    place = plan['places'][0]
-    lat, lon = place['lat'], place['lon']
-    public_rows(tmp_path, [
-        public_row('DDP동측(양쪽) 관광버스전용 주차장(시)', lat + 0.001, lon, fee_kind='무료', base_fee=0),
-        public_row('훈련원공원 앞 관광버스 전용 주차장(시)', lat + 0.003, lon, fee_kind='무료', base_fee=0),
-        public_row('동대문 공영주차장(시)', lat + 0.002, lon),
-        # 좌표 없는 버스 전용 행은 네이버 승용차 주차장에 이름으로도 붙이지 않는다.
-        public_row('삼청시장 관광버스전용 주차장(시)', None, None, fee_kind='무료', base_fee=0),
-    ])
-    search['answer'] = lambda term, area: ([
-        item('남산 관광버스주차장', lat + 0.0005, lon),
-        item('대형버스 전용 주차장', lat + 0.0007, lon),
-        item('삼청시장 주차장', lat + 0.0025, lon),
-        item('종로 시외버스터미널 주차장', lat + 0.004, lon),
-    ], 'available')
-    result = parking.parking_near(plan)
-    lots = result['stops'][0]['lots']
-    assert [lot['name'] for lot in lots] == ['동대문 공영주차장(시)', '삼청시장 주차장', '종로 시외버스터미널 주차장']
-    assert lots[1]['public'] is None
-    diagnostics = result['diagnostics']
-    # 장소당 검색 2건이 같은 결과를 받아 버스 전용 2곳씩, 같은 이름·주소 중복 2곳.
-    assert diagnostics['rejected']['bus_only'] == 4 and diagnostics['rejected']['duplicate'] == 2
-    assert diagnostics['public_bus_only'] == 2 and diagnostics['public_candidates'] == 1
-
-
 def test_build_script_reads_the_cp949_csv(tmp_path, monkeypatch):
     import importlib.util
     from pathlib import Path
@@ -383,26 +263,6 @@ def test_build_script_reads_the_cp949_csv(tmp_path, monkeypatch):
     row = dict(zip(COLUMNS, payload['rows'][0]))
     assert row['name'] == '포석로공영주차장' and row['address'] == '경상북도 경주시 황남동 1' and row['day_fee'] == 10000
     assert row['weekday'] == ['10:00', '18:00'] and row['holiday'] is None and row['as_of'] == '2026-04-16'
-
-
-def test_seoul_lots_without_coordinates_match_naver_results_by_district_and_name(search, tmp_path):
-    plan = make_plan(car_legs=(0,), places_rows=rows(2), count=2)
-    place = plan['places'][0]
-    public_rows(tmp_path, [
-        # 서울 파일의 노외 주차장: 좌표 없이 주소·이름만. 같은 이름의 부산 중구 주차장은 맞추지 않는다.
-        public_row('삼청동(건물) 공영주차장(구)', None, None, base_minutes=5, base_fee=250, extra_minutes=0, extra_fee=0,
-                   free_days='토요일·공휴일 무료', saturday=['00:00', '24:00'], address='서울특별시 종로구 삼청동 35', district='종로구'),
-        public_row('삼청동 공영주차장', None, None, address='부산광역시 중구 중앙동 1', district='중구'),
-    ])
-    search['answer'] = lambda term, area: ([item('삼청동 공영주차장', place['lat'] + 0.001, place['lon'],
-                                                  address='서울특별시 종로구 삼청로 1')], 'available')
-    result = parking.parking_near(plan)
-    lot = result['stops'][0]['lots'][0]
-    assert lot['name'] == '삼청동 공영주차장'
-    assert lot['public']['fee'] == '5분당 250원 · 토요일·공휴일 무료' and lot['public']['hours'] == '방문일(토) 24시간'
-    assert result['diagnostics']['public_matched_by_name'] == 1
-    # 좌표 없는 자료는 따로 지도·목록에 넣지 않는다.
-    assert len(result['stops'][0]['lots']) == 1
 
 
 def test_name_core_and_district():

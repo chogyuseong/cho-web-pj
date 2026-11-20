@@ -214,7 +214,7 @@ function renderDetail() {
   // 부가 정보: 축제 구역 뒤 #plan-extras
   const more = node('section', undefined, 'detail panel plan-extras-panel');
   more.setAttribute('aria-label', '더 둘러보기');
-  more.append(leisureCoursePanel(p), regionalRestaurantPanel(p));
+  more.append(leisureCoursePanel(p));
   // 네이버 블로그 글은 받은 그대로의 독립 블록으로만 보여 준다(course-search.js). 예전 형식(우리가 고른 5건, format 없음)은 그리지 않는다.
   if (p.course_search?.format === 2) {
     const research = node('details', undefined, 'course-evidence');

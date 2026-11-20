@@ -11,6 +11,9 @@ export const OPTIONAL_CONTAINER_ENV = Object.freeze([
   "NAVER_MAPS_KEY", "NAVER_MAPS_JS_KEY_ID",
   "MAP_TILE_URL", "MAP_TILE_ATTRIBUTION", "WIKI_CONTACT", "PHOTO_VISUAL_CHECK",
   "TOUR_API_KEY", "SEOUL_OPEN_API_KEY",
+  // 공공 자료 후보(datemate/app/public_places.py)의 하루 호출 상한. 없으면 앱 기본값(관광공사 600, 상가정보 5,000).
+  // 한국관광공사 운영계정으로 증량한 뒤 올린다.
+  "DATEMATE_TOUR_CANDIDATE_CALLS_PER_DAY", "DATEMATE_STORE_INFO_CALLS_PER_DAY",
   // TMAP 대중교통 비교(datemate/app/transit_compare.py). 없으면 화면에 비교 단추가 나오지 않는다.
   "TMAP_TRANSIT_APP_KEY", "DATEMATE_TMAP_TRANSIT_CALLS_PER_DAY",
   "FEEDBACK_ADMIN_KEY", "DATEMATE_FEEDBACK_ENABLED",

@@ -1,13 +1,12 @@
 """Sports alternatives around an existing itinerary stop, without moving other stops.
 
-종목 목록·판별 규칙은 app/sports.py 에 있다. 실제 장소 모드에서는 종목마다 검색하지 않고 묶음 검색어
-(LEISURE_SEARCHES, 최대 12건)로 찾은 결과를 업종·상호로 종목별로 나눈다.
+종목 목록·판별 규칙은 app/sports.py 에 있다. 실제 장소 모드의 후보는 공공 자료에서 찾는다(app/public_places.py):
+한국관광공사 TourAPI 의 레포츠 항목(실외 반경에 걸친 시·군·구 목록에서)과 소상공인 상가정보의 예술·스포츠 업종(코스 장소 주변).
+네이버 지역 검색 결과는 후보로 쓰지 않는다(2026-11-20 2단계, docs/naver-terms-stage2-design.ko.md 3.8(b)).
 """
 
 import hashlib
 import re
-from datetime import datetime, timezone
-from urllib.parse import quote
 
 from . import sports as sport_table
 from .models import Conditions
@@ -23,37 +22,11 @@ INDOOR_RADIUS_KM = 1.5
 OUTDOOR_RADIUS_KM = 5.0
 # 자동차(평균 25km/h, 보정 1.35)는 같은 30분 안팎으로 약 10km까지 닿는다.
 OUTDOOR_RADIUS_CAR_KM = 10.0
-# 레저 후보 1회 조회의 지역 검색 상한(묶음 검색 + 직접 요청한 종목 검색).
-MAX_LEISURE_LOOKUPS = 12
+# 한 종목에서 가까운 순으로 이만큼만 후보로 둔다(상가정보에는 당구장만 수십 곳인 동네가 있다).
+MAX_PER_SPORT = 4
 # 화면에 비교할 후보 수(구분별). 시간·비용 재계산은 외부 호출 없이 로컬에서 한다.
 MAX_INDOOR_OPTIONS = 16
 MAX_OUTDOOR_OPTIONS = 12
-
-INDOOR_ACTIVE = (
-    "trampoline", "archery", "shooting", "darts", "roller", "vr_sports",
-    "indoor_surfing", "indoor_ski", "skating", "swimming", "basketball",
-)  # fmt: skip
-# (검색어, 구분, 검색 지역 단위, 이 검색으로 주로 찾는 종목). 결과의 종목은 검색어가 아니라 업종·상호로 정한다.
-# 실내는 코스 장소의 구 단위, 드문 실외 시설은 시·군(서울은 서울) 단위로 찾는다.
-LEISURE_SEARCHES = (
-    ("볼링장", "indoor", "district", ("bowling",)),
-    ("당구장", "indoor", "district", ("billiards",)),
-    ("클라이밍", "indoor", "district", ("climbing",)),
-    ("탁구장", "indoor", "district", ("table_tennis",)),
-    ("배드민턴장", "indoor", "district", ("badminton", "squash")),
-    ("스크린골프", "indoor", "district", ("screen_golf",)),
-    ("스크린야구", "indoor", "district", ("screen_baseball", "indoor_tennis")),
-    ("실내스포츠", "indoor", "district", INDOOR_ACTIVE),
-    ("레저", "outdoor", "district", tuple(sport_table.OUTDOOR_KEYS)),
-    ("테니스장", "outdoor", "district", ("tennis", "futsal")),
-    (
-        "레포츠",
-        "outdoor",
-        "city",
-        ("kart_luge", "zipline", "paragliding", "horse_riding", "cycling", "golf", "ski", "hiking"),
-    ),
-    ("수상레저", "outdoor", "city", ("paddle", "surfing", "boating", "water_leisure", "fishing")),
-)
 
 
 def outdoor_radius(c):
@@ -142,147 +115,85 @@ def message(c):
     )
 
 
-def search_plan(c, anchor):
-    """(검색어, 구분, 검색 지역) 목록. 직접 요청한 종목을 먼저 찾고, 제외한 종목만 찾는 묶음은 뺀다. 최대 12건."""
-    from .intent_discovery import search_area
-
-    address = anchor.get("address") or ""
-    district = re.search(r"[가-힣]+구(?:\s|$)", address)
-    # 주소가 없으면 박물관 이름 같은 장소 이름이 아니라 출발지·동네 이름에서 구를 고른다.
-    district = (
-        district[0].strip() if district else search_area((c.area_center or c.origin).name, c.region)
-    )
-    city = re.search(r"(?:^|\s)([가-힣]{1,8}(?:시|군))(?:\s|$)", address)
-    city = city[1] if city and not re.search(r"(?:특별|광역|자치)시$", city[1]) else ""
-    areas = {"district": f"{c.region} {district}".strip(), "city": f"{c.region} {city}".strip()}
-    parsed = intent(c)
-    excluded = set(parsed["excluded"])
-    rows = []
-    for key in parsed["intents"]:
-        sport = sport_table.BY_KEY.get(key)
-        if sport:
-            rows.append(
-                (
-                    sport.terms[0],
-                    sport.setting,
-                    areas["district" if sport.setting == "indoor" else "city"],
-                )
-            )
-    for term, setting, scope, covers in LEISURE_SEARCHES:
-        if set(covers) <= excluded:
-            continue
-        rows.append((term, setting, areas[scope]))
-    unique = []
-    for row in rows:
-        if row[0] not in {r[0] for r in unique}:
-            unique.append(row)
-    return unique[:MAX_LEISURE_LOOKUPS]
-
-
 def discover_leisure(c, anchor):
-    """묶음 검색으로 코스 장소 주변 레저를 찾아 종목별로 분류해 저장하고 진단을 돌려준다."""
-    from . import intent_discovery, naver_cache
-    from .image_search import plain
-    from .regions import region_from_address, korean_coordinates
-    from .request_usage import current, measure
-    from .search_address_text import place_query
+    """코스 장소 주변 레저를 공공 자료에서 찾아 종목별로 이 사용자의 후보에 두고 진단을 돌려준다."""
+    from . import naver_cache, public_places
     from collections import Counter
-    from contextlib import nullcontext
 
-    if c.mode != "real" or not intent_discovery.search_enabled():
+    if c.mode != "real" or not public_places.enabled():
         return dict(search_status="unavailable", lookups=0)
-    queries = search_plan(c, anchor)
     point = (round(anchor["lat"], 4), round(anchor["lon"], 4))
+    excluded = sorted(intent(c)["excluded"])
     cachekey = (
-        "leisure-local-v1:"
-        + hashlib.sha256(str([point, c.region, c.transport, queries]).encode()).hexdigest()
+        "public-leisure-v1:"
+        + hashlib.sha256(str([point, c.region, c.transport, excluded]).encode()).hexdigest()
     )
     cached = naver_cache.cached(cachekey)
     if cached:
         return dict(cached, lookups=0, cache_hit=True)
-    stats = {term: Counter() for term, _, _ in queries}
-    adopted = Counter()
-    kept_rows = []
-    # 레저 조회는 추천 요청 밖에서 불리므로 여기서 요청별 외부 호출 예산(request_usage)을 연다.
-    with nullcontext(current()) if current() else measure() as usage:
-        found = intent_discovery.lookup_all(
-            [(setting, term, area) for term, setting, area in queries]
+    stats = Counter()
+    sources = []
+    found = []
+    # 관광공사 레포츠(관광 타입 28): 실외 반경까지. 상가정보 예술·스포츠 업종: 코스 장소 주변(업소가 드물면 3km).
+    tour = public_places.tour_near(anchor["lat"], anchor["lon"], outdoor_radius(c), types=("28",))
+    sources.append(dict(source="tour", status=tour.get("status"), rows=len(tour.get("rows") or [])))
+    for row in tour.get("rows") or []:
+        place = public_places.tour_place(row, c.region)
+        if place and place["category"] == "레저·활동":
+            found.append(place)
+        else:
+            stats["unclassified"] += 1
+    stores, radius_m = public_places.stores_near("play", anchor["lat"], anchor["lon"])
+    sources.append(
+        dict(
+            source="store:play",
+            status=stores.get("status"),
+            rows=len(stores.get("rows") or []),
+            radius_m=radius_m,
         )
-        snapshot = usage.snapshot()
-    statuses = [status for _, status in found]
-    for (term, _, _), (items, _) in zip(queries, found):
-        st = stats[term]
-        for item in items:
-            st["received"] += 1
-            category = plain(item.get("category", ""))
-            name = plain(item.get("title", ""))
-            address = plain(item.get("roadAddress") or item.get("address", ""))
-            if not name or region_from_address(address) != c.region:
-                st["other_region"] += 1
-                continue
-            if sport_table.noise(category, name):
-                st["noise"] += 1
-                continue
-            sport = sport_table.classify(category, name)
-            if not sport:
-                st["unclassified"] += 1
-                continue
-            try:
-                lon, lat = float(item["mapx"]), float(item["mapy"])
-                if abs(lon) > 180:
-                    lon /= 10000000
-                if abs(lat) > 90:
-                    lat /= 10000000
-                if not korean_coordinates(lat, lon):
-                    raise ValueError
-            except (KeyError, ValueError, TypeError):
-                st["bad_coordinates"] += 1
-                continue
-            setting, _ = sport_table.setting_of(sport, name + " " + category)
-            radius = INDOOR_RADIUS_KM if setting == "indoor" else outdoor_radius(c)
-            if distance(anchor, dict(lat=lat, lon=lon)) > radius:
-                st["out_of_radius"] += 1
-                continue
-            # 검색어마다 강조 태그(<b>)가 달라 상호의 공백이 달라진다. 공백을 하나로 맞추고, 이번 검색에서 이미 채택한 같은 장소는 건너뛴다.
-            name = re.sub(r"\s+", " ", name).strip()
-            pid = "discovered:" + hashlib.sha256((name + address).encode()).hexdigest()[:20]
-            here = dict(name=name, lat=lat, lon=lon, id=pid)
-            if any(same_leisure_place(here, kept) for kept in kept_rows):
-                st["duplicate"] += 1
-                continue
-            kept_rows.append(here)
-            st["adopted"] += 1
-            adopted[sport.key] += 1
-            # 이미 저장된 장소(블로그 근거 등)는 덮어쓰지 않는다.
-            if naver_cache.cached("discovered-place:" + pid):
-                continue
-            row = dict(
-                id=pid, name=name, address=address, lat=lat, lon=lon, region=c.region, demo=False,
-                category="레저·활동", themes=["레저·활동"], tags=[sport.key, category], meal=False,
-                description=category,
-                source="https://map.naver.com/p/search/" + quote(place_query({"name": name, "address": address})),
-                source_type="네이버 지역 검색 · 레저 종목 분류", naver_result=True,
-                checked_at=datetime.now(timezone.utc).isoformat(),
-                discovery_verification="네이버 업체 분류·상호·주소·좌표 연결 · 영업 여부·계절 운영 별도 확인",
-                price=None, price_unit="person", hours=None, closed_days=None, breaks=None, last_entry=None,
-                reservation=None, stay=None, stay_basis=None, rating=None, setting=None, photos=[], videos=[],
-                license="검색 결과",
-            )  # fmt: skip
-            naver_cache.cache("discovered-place:" + pid, row, naver_cache.PERSONAL_MAX_SECONDS)
-    result = dict(
-        search_status="permission_required"
-        if "permission_required" in statuses
-        else "unavailable"
-        if statuses and all(s == "unavailable" for s in statuses)
-        else "complete",
-        lookups=len(queries),
-        queries=[dict(term=t, setting=s, area=a) for t, s, a in queries],
-        term_stats={k: dict(v) for k, v in stats.items()},
-        adopted_by_sport=dict(adopted),
-        external_calls=snapshot["total_calls"],
-        budget_exhausted=snapshot["budget_exhausted"],
     )
+    for row in stores.get("rows") or []:
+        pair = public_places.store_place(row, c.region, stores.get("data_month"))
+        if pair and pair[0] == "sport":
+            found.append(pair[1])
+        else:
+            stats["unclassified"] += 1
+    adopted = Counter()
+    kept = []
+    for place in sorted(found, key=lambda p: (distance(anchor, p), p["id"])):
+        stats["received"] += 1
+        key = place["tags"][0]
+        if key in excluded:
+            stats["excluded"] += 1
+            continue
+        radius = INDOOR_RADIUS_KM if place.get("setting") == "indoor" else outdoor_radius(c)
+        if distance(anchor, place) > radius:
+            stats["out_of_radius"] += 1
+            continue
+        if adopted[key] >= MAX_PER_SPORT:
+            stats["over_cap"] += 1
+            continue
+        if any(same_leisure_place(place, other) for other in kept):
+            stats["duplicate"] += 1
+            continue
+        adopted[key] += 1
+        # 레저 패널이 찾은 운동 시설 표시: 운동을 원하지 않은 기본 추천의 후보에는 섞지 않는다(quality.from_leisure_search).
+        kept.append(dict(place, leisure_search=True))
+    stats["adopted"] = len(kept)
+    # 이미 추천 후보로 찾아 둔 같은 장소(표시 없음)는 덮어쓰지 않는다.
+    known = naver_cache.cached_many(public_places.CANDIDATE_PREFIX + p["id"] for p in kept)
+    public_places.remember(
+        [p for p in kept if public_places.CANDIDATE_PREFIX + p["id"] not in known]
+    )
+    statuses = [s["status"] for s in sources]
     ok = any(s == "available" for s in statuses)
+    result = dict(
+        search_status="complete" if ok else "unavailable",
+        lookups=len(sources),
+        sources=sources,
+        stats=dict(stats),
+        adopted_by_sport=dict(adopted),
+    )
     naver_cache.cache(cachekey, result, 900 if ok else 30)
     return result
 

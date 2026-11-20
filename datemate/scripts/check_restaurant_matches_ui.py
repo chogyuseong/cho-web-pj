@@ -16,11 +16,11 @@ with sync_playwright() as pw:
     page.wait_for_function('Boolean(selected)',timeout=30000)
     data=page.evaluate('async()=>await fetchRestaurantMatches(selected)')
     assert len(data['groups'])==len(plan['places'])
-    assert all(f['distance_m']<=500 for g in data['groups'] for f in g['restaurants'])
-    assert data['popular']['district']=='종로구',data['popular']
-    assert len(data['popular']['restaurants'])==5,data['popular']
-    page.locator('.regional-restaurants .meal-card').nth(4).wait_for()
-    assert page.locator('.meal-suggestions:not(.regional-restaurants)').count()==len(plan['places'])
+    # 주변 식당은 우리 식당 자료와 공공 자료에서 500m → 1,000m → 1,500m 순으로 찾는다(2026-11-20, app/restaurants.py).
+    # 구 단위 '유명 맛집 TOP 5'(네이버 리뷰순)는 없앴다.
+    assert all(f['distance_m']<=1500 for g in data['groups'] for f in g['restaurants'])
+    assert 'popular' not in data and page.locator('.regional-restaurants').count()==0
+    assert page.locator('.meal-suggestions').count()==len(plan['places'])
     page.set_viewport_size({'width':390,'height':844})
     page.wait_for_timeout(400)
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),'real mobile layout overflow'
@@ -48,5 +48,5 @@ with sync_playwright() as pw:
     page.wait_for_timeout(400)
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
     assert not errors,errors
-    print(json.dumps({'stop_groups':len(data['groups']),'within_500m':True,'jongno_top5':True,'food_markers_and_clicks':True,'radius_circles':True,'mobile_overflow':False,'page_errors':errors}))
+    print(json.dumps({'stop_groups':len(data['groups']),'within_1500m':True,'food_markers_and_clicks':True,'radius_circles':True,'mobile_overflow':False,'page_errors':errors}))
     browser.close()

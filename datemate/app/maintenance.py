@@ -48,6 +48,8 @@ def maintain():
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'popups:%' AND bucket<?",(int(time.time()//3600)-2,))
         # 예전 TMAP 대중교통 비교(2026-11-19 제거, 네이버 지도 길찾기 링크로 대체)가 남긴 하루 상한 행을 지운다. 남은 행이 없으면 아무 일도 하지 않는다.
         db.execute("DELETE FROM request_budgets WHERE scope LIKE 'tmap-transit:%' AND bucket<?",(int(time.time()//86400)-1,))
+        # 공공 API 하루 호출 수(app/public_places._reserve): 어제 것까지만 둔다.
+        db.execute("DELETE FROM request_budgets WHERE scope LIKE 'public-api:%' AND bucket<?",(int(time.time()//86400)-1,))
     retention()
     # 네이버 검색 API 특약(2026-09): 공용 캐시에 네이버 결과가 다시 쌓이지 않았는지 정리하고(안전망),
     # 만든 지 21일이 지난 코스에서 네이버 유래 필드를 지운다(코스는 남김, app/naver_terms.py).

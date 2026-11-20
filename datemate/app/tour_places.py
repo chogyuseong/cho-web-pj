@@ -103,6 +103,13 @@ def tour_info(place):
     key = _key()
     if not key:
         return dict(status="key_missing")
+    if place.get("tour_content_id"):
+        # 관광공사 목록에서 온 후보(app/public_places.py): 이름으로 다시 찾지 않고 그 항목의 안내만 받는다(호출 1건).
+        return _listed_info(place, key)
+    if str(place.get("id") or "").startswith("public:store-"):
+        # 상가정보에서 온 후보는 후보를 고를 때 같은 동네의 관광공사 항목과 이미 견줬다(같은 가게면 관광공사 항목이 뽑힘).
+        # 여기서 이름으로 또 찾지 않는다(하루 호출 한도를 아낌).
+        return dict(status="not_found")
     cache_key = "tour-place-v2:" + hashlib.sha256(
         repr([place.get("id"), place.get("name"), place.get("lat"), place.get("lon")]).encode()
     ).hexdigest()
@@ -164,6 +171,63 @@ def tour_info(place):
         return result
     except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
         return dict(status="unavailable")
+
+
+# 관광공사 목록에서 온 장소의 영업 안내 보관(초). 안내 글은 자주 바뀌지 않고, 장소마다 하루 한 번씩 다시 부르면 하루 호출 한도
+# (개발계정 1,000건)가 금방 찬다(둘러보기 한 쪽이 24곳). 그래서 7일 둔다.
+LISTED_SECONDS = 7 * 86400
+
+
+def _listed_info(place, key):
+    """관광공사 목록에서 온 장소(tour_content_id 가 있음)의 사진·영업 안내. 사진은 목록에 실려 온 것을 쓴다(호출 없음).
+
+    영업 안내(detailIntro2, 장소당 1건)는 app/public_places 의 하루 호출 상한 안에서만 부른다. 상한을 넘었거나 실패하면 안내 없이
+    사진만 돌려주고 보관하지 않는다(다음에 다시 시도)."""
+    from . import public_places
+
+    content_id, type_id = str(place["tour_content_id"]), str(place.get("tour_content_type") or "")
+    cache_key = "tour-listed-v1:" + content_id
+    cached = store.cached(cache_key)
+    if cached:
+        return cached
+    result = dict(
+        status="available",
+        content_id=content_id,
+        title=place.get("name"),
+        photo=place.get("tour_photo"),
+        license_type=_license_type(place),
+        hours=None,
+        rest=None,
+        source_url=place.get("source"),
+        checked_at=date.today().isoformat(),
+    )
+    if type_id in HOURS_FIELDS and content_id.isdigit():
+        if not public_places._reserve("tour"):
+            return result
+        try:
+            detail = observed_http(
+                httpx.get,
+                DETAIL_ENDPOINT,
+                params=dict(
+                    serviceKey=key.strip("'\""), MobileOS="ETC", MobileApp="DateMate", _type="json",
+                    contentId=content_id, contentTypeId=type_id,
+                ),
+                timeout=8,
+            )  # fmt: skip
+            detail.raise_for_status()
+            intro = (_items(detail) or [{}])[0]
+            hours_field, rest_field = HOURS_FIELDS[type_id]
+            result.update(hours=_text(intro.get(hours_field)), rest=_text(intro.get(rest_field)))
+        except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
+            return result
+    store.cache(cache_key, result, LISTED_SECONDS)
+    return result
+
+
+def _license_type(place):
+    if not place.get("tour_photo"):
+        return None
+    return "Type1" if "제1유형" in str(place.get("tour_photo_license") or "") else "Type3"
 
 
 def tour_photos(place):

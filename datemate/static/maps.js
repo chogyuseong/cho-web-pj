@@ -423,10 +423,9 @@ function drawPlanMap(plan){
         fetchRestaurantMatches(plan).then(data=>{
           if(!wrap.isConnected||!canvas.isConnected)return;
           const locations=new Map();let count=0;
-          const mapGroups=[...data.groups,...(data.popular?[{label_prefix:'맛',restaurants:data.popular.restaurants}]:[])];
-          for(const group of mapGroups){for(const [j,food] of group.restaurants.entries()){
+          for(const group of data.groups){for(const [j,food] of group.restaurants.entries()){
             const key=food.lat.toFixed(5)+','+food.lon.toFixed(5);
-            const label=(group.label_prefix||(group.after_index+1))+'-'+(j+1);
+            const label=(group.after_index+1)+'-'+(j+1);
             if(locations.has(key))locations.get(key).labels.push(label);
             else locations.set(key,{food,labels:[label]});
           }}
@@ -434,12 +433,12 @@ function drawPlanMap(plan){
             const label=labels.join(' / ');
             const marker=new naver.maps.Marker({map,position:coord(food),title:label+' · '+food.name,
               icon:{content:'<span class="route-marker restaurant-marker">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
-            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),placeMapLink('네이버 지도·메뉴 ↗',food));if(isNaverResult(food))content.append(naverAttribution('지역 검색',food.source));
+            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),placeMapLink('네이버 지도·메뉴 ↗',food));
             const info=new naver.maps.InfoWindow({content});naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
             bounds.extend(coord(food));count++;
           }
           if(count)map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});
-          caption.textContent=originalCaption+' 보라색 원: 각 코스 반경 500m · 주황색 번호: 식당 '+count+'곳 (일정 미포함, 맛: 지역 추천).';
+          caption.textContent=originalCaption+' 보라색 원: 각 코스 반경 500m · 주황색 번호: 식당 '+count+'곳 (일정 미포함).';
         }).catch(()=>{caption.textContent=originalCaption+' 주변 식당 표시를 불러오지 못했어요.';});
         // 쌓임 순서: 식당 < 주차장 P(110) < 팝업(120) < 코스(130) < 축제(150). 표시 글자는 고정 문자열, 이름은 title·정보창 텍스트로만.
         watchParking(lots=>lots.map(lot=>{

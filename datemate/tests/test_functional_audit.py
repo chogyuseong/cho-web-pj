@@ -224,18 +224,17 @@ def test_share_card_export_and_summary_guest_link(audit_page,tmp_path):
 
 
 def test_explore_region_paging_empty_retry_and_mobile(audit_page,monkeypatch):
+    # 둘러보기 기본 목록은 공공 자료(한국관광공사 시·도 목록)에서 온다(app/explore.py). 네이버 검색은 부르지 않는다.
     from urllib.parse import parse_qs
-    from app import explore
+    from public_fakes import fake_public_api,tour_item
     page,base,errors=audit_page
-    full={'서울':'서울특별시','경남':'경상남도'}
-    def lookup(client,query):
-        region=query.split()[0]
-        if '존재하지않는' in query:return query,[],'available'
-        rows=[dict(title=f'{query} 점검 {rank}',roadAddress=f'{full[region]} 중구 점검로 {rank}',mapx='1280000000',mapy='360000000',category='카페,디저트') for rank in range(5)]
-        rows.append(dict(title=f'{query} 다른 지역',roadAddress='부산광역시 중구 점검로 1',mapx='1290000000',mapy='351000000',category='카페,디저트'))
-        return query,rows,'available'
-    monkeypatch.setattr(explore,'search_enabled',lambda:True)
-    monkeypatch.setattr(explore,'lookup',lookup)
+    api=fake_public_api(monkeypatch)
+    for i in range(75):
+        culture=i>=40
+        api['tour'].append(tour_item(1000+i,f'서울 점검 장소 {i}',37.56+i*.0005,126.98,cat3='A02060500' if culture else 'A02020700',
+                                     type_id='14' if culture else '12',address=f'서울특별시 중구 점검로 {i}'))
+    for i in range(5):
+        api['tour'].append(tour_item(2000+i,f'경남 점검 장소 {i}',35.23+i*.0005,128.68,cat3='A02020700',type_id='12',address=f'경상남도 창원시 점검로 {i}'))
     requested=[]
     page.on('request',lambda request:requested.append(parse_qs(urlsplit(request.url).query)) if '/api/explore?' in request.url else None)
     failed_once=False
@@ -266,8 +265,9 @@ def test_explore_region_paging_empty_retry_and_mobile(audit_page,monkeypatch):
     page.wait_for_function('document.querySelector("#search-info").textContent.startsWith("경남 · 서점")')
     assert requested[-1]['activity']==['서점'] and requested[-1]['region']==['경남']
     page.locator('#search').fill('존재하지않는점검장소');page.locator('#search-button').click()
-    page.wait_for_function('document.querySelector("#search-info").textContent.includes("검색 결과 0곳")')
+    page.wait_for_function('document.querySelector("#search-info").textContent.includes("공공 자료 0곳")')
     assert page.locator('#catalog').inner_text().strip()
+    assert not api['naver'], '둘러보기 기본 목록은 네이버 검색을 부르지 않는다'
     for width in (320,390,768,1440):
         page.set_viewport_size({'width':width,'height':900})
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),width

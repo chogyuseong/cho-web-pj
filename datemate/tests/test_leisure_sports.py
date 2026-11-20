@@ -130,88 +130,65 @@ def offset(anchor, km_north):
     return anchor['lat'] + km_north / 111.0
 
 
-def item(title, category, anchor, km, address='서울특별시 종로구 율곡로 10'):
-    return dict(title=title, category=category, roadAddress=address,
-                mapx=str(anchor['lon']), mapy=str(offset(anchor, km)))
-
-
 @pytest.fixture
-def real_search(monkeypatch, naver_dict_cache):
-    """네이버 지역 검색을 HTTP 단계에서 흉내 낸다(외부 호출 없음). observed_http 를 거쳐 예산에 집계된다."""
-    from app import store
-    import app.discovery as discovery
-    # 네이버 검색 결과 보관(app/naver_cache)을 dict 로(2026-11-20 특약 대응 전에는 store 를 바꿨다).
-    cache = naver_dict_cache
-    monkeypatch.setattr('app.intent_discovery.search_enabled', lambda: True)
+def public_leisure(monkeypatch):
+    """레저 후보의 공공 자료(한국관광공사 레포츠, 소상공인 상가정보 예술·스포츠 업종)를 흉내 낸다. 외부 호출 없음.
+    네이버 지역 검색은 부르면 실패한다."""
+    from public_fakes import fake_public_api, store_item, tour_item
+    api = fake_public_api(monkeypatch)
+    monkeypatch.setattr('app.naver_local.lookup', lambda *a, **k: pytest.fail('네이버 지역 검색 호출'))
     plan = fixture_plan()
     anchor = plan['places'][0]
-    results = {
-        '볼링장': [item('가까운 볼링장', '스포츠,오락>볼링장', anchor, 1.0), item('먼 볼링장', '스포츠,오락>볼링장', anchor, 3.0),
-                 item('볼링용품 판매', '쇼핑,유통>스포츠용품', anchor, .5)],
-        '당구장': [item('큐 당구클럽', '스포츠,오락>당구장', anchor, .8), item('경기 당구장', '스포츠,오락>당구장', anchor, .8, '경기도 고양시 덕양구')],
-        '수상레저': [item('한강 수상레저', '스포츠,오락>수상레저', anchor, 4.0)],
-        '레포츠': [item('먼 승마클럽', '스포츠,오락>승마장', anchor, 8.0)],
-        '레저': [item('수영구 국밥', '음식점>한식', anchor, .3)],
-    }
-    queries = []
 
-    class Response:
-        status_code = 200
+    def shop(biz, name, code, label, km, address='서울특별시 종로구 율곡로 10'):
+        return store_item(biz, name, offset(anchor, km), anchor['lon'], code=code, label=label, address=address)
 
-        def __init__(self, items):
-            self.items = items
+    def tour(content_id, name, cat3, km):
+        return tour_item(content_id, name, offset(anchor, km), anchor['lon'], cat3=cat3, type_id='28', address='서울특별시 종로구 율곡로 20')
 
-        def raise_for_status(self):
-            pass
-
-        def json(self):
-            return {'items': self.items}
-
-    def fake_get(url, params=None, **kwargs):
-        query = params['query']
-        queries.append(query)
-        term = query.split()[-1]
-        return Response(results.get(term, []))
-
-    monkeypatch.setattr(discovery.httpx, 'get', fake_get)
-    return plan, anchor, cache, queries
+    api['stores'] += [shop('B1', '가까운 볼링장', 'R10309', '볼링장', 1.0), shop('B2', '먼 볼링장', 'R10309', '볼링장', 3.0),
+                      shop('B3', '볼링용품 판매', 'R10314', '기타 스포츠시설 운영업', .5), shop('B4', '큐 당구클럽', 'R10310', '당구장', .8),
+                      shop('B5', '경기 당구장', 'R10310', '당구장', .8, '경기도 고양시 덕양구 1'), shop('B6', '파워짐', 'R10307', '헬스장', .3)]
+    api['tour'] += [tour(501, '한강 카약', 'A03030200', 4.0), tour(502, '먼 승마클럽', 'A03021100', 8.0),
+                    tour(503, '청소년 수련원', 'A03020200', 1.0)]
+    return plan, anchor, api
 
 
-def discovered(cache):
-    return [v for k, v in cache.items() if k.startswith('discovered-place:')]
+def found_leisure():
+    from app import public_places
+    return {p['name']: p for p in public_places.candidates()}
 
 
-def test_grouped_leisure_search_is_bounded_counted_and_classified(real_search):
+def test_public_leisure_discovery_is_classified_counted_and_cached(public_leisure):
     from app.models import Conditions
-    from app.leisure import discover_leisure, MAX_LEISURE_LOOKUPS
-    plan, anchor, cache, queries = real_search
+    from app.leisure import discover_leisure
+    plan, anchor, api = public_leisure
     c = Conditions.model_validate(plan['conditions'] | {'mode': 'real'})
     result = discover_leisure(c, anchor)
-    assert 0 < len(queries) == result['lookups'] <= MAX_LEISURE_LOOKUPS
-    # 요청별 외부 호출 예산(request_usage)에 지역 검색 건수만큼 집계된다.
-    assert result['external_calls'] == len(queries)
-    names = {p['name']: p for p in discovered(cache)}
-    assert set(names) == {'가까운 볼링장', '큐 당구클럽', '한강 수상레저'}
-    assert names['가까운 볼링장']['tags'][0] == 'bowling' and names['한강 수상레저']['tags'][0] == 'water_leisure'
-    stats = result['term_stats']
-    assert stats['볼링장']['out_of_radius'] == 1 and stats['볼링장']['noise'] == 1
-    assert stats['당구장']['other_region'] == 1 and stats['레포츠']['out_of_radius'] == 1
-    assert stats['레저']['unclassified'] == 1
+    assert result['search_status'] == 'complete' and result['lookups'] == 2
+    assert [s['source'] for s in result['sources']] == ['tour', 'store:play']
+    names = found_leisure()
+    assert set(names) == {'가까운 볼링장', '큐 당구클럽', '한강 카약'}
+    assert names['가까운 볼링장']['tags'][0] == 'bowling' and names['한강 카약']['tags'][0] == 'paddle'
+    assert names['한강 카약']['setting'] == 'outdoor' and all(p['leisure_search'] and p['id'].startswith('public:') for p in names.values())
+    # 먼 볼링장(실내 반경 1.5km 밖)은 빠지고, 용품점·헬스장·수련원·다른 시·도는 종목 장소가 아니다.
+    assert result['stats']['out_of_radius'] == 1 and result['stats']['unclassified'] == 4
+    assert result['adopted_by_sport'] == {'bowling': 1, 'billiards': 1, 'paddle': 1}
     # 같은 위치를 다시 찾으면 캐시를 쓰고 외부 호출이 없다.
+    used = len(api['calls'])
     again = discover_leisure(c, anchor)
-    assert again['cache_hit'] and again['lookups'] == 0 and len(queries) == result['lookups']
+    assert again['cache_hit'] and again['lookups'] == 0 and len(api['calls']) == used and not api['naver']
 
 
-def test_car_widens_outdoor_radius_and_requested_sport_is_searched_first(real_search):
+def test_car_widens_outdoor_radius_and_excluded_sport_is_left_out(public_leisure):
     from app.models import Conditions
-    from app.leisure import discover_leisure, MAX_LEISURE_LOOKUPS
-    plan, anchor, cache, queries = real_search
+    from app.leisure import discover_leisure
+    plan, anchor, api = public_leisure
     c = Conditions.model_validate(plan['conditions'] | {'mode': 'real', 'transport': 'car', 'request': '승마 하고 볼링은 말고'})
     result = discover_leisure(c, anchor)
-    assert result['lookups'] <= MAX_LEISURE_LOOKUPS
-    terms = [q['term'] for q in result['queries']]
-    assert terms[0] == '승마장' and '볼링장' not in terms
-    assert '먼 승마클럽' in {p['name'] for p in discovered(cache)}
+    names = found_leisure()
+    assert '먼 승마클럽' in names and names['먼 승마클럽']['tags'][0] == 'horse_riding'
+    assert '가까운 볼링장' not in names and result['stats']['excluded'] == 2
 
 
 def sport_row(anchor, pid, name, key, category, km):
@@ -270,27 +247,19 @@ def test_api_returns_sport_and_new_radius_message(monkeypatch):
                                    'varies': True, 'radius_km': 5.0}
 
 
-def test_same_venue_from_two_searches_is_kept_once(real_search):
+def test_same_venue_in_both_public_sources_is_kept_once(public_leisure):
     from app.models import Conditions
     from app.leisure import discover_leisure
-    plan, anchor, cache, queries = real_search
-    import app.discovery as discovery
-    original = discovery.httpx.get
-
-    def get(url, params=None, **kwargs):
-        term = params['query'].split()[-1]
-        if term in ('클라이밍', '실내스포츠'):
-            queries.append(params['query'])
-            title = '그루트  클라이밍' if term == '클라이밍' else '<b>그루트</b> 클라이밍'
-            response = original(url, params=dict(params, query='없음'), **kwargs)
-            response.items = [item(title, '스포츠,오락>클라이밍', anchor, .9)]
-            return response
-        return original(url, params=params, **kwargs)
-    discovery.httpx.get = get
+    from public_fakes import store_item, tour_item
+    plan, anchor, api = public_leisure
+    api['stores'].append(store_item('C1', '그루트  클라이밍', offset(anchor, .9), anchor['lon'], code='R10314', label='기타 스포츠시설 운영업',
+                                    address='서울특별시 종로구 율곡로 30'))
+    api['tour'].append(tour_item(601, '그루트 클라이밍', offset(anchor, .9), anchor['lon'], cat3='A03021800', type_id='28',
+                                 address='서울특별시 종로구 율곡로 30'))
     c = Conditions.model_validate(plan['conditions'] | {'mode': 'real'})
     result = discover_leisure(c, anchor)
-    assert [p['name'] for p in discovered(cache)].count('그루트 클라이밍') == 1
-    assert result['term_stats']['실내스포츠']['duplicate'] == 1
+    assert [name for name in found_leisure() if '그루트' in name] == ['그루트 클라이밍']
+    assert result['stats']['duplicate'] == 1 and result['adopted_by_sport']['climbing'] == 1
 
 
 def test_nearby_sports_merges_same_name_and_keeps_distinct_neighbours(monkeypatch):

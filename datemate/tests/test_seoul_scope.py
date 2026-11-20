@@ -58,49 +58,33 @@ def test_ui_and_natural_language_offer_national_regions():
         assert response.json()['patch']['region'] == '부산'
 
 
-def test_busan_local_search_can_build_a_real_plan(monkeypatch):
+def test_busan_public_candidates_can_build_a_real_plan(monkeypatch):
     from app import intent_discovery
     from app.planner import recommend
+    from public_fakes import calls, fake_public_api, tour_item
 
-    rows = [
-        dict(title='해운대 카페', category='카페', roadAddress='부산광역시 해운대구 우동 1', mapx=129.163, mapy=35.163),
-        dict(title='해운대 전시관', category='전시', roadAddress='부산광역시 해운대구 우동 2', mapx=129.164, mapy=35.164),
-        dict(title='해운대 공원', category='공원', roadAddress='부산광역시 해운대구 우동 3', mapx=129.165, mapy=35.165),
-        dict(title='해운대 두번째 카페', category='카페', roadAddress='부산광역시 해운대구 우동 4', mapx=129.1635, mapy=35.1635),
-        dict(title='해운대 두번째 전시관', category='전시', roadAddress='부산광역시 해운대구 우동 5', mapx=129.1645, mapy=35.1645),
-        dict(title='해운대 두번째 공원', category='공원', roadAddress='부산광역시 해운대구 우동 6', mapx=129.1655, mapy=35.1655),
-        dict(title='서울 카페', category='카페', roadAddress='서울특별시 중구 1', mapx=126.97, mapy=37.56),
-    ]
-    monkeypatch.setattr(intent_discovery, 'search_enabled', lambda: True)
-    monkeypatch.setattr(intent_discovery, 'local_lookup', lambda name, area, **kw: (rows, 'available'))
+    api = fake_public_api(monkeypatch)
+    rows = [('해운대 카페', 'A05020900', '39', .0), ('해운대 전시관', 'A02060300', '14', .001), ('해운대 공원', 'A02020700', '12', .002),
+            ('해운대 두번째 카페', 'A05020900', '39', .0005), ('해운대 두번째 전시관', 'A02060300', '14', .0015),
+            ('해운대 두번째 공원', 'A02020700', '12', .0025)]
+    api['tour'] += [tour_item(i + 1, name, 35.163 + d, 129.163 + d, cat3=cat3, type_id=type_id, address=f'부산광역시 해운대구 우동 {i + 1}')
+                    for i, (name, cat3, type_id, d) in enumerate(rows)]
+    # 좌표는 해운대인데 주소가 서울인 항목은 다른 시·도로 보고 뺀다.
+    api['tour'].append(tour_item(99, '서울 카페', 35.163, 129.163, cat3='A05020900', address='서울특별시 중구 1'))
     c = Conditions(mode='real', allow_estimates=True, visit_date='2026-11-12', region='부산',
                    origin={'name': '부산광역시 해운대구 우동', 'lat': 35.163, 'lon': 129.163}, count=2)
     found = intent_discovery.discover_requested_places(c)
-    assert found['resolved'] >= 3, found
+    assert found['resolved'] == 6, found
     result = recommend(c)
     assert result['plans']
-    assert all(p['region'] == '부산' for plan in result['plans'] for p in plan['places'])
+    assert all(p['region'] == '부산' and p['id'].startswith('public:tour-') for plan in result['plans'] for p in plan['places'])
 
-    # 같은 시·도에 장소가 충분해도 출발지에서 닿지 않으면 그 동네를 새로 검색한다.
-    queries = []
-    monkeypatch.setattr(intent_discovery, 'local_lookup', lambda name, area, **kw: (queries.append(area), ([], 'available'))[1])
+    # 같은 시·도에 장소가 충분해도 출발지에서 닿지 않으면 그 동네(다른 격자)를 새로 찾는다.
+    used = len(api['calls'])
     far = c.model_copy(update={'origin': c.origin.model_copy(update={
         'name': '부산 동구 초량동 · 점검 축제 행사장 주변', 'lat': 35.1144, 'lon': 129.0464})})
-    assert intent_discovery.discover_requested_places(far)['status'] == 'not_found'
-    # 동네(초량동)로 먼저 찾고, 0건이면 남은 상한 안에서 구 단위로 한 번 되돌아간다.
-    assert queries[0] == '부산 동구 초량동' and set(queries) == {'부산 동구 초량동', '부산 동구'} and len(queries) <= 8
-    # 닿는 거리에 2곳 이상 확보된 종류(카페·전시·산책)가 2개 이상이면 다시 찾지 않는다.
-    queries.clear()
-    assert intent_discovery.discover_requested_places(c)['status'] == 'not_needed' and not queries
-
-
-@pytest.mark.parametrize('name,expected', [
-    ('부산광역시 해운대구 해운대해변로 264', '해운대구'),
-    ('경북 경주시 · 점검 축제 행사장 주변', '경주시'),
-    ('제주특별자치도 제주시 애월읍 애월로 1', '제주시 애월읍'),
-    ('경북 경주 황리단길', '경주 황리단길'),
-    ('부산 · 지도에서 선택', ''),
-])
-def test_search_area_uses_district_before_the_description(name, expected):
-    from app.intent_discovery import search_area
-    assert search_area(name, '부산') == expected
+    assert intent_discovery.discover_requested_places(far)['status'] == 'not_found' and len(api['calls']) > used
+    # 닿는 거리에 2곳 이상 확보된 종류(카페·전시·산책)가 2개 이상이면 상가정보는 받지 않는다(관광공사 목록은 캐시에서).
+    used, stores = len(api['calls']), len(calls(api, 'store'))
+    again = intent_discovery.discover_requested_places(c)
+    assert again['store_kinds'] == [] and len(calls(api, 'store')) == stores and len(api['calls']) == used

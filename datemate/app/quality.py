@@ -45,7 +45,8 @@ def wants_leisure(c):
     return '레저·활동' in set(c.themes or [])|set(filtering_themes(c))
 
 def from_leisure_search(place):
-    return LEISURE_SEARCH_SOURCE in (place.get('source_type') or '')
+    # leisure_search: 레저 패널이 공공 자료에서 찾은 운동 시설(app/leisure.py). 뒤 조건은 예전에 저장된 네이버 검색 장소.
+    return bool(place.get('leisure_search')) or LEISURE_SEARCH_SOURCE in (place.get('source_type') or '')
 
 def pool(c):
     from .catalog import places

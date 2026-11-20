@@ -1,12 +1,23 @@
+"""코스 장소 주변의 식당 후보.
+
+우리 식당 자료(data/restaurants.json)와 공공 자료(한국관광공사 관광정보의 음식점, 소상공인 상가정보의 음식 업종 — app/public_places.py)에서만 찾는다.
+2026-11-20 2단계: 예전에는 네이버 지역 검색의 '맛집'·'음식점' 결과를 리뷰순으로 받아 거르고 줄 세워 보여 줬다. 검색 결과를 우리 목록의
+입력으로 쓰지 않기로 해 뺐다(검색 API 특약 2.1·2.2, docs/naver-terms-stage2-design.ko.md 3.8(b)). 그래서 '리뷰가 많은 순'과 구 단위
+'유명 맛집' 목록은 없다(대신할 공공 자료가 없음). 화면은 네이버 지도 검색 링크를 따로 둔다.
+"""
 import json
 import math
-import hashlib
-import os
-from urllib.parse import urlencode
-import httpx
-from .telemetry import observed_http
 from .config import ROOT
 from .routes import distance
+
+# 장소에서 이 거리 안의 식당을 가까운 구간부터 보여 준다(500m → 1,000m → 1,500m).
+RADII_M=(500,1000,1500)
+PER_STOP=3
+TOUR_RECOGNITION='한국관광공사 관광정보에 실린 음식점'
+STORE_RECOGNITION='소상공인 상가정보에 등록된 음식점'
+RANKING_BASIS='한국관광공사 관광정보에 실린 음식점을 먼저, 그다음 소상공인 상가정보의 음식점을 가까운 순으로 보여 드려요. 후기·별점 순위가 아니에요.'
+DATA_NOTE='공공 자료에는 사진·영업시간·메뉴 가격·후기가 없는 곳이 많아요. 네이버 지도에서 확인해 주세요.'
+
 
 def restaurants():
     path=ROOT/'data/restaurants.json'
@@ -14,103 +25,105 @@ def restaurants():
     evidence=evidence_rows()
     return [apply_evidence(p,evidence) for p in json.loads(path.read_text('utf-8'))] if path.exists() else []
 
-def live_restaurant(place_id):
-    from . import naver_cache as store
-    from .operating_evidence import apply_evidence
-    place=store.cached('restaurant:'+place_id)
-    return apply_evidence(place) if place else None
 
-def search_nearby(plan,index,*,district=None,query_suffix='맛집',radius_m=500):
-    """권한 활성화 후 바로 쓸 수 있는 주변 업체 검색. 영업·가격 API는 아니다."""
-    from . import naver_cache as store
-    from .image_search import search_enabled,plain
+def search_url(name):
+    return 'https://map.naver.com/p/search/'+name+' 맛집'
+
+
+def public_food(plan,indices):
+    """코스 장소(indices)마다 주변의 공공 자료 음식점. (상태, {장소 번호: [식당, …]}).
+
+    식당은 가까운 구간(500m·1,000m·1,500m) 먼저, 같은 구간에서는 관광공사 항목 → 지점 표기 없는 상가정보 업소 → 가까운 순.
+    코스에 이미 있는 곳, 피할 낱말이 든 곳, 다른 시·도, 동네 범위 밖은 뺀다. 찾은 식당은 이 사용자의 보관분(24시간)에 둔다."""
+    from concurrent.futures import ThreadPoolExecutor
+    from . import public_places
+    from .intent_discovery import MAX_FETCH_KM,reach_km
+    from .models import Conditions
+    from .quality import in_area,same_place
+    from .regions import region_from_address
+    from .request_usage import context_map
+    if not public_places.enabled():return 'key_missing',{}
+    c=Conditions.model_validate(plan['conditions'])
+    places=plan['places']
+    region=c.region or region_from_address(places[0].get('address')) or '서울'
+    avoid=[w.casefold() for w in c.avoid if w]
+    center=(c.area_center or c.origin).model_dump()
+    # 추천이 후보를 찾을 때와 같은 중심·반경이라 관광공사 목록은 대개 캐시에서 나온다(app/intent_discovery.py).
+    tour=public_places.tour_near(center['lat'],center['lon'],min(MAX_FETCH_KM,c.neighborhood_radius_km if c.area_center else reach_km(c)))
+    tour_food=[p for p in (public_places.tour_place(row,region) for row in tour.get('rows') or []) if p and p['meal']]
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        sheets=context_map(pool,lambda i:public_places.stores_near('food',places[i]['lat'],places[i]['lon'])[0],indices)
+    statuses=[tour.get('status'),*(s.get('status') for s in sheets)]
+    groups={};shown=[]
+    for i,sheet in zip(indices,sheets):
+        a=places[i];b=places[min(i+1,len(places)-1)]
+        store_food=[pair[1] for pair in (public_places.store_place(row,region,sheet.get('data_month')) for row in sheet.get('rows') or []) if pair and pair[0]=='meal']
+        rows=[]
+        for food in tour_food+store_food:
+            meters=distance(a,food)*1000
+            if meters>RADII_M[-1] or not in_area(food,c):continue
+            if any(w in (food['name']+' '+food['description']).casefold() for w in avoid):continue
+            if any(same_place(food,p) or public_places.same_venue(food,p) for p in places):continue
+            radius=next(r for r in RADII_M if meters<=r)
+            rows.append((radius,food['public_source']!='tour',bool(food.get('branch')),meters,food['id'],food))
+        chosen=[]
+        for radius,_,_,meters,_,food in sorted(rows,key=lambda r:r[:5]):
+            if any(public_places.same_venue(food,other) for other in chosen):continue
+            tour_row=food['public_source']=='tour'
+            chosen.append(dict(food,cuisine=food['description'].split('>')[-1],recognition=TOUR_RECOGNITION if tour_row else STORE_RECOGNITION,
+                hours_text='영업시간·메뉴는 지도에서 확인',search_radius_m=radius,distance_m=round(meters),after_index=i,near_place=a['name'],
+                extra_distance_km=round(max(0,distance(a,food)+distance(food,b)-distance(a,b)),1),route_offset_km=round(segment_distance(food,a,b),1)))
+            if len(chosen)==PER_STOP:break
+        groups[i]=chosen;shown+=chosen
+    public_places.remember(shown,prefix=public_places.NEARBY_PREFIX)
+    status='available' if shown else ('not_found' if 'available' in statuses else 'unavailable')
+    return status,groups
+
+
+def search_nearby(plan,index):
+    """코스 장소 한 곳 주변의 공공 자료 음식점(GET /api/plans/{id}/restaurants)."""
     if plan.get('conditions',{}).get('mode')=='demo':return dict(status='demo',restaurants=[],message='가상 장소에서는 실제 식당을 검색하지 않습니다.')
     if index<0 or index>=len(plan['places']):raise ValueError('식사 추천 장소가 올바르지 않습니다.')
-    a=plan['places'][index];b=plan['places'][min(index+1,len(plan['places'])-1)]
-    from .regions import region_from_address, korean_coordinates
-    region=plan.get('conditions',{}).get('region') or region_from_address(a.get('address')) or '서울'
-    query=region+' '+(district or a['name'])+' '+query_suffix
-    search_url='https://map.naver.com/p/search/'+query
-    if not search_enabled():return dict(status='key_missing',restaurants=[],message='네이버 검색 키를 설정해 주세요.',search_url=search_url)
-    avoid=plan.get('conditions',{}).get('avoid',[])
-    key='local-restaurants-radius-v3:'+hashlib.sha256(json.dumps([a,b,avoid,district,query_suffix,radius_m],sort_keys=True,ensure_ascii=False).encode()).hexdigest()
-    cached=store.cached(key)
-    if cached:return cached
-    try:
-        response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/local',params=dict(query=query,display=5,sort='comment',format='json'),
-            headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=10)
-        if response.status_code in (401,403):return dict(status='permission_required',restaurants=[],message='네이버 클라우드 NAVER API HUB의 기존 Application에서 NAVER 검색 > 지역 API를 활성화해 주세요. 이미지·블로그 키는 그대로 사용할 수 있습니다.',search_url=search_url)
-        response.raise_for_status();items=response.json().get('items',[]);rows=[]
-        from datetime import datetime,timezone
-        for rank,item in enumerate(items,1):
-            category=plain(item.get('category',''))
-            if not any(word in category for word in ('음식점','한식','중식','일식','양식','분식')) or '카페' in category:continue
-            address=plain(item.get('roadAddress') or item.get('address') or '')
-            if region_from_address(address)!=region:continue
-            if district and district not in address.split():continue
-            try:
-                lon,lat=float(item['mapx']),float(item['mapy'])
-                if abs(lon)>180:lon/=10000000
-                if abs(lat)>90:lat/=10000000
-                if not korean_coordinates(lat,lon):continue
-            except (KeyError,ValueError,TypeError):continue
-            name=plain(item.get('title',''));r=dict(name=name,lat=lat,lon=lon)
-            if any(word.casefold() in (name+' '+category).casefold() for word in avoid if word):continue
-            offset=segment_distance(r,a,b);extra=max(0,distance(a,r)+distance(r,b)-distance(a,b))
-            near=distance(a,r)
-            if not district and near*1000>radius_m:continue
-            id='food:naver-'+hashlib.sha256((name+address).encode()).hexdigest()[:16]
-            # 항목마다 원본(네이버 지도의 같은 업체 검색)으로 가는 링크(특약 2.2 출처·원본 링크).
-            from urllib.parse import quote
-            from .search_address_text import place_query
-            item_url='https://map.naver.com/p/search/'+quote(place_query({'name':name,'address':address}))
-            r.update(id=id,address=address,cuisine=category,category='카페·미식',region=region,demo=False,review_search_rank=rank,meal=True,setting=None,breaks=None,last_entry=None,
-                recognition=f'네이버 카페·블로그 리뷰순 검색 {rank}번째 결과 · 별점 미제공',source=item_url,search_url=search_url,source_type='네이버 지역 검색',naver_result=True,
-                hours_text='운영시간·메뉴는 지도에서 확인',extra_distance_km=round(extra,1),route_offset_km=round(offset,1),
-                distance_m=round(near*1000),search_radius_m=radius_m,
-                checked_at=datetime.now(timezone.utc).isoformat(),description=category,tags=[category],photos=[],videos=[],license='검색 결과',
-                price=None,hours=None,closed_days=None,stay=None,reservation=None,rating=None,stay_basis=None,price_unit=None)
-            store.cache('restaurant:'+id,r,store.PERSONAL_MAX_SECONDS);rows.append(r)
-            if len(rows)==(5 if district else 3):break
-        result=dict(status='available' if rows else 'not_found',restaurants=rows,search_url=search_url,
-            message='' if rows else ('해당 구의 음식점 검색 결과가 없습니다.' if district else f'이 장소 반경 {radius_m:,}m 안의 음식점 검색 결과가 없습니다.'))
-        store.cache(key,result,3600);return result
-    except (httpx.HTTPError,ValueError,TypeError):return dict(status='unavailable',restaurants=[],message='지역 검색에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',search_url=search_url)
+    status,groups=public_food(plan,[index])
+    rows=groups.get(index,[])
+    return dict(status='available' if rows else status,restaurants=rows,search_url=search_url(plan['places'][index]['name']),
+        ranking_basis=RANKING_BASIS,message='' if rows else MESSAGES.get(status,MESSAGES['not_found']))
+
+
+MESSAGES={
+    'key_missing':'주변 식당을 찾으려면 공공데이터포털 키 설정이 필요해요. 네이버 지도에서 찾아 주세요.',
+    'unavailable':'공공 자료 조회에 연결하지 못했어요. 잠시 후 다시 시도하거나 네이버 지도에서 찾아 주세요.',
+    'not_found':'이 장소 1,500m 안에서 공공 자료에 실린 음식점을 찾지 못했어요. 네이버 지도에서 찾아 주세요.',
+}
 
 
 def meal_rescue(plan):
-    """식사 시간대 구성이 불가능한 코스에 주변 리뷰순 음식점 후보를 제시한다."""
-    from concurrent.futures import ThreadPoolExecutor
+    """식사 시간대 구성이 불가능한 코스에 주변 음식점 후보(공공 자료)를 제시한다."""
+    import hashlib
     from . import naver_cache as store
     from .models import Conditions
-    from .quality import in_area
     if not any(d['condition']=='meal' and d['state']=='unmet' for d in plan.get('deviations',[])):
         return dict(status='not_needed',restaurants=[])
     c=Conditions.model_validate(plan['conditions'])
     fingerprint=json.dumps([c.model_dump(mode='json'),[p['id'] for p in plan['places']]],sort_keys=True,ensure_ascii=False)
-    key='meal-rescue-500m-v2:'+hashlib.sha256(fingerprint.encode()).hexdigest()
+    key='public-nearby:rescue-v1:'+hashlib.sha256(fingerprint.encode()).hexdigest()
     cached=store.cached(key)
     if cached:return cached
-    indices=list(range(len(plan['places'])))
-    from .request_usage import context_map
-    with ThreadPoolExecutor(max_workers=3) as pool:groups=context_map(pool,lambda i:search_nearby(plan,i),indices)
-    rows={};existing={p['id'] for p in plan['places']}
-    for index,group in zip(indices,groups):
-        for food in group['restaurants']:
-            if food['id'] in existing or not in_area(food,c):continue
-            if any(''.join(food['name'].split()).casefold()==''.join(p['name'].split()).casefold() for p in plan['places']):continue
+    status,groups=public_food(plan,list(range(len(plan['places']))))
+    rows={}
+    for foods in groups.values():
+        for food in foods:
             if c.visit_date.weekday() in (food.get('closed_days') or []):continue
-            candidate=dict(food,after_index=index,near_place=plan['places'][index]['name'])
-            score=(candidate.get('review_search_rank',99),candidate['extra_distance_km'],candidate['route_offset_km'])
+            score=(food['public_source']!='tour',food['extra_distance_km'],food['route_offset_km'],food['distance_m'])
             old=rows.get(food['id'])
-            if not old or score<(old.get('review_search_rank',99),old['extra_distance_km'],old['route_offset_km']):rows[food['id']]=candidate
-    ranked=sorted(rows.values(),key=lambda p:(p.get('review_search_rank',99),p['extra_distance_km'],p['route_offset_km']))[:3]
-    result=dict(status='available' if ranked else 'not_found',restaurants=ranked,
-        ranking_basis='네이버 지역 검색의 카페·블로그 리뷰순 결과를 우선하고, 순위가 같으면 추가 이동이 적은 곳부터 표시해요. 별점은 제공되지 않아요.',
-        note='별도 식사 후보이며 현재 일정·방문 수·시간·예산에는 아직 포함되지 않아요. 영업시간·대기·예약·메뉴 가격을 확인해 주세요.',
-        message='' if ranked else next((g.get('message') for g in groups if g.get('status') in ('permission_required','unavailable','key_missing')),'설정한 동네 범위 안의 주변 식당을 찾지 못했어요. 이동 범위를 넓히거나 지도에서 확인해 주세요.'))
+            if not old or score<old[0]:rows[food['id']]=(score,food)
+    ranked=[food for _,food in sorted(rows.values(),key=lambda pair:pair[0])][:3]
+    result=dict(status='available' if ranked else 'not_found',restaurants=ranked,ranking_basis=RANKING_BASIS,
+        note='별도 식사 후보이며 현재 일정·방문 수·시간·예산에는 아직 포함되지 않아요. '+DATA_NOTE,
+        message='' if ranked else MESSAGES.get(status,'설정한 동네 범위 안의 주변 식당을 찾지 못했어요. 이동 범위를 넓히거나 지도에서 확인해 주세요.'))
     store.cache(key,result,600 if ranked else 30)
     return result
+
 
 def segment_distance(p,a,b):
     scale=math.cos(math.radians((a['lat']+b['lat'])/2))
@@ -118,6 +131,7 @@ def segment_distance(p,a,b):
     denominator=(bx-ax)**2+(by-ay)**2
     t=max(0,min(1,((px-ax)*(bx-ax)+(py-ay)*(by-ay))/denominator)) if denominator else 0
     return math.hypot(px-(ax+t*(bx-ax)),py-(ay+t*(by-ay)))*111.2
+
 
 def meal_suggestions(plan):
     if plan['conditions']['mode']!='real':return []
@@ -142,69 +156,30 @@ def meal_suggestions(plan):
         selected=[dict(r,extra_distance_km=round(detour,1),route_offset_km=round(offset,1),distance_m=round(distance(a,r)*1000)) for _,detour,offset,r in choices[:3]]
         used.update(r['id'] for r in selected)
         groups.append(dict(after_index=i,origin=a['name'],destination=b['name'],restaurants=selected,
-            search_url='https://map.naver.com/p/search/'+a['name']+' 맛집',
+            search_url=search_url(a['name']),
             note='장소 중심 반경 500m 이내 · 직선거리 기준. 식사 후보는 현재 일정·방문 수·시간·예산에 미포함이며 대기·예약·메뉴 가격은 매장 확인이 필요해요.'))
     return groups
 
 
 def restaurant_matches(plan):
-    """Every stop, including the last, plus a separate district-wide review ranking."""
-    from concurrent.futures import ThreadPoolExecutor
-    from collections import Counter
-    import re
+    """코스 장소마다 주변 식당 3곳까지: 우리 식당 자료(500m 안)를 먼저, 모자라면 공공 자료를 500m → 1,000m → 1,500m 순으로."""
     from .quality import same_place
-    if plan['conditions']['mode']!='real':return dict(groups=[],popular=None)
-    def district_of(address):
-        match=re.search(r'(?:서울특별시|서울시|서울)\s+([가-힣]+구)(?:\s|$)',address or '')
-        return match[1] if match else None
-    districts=[district_of(p.get('address')) for p in plan['places']]
-    districts=[d for d in districts if d]
-    district=Counter(districts).most_common(1)[0][0] if districts else None
+    from . import public_places
+    if plan['conditions']['mode']!='real':return dict(groups=[],radius_m=500)
     curated=meal_suggestions(plan)
     jobs=list(range(len(plan['places'])))
-    def nearby(i):
-        choices=[];attempts=[];last={}
-        for radius in (500,1000,1500):
-            attempts.append(radius)
-            # Keep closer matches first; never replace them with a wider search result.
-            sources=[dict(food,search_radius_m=500) for food in curated[i]['restaurants']] if radius==500 else []
-            for suffix in ('맛집','음식점'):
-                last=search_nearby(plan,i,query_suffix=suffix,radius_m=radius)
-                sources=last['restaurants']+sources
-                for food in sources:
-                    if distance(plan['places'][i],food)*1000>radius:continue
-                    if any(same_place(food,p) for p in plan['places']+choices):continue
-                    choices.append(dict(food,after_index=i,near_place=plan['places'][i]['name'],
-                        search_radius_m=radius,distance_m=round(distance(plan['places'][i],food)*1000)))
-                    if len(choices)>=3:break
-                sources=[]
-                if len(choices)>=3 or last['status'] not in ('available','not_found'):break
-            if len(choices)>=3 or last.get('status') not in ('available','not_found'):break
-        return dict(last,restaurants=choices[:3],status='available' if choices else last.get('status','not_found'),
-            searched_radii_m=attempts,effective_radius_m=attempts[-1],
-            note='500m부터 찾고, 3곳 미만이면 1,000m → 1,500m 순서로 보충해요. 표시는 코스 장소에서의 직선거리이며 일정에는 미포함입니다.')
-    from .request_usage import context_map
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        results=context_map(pool,nearby,jobs)
+    status,found=public_food(plan,jobs)
     groups=[]
-    for i,(base,live) in enumerate(zip(curated,results)):
-        groups.append(dict(base,**{key:value for key,value in live.items() if key!='search_url'}))
-    popular=None
-    if district:
-        result=search_nearby(plan,0,district=district)
-        rows=[]
-        candidates=list(result['restaurants'])
-        # 기본 검색의 카페·다른 구 결과를 제외한 뒤 부족하면 음식점 검색으로 보충한다.
-        if len(candidates)<5 and result['status'] in ('available','not_found'):
-            for suffix in ('음식점','한식 맛집'):
-                extra=search_nearby(plan,0,district=district,query_suffix=suffix)
-                for food in extra['restaurants']:
-                    if not any(same_place(food,p) for p in candidates):candidates.append(food)
-                if len(candidates)>=5:break
-        for food in candidates:
-            if any(same_place(food,p) for p in rows):continue
-            nearest=min(jobs,key=lambda i:distance(food,plan['places'][i]))
-            rows.append(dict(food,after_index=nearest,near_place=plan['places'][nearest]['name']))
-        popular=dict(result,restaurants=rows[:5],district=district,status='available' if rows else result['status'],message='' if rows else result.get('message',''),
-            ranking_basis='네이버 지역 검색의 카페·블로그 리뷰순 후보 5곳입니다. 맛집 검색에서 부족하면 음식점·한식 검색으로 보충합니다. 별점·절대 인기 순위가 아니며, 500m 제한과 별도로 해당 구 전체에서 찾습니다.')
-    return dict(groups=groups,popular=popular,radius_m=500)
+    for i,base in enumerate(curated):
+        choices=[dict(food,after_index=i,near_place=plan['places'][i]['name'],search_radius_m=500) for food in base['restaurants']]
+        for food in found.get(i,[]):
+            if len(choices)>=PER_STOP:break
+            if any(same_place(food,p) or public_places.same_venue(food,p) for p in choices):continue
+            choices.append(food)
+        choices.sort(key=lambda food:food['search_radius_m'])
+        radius=max((food['search_radius_m'] for food in choices),default=RADII_M[-1])
+        groups.append(dict(base,restaurants=choices,status='available' if choices else status,
+            message='' if choices else MESSAGES.get(status,MESSAGES['not_found']),
+            searched_radii_m=[r for r in RADII_M if r<=radius],effective_radius_m=radius,ranking_basis=RANKING_BASIS,
+            note='500m부터 찾고, 3곳 미만이면 1,000m → 1,500m 순서로 보충해요. 표시는 코스 장소에서의 직선거리이며 일정에는 미포함입니다. '+DATA_NOTE))
+    return dict(groups=groups,radius_m=500)

@@ -57,7 +57,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   const resultList=node('ul',undefined,'origin-search-results');resultList.id='origin-search-results';resultList.setAttribute('role','listbox');resultList.setAttribute('aria-label','지역 검색 결과');resultList.hidden=true;
   originInput.setAttribute('role','combobox');originInput.setAttribute('aria-autocomplete','list');originInput.setAttribute('aria-expanded','false');
   originInput.setAttribute('aria-controls',resultList.id);originInput.setAttribute('aria-describedby',searchStatus.id);
-  mapButton.before(searchStatus,resultList);
+  // 장소 이름으로 찾은 결과(네이버 지역 검색)는 '네이버 검색결과' 블록 안에 목록을 둔다(naver-attribution.js naverResultBlock).
+  // 주소 검색(지오코딩) 결과와 접힌 상태에서는 목록을 블록 없이 이 자리에 둔다.
+  const resultHolder=node('div',undefined,'origin-search-holder');resultHolder.append(resultList);
+  mapButton.before(searchStatus,resultHolder);
   // 목록을 누르는 동안 입력칸의 포커스를 잃지 않게 한다(잃으면 입력 중인 글이 원래 지역으로 되돌아간다).
   resultList.addEventListener('mousedown',event=>event.preventDefault());
   let searchResults=[],activeIndex=-1,searching=false,appliedOrigin=locationState.origin;
@@ -65,7 +68,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   function regionOf(point){return regionFromAddress(point.road_address)||regionFromAddress(point.jibun_address)||regionFromAddress(point.name);}
   // 출발지 이름은 시·도로 시작해야 서버의 시·도·주소 일치 검증을 통과한다.
   function originNameOf(point,area){const address=String(point.road_address||point.jibun_address||point.name||'').trim();return regionFromAddress(address)===area?address:area+' '+address;}
-  function closeResults(){resultList.hidden=true;resultList.replaceChildren();searchResults=[];activeIndex=-1;originInput.setAttribute('aria-expanded','false');originInput.removeAttribute('aria-activedescendant');}
+  function closeResults(){resultHolder.replaceChildren(resultList);resultList.hidden=true;resultList.replaceChildren();searchResults=[];activeIndex=-1;originInput.setAttribute('aria-expanded','false');originInput.removeAttribute('aria-activedescendant');}
   function setActive(index){
     activeIndex=index;
     [...resultList.children].forEach((item,i)=>item.setAttribute('aria-selected',String(i===index)));
@@ -90,6 +93,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       item.addEventListener('click',()=>chooseResult(i));
       resultList.append(item);
     });
+    if(results.some(point=>point.place_name)){
+      const block=naverResultBlock('지역 검색','https://map.naver.com/p/search/'+encodeURIComponent(originInput.value.trim()),{tag:'div',className:'origin-naver-block'});
+      block.body.append(resultList);resultHolder.replaceChildren(block);
+      // 블록 머리글의 링크를 누르는 동안에도 입력칸의 포커스를 지킨다(목록과 같은 이유). 링크의 새 창 열기는 click 이라 그대로 된다.
+      block.addEventListener('mousedown',event=>event.preventDefault());
+    }
     resultList.hidden=false;originInput.setAttribute('aria-expanded','true');
     const usable=results.filter(regionOf).length;
     searchStatus.textContent=usable?`검색 결과 ${results.length}곳이에요. 하나를 누르거나 위아래 화살표로 고른 뒤 Enter 를 눌러 주세요.`:'시·도를 알 수 없는 결과뿐이에요. 시·도 이름을 붙여(예: 부산 광안리) 다시 검색하거나 ‘지도에서 고르기’를 이용해 주세요.';

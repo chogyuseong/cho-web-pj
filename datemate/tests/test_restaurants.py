@@ -47,26 +47,32 @@ def test_curated_closed_day_is_not_recommended_for_meals():
     groups=meal_suggestions(recommend(c)['plans'][0])
     assert all(r['id']!='food:gwanghwamun-gukbap' for g in groups for r in g['restaurants'])
 
-def test_live_search_permission_problem_is_actionable_without_secret(monkeypatch):
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID','test');monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET','secret')
-    monkeypatch.setattr(httpx,'get',lambda url,**kwargs:httpx.Response(401,request=httpx.Request('GET',url)))
-    p={'places':[{'id':'a','name':'서울시청'},{'id':'b','name':'광화문'}]}
-    result=search_nearby(p,0)
-    assert result['status']=='permission_required' and '지역 API' in result['message']
-    assert 'secret' not in str(result)
+def nearby_plan():
+    a=dict(id='x',name='서울시청',lat=37.5665,lon=126.978,address='서울 중구 세종대로 110',region='서울')
+    b=dict(a,id='y',name='광화문',lat=37.57)
+    c=Conditions(mode='real',allow_estimates=True,visit_date=date(2026,10,24),origin=dict(name='서울시청',lat=37.5665,lon=126.978))
+    return dict(places=[a,b],conditions=c.model_dump(mode='json'))
 
-def test_live_search_wgs84_coordinates_and_food_filter(monkeypatch):
+
+def test_nearby_search_without_the_public_data_key_points_to_the_map(monkeypatch):
+    # 네이버 검색 키가 있어도 주변 식당은 네이버 지역 검색을 부르지 않는다(2026-11-20 2단계). 공공데이터포털 키가 없으면 지도 링크만 안내한다.
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID','test');monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET','secret')
-    def get(url,**kwargs):
-        return httpx.Response(200,request=httpx.Request('GET',url),json={'items':[
-            dict(title='<b>밥집</b>',category='음식점>한식',roadAddress='서울 중구 세종대로',mapx='1269780000',mapy='375665000'),
-            dict(title='카페',category='카페,디저트',roadAddress='서울 중구 세종대로',mapx='1269780000',mapy='375665000'),
-            dict(title='외부',category='음식점>한식',roadAddress='경기도 성남시',mapx='1271000000',mapy='374000000')
-        ]})
-    monkeypatch.setattr(httpx,'get',get)
-    p={'places':[dict(id='x',name='서울시청',lat=37.5665,lon=126.978),dict(id='y',name='광화문',lat=37.57,lon=126.978)]}
-    result=search_nearby(p,0)
+    monkeypatch.setattr(httpx,'get',lambda url,**kwargs:(_ for _ in ()).throw(AssertionError('외부 호출')))
+    result=search_nearby(nearby_plan(),0)
+    assert result['status']=='key_missing' and result['restaurants']==[] and '네이버 지도' in result['message']
+    assert result['search_url'].startswith('https://map.naver.com/p/search/') and 'secret' not in str(result)
+
+
+def test_nearby_search_uses_public_food_rows_in_the_same_region(monkeypatch):
+    from public_fakes import fake_public_api,store_item
+    monkeypatch.setattr('app.restaurants.restaurants',lambda:[])
+    api=fake_public_api(monkeypatch)
+    api['stores']+=[store_item('R1','밥집',37.5665,126.9785,code='I20101',address='서울특별시 중구 세종대로 1'),
+                    store_item('R2','카페',37.5665,126.9786,code='I21201',label='카페',address='서울특별시 중구 세종대로 2'),
+                    store_item('R3','외부',37.5666,126.9785,code='I20101',address='경기도 성남시 분당구 1')]
+    result=search_nearby(nearby_plan(),0)
     assert len(result['restaurants'])==1
     restaurant=result['restaurants'][0]
-    assert restaurant['name']=='밥집' and restaurant['lat']==37.5665
+    assert restaurant['name']=='밥집' and restaurant['lat']==37.5665 and restaurant['id']=='public:store-R1'
+    assert restaurant['recognition']=='소상공인 상가정보에 등록된 음식점' and not api['naver']
     assert get_place(restaurant['id'],'real')['name']=='밥집'

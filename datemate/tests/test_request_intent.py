@@ -79,17 +79,19 @@ def test_abbreviated_region_in_search_is_preserved():
         assert configure(c,query).area_center.name==region+' 중심'
 
 
-def test_local_cafe_discovery_checks_category_coordinates_and_area(monkeypatch):
+def test_public_cafe_discovery_checks_class_and_region(monkeypatch):
+    from app import public_places
     from app.intent_discovery import discover_requested_places
-    monkeypatch.setattr('app.intent_discovery.search_enabled',lambda:True)
-    monkeypatch.setattr('app.intent_discovery.local_lookup',lambda *a:([
-        dict(title='실제 카페',category='카페,디저트',roadAddress='서울 종로구 인사동길',mapx=1269850000,mapy=375750000),
-        dict(title='음식점',category='음식점>한식',roadAddress='서울 종로구 인사동길',mapx=1269850000,mapy=375750000),
-        dict(title='먼 카페',category='카페,디저트',roadAddress='서울 강남구',mapx=1270500000,mapy=375000000)],'available'))
+    from public_fakes import fake_public_api, store_item
+    api=fake_public_api(monkeypatch)
+    monkeypatch.setattr('app.catalog._places',lambda *a,**k:public_places.candidates())
+    monkeypatch.setattr('app.restaurants.restaurants',lambda:[])
+    api['stores']+=[store_item('K1','실제 카페',37.575,126.985,code='I21201',label='카페',address='서울특별시 종로구 인사동길 1'),
+                    store_item('K2','음식점',37.575,126.985,code='I20101',address='서울특별시 종로구 인사동길 2'),
+                    store_item('K3','경기 카페',37.5751,126.985,code='I21201',label='카페',address='경기도 고양시 덕양구 1')]
     c=normalize(Conditions(mode='real',visit_date='2026-10-24',course_query='종로 카페투어',area_center=dict(name='종로',lat=37.575,lon=126.985)))
-    assert discover_requested_places(c)['resolved']==1
+    result=discover_requested_places(c)
+    assert result['resolved']==1 and result['kind_stats']['cafe']['other_region']==1
     found=[p for p in places('real') if p['name']=='실제 카페']
-    assert found and matches(found[0],'cafe') and found[0]['hours'] is None
-    from app import store
-    with store.connect() as db:
-        db.execute('DELETE FROM cache WHERE key=?',('discovered-place:'+found[0]['id'],))
+    assert found and matches(found[0],'cafe') and found[0]['hours'] is None and found[0]['id'].startswith('public:store-')
+    assert not api['naver']

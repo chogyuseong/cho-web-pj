@@ -300,7 +300,7 @@ def test_media_and_identity_endpoints_answer_from_the_cache_only(public_api):
 def test_naver_local_search_is_not_used_for_identity(public_api, monkeypatch):
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'id')
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'secret')
-    monkeypatch.setattr('app.discovery.local_lookup', lambda *a, **k: pytest.fail('네이버 지역 검색 호출'))
+    monkeypatch.setattr('app.naver_local.lookup', lambda *a, **k: pytest.fail('네이버 지역 검색 호출'))
     public_api['store'] = store_body([store_row('어니언', 37.5448, 127.0559)])
     place_identity.verify_identity(CAFE)
     place_identity._work()

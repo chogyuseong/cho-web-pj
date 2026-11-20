@@ -109,7 +109,13 @@ async function openLocationPicker(kind){
       const data=await api('/locations/search',{query:query.value.trim()}),at=Date.now();
       if(!canvas.isConnected||!$('#dialog').open)return;
       message.textContent=data.message||'검색 결과에서 원하는 주소를 선택하세요. 도로명 주소를 우선 표시합니다.';
-      for(const found of data.results){const point={...found,received_at:at};const option=button('',()=>choose(point),'location-result');option.append(node('strong',point.road_address||point.name));if(point.jibun_address)option.append(node('span','지번: '+point.jibun_address,'hint'));results.append(option);if(point.place_name)results.append(naverAttribution('지역 검색',placeMapUrl({name:point.place_name,address:point.road_address||point.jibun_address||point.name})));}
+      // 장소 이름으로 찾은 결과(네이버 지역 검색)는 받은 순서 그대로 '네이버 검색결과' 블록 하나에 담는다(naver-attribution.js naverResultBlock).
+      // 주소 검색(네이버 Maps 지오코딩) 결과는 검색 API 결과가 아니라 블록 없이 그린다.
+      const local=data.results.some(found=>found.place_name);
+      const block=local?naverResultBlock('지역 검색','https://map.naver.com/p/search/'+encodeURIComponent(query.value.trim()),{tag:'div',className:'location-naver-block'}):null;
+      const target=block?block.body:results;
+      if(block)results.append(block);
+      for(const found of data.results){const point={...found,received_at:at};const option=button('',()=>choose(point),'location-result');if(point.place_name)option.append(node('strong',point.place_name),node('span',point.road_address||point.name,'location-result-address'));else option.append(node('strong',point.road_address||point.name));if(point.jibun_address)option.append(node('span','지번: '+point.jibun_address,'hint'));target.append(option);}
     }catch(error){message.textContent=error.message;}finally{searchButton.disabled=false;}
   };
   // 키가 있으면 네이버 지도를 우선 사용하고, 없거나 로딩 실패면 공개 지도 사용.

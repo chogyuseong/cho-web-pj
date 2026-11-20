@@ -292,9 +292,9 @@ def test_media_refresh_is_limited_per_owner_and_ip(monkeypatch):
 
 @pytest.mark.usefixtures('same_rate_window')
 def test_explore_query_length_and_uncached_search_limit(monkeypatch):
-    from app import explore
-    monkeypatch.setattr(explore, 'search_enabled', lambda: True)
-    monkeypatch.setattr(explore, 'lookup', lambda client, query: (query, [], 'available'))
+    # 둘러보기 기본 목록은 공공 자료에서 온다(app/explore.py). 새 조건은 공공 API 를 부르므로 IP 범위마다 분당 횟수를 묶는다.
+    from public_fakes import fake_public_api
+    fake_public_api(monkeypatch)
     monkeypatch.setenv('DATEMATE_IP_EXPLORE_SEARCHES_PER_MINUTE', '1')
     word = uuid.uuid4().hex[:8]
     with TestClient(app, client=(unique_ip(), 1)) as client:

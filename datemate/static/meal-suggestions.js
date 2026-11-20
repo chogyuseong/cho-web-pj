@@ -51,9 +51,9 @@ function restaurantCard(food,{badge='',near='',plan=null,index=0}={}){
   if(food.hours_text)info.append(node('p',food.hours_text,'small'));
   if(near)info.append(node('p',near,'hint'));
   if(food.extra_distance_km!=null)info.append(node('p','직선 기준 추가 이동 약 '+food.extra_distance_km+'km','hint'));
-  if(food.recognition&&food.source)info.append(link(food.recognition+' ↗',food.source));
-  // 네이버 지역 검색 결과 식당: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2).
-  if(isNaverResult(food))info.append(naverAttribution('지역 검색',food.source));
+  // 공공 자료(한국관광공사·소상공인 상가정보)에서 찾은 식당은 출처 한 줄, 우리 식당 자료는 근거 링크(app/restaurants.py).
+  if(isPublicDataPlace(food))info.append(publicDataSource(food));
+  else if(food.recognition&&food.source)info.append(link(food.recognition+' ↗',food.source));
   const photo=node('div',undefined,'meal-photo');photo.append(placePhotoPanel(food,'real'));
   const actions=node('div',undefined,'actions meal-actions');actions.append(button('사진·장소 정보',()=>showPlace(food.id,'real'),'secondary'),placeMapLink('네이버 지도·메뉴 ↗',food));
   if(plan&&plan.can_edit!==false)actions.append(button('이 식당을 일정에 넣기',()=>showMealChange(food,plan,index),'primary'));card.append(info,photo,actions,placeBlogPanel(food,'real'));return card;
@@ -61,12 +61,12 @@ function restaurantCard(food,{badge='',near='',plan=null,index=0}={}){
 function mealRescuePanel(plan){
   // 보관 기간(21일)이 지나 좌표를 지운 장소가 있는 코스는 주변 식당을 찾지 않는다(서버 409, naver-attribution.js planHistoryExpired).
   if(planHistoryExpired(plan))return document.createDocumentFragment();
-  const panel=node('section',undefined,'meal-rescue');panel.append(node('h4','대신 들르기 좋은 코스 주변 식당'),node('p','네이버 리뷰순으로 주변 음식점을 찾고 있어요…','hint'));
+  const panel=node('section',undefined,'meal-rescue');panel.append(node('h4','대신 들르기 좋은 코스 주변 식당'),node('p','공공 자료에서 주변 음식점을 찾고 있어요…','hint'));
   if(!mealRescueRequests.has(plan.id))mealRescueRequests.set(plan.id,api('/plans/'+encodeURIComponent(plan.id)+'/meal-rescue').catch(e=>{mealRescueRequests.delete(plan.id);throw e;}));
   mealRescueRequests.get(plan.id).then(data=>{
     panel.replaceChildren(node('h4','대신 들르기 좋은 코스 주변 식당'),node('p',data.ranking_basis||data.message||'추가 식사 후보가 없습니다.','hint'));
     for(const [i,food] of data.restaurants.entries()){
-      panel.append(restaurantCard(food,{badge:i===0?'우선 추천':'주변 추천 '+(i+1),near:food.near_place+' 인근',plan,index:food.after_index||0}));
+      panel.append(restaurantCard(food,{badge:'주변 식당 '+(i+1),near:food.near_place+' 인근',plan,index:food.after_index||0}));
     }
     if(!data.restaurants.length&&data.message)panel.append(node('p',data.message,'hint'));
     if(data.note)panel.append(node('p',data.note,'hint'));
@@ -76,7 +76,7 @@ function mealRescuePanel(plan){
 function estimatedPlanNotice(){return node('p','이동 시간은 추정값이에요. 장소별 운영시간·입장료의 확인 여부는 조건 확인과 비용표에서 볼 수 있어요. 길찾기로 실제 이동을 확인해 주세요.','hint');}
 const restaurantMatchRequests=new Map();
 function fetchRestaurantMatches(plan){
-  if(planHistoryExpired(plan))return Promise.resolve({groups:[],popular:null});
+  if(planHistoryExpired(plan))return Promise.resolve({groups:[]});
   if(!restaurantMatchRequests.has(plan.id))restaurantMatchRequests.set(plan.id,api('/plans/'+encodeURIComponent(plan.id)+'/restaurant-matches').catch(error=>{restaurantMatchRequests.delete(plan.id);throw error;}));
   return restaurantMatchRequests.get(plan.id);
 }
@@ -97,24 +97,15 @@ function mealSuggestionPanel(plan,index){
     const origin=plan.conditions.origin?.name||'';
     const area=(origin&&!origin.startsWith('지도에서 선택')?origin:plan.conditions.area_center?.name||place.name)
       .replace(/\s*대표 위치.*$/,'').replace(/\s*(지역 중심|중심)$/,'').trim()||place.name;
-    const more=link('다른 맛집이 궁금하세요?','https://search.naver.com/search.naver?'+new URLSearchParams({query:area+' 주변 맛집'}));
+    // 후기가 많은 곳·유명한 곳은 공공 자료로 알 수 없어 네이버 검색으로 잇는다(검색 결과를 우리가 받아 쓰지 않는 바깥 링크).
+    const more=link('후기 많은 맛집은 네이버에서 찾기 ↗','https://search.naver.com/search.naver?'+new URLSearchParams({query:area+' 주변 맛집'}));
     more.className='secondary more-restaurants';
     more.title=area+' 주변 맛집 네이버 검색 · 새 탭';
     // 찾은 식당이 없으면 큰 상자 대신 한 줄 안내와 검색 링크만 둔다(2026-11-17 가독성 정리).
-    if(!group?.restaurants.length){panel.classList.add('is-empty');panel.append(node('p',group?.message||'반경 1,500m까지 검색했지만 확인된 식당이 없어요.','hint'),more);return;}
-    panel.append(list,more,node('p',group?.note||'반경 500m · 직선거리 기준','hint'));
+    if(!group?.restaurants.length){panel.classList.add('is-empty');panel.append(node('p',group?.message||'반경 1,500m 안에서 공공 자료에 실린 음식점을 찾지 못했어요.','hint'),more);return;}
+    panel.append(list,more);
+    if(group?.ranking_basis)panel.append(node('p',group.ranking_basis,'hint meal-ranking-basis'));
+    panel.append(node('p',group?.note||'반경 500m · 직선거리 기준','hint'));
   }).catch(()=>panel.append(node('p','식당 검색에 실패했어요.','hint'),button('다시 찾기',()=>panel.replaceWith(mealSuggestionPanel(plan,index)))));
-  return panel;
-}
-function regionalRestaurantPanel(plan){
-  if(plan.conditions.mode!=='real')return document.createDocumentFragment();
-  const panel=node('section',undefined,'meal-suggestions regional-restaurants');panel.append(node('h4','코스 지역의 유명 맛집 5곳'),node('p','지역별 리뷰순 맛집을 찾고 있어요…','hint'));
-  fetchRestaurantMatches(plan).then(data=>{
-    const popular=data.popular;panel.replaceChildren(node('h4',popular?popular.district+' 유명 맛집 TOP 5':'코스 지역의 유명 맛집'));
-    if(!popular){panel.append(node('p','장소 주소에서 지역을 확인하지 못했어요.','hint'));return;}
-    panel.append(node('p',popular.ranking_basis,'hint'));
-    for(const [i,food] of popular.restaurants.entries())panel.append(restaurantCard(food,{badge:'맛-'+(i+1)+' · 리뷰순 추천',near:food.near_place+' 코스와 가장 가까워요 · 지역 전체 추천',plan,index:food.after_index}));
-    if(popular.restaurants.length<5)panel.append(node('p',popular.message||'조건과 지역이 일치하는 결과만 표시해요. 검색 결과가 5곳보다 적을 수 있어요.','hint'));
-  }).catch(()=>panel.append(node('p','지역 맛집 검색에 실패했어요.','hint'),button('다시 찾기',()=>panel.replaceWith(regionalRestaurantPanel(plan)))));
   return panel;
 }

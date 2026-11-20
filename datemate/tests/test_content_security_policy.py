@@ -114,7 +114,7 @@ def offline_routes(context, base, explore_rows):
             # The last card has no photos but a Wikidata item, so the browser asks Wikimedia.
             if explore_rows and path.split('/')[-2] == explore_rows[-1]['id']:
                 return route.fulfill(json={'photos': [], 'videos': [], 'wikidata_id': 'Q1'})
-            photos = [dict(kind='search_result', source=url, image_url=url, url=url, title='사진',
+            photos = [dict(kind='place_public', source=url, image_url=url, url=url, title='사진',
                            checked_at='2026-11-01', source_label='검색') for url in PHOTO_URLS]
             return route.fulfill(json={'photos': photos, 'videos': []})
         if path.endswith(('/blogs', '/menu')):

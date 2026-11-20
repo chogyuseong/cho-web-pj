@@ -14,7 +14,7 @@ def setup_photos(page,base,ready,requests):
         photos=[]
         if ready[0]:
             for name in ('broken','first','first','second','third'):
-                photos.append({'kind':'search_result','source_label':'업체 등록 사진','title':name,'source':base+'/leisure-'+name+'.png','image_url':base+'/leisure-'+name+'.png','search_url':base})
+                photos.append({'kind':'place_public','source_label':'업체 등록 사진','title':name,'source':base+'/leisure-'+name+'.png','image_url':base+'/leisure-'+name+'.png','search_url':base})
         route.fulfill(json={'photos':photos,'message':'검색된 사진이 없어요.'})
     page.route('**/api/places/photo-sport/media?*',media)
     def image(route):

@@ -18,8 +18,8 @@ with sync_playwright() as pw:
         page.evaluate('''p=>{selected=p;plans=[p];locks=new Set();renderResults();renderDetail();}''',result['plans'][0])
         assert page.locator('.concept-place-reasons .hint').count()==len(result['plans'][0]['places'])
         page.locator('.course-evidence > summary').click()
-        page.get_by_text('실제 검색 기록 보기',exact=True).click()
-        assert evidence['requested_query'] in page.locator('.course-search-panel').inner_text()
+        # 패널은 실제로 쓴 검색어(query)와, 결과가 없어 검색어를 줄였을 때의 원래 검색어를 보여 준다.
+        assert evidence['query'] in page.locator('.course-search-panel').inner_text()
         records.append({'concept':concept,'searches':len(evidence['search_history']),'relaxed':evidence['search_relaxed']})
     page.set_viewport_size({'width':390,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')

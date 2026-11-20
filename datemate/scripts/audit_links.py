@@ -14,9 +14,6 @@ for row in rows:
   for k in ['source','place_source','operations_source']:
    u=place.get(k)
    if isinstance(u,str) and u.startswith('https://') and u not in urls:urls.append(u)
- for cost in p['costs']:
-  for q in cost.get('price_evidence') or []:
-   if q['source'] not in urls:urls.append(q['source'])
 def check(u):
  try:
   r=httpx.get(u,timeout=7,follow_redirects=True);return {'url':u,'status':r.status_code,'final':str(r.url)}

@@ -1,35 +1,28 @@
 const placeBlogRequests=new Map();
-/* 네이버 블로그 검색이 중간에서 자른 제목·요약 다듬기(순수 함수). 잘린 표시(... / …)가 있을 때만 손대고, 없는 글자는 채우지 않는다. */
-const BLOG_CUT_MARK=/(?:\s*(?:\.{3,}|…))+\s*$/;
-const BLOG_TRAILING_MARKS=/[\s|\-–—:·,/\\[(<{【「『"']+$/;
-// 낱말이 이 글자로 끝나면 다 쓴 낱말(문장 끝)로 본다.
-const BLOG_WORD_END=/(?:[.!?~)\]」』】"'”’]|요|다)$/;
-function blogCleanText(value){return String(value||'').replace(/\s+/g,' ').trim();}
-// 잘림 표시를 걷어 내고, 표시가 낱말에 바로 붙어 있던 덜 끝난 낱말과 남은 구분 기호를 뗀다.
-function blogDropPartial(text){
-  const attached=/[^\s.…](?:\.{3,}|…)+\s*$/.test(text);
-  let rest=text.replace(BLOG_CUT_MARK,'');
-  if(attached){const words=rest.split(' ');if(words.length>1&&!BLOG_WORD_END.test(words.at(-1))){words.pop();rest=words.join(' ');}}
-  rest=rest.replace(BLOG_TRAILING_MARKS,'');
-  // 닫히지 않은 괄호로 시작한 꾸밈말(예: "[분위기")은 덜 끝난 조각이라 괄호부터 뗀다.
-  const open=Math.max(...['[','(','【','「','『','<'].map(mark=>rest.lastIndexOf(mark)));
-  if(open>0&&!/[\])】」』>]/.test(rest.slice(open)))rest=rest.slice(0,open).replace(BLOG_TRAILING_MARKS,'');
-  return rest||text.replace(BLOG_CUT_MARK,'');
+/* 네이버 블로그 검색 결과 블록(네이버 검색 API 특약 2.2, 2026-09 개정).
+   받은 순서 그대로, 받은 건수 그대로, 제목·요약은 API 가 준 글자 그대로 넣는다. 고르거나 다시 줄 세우지 않고, 잘린 제목·요약을 다듬지 않으며,
+   블록 안에는 API 가 준 것(제목·작성자·작성일·요약·원본 링크)과 출처 표시만 둔다. 우리 설명·판정은 블록 밖에 적는다.
+   목록이 길면 처음 first 건만 펴고 나머지는 블록 뒤의 「더 보기」로 편다(순서·내용은 그대로).
+   장소 블로그 후기 패널(아래)과 코스 조사 패널(course-search.js)이 함께 쓴다. */
+function naverBlogItem(post){
+  const item=node('li',undefined,'blog-search-post'),title=link(post.title||post.url||'',post.url);
+  title.classList.add('blog-post-title');
+  item.append(title);
+  const meta=[post.blogger,post.posted_at].filter(Boolean).join(' · ');
+  if(meta)item.append(node('small',meta,'blog-meta'));
+  if(post.description)item.append(node('p',post.description,'blog-summary'));
+  return item;
 }
-function blogTitleText(value){
-  const text=blogCleanText(value);
-  if(!BLOG_CUT_MARK.test(text))return {text,cut:false};
-  return {text:blogDropPartial(text)+'…',cut:true};
-}
-// 요약은 마지막으로 끝난 문장까지만 남긴다. 그러면 너무 짧아질 때(40자 미만)는 낱말 경계에서 끊고 …를 붙인다.
-function blogExcerptText(value,minimum=40){
-  const text=blogCleanText(value);
-  if(!BLOG_CUT_MARK.test(text))return {text,cut:false};
-  const rest=text.replace(BLOG_CUT_MARK,'');
-  let end=-1;
-  for(const match of rest.matchAll(/[.!?](?=\s|$)|(?:[아어여해세이에예네죠까]요|니다|[었았였했]다)(?=\s)/g))end=match.index+match[0].length;
-  if(end>=minimum)return {text:rest.slice(0,end).trim(),cut:true};
-  return {text:blogDropPartial(text)+'…',cut:true};
+function naverBlogBlock(posts,searchUrl,first=5){
+  const wrap=document.createDocumentFragment(),block=node('div',undefined,'naver-result-block'),list=node('ol',undefined,'blog-post-list');
+  list.append(...posts.slice(0,first).map(naverBlogItem));
+  block.append(naverAttribution('블로그 검색',searchUrl),list);
+  wrap.append(block);
+  if(posts.length>first){
+    const more=button(`나머지 ${posts.length-first}건 더 보기`,()=>{more.remove();list.append(...posts.slice(first).map(naverBlogItem));},'secondary blog-more');
+    wrap.append(more);
+  }
+  return wrap;
 }
 function placeBlogPanel(place,blogMode){
   const panel=node('details',undefined,'place-blogs');
@@ -48,37 +41,19 @@ function placeBlogPanel(place,blogMode){
   function state(text,key){const box=node('div',undefined,'blog-state');box.append(node('p',text,'hint'),retry(key));return box;}
   async function load(){
     loaded=true;content.setAttribute('aria-busy','true');
-    const status=node('p','네이버 블로그 후기를 찾고 있어요…','hint blog-status');status.setAttribute('role','status');
+    const status=node('p','네이버 블로그 글을 찾고 있어요…','hint blog-status');status.setAttribute('role','status');
     content.replaceChildren(status,skeleton());
     const key=blogMode+':'+place.id;
     try{
       if(!placeBlogRequests.has(key))placeBlogRequests.set(key,api('/places/'+encodeURIComponent(place.id)+'/blogs?mode='+blogMode).catch(error=>{placeBlogRequests.delete(key);throw error;}));
       const data=await placeBlogRequests.get(key);
-      const posts=data.posts.slice(0,3);
-      status.textContent=posts.length?place.name+' · 네이버 블로그 관련도순 최대 3개':'블로그 후기를 찾지 못했어요.';
+      const posts=Array.isArray(data.posts)?data.posts:[];
+      status.textContent=posts.length?`‘${data.query||place.name}’ 네이버 블로그 검색 결과 ${posts.length}건`:'블로그 글을 찾지 못했어요.';
       content.replaceChildren(status);
-      // 네이버 블로그 검색 결과임을 표시한다(특약 2.1). 글마다 원본 링크는 아래 목록.
-      if(posts.length)content.append(naverAttribution('블로그 검색'));
-      if(!posts.length){content.append(state(data.message||'다른 이름으로 다시 찾아보거나 네이버에서 직접 검색해 보세요.',key));}
+      if(!posts.length){content.append(state(data.message||'네이버에서 직접 검색해 보세요.',key));}
       else{
-        // 발췌 안내는 목록 맨 위에 한 번만.
-        content.append(node('p','검색 요약 발췌 · 본문 전체나 실제 방문 여부는 확인하지 않았어요.','hint blog-scope-note'));
-        const list=node('ol',undefined,'blog-post-list');
-        posts.forEach((post,index)=>{
-          const item=node('li',undefined,'blog-search-post'),title=blogTitleText(post.title),full=blogCleanText(post.title);
-          const links=sourceLinks((index+1)+'. '+title.text+' ↗',post.url,place.name+' '+full);
-          const anchor=links.querySelector('a');
-          if(anchor){anchor.classList.add('blog-post-title');anchor.title=full;anchor.setAttribute('aria-label',(index+1)+'. '+full+' (새 탭에서 원문 열기)');}
-          item.append(links,node('small',(post.blogger||'블로그')+' · '+(post.posted_at||'작성일 미확인'),'blog-meta'));
-          if(post.description){
-            const excerpt=blogExcerptText(post.description),body=node('p',undefined,'blog-excerpt');
-            body.append(node('span','미리보기','blog-preview-label'),document.createTextNode(' '+excerpt.text+' '));
-            const more=link('원문에서 이어 읽기 ↗',post.url);more.classList.add('blog-read-more');
-            body.append(more);item.append(body);
-          }
-          list.append(item);
-        });
-        content.append(list);
+        // 우리 안내는 블록 밖에 한 번만. 블록 안은 네이버가 준 순서·건수·글자 그대로다.
+        content.append(node('p','네이버가 준 순서 그대로예요. 이 장소와 관련 없는 글이나 광고·협찬 글이 섞여 있을 수 있고, 실제 방문 여부는 확인하지 않았어요.','hint blog-scope-note'),naverBlogBlock(posts,data.search_url,3));
       }
       if(data.search_url)content.append(link('네이버 블로그에서 더 보기 ↗',data.search_url));
     }catch(error){status.textContent='블로그 검색을 불러오지 못했어요.';content.replaceChildren(status,state('잠시 후 다시 검색해 주세요.',key));}

@@ -1,449 +1,117 @@
-"""팝업 거점 사전 v0 (0단계 실측용, 2026-11-14 검색 호출 전에 확정).
+"""팝업 거점 사전 v2 (2026-11-20, 네이버 검색 API 특약 2단계).
 
-계약(docs/popup-stores-spec.md) 0-2 의 3: 표본을 본 뒤 이 사전을 고치지 않는다. v0 으로 잰 매칭률이 공식 수치다.
-고친 사전으로 다시 잰 수치는 보고서의 추가 실험 표에만 둔다.
+팝업스토어가 자주 열리는 건물·동네를 데이트메이트가 정해 둔 목록이다. 코스 지도의 '팝업' 표시와
+'이 장소 주변 코스 추천받기'가 이 목록만으로 그려진다(app/popup_api.py 의 hubs, static/popups.js·maps.js).
+검색된 글과는 잇지 않는다: 어느 글이 어느 거점 이야기인지 읽지 않고, 글 수·기간을 거점에 붙이지 않는다
+(docs/naver-terms-stage2-design.ko.md 3.3, 결정 Q3). 지금 그곳에서 팝업이 열리는지는 이 목록으로 알 수 없다.
 
-좌표는 넣지 않는다(8절). 좌표는 네이버 지역 검색 결과를 검증해서 얻는다.
-필드:
-- id: 안정적인 ID
-- name: 정식 이름(표시용)
-- aliases: 글에서 찾을 별칭. 공백은 "공백 0개 이상"으로 맞춘다. 넓은 브랜드명(예: "더현대", "신세계")만으로는 넣지 않는다.
-- region / district: 시·도와 시·군·구
-- kind: "building"(건물) 또는 "area"(동네)
-- local_query: 좌표 확인용 지역 검색어
-- verify: 지역 검색 결과 상호(공백 제거·소문자)에 반드시 들어가야 하는 문자열 중 하나
-- anchor: 동네일 때 명시적으로 고른 기준 장소 이름(건물은 None)
-- not_followed_by: 별칭 바로 뒤에 오면 매칭하지 않는 글자(예: "성수" 뒤의 "기" → 성수기)
+좌표는 네이버 지역 검색 결과를 쓰지 않는다. 한국관광공사 TourAPI(KorService2 searchKeyword2, 이용허락범위 제한 없음)를
+2026-11-20 에 이름으로 조회해 얻은 값을 고정해 둔다(요청 때 외부 호출 없음). 받아들인 기준은 둘 중 하나다.
+- entity: 제목이 거점(또는 동네 기준 장소) 이름 그대로인 항목의 좌표. source 는 그 항목의 contentid.
+- tenants: 제목이 '… {거점 이름}(점)'인 입점 매장 4곳 이상이 같은 도로명 주소·같은 좌표로 등록돼 있고,
+  그 주소의 시·군·구가 거점의 시·군·구와 같을 때 그 좌표. source 는 그 도로명 주소.
+둘 다 안 되는 거점은 lat·lon 을 None 으로 두고 지도에 그리지 않는다(추측 좌표를 넣지 않는다). v2 는 35곳 모두 확인됐다.
+좌표를 다시 확인하면 CHECKED 와 HUBS_VERSION 을 함께 올린다.
 
-v0 은 0단계 측정 기록이라 그대로 둔다. 1단계는 HUBS(= v1)를 쓴다(맨 아래).
+v1(hubs-v1.1-2026-11-14)에서 바뀐 것
+- 글에서 거점을 찾던 별칭(aliases·not_followed_by)과 지역 검색어(local_query·verify)를 지웠다.
+- 동네 거점의 기준 장소를 지하철역에서 관광공사에 등록된 거리·시설로 바꿨다(역은 관광공사 자료에 없음):
+  성수역 → 성수동 카페거리, 한강진역 → 블루스퀘어, 압구정로데오역 → 압구정 로데오거리, 홍대입구역 → 홍대걷고싶은거리,
+  전포역 → 전포카페거리, 중앙로역 → 동성로거리. 도산공원은 그대로.
+- '현대백화점 부산점'은 관광공사 자료에 '커넥트현대'(부산 동구 범일로 125)로 등록돼 있어 이름을 '커넥트현대 부산'으로 바꿨다.
+
+필드: id(안정적인 ID), name(표시 이름), region / district(시·도와 시·군·구), kind('building' 건물 / 'area' 동네),
+anchor(동네일 때 좌표의 기준 장소 이름, 건물은 None), lat / lon(WGS84), source(좌표 근거: basis, ref).
 """
 
-HUBS_V0_VERSION = "hubs-v0-2026-11-14"
+HUBS_VERSION = "hubs-v2-2026-11-20"
+COORDINATE_PROVIDER = "한국관광공사 TourAPI"
+CHECKED = "2026-11-20"
 
 
-def _hub(
-    id,
-    name,
-    aliases,
-    region,
-    district,
-    kind,
-    local_query,
-    verify,
-    anchor=None,
-    not_followed_by=(),
-):
+def _hub(id, name, region, district, kind, lat, lon, basis, ref, anchor=None):
     return dict(
         id=id,
         name=name,
-        aliases=tuple(aliases),
         region=region,
         district=district,
         kind=kind,
-        local_query=local_query,
-        verify=tuple(verify),
         anchor=anchor,
-        not_followed_by=tuple(not_followed_by),
+        lat=lat,
+        lon=lon,
+        source=dict(provider=COORDINATE_PROVIDER, basis=basis, ref=ref, checked=CHECKED),
     )
 
 
-HUBS_V0 = (
+def _building(id, name, region, district, lat, lon, basis, ref):
+    return _hub(id, name, region, district, "building", lat, lon, basis, ref)
+
+
+def _area(id, name, region, district, anchor, lat, lon, ref):
+    return _hub(id, name, region, district, "area", lat, lon, "entity", ref, anchor=anchor)
+
+
+# fmt: off
+HUBS = (
     # 서울 · 건물
-    _hub(
-        "seoul-thehyundai",
-        "더현대 서울",
-        ("더현대 서울", "더 현대 서울"),
-        "서울",
-        "영등포구",
-        "building",
-        "더현대 서울",
-        ("더현대서울",),
-    ),
-    _hub(
-        "seoul-ipark-mall",
-        "용산 아이파크몰",
-        ("용산 아이파크몰", "아이파크몰 용산"),
-        "서울",
-        "용산구",
-        "building",
-        "용산 아이파크몰",
-        ("아이파크몰",),
-    ),
-    _hub(
-        "seoul-akplaza-hongdae",
-        "AK플라자 홍대",
-        ("AK플라자 홍대", "AK& 홍대", "AK앤홍대", "에이케이플라자 홍대"),
-        "서울",
-        "마포구",
-        "building",
-        "AK플라자 홍대점",
-        ("ak플라자홍대", "ak&홍대"),
-    ),
-    _hub(
-        "seoul-lotteworld-mall",
-        "롯데월드몰",
-        ("롯데월드몰", "롯데 월드몰"),
-        "서울",
-        "송파구",
-        "building",
-        "롯데월드몰",
-        ("롯데월드몰",),
-    ),
-    _hub(
-        "seoul-lotte-jamsil",
-        "롯데백화점 잠실점",
-        ("롯데백화점 잠실점", "롯데백화점 잠실", "롯데 잠실점"),
-        "서울",
-        "송파구",
-        "building",
-        "롯데백화점 잠실점",
-        ("롯데백화점잠실",),
-    ),
-    _hub(
-        "seoul-shinsegae-gangnam",
-        "신세계백화점 강남점",
-        ("신세계백화점 강남점", "신세계백화점 강남", "신세계 강남점"),
-        "서울",
-        "서초구",
-        "building",
-        "신세계백화점 강남점",
-        ("신세계백화점강남",),
-    ),
-    _hub(
-        "seoul-hyundai-apgujeong",
-        "현대백화점 압구정본점",
-        ("현대백화점 압구정본점", "현대백화점 압구정", "압구정 현대백화점"),
-        "서울",
-        "강남구",
-        "building",
-        "현대백화점 압구정본점",
-        ("현대백화점압구정",),
-    ),
-    _hub(
-        "seoul-galleria",
-        "갤러리아 명품관",
-        ("갤러리아 명품관", "갤러리아백화점 명품관", "압구정 갤러리아"),
-        "서울",
-        "강남구",
-        "building",
-        "갤러리아 명품관",
-        ("갤러리아",),
-    ),
-    _hub(
-        "seoul-coex-mall",
-        "스타필드 코엑스몰",
-        ("스타필드 코엑스몰", "코엑스몰", "코엑스"),
-        "서울",
-        "강남구",
-        "building",
-        "스타필드 코엑스몰",
-        ("코엑스몰",),
-        not_followed_by=("마곡",),
-    ),
-    _hub(
-        "seoul-lotte-main",
-        "롯데백화점 본점",
-        ("롯데백화점 본점", "롯데백화점 명동본점"),
-        "서울",
-        "중구",
-        "building",
-        "롯데백화점 본점",
-        ("롯데백화점본점",),
-    ),
-    _hub(
-        "seoul-shinsegae-main",
-        "신세계백화점 본점",
-        ("신세계백화점 본점", "신세계 본점"),
-        "서울",
-        "중구",
-        "building",
-        "신세계백화점 본점",
-        ("신세계백화점본점",),
-    ),
-    _hub(
-        "seoul-ifc-mall",
-        "IFC몰",
-        ("IFC몰", "IFC 몰", "여의도 IFC"),
-        "서울",
-        "영등포구",
-        "building",
-        "IFC몰",
-        ("ifc몰",),
-    ),
-    _hub(
-        "seoul-times-square",
-        "타임스퀘어(영등포)",
-        ("영등포 타임스퀘어", "타임스퀘어 영등포"),
-        "서울",
-        "영등포구",
-        "building",
-        "타임스퀘어 영등포",
-        ("타임스퀘어",),
-    ),
-    # 서울 · 동네(기준 장소를 명시)
-    _hub(
-        "seoul-area-seongsu",
-        "성수 일대",
-        ("성수동", "성수역", "연무장길", "성수"),
-        "서울",
-        "성동구",
-        "area",
-        "성수역 2호선",
-        ("성수역",),
-        anchor="성수역",
-        not_followed_by=("기",),
-    ),
-    _hub(
-        "seoul-area-hannam",
-        "한남 일대",
-        ("한남동",),
-        "서울",
-        "용산구",
-        "area",
-        "한강진역 6호선",
-        ("한강진역",),
-        anchor="한강진역",
-    ),
-    _hub(
-        "seoul-area-dosan",
-        "도산 일대",
-        ("도산공원", "도산대로", "도산"),
-        "서울",
-        "강남구",
-        "area",
-        "도산공원",
-        ("도산공원",),
-        anchor="도산공원",
-        not_followed_by=("서원",),
-    ),
-    _hub(
-        "seoul-area-apgujeong-rodeo",
-        "압구정로데오 일대",
-        ("압구정로데오", "압구정 로데오"),
-        "서울",
-        "강남구",
-        "area",
-        "압구정로데오역",
-        ("압구정로데오역",),
-        anchor="압구정로데오역",
-    ),
-    _hub(
-        "seoul-area-hongdae",
-        "홍대 일대",
-        ("홍대입구", "홍대"),
-        "서울",
-        "마포구",
-        "area",
-        "홍대입구역 2호선",
-        ("홍대입구역",),
-        anchor="홍대입구역",
-    ),
+    _building("seoul-thehyundai", "더현대 서울", "서울", "영등포구", 37.527097, 126.927301, "entity", "contentid 2708109"),
+    _building("seoul-ipark-mall", "용산 아이파크몰", "서울", "용산구", 37.529772, 126.964742, "tenants", "서울특별시 용산구 한강대로23길 55"),
+    _building("seoul-akplaza-hongdae", "AK플라자 홍대", "서울", "마포구", 37.557746, 126.926498, "tenants", "서울특별시 마포구 양화로 188"),
+    _building("seoul-lotteworld-mall", "롯데월드몰", "서울", "송파구", 37.513713, 127.104302, "tenants", "서울특별시 송파구 올림픽로 300"),
+    _building("seoul-lotte-jamsil", "롯데백화점 잠실점", "서울", "송파구", 37.511310, 127.098142, "tenants", "서울특별시 송파구 올림픽로 240"),
+    _building("seoul-shinsegae-gangnam", "신세계백화점 강남점", "서울", "서초구", 37.503935, 127.002413, "tenants", "서울특별시 서초구 신반포로 176"),
+    _building("seoul-hyundai-apgujeong", "현대백화점 압구정본점", "서울", "강남구", 37.527366, 127.027469, "tenants", "서울특별시 강남구 압구정로 165"),
+    _building("seoul-galleria", "갤러리아 명품관", "서울", "강남구", 37.528475, 127.040053, "entity", "contentid 273772"),
+    _building("seoul-coex-mall", "스타필드 코엑스몰", "서울", "강남구", 37.511824, 127.059159, "tenants", "서울특별시 강남구 영동대로 513"),
+    _building("seoul-lotte-main", "롯데백화점 본점", "서울", "중구", 37.564730, 126.981730, "tenants", "서울특별시 중구 남대문로 81"),
+    _building("seoul-shinsegae-main", "신세계백화점 본점", "서울", "중구", 37.560919, 126.980979, "tenants", "서울특별시 중구 소공로 63"),
+    _building("seoul-ifc-mall", "IFC몰", "서울", "영등포구", 37.525178, 126.924877, "tenants", "서울특별시 영등포구 국제금융로 10"),
+    _building("seoul-times-square", "타임스퀘어(영등포)", "서울", "영등포구", 37.517233, 126.903716, "tenants", "서울특별시 영등포구 영중로 15"),
+    _building("seoul-lotte-cheongnyangni", "롯데백화점 청량리점", "서울", "동대문구", 37.584197, 127.051145, "entity", "contentid 2911584"),
+    # 서울 · 동네(좌표는 기준 장소의 것이라 대략이다)
+    _area("seoul-area-seongsu", "성수 일대", "서울", "성동구", "성수동 카페거리", 37.543198, 127.056598, "contentid 2930901"),
+    _area("seoul-area-hannam", "한남 일대", "서울", "용산구", "블루스퀘어", 37.540872, 127.002487, "contentid 1439094"),
+    _area("seoul-area-dosan", "도산 일대", "서울", "강남구", "도산공원", 37.524500, 127.035400, "contentid 126486"),
+    _area("seoul-area-apgujeong-rodeo", "압구정로데오 일대", "서울", "강남구", "압구정 로데오거리", 37.526822, 127.038881, "contentid 126823"),
+    _area("seoul-area-hongdae", "홍대 일대", "서울", "마포구", "홍대걷고싶은거리", 37.555999, 126.924307, "contentid 3082405"),
     # 부산
-    _hub(
-        "busan-shinsegae-centum",
-        "신세계 센텀시티",
-        ("신세계 센텀시티", "센텀시티 신세계", "신세계백화점 센텀시티", "신세계 센텀"),
-        "부산",
-        "해운대구",
-        "building",
-        "신세계백화점 센텀시티점",
-        ("신세계센텀시티", "신세계백화점센텀시티"),
-    ),
-    _hub(
-        "busan-lotte-centum",
-        "롯데백화점 센텀시티점",
-        ("롯데백화점 센텀시티점", "롯데백화점 센텀", "롯데 센텀시티점"),
-        "부산",
-        "해운대구",
-        "building",
-        "롯데백화점 센텀시티점",
-        ("롯데백화점센텀",),
-    ),
-    _hub(
-        "busan-lotte-main",
-        "롯데백화점 부산본점",
-        ("롯데백화점 부산본점", "롯데 부산본점", "롯데백화점 서면"),
-        "부산",
-        "부산진구",
-        "building",
-        "롯데백화점 부산본점",
-        ("롯데백화점부산본점",),
-    ),
-    _hub(
-        "busan-lotte-gwangbok",
-        "롯데백화점 광복점",
-        ("롯데백화점 광복점", "롯데백화점 광복", "롯데 광복점", "롯데몰 광복점"),
-        "부산",
-        "중구",
-        "building",
-        "롯데백화점 광복점",
-        ("롯데백화점광복",),
-    ),
-    _hub(
-        "busan-hyundai",
-        "현대백화점 부산점",
-        ("현대백화점 부산점",),
-        "부산",
-        "동구",
-        "building",
-        "현대백화점 부산점",
-        ("현대백화점부산",),
-    ),
-    _hub(
-        "busan-f1963",
-        "F1963",
-        ("F1963",),
-        "부산",
-        "수영구",
-        "building",
-        "F1963",
-        ("f1963",),
-    ),
-    _hub(
-        "busan-area-jeonpo",
-        "전포 일대",
-        ("전포동", "전포카페거리", "전리단길"),
-        "부산",
-        "부산진구",
-        "area",
-        "전포역 부산",
-        ("전포역",),
-        anchor="전포역",
-    ),
+    _building("busan-shinsegae-centum", "신세계 센텀시티", "부산", "해운대구", 35.168818, 129.129523, "tenants", "부산광역시 해운대구 센텀남대로 35"),
+    _building("busan-lotte-centum", "롯데백화점 센텀시티점", "부산", "해운대구", 35.169853, 129.131070, "entity", "contentid 2917200"),
+    _building("busan-lotte-main", "롯데백화점 부산본점", "부산", "부산진구", 35.156790, 129.056416, "tenants", "부산광역시 부산진구 가야대로 772"),
+    _building("busan-lotte-gwangbok", "롯데백화점 광복점", "부산", "중구", 35.097985, 129.036632, "tenants", "부산광역시 중구 중앙대로 2"),
+    _building("busan-lotte-dongnae", "롯데백화점 동래점", "부산", "동래구", 35.211708, 129.077480, "entity", "contentid 2917189"),
+    _building("busan-hyundai", "커넥트현대 부산", "부산", "동구", 35.141302, 129.058574, "entity", "contentid 3452166"),
+    _building("busan-f1963", "F1963", "부산", "수영구", 35.176745, 129.115485, "entity", "contentid 2456767"),
+    _building("busan-samjeong-tower", "서면 삼정타워", "부산", "부산진구", 35.153006, 129.059606, "entity", "contentid 3014436"),
+    _area("busan-area-jeonpo", "전포 일대", "부산", "부산진구", "전포카페거리", 35.155420, 129.067338, "contentid 1805965"),
     # 대구
-    _hub(
-        "daegu-thehyundai",
-        "더현대 대구",
-        ("더현대 대구", "현대백화점 대구점"),
-        "대구",
-        "중구",
-        "building",
-        "더현대 대구",
-        ("더현대대구", "현대백화점대구"),
-    ),
-    _hub(
-        "daegu-shinsegae",
-        "대구신세계",
-        ("대구신세계", "대구 신세계", "신세계백화점 대구점", "신세계 대구점", "동대구 신세계"),
-        "대구",
-        "동구",
-        "building",
-        "신세계백화점 대구점",
-        ("신세계",),
-    ),
-    _hub(
-        "daegu-lotte",
-        "롯데백화점 대구점",
-        ("롯데백화점 대구점", "롯데 대구점"),
-        "대구",
-        "북구",
-        "building",
-        "롯데백화점 대구점",
-        ("롯데백화점대구",),
-    ),
-    _hub(
-        "daegu-area-dongseongro",
-        "동성로 일대",
-        ("동성로",),
-        "대구",
-        "중구",
-        "area",
-        "대구 중앙로역",
-        ("중앙로역",),
-        anchor="중앙로역",
-    ),
+    _building("daegu-thehyundai", "더현대 대구", "대구", "중구", 35.866628, 128.590629, "entity", "contentid 3344379"),
+    _building("daegu-shinsegae", "대구신세계", "대구", "동구", 35.877941, 128.629190, "tenants", "대구광역시 동구 동부로 149"),
+    _building("daegu-lotte", "롯데백화점 대구점", "대구", "북구", 35.875885, 128.596129, "entity", "contentid 2908603"),
+    _area("daegu-area-dongseongro", "동성로 일대", "대구", "중구", "동성로거리", 35.870170, 128.594059, "contentid 2599899"),
     # 대전
-    _hub(
-        "daejeon-shinsegae",
-        "대전신세계 Art & Science",
-        ("대전신세계", "대전 신세계", "신세계 아트앤사이언스", "아트앤사이언스", "Art & Science"),
-        "대전",
-        "유성구",
-        "building",
-        "대전신세계 Art & Science",
-        ("신세계",),
-    ),
-    _hub(
-        "daejeon-galleria-timeworld",
-        "갤러리아 타임월드",
-        ("갤러리아 타임월드", "타임월드"),
-        "대전",
-        "서구",
-        "building",
-        "갤러리아 타임월드",
-        ("타임월드",),
-    ),
+    _building("daejeon-shinsegae", "대전신세계 Art & Science", "대전", "유성구", 36.375182, 127.381765, "tenants", "대전광역시 유성구 엑스포로 1"),
+    _building("daejeon-galleria-timeworld", "갤러리아 타임월드", "대전", "서구", 36.351954, 127.378167, "tenants", "대전광역시 서구 대덕대로 211"),
+    # 전북
+    _building("jeonbuk-lotte-jeonju", "롯데백화점 전주점", "전북", "전주시", 35.834459, 127.121908, "entity", "contentid 2908845"),
 )
-# 강원·전북 거점은 v0 에 없다(팝업이 자주 열리는 건물을 미리 알 근거가 없음). 두 지역은 "후보 0건" 비율을 보기 위한 표본이다.
+# fmt: on
+# 그 밖의 시·도는 거점이 없다(팝업이 자주 열리는 곳을 미리 정할 근거가 없음). 그 지역에서는 지도에 팝업 표시가 없다.
 
 
-# ---------------------------------------------------------------- v1 (1단계, 2026-11-14)
-# 0단계 보고 3-4 "사전 후보"와 부산·대구 보강. 새 표본(같은 검색어 2페이지)을 받기 전에 확정한다.
-# 별칭마다 검증 근거: 지역 검색으로 좌표를 확인할 때 상호(verify)·시·도·시·군·구가 함께 맞아야 하고,
-# 맞지 않으면 그 거점은 위치 미확인으로 남는다(app/popups.py verify_local_result).
-# - 띄어쓰기만 다른 표기("롯데백화점 부산 본점", "서면롯데백화점", "신세계백화점 대구 점")는 v1 매칭 규칙
-#   (별칭 안 띄어쓰기 허용)이 맡으므로 별칭을 따로 늘리지 않는다.
-# - 넣지 않은 후보: "센텀시티"(신세계·롯데 두 곳이 있어 지점 특정 불가), "롯데몰 잠실점"(롯데월드몰인지
-#   롯데백화점 잠실점인지 이름만으로 가릴 수 없음), "대구 롯데백화점"(대구점·상인점 둘).
-# v1.1(사후 조정, 새 표본을 본 뒤): "# 부산 롯데백화점본점" 이 서울 '롯데백화점 본점'에도 걸려, v1.1 의
-# "여러 시·도 거점이 함께 나온 글은 단일 장소로 정하지 않음" 규칙에서 부산 본점 글을 놓쳤다. 더 긴 별칭을 더해 부산 쪽이 먼저 잡히게 한다.
-HUBS_VERSION = "hubs-v1.1-2026-11-14"
-
-_V1_ALIASES = {
-    "busan-lotte-main": ("서면 롯데백화점", "부산 롯데백화점 본점"),
-    "busan-area-jeonpo": ("전포역",),
-    "busan-shinsegae-centum": ("센텀 신세계",),
-    "daegu-thehyundai": ("대구 더현대", "대구 현대백화점"),
-}
-
-_V1_NEW = (
-    _hub(
-        "busan-lotte-dongnae",
-        "롯데백화점 동래점",
-        ("롯데백화점 동래점", "동래 롯데백화점", "롯데 동래점"),
-        "부산",
-        "동래구",
-        "building",
-        "롯데백화점 동래점",
-        ("롯데백화점동래",),
-    ),
-    _hub(
-        "busan-samjeong-tower",
-        "서면 삼정타워",
-        ("서면 삼정타워", "삼정타워 서면"),
-        "부산",
-        "부산진구",
-        "building",
-        "삼정타워 부산진구",
-        ("삼정타워",),
-    ),
-    _hub(
-        "seoul-lotte-cheongnyangni",
-        "롯데백화점 청량리점",
-        ("롯데백화점 청량리점", "롯데몰 청량리", "청량리 롯데몰", "청량리 롯데백화점"),
-        "서울",
-        "동대문구",
-        "building",
-        "롯데백화점 청량리점",
-        ("청량리",),
-    ),
-    _hub(
-        "jeonbuk-lotte-jeonju",
-        "롯데백화점 전주점",
-        ("롯데백화점 전주점", "전주 롯데백화점"),
-        "전북",
-        "전주시",
-        "building",
-        "롯데백화점 전주점",
-        ("롯데백화점전주",),
-    ),
-)
-
-
-def _v1(hub):
-    extra = _V1_ALIASES.get(hub["id"], ())
-    return dict(hub, aliases=hub["aliases"] + tuple(extra)) if extra else hub
-
-
-HUBS_V1 = tuple(_v1(h) for h in HUBS_V0) + _V1_NEW
-HUBS = HUBS_V1
+def hubs_in(region):
+    """그 시·도의 거점 중 좌표가 있는 것(사전 순서 그대로). 화면·지도가 쓰는 필드만 싣는다."""
+    return [
+        dict(
+            hub_id=h["id"],
+            name=h["name"],
+            kind=h["kind"],
+            anchor=h["anchor"],
+            region=h["region"],
+            district=h["district"],
+            lat=h["lat"],
+            lon=h["lon"],
+        )
+        for h in HUBS
+        if h["region"] == region and h["lat"] is not None and h["lon"] is not None
+    ]

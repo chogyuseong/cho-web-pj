@@ -61,21 +61,19 @@ def audit_plan(plan,c=None):
         if over>0:add('budget','예산','unmet',f'확인·추정 비용 상한 {plan["total"][1]:,}원이 예산 {c.budget:,}원보다 {over:,}원 많아요.')
         if cost_unknown:add('budget','예산','unknown',f'알려진 비용은 {plan["total"][0]:,}~{plan["total"][1]:,}원이지만, 미확인 입장료·교통비 등은 빠져 있어 예산 {c.budget:,}원 충족을 보장할 수 없어요.')
         elif over<=0:
-            # 가격을 못 찾아 '계획용 가정 범위'로 채운 칸이 있으면, 그 상한은 실제 가격이 아니다(2026-11-19 측정: 가정 0~2만 원/인 공방이
+            # 등록된 단가가 없어 '계획용 가정 범위'로 채운 칸이 있으면, 그 상한은 실제 가격이 아니다(2026-11-19 측정: 가정 0~2만 원/인 공방이
             # 실제 3만 2천 원/인이라 5만 원 예산을 넘었다). 막지는 않되(실제 장소 대부분이 가격 자료가 없어 막으면 결과가 거의 없다)
             # '예산 이내'라고 단정하지 않고 가정한 장소를 이름으로 밝힌다. 예산을 꼭 지킬 조건으로 골랐으면 보장할 수 없다고 적는다.
             assumed=[r for r in plan['costs'] if r.get('price_kind')=='planning_assumption']
             if assumed:
                 assumed_names=', '.join(f"{r['name']}({r['unit'][0]:,}~{r['unit'][1]:,}원/인 가정)" if r.get('unit') else r['name'] for r in assumed)
                 required=' 예산을 꼭 지킬 조건으로 골랐지만, 이 가격을 확인하기 전에는 지킨다고 보장할 수 없어요.' if 'budget' in c.hard_constraints else ''
-                add('budget','예산','estimated',f'계산한 비용 상한 {plan["total"][1]:,}원은 예산 {c.budget:,}원 이내지만, 실제 가격을 못 찾아 가정한 곳이 있어요: {assumed_names}.'+required)
+                add('budget','예산','estimated',f'계산한 비용 상한 {plan["total"][1]:,}원은 예산 {c.budget:,}원 이내지만, 등록된 가격이 없어 가정한 곳이 있어요: {assumed_names}.'+required)
             else:add('budget','예산','estimated' if any(r['status']=='estimated' for r in plan['costs']) else 'met',f'계산한 비용 상한 {plan["total"][1]:,}원은 예산 {c.budget:,}원 이내예요.')
     assumptions=[r for r in plan['costs'] if r.get('price_kind')=='planning_assumption']
-    references=[r for r in plan['costs'] if r.get('price_kind')=='web_reference']
-    if assumptions:add('price_data','가격 근거','info',f'{len(assumptions)}곳은 검색에서 실제 단가를 확보하지 못해 사용자가 허용한 계획용 범위를 사용했어요. 실제 청구 가격이 아니에요.')
+    if assumptions:add('price_data','가격 근거','info',f'{len(assumptions)}곳은 등록된 단가가 없어 사용자가 허용한 계획용 범위를 사용했어요. 실제 청구 가격이 아니에요.')
     add('allow_price_estimates','가격 가정 사용','unmet' if assumptions and not c.allow_price_estimates else 'info',
-        '가격 가정을 허용하지 않았지만 가정값이 포함되어 있어요.' if assumptions and not c.allow_price_estimates else '가격을 찾지 못한 경우 계획용 범위 사용을 허용했어요.' if c.allow_price_estimates else '계획용 가격 가정을 사용하지 않는 조건이에요.')
-    if references:add('price_data','가격 근거','info',f'{len(references)}곳은 최근 웹 게시글의 참고 단가예요. 현재 공식 요금과 다를 수 있어요. 비용표의 원문을 확인해 주세요.')
+        '가격 가정을 허용하지 않았지만 가정값이 포함되어 있어요.' if assumptions and not c.allow_price_estimates else '등록된 단가가 없는 경우 계획용 범위 사용을 허용했어요.' if c.allow_price_estimates else '계획용 가격 가정을 사용하지 않는 조건이에요.')
     transport_names={'walk':'도보','transit':'대중교통','car':'자가용','bicycle':'자전거'}
     leg_modes=[r.get('mode') or c.transport for r in routes]
     used=list(dict.fromkeys(leg_modes)) or [c.transport]

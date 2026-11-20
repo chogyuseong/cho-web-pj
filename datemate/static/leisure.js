@@ -222,7 +222,7 @@ function leisurePhotoPanel(place, photoMode) {
             original.setAttribute('aria-label', place.name + ' 사진 ' + (slot.index + 1) + ' 크게 보기');
             original.append(slot.image);
             const credit = node('figcaption');
-            if (['search_result', 'place_public', 'image_search'].includes(photo.kind)) {
+            if (NAVER_PHOTO_KINDS.includes(photo.kind)) {
               credit.append(link(photoLabel(photo, '사진 출처') + ' ↗', photo.source));
             } else {
               credit.append(node('span', (photo.author || '') + ' · '), link(photo.license || '이용 조건', photo.license_url), node('span', ' · '), link(photoLabel(photo, '사진 출처') + ' ↗', photo.source));

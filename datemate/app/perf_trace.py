@@ -20,7 +20,6 @@ MAX_INTERVALS = 400
 KNOWN_PATHS = {
     "/search/v1/blog": "blog_search",
     "/search/v1/local": "local_search",
-    "/search/v1/image": "image_search",
     "/map-direction/v1/driving": "driving_route",
     "/map-reversegeocode/v2/gc": "reverse_geocode",
     "/map-geocode/v2/geocode": "geocode",

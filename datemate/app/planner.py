@@ -137,7 +137,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         walking=walking,finish=clock(now),status=status,conditions=c.model_dump(mode='json'),
         reasons=[f'{p["category"]} · 체류 {t["stay"]}분'+(' (사용자 설정)' if p['stay'] is None else '')+(' · 식사 방문 (시간·예산 포함)' if p.get('meal') else '')+(' · '+p['discovery_verification'] if p.get('discovery_verification') else '')+f' · 근거: {p["source"]}' for p,t in zip(selected,timeline)]),None
 
-def recommend_strict(c,evidence=None,stage='planner'):
+def recommend_strict(c,stage='planner'):
     pool=candidates(c); reasons=Counter(); beam=[[]]
     if not pool:
         filters=[]
@@ -180,9 +180,6 @@ def recommend_strict(c,evidence=None,stage='planner'):
         from .quality import is_meal as _is_meal
         next_beam.sort(key=lambda p:(-sum(w in (x['name']+' '+x['category']) for x in p['places'] for w in re.findall(r'[가-힣A-Za-z0-9]{2,}',c.request)),-len({(x['category'],_is_meal(x)) for x in p['places']}) if c.theme_mode=='mix' else 0,
                                      sum(r['minutes'] for r in p['legs'])-(.1*sum(x['category']==('휴식·힐링' if c.mbti.startswith('I') else '레저·활동') for x in p['places']) if c.use_mbti and c.mbti and not c.themes and not c.date_subcategory else 0),p['total'][1]))
-        if evidence:
-            from .course_search import priority
-            next_beam.sort(key=lambda p:-priority(p,evidence))
         from .quality import meal_penalty,meal_due,is_meal
         from .preferences import fit_score
         next_beam.sort(key=lambda p:-fit_score(p,c))
@@ -191,13 +188,13 @@ def recommend_strict(c,evidence=None,stage='planner'):
         from .request_intent import plan_penalty
         next_beam.sort(key=lambda p:plan_penalty(p,c))
         from .option_diversity import composition_beam
-        # 구성 할당은 위 정렬의 앞쪽 키(요청 조건·식사 배치·선호·블로그 근거·요청 낱말)가 같은 후보끼리만 자리를 옮긴다.
+        # 구성 할당은 위 정렬의 앞쪽 키(요청 조건·식사 배치·선호·요청 낱말)가 같은 후보끼리만 자리를 옮긴다.
         # 한 종류에 집중(focus)하는 요청에서는 구성을 섞지 않는다.
         words=re.findall(r'[가-힣A-Za-z0-9]{2,}',c.request)
         final_step=position==c.count-1
         def tier(p):
             meal=meal_penalty(p,c) if final_step else max(0,sum(is_meal(x) for x in p['places'])-1) if meal_due(c) else 0
-            return (plan_penalty(p,c),meal,-fit_score(p,c),-(priority(p,evidence) if evidence else 0),
+            return (plan_penalty(p,c),meal,-fit_score(p,c),
                     -sum(w in (x['name']+' '+x['category']) for x in p['places'] for w in words))
         beam=[p['places'] for p in composition_beam(next_beam,60,tier=tier,final=final_step,enabled=c.theme_mode!='focus')]
         if not beam:break
@@ -241,34 +238,24 @@ def classification_diagnostics(c,pool,plans):
 def unmet_composition(plan):
     return any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in plan['condition_checks'])
 
-def recommend(c,evidence=None):
-    from .request_intent import normalize,plan_penalty
+def recommend(c):
+    """조건만으로 코스를 고른다. 네이버 블로그 검색 결과는 후보·순위·이유 문장 어디에도 쓰지 않는다(특약 2.2, app/course_search.py)."""
+    from .request_intent import normalize
     c=normalize(c)
     from .condition_audit import audit_plan
     from .perf_trace import span
     with span('planner.strict'):
-        result=recommend_strict(c,evidence)
+        result=recommend_strict(c)
     # Activity and meal composition are scored during beam search; retry them too if unmet.
     checked=[audit_plan(p,c) for p in result['plans']]
     result['plans']=[p for p in checked if not any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in p['condition_checks'])]
-    # 검색 글에서 확인한 장소가 일반 조건 필터에서 빠졌다면, 차이를 명시한 대안도 비교한다.
-    if result['plans'] and evidence and evidence.get('matches'):
-        from .course_search import priority
-        if not any(priority(p,evidence) for p in result['plans']):
-            from .best_effort import suggest
-            out={}
-            with span('planner.best_effort_sourced'):
-                sourced=suggest(c,evidence,out,stage='best_effort_sourced')
-            if sourced and priority(sourced[0],evidence) and (not result['plans'] or plan_penalty(sourced[0],c)<=plan_penalty(result['plans'][0],c)):
-                return with_selection(dict(plans=[audit_plan(p,c) for p in sourced],status='best_effort',
-                            reasons=['네이버 상위 글에 등장하는 장소를 우선 포함한 대안입니다. 입력 조건과의 차이를 확인하세요.']),out,result,c)
     if result['plans']:
         result['plans']=[audit_plan(p,c) for p in result['plans']]
         return result
     from .search_relaxation import search_progressively
     out={}
     with span('planner.relaxation'):
-        alternatives=search_progressively(c,evidence,out)
+        alternatives=search_progressively(c,out)
     if not alternatives:return result
     return with_selection(dict(plans=[audit_plan(p,c) for p in alternatives],status='best_effort',reasons=['모든 조건을 만족하는 일정 대신 조건에 가까운 대안 코스를 찾았습니다.'],
         suggestions=['각 코스에 표시된 차이를 보고 조건을 수정하거나 장소를 교체해 주세요.'],strict_failure=result.get('status'),

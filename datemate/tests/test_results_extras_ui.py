@@ -84,7 +84,7 @@ def test_budget_unlimited_results_and_place_kinds(audit_page):
 
 def mount_photo_routes(page, base, count=3):
     png = wide_png()
-    photos = [{'kind': 'search_result', 'source_label': '업체 등록 사진', 'title': f'사진 {i + 1}', 'source': f'{base}/wide-{i}.png',
+    photos = [{'kind': 'place_public', 'source_label': '업체 등록 사진', 'title': f'사진 {i + 1}', 'source': f'{base}/wide-{i}.png',
                'image_url': f'{base}/wide-{i}.png', 'search_url': base, 'checked_at': '2026-11-13'} for i in range(count)]
     page.route('**/wide-*.png', lambda route: route.fulfill(body=png, content_type='image/png'))
     page.route('**/api/places/*/media?*', lambda route: route.fulfill(json={'status': 'available', 'photos': photos}))
@@ -167,37 +167,16 @@ def test_result_photo_opens_same_viewer(audit_page):
     page.keyboard.press('Escape')
 
 
-CUT_CASES = [
-    # (원문 제목, 다듬은 제목)
-    ('성수 데이트 코스 추천 | 성수 놀....', '성수 데이트 코스 추천 | 성수…'),
-    ('반지 공방 데이트 로벤타 성수 반지 ....', '반지 공방 데이트 로벤타 성수 반지…'),
-    ('성수 카페 위치 주소 서울 성동구...', '성수 카페 위치 주소 서울…'),
-    ('성수 데이트로 추천할게요!!...', '성수 데이트로 추천할게요!!…'),
-    ('성수 카페 [분위기 좋은…', '성수 카페…'),
-    ('잘리지 않은 제목 그대로', '잘리지 않은 제목 그대로'),
-]
-
-
-def test_blog_text_trimming_functions(audit_page):
-    page, base, errors = audit_page
-    for raw, expected in CUT_CASES:
-        result = page.evaluate('t=>blogTitleText(t)', raw)
-        assert result == {'text': expected, 'cut': raw != expected}, raw
-    excerpt = page.evaluate('t=>blogExcerptText(t)', '주말에 다녀왔는데 정말 좋았어요. 분위기도 좋고 사장님도 친절하세요! 다음에도 꼭 다시 오고 싶은 곳이에요 주차는 어려워서 대중교통을 추천할...')
-    assert excerpt == {'text': '주말에 다녀왔는데 정말 좋았어요. 분위기도 좋고 사장님도 친절하세요! 다음에도 꼭 다시 오고 싶은 곳이에요', 'cut': True}
-    # 끝난 문장까지 남기면 너무 짧으면 낱말 경계에서 끊고 …
-    short = page.evaluate('t=>blogExcerptText(t)', '좋아요. 성수동 골목 안쪽에 있는 작은 카페인데 창가 자리가 넓고 조용해서 오래 머물기 좋은 주소 서울 성동구...')
-    assert short == {'text': '좋아요. 성수동 골목 안쪽에 있는 작은 카페인데 창가 자리가 넓고 조용해서 오래 머물기 좋은 주소 서울…', 'cut': True}
-    whole = '잘리지 않은   요약은 공백만 정리해요'
-    assert page.evaluate('t=>blogExcerptText(t)', whole) == {'text': '잘리지 않은 요약은 공백만 정리해요', 'cut': False}
-
-
+# 네이버가 중간에서 자른 제목·요약('...')도 다듬지 않고 받은 그대로 보여 준다(네이버 검색 API 특약 2.2).
+# 예전의 다듬기 함수(blogTitleText·blogExcerptText)와 그 테스트는 없앴다.
 POSTS = [{'title': '성수 데이트 코스 추천 | 성수 놀....', 'url': 'https://blog.naver.com/a/1', 'blogger': '하루', 'posted_at': '2026-11-01',
           'description': '주말에 다녀왔는데 정말 좋았어요. 분위기도 좋고 사장님도 친절하세요! 다음에도 꼭 다시 오고 싶은 곳이에요 주차는 어려워서...'},
          {'title': '반지 공방 데이트 로벤타 성수 반지 ....', 'url': 'https://blog.naver.com/b/2', 'blogger': '이틀', 'posted_at': '2026-10-20',
           'description': '반지 만들기 체험 후기 주소 서울 성동구...'},
          {'title': '성수 데이트로 추천할게요!!...', 'url': 'https://blog.naver.com/c/3', 'blogger': '사흘', 'posted_at': None,
-          'description': '세 번째 글 요약입니다.'}]
+          'description': '세 번째 글 요약입니다.'},
+         {'title': '이 장소와 상관없는 글 & 광고', 'url': 'https://example.tistory.com/4', 'blogger': '나흘', 'posted_at': '2026-09-01', 'description': ''},
+         {'title': '다섯 번째 글', 'url': 'https://blog.naver.com/e/5', 'blogger': '닷새', 'posted_at': '2026-08-01', 'description': '다섯 번째 요약'}]
 
 
 @pytest.mark.parametrize('width', [390, 1440])
@@ -213,7 +192,7 @@ def test_blog_panel_loading_and_results(audit_page, width):
     panel.locator('summary').click()
     content = panel.locator('.place-blog-content')
     page.wait_for_function('document.querySelector(".timeline-card .place-blog-content")?.getAttribute("aria-busy")==="true"')
-    assert '네이버 블로그 후기를 찾고 있어요…' in content.inner_text()
+    assert '네이버 블로그 글을 찾고 있어요…' in content.inner_text()
     assert content.locator('.blog-skeleton').count() == 3
     assert content.locator('.blog-skeleton-list').get_attribute('aria-hidden') == 'true'
     animation = content.locator('.blog-skeleton span').first.evaluate('s=>getComputedStyle(s).animationName')
@@ -225,23 +204,31 @@ def test_blog_panel_loading_and_results(audit_page, width):
             break
         page.wait_for_timeout(100)
     for route in held:
-        route.fulfill(json={'posts': POSTS, 'search_url': 'https://search.naver.com/search.naver?query=x', 'message': ''})
+        route.fulfill(json={'posts': POSTS, 'query': '어느 장소 서울 방문 후기', 'search_url': 'https://search.naver.com/search.naver?where=blog&query=x', 'message': ''})
     page.wait_for_function('document.querySelector(".timeline-card .place-blog-content").getAttribute("aria-busy")==="false"')
     loaded_height = content.bounding_box()['height']
-    # 뼈대 높이가 결과의 절반 이상이라 크게 튀지 않는다.
-    assert loading_height >= loaded_height * 0.4, (loading_height, loaded_height)
-    text = content.inner_text()
-    assert text.count('검색 요약 발췌 · 본문 전체나 실제 방문 여부는 확인하지 않았어요.') == 1
-    titles = content.locator('a.blog-post-title')
-    assert titles.count() == 3
-    assert titles.first.inner_text() == '1. 성수 데이트 코스 추천 | 성수… ↗'
-    assert titles.first.get_attribute('title') == '성수 데이트 코스 추천 | 성수 놀....'
-    assert titles.first.evaluate('a=>getComputedStyle(a).webkitLineClamp') == '2'
-    assert content.locator('.blog-preview-label').count() == 3
-    excerpt = content.locator('.blog-excerpt').first.inner_text()
-    assert '주차는 어려워서' not in excerpt and excerpt.startswith('미리보기')
-    more = content.get_by_role('link', name='원문에서 이어 읽기 ↗', exact=True)
-    assert more.count() == 3 and more.first.get_attribute('href') == 'https://blog.naver.com/a/1'
+    # 뼈대 높이가 결과의 절반 가까이라 크게 튀지 않는다.
+    assert loading_height >= loaded_height * 0.3, (loading_height, loaded_height)
+    assert '‘어느 장소 서울 방문 후기’ 네이버 블로그 검색 결과 5건' in content.locator('.blog-status').inner_text()
+    # 우리 안내는 블록 밖에 한 번, 블록 안에는 출처 표시와 네이버가 준 글만(받은 순서·글자 그대로).
+    block = content.locator('.naver-result-block')
+    assert block.count() == 1 and content.locator('.blog-scope-note').count() == 1 and block.locator('.blog-scope-note').count() == 0
+    assert '네이버가 준 순서 그대로' in content.locator('.blog-scope-note').inner_text()
+    assert block.locator('.naver-attribution').count() == 1 and '네이버 검색결과 · 블로그 검색' in block.locator('.naver-attribution').inner_text()
+    titles = block.locator('a.blog-post-title')
+    assert titles.all_inner_texts() == [post['title'] for post in POSTS[:3]], '처음 3건을 받은 순서·제목 그대로'
+    assert [titles.nth(i).get_attribute('href') for i in range(3)] == [post['url'] for post in POSTS[:3]]
+    assert titles.first.evaluate('a=>getComputedStyle(a).webkitLineClamp') in ('none', ''), '제목을 줄 수로 자르지 않는다'
+    assert block.locator('.blog-summary').all_inner_texts() == [post['description'] for post in POSTS[:3]], '요약도 다듬지 않는다'
+    assert block.locator('.blog-meta').first.inner_text() == '하루 · 2026-11-01'
+    for gone in ('미리보기', '원문에서 이어 읽기', '원문이 안 열리면 검색'):
+        assert gone not in block.inner_text()
+    # 나머지는 블록 밖의 「더 보기」로 편다. 편 뒤에도 받은 순서·건수 그대로이고, 요약이 없는 글은 요약 칸을 만들지 않는다.
+    more = content.get_by_role('button', name='나머지 2건 더 보기', exact=True)
+    assert more.count() == 1 and block.get_by_role('button').count() == 0
+    more.click()
+    assert block.locator('.blog-post-title').all_inner_texts() == [post['title'] for post in POSTS]
+    assert block.locator('.blog-summary').count() == 4 and content.get_by_role('button', name='나머지 2건 더 보기', exact=True).count() == 0
     # 패널 안 모든 글자는 14px 이상(일정 카드와 코스 카드 사진 미리보기 모두).
     page.evaluate("document.querySelectorAll('.plan-photo-details').forEach(d=>d.open=true)")
     preview = page.locator('.plan-photo-preview .place-blogs')
@@ -274,4 +261,4 @@ def test_blog_panel_empty_and_error_states(audit_page):
     content.get_by_role('button', name='후기 다시 검색', exact=True).click()
     page.wait_for_function('document.querySelector(".timeline-card .place-blog-content").textContent.includes("관련 후기를 찾지 못했어요")')
     assert content.locator('.blog-state').count() == 1 and content.get_attribute('aria-busy') == 'false'
-    assert '블로그 후기를 찾지 못했어요.' in content.inner_text()
+    assert '블로그 글을 찾지 못했어요.' in content.inner_text()

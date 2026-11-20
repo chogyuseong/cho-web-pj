@@ -36,7 +36,7 @@ def provider_limits(provider):
     return limits
 
 
-# 묶음 호출(지역 검색 8건, 블로그 본문 5건, 가격 검색 등)의 시간당 제공자 예산을 한 번의 DB 쓰기로 잡아 둔 것.
+# 묶음 호출(지역 검색 8건 등)의 시간당 제공자 예산을 한 번의 DB 쓰기로 잡아 둔 것.
 # 운영 DB(PostgreSQL)에서는 예산 확인이 호출마다 전역 쓰기 잠금을 거쳐, 동시에 보낸 호출도 사실상 하나씩 나갔다.
 _prepaid=ContextVar('prepaid_provider_calls',default=None)
 
@@ -88,12 +88,14 @@ def _traced(provider,kind,started,attempted,failed,connection=None):
 
 
 @contextmanager
-def operation(provider,kind=None):
+def operation(provider,kind=None,hold_slot=True):
+    """hold_slot=False: 응답이 수십 초 걸리는 배경 조회(app/place_identity.py 의 인허가 자료)가 동시 호출 자리를 오래 붙들지 않게 한다.
+    그런 호출은 부르는 쪽이 스스로 한 번에 하나만 보낸다. 시간당 제공자 예산과 지표 기록은 똑같이 거친다."""
     start=time.perf_counter();failed=True;attempted=False;sent=None;state={}
     from .request_usage import current
     usage=current();charged=False
     wait=slot_wait_seconds()
-    if not (_slots.acquire(timeout=wait) if wait else _slots.acquire(blocking=False)):
+    if hold_slot and not (_slots.acquire(timeout=wait) if wait else _slots.acquire(blocking=False)):
         _traced(provider,kind,start,False,True)
         raise httpx.PoolTimeout('External request capacity reached')
     try:
@@ -106,7 +108,7 @@ def operation(provider,kind=None):
         failed=state['failed']
     finally:
         if charged and not attempted:usage.undo(provider)
-        _slots.release()
+        if hold_slot:_slots.release()
         # 기다린 시간은 실제 요청 구간만 센다(요청 한도 확인·지표 기록의 DB 시간은 db 로 따로 셈).
         probe=state.get('probe')
         _traced(provider,kind,sent or start,attempted,failed,probe.result() if probe else None)
@@ -138,9 +140,9 @@ def write_metrics(rows):
     except Exception:logging.getLogger(__name__).warning('provider_metric_write_failed')
 
 
-# 추천 작업 하나 동안 네이버 API 허브(장소·블로그·가격 검색이 모두 같은 호스트)에 쓰는 연결 풀.
-# 전에는 장소 검색이 호출마다 httpx.get(새 TCP·TLS 연결)을 쓰고, 가격 확인은 묶음마다 새 클라이언트를 만들어
-# 운영에서 가격 확인의 새 연결 4개에 1.4초가 들었다(2026-11-17). 게이트웨이가 연결을 30초 넘게 유지하므로 같은 풀을 이어 쓴다.
+# 추천 작업 하나 동안 네이버 API 허브(장소·블로그 검색이 같은 호스트)에 쓰는 연결 풀.
+# 전에는 장소 검색이 호출마다 httpx.get(새 TCP·TLS 연결)을 썼다. 게이트웨이가 연결을 30초 넘게 유지하므로 같은 풀을 이어 쓴다.
+# (가격 검색은 2026-11-20 2단계에서 없앴다, app/pricing.py.)
 NAVER_API_HOST='naverapihub.apigw.ntruss.com'
 _REAL_GET=httpx.get
 _naver_session=ContextVar('naver_session',default=None)
@@ -166,18 +168,14 @@ def naver_session():
         client.close()
 
 
-def shared_naver_client():
-    return _naver_session.get()
-
-
-def observed_http(call,url,**kwargs):
+def observed_http(call,url,hold_slot=True,**kwargs):
     from .perf_trace import call_kind,connection_probe
     # 진짜 httpx.get 으로 네이버 API 허브를 부를 때만 작업의 연결 풀로 보낸다.
     # 테스트가 httpx.get 을 가짜로 바꿔 둔 경우(call 이 가짜)는 그대로 둬 실제 네이버를 부르지 않는다.
     if call is _REAL_GET and urlsplit(url).hostname==NAVER_API_HOST:
         session=_naver_session.get()
         if session is not None:call=session.get
-    with operation(urlsplit(url).hostname or 'unknown',call_kind(url)) as state:
+    with operation(urlsplit(url).hostname or 'unknown',call_kind(url),hold_slot) as state:
         state['probe']=connection_probe(getattr(call,'__self__',None),kwargs)
         if urlsplit(url).hostname==NAVER_API_HOST:
             # 요청(또는 추천 작업) 하나가 실제로 부른 네이버 검색 API 수(app/naver_cache.calls). 공용 캐시를 없앤 뒤 호출 수 확인용.

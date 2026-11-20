@@ -1,4 +1,4 @@
-﻿const TRANSPORT_NAMES={walk:'도보',transit:'대중교통',car:'자동차',bicycle:'자전거'};
+const TRANSPORT_NAMES={walk:'도보',transit:'대중교통',car:'자동차',bicycle:'자전거'};
 // 구간의 수단. 예전 코스처럼 구간에 수단이 없으면 코스 기본 수단을 쓴다.
 function legMode(plan,leg){return leg?.mode??plan.conditions?.transport;}
 // 이동 시간의 수단과 근거. 구간 자료(mode·status)만 보고 정하며 없는 정보를 만들지 않는다.
@@ -98,24 +98,80 @@ function optionComparison(items){
   });scroll.append(table);scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','코스 비교 표 · 가로로 넘겨 확인');wrap.append(node('p','비용과 이동 시간을 비교해 보세요. 도보·대중교통·자전거는 직선거리로 추정한 시간이고, 자동차는 네이버 길찾기로 조회한 구간만 길찾기로 표시해요. 표는 좌우로 넘길 수 있어요.','hint'),scroll);return wrap;
 }
 // 확인 상태를 쉬운 말의 항목으로 보여준다. state: ok(확인됨) · check(확인 필요) · info(참고)
-// '위치' 확인(2026-11-19 규칙 변경): 예전에는 늘 '같은 지점인지 확인하지 못했어요'로 고정이었다.
-// 사진 요청(/media)이 네이버 지도에서 이름이 같고 400m 안·같은 시·도의 업체 하나를 찾으면(app/menus.py identified)
-// naver_place_id_verified 가 오고, app.js rememberVerifiedMapTarget 이 지도 링크를 그 업체로 바꾼다. 그때 이 줄도 '확인됨'으로 바꾼다.
-// 사진 요청은 카드가 화면에 가까워질 때 가므로, 처음에는 '확인 필요'로 그렸다가 확인되면 markIdentityVerified 가 바꾼다.
-const IDENTITY_UNVERIFIED='등록된 주소로 지도 위치를 찾았어요. 같은 지점인지는 확인하지 못했으니 지도 링크에서 확인해 주세요.';
-// 문구의 '400m'는 app/place_identity.py MAX_KM 과 같아야 한다.
-const IDENTITY_VERIFIED='네이버 지역 검색(공식 API)에서 이름이 같고 400m 안에 있는 업체 하나를 찾았어요. 지도 링크에서 한 번 더 확인해 주세요.';
+// '위치' 줄(2026-11-20): 공공 자료 판정만 보여 준다(app/place_identity.py — 소상공인 상가정보, 행안부 인허가 일반음식점·휴게음식점).
+// 예전에는 네이버 지역 검색 결과로 계산한 '위치 확인됨'을 보여 줬는데, 검색 결과에서 만든 판정을 우리 표시로 쓰지 않기로 했다(특약 2.2·2.3).
+// 판정은 사진 요청(/media)의 identity 로 온다. 공공 API 가 느려 서버가 '확인 중'(pending)으로 답하면 /identity 를 몇 번 다시 묻는다.
+// 판정이 없으면(자료에 없음·키 없음·실패·네이버 검색 장소) 판정 없이 '네이버 지도에서 확인' 링크만 둔다.
+// 문구의 '200m'는 app/place_identity.py STORE_RADIUS_M 과 같아야 한다.
+const identityViews=new Map(),identityPlaces=new Map(),identityRechecks=new Map();
+// 다시 묻는 간격(앞 물음이 끝난 뒤부터, 누적 4초·34초·79초·139초). 상가정보는 몇 초 안에, 인허가는 한 곳에 40~80초씩 차례로 온다
+// (2026-11-20 실제 조회). 그 뒤에는 묻지 않고, 다음에 코스를 열 때 저장된 판정을 보여 준다. 테스트가 줄일 수 있게 let 으로 둔다.
+let IDENTITY_RECHECK_MS=[4000,30000,45000,60000];
+function identityText(identity){
+  const ago=identity?.age_days==null?'':identity.age_days===0?' · 오늘 조회':` · ${identity.age_days}일 전 조회`;
+  const day=value=>String(value||'').replaceAll('-','.');
+  if(identity?.status==='open')return ['ok',`영업 중 · 행안부 인허가 자료(${identity.license_kind||'음식점'}) 기준${ago}. 이름과 도로명 주소가 같은 업소예요.`];
+  if(identity?.status==='closed')return ['check',`폐업으로 등록됨${identity.closed_on?`(${day(identity.closed_on)})`:''} · 행안부 인허가 자료(${identity.license_kind||'음식점'}) 기준${ago}. 이름을 바꿔 다시 연 곳일 수 있어요.`];
+  if(identity?.status==='located'){
+    const month=/^\d{6}$/.test(identity.data_month||'')?`(${identity.data_month.slice(0,4)}년 ${Number(identity.data_month.slice(4))}월 자료)`:'';
+    return ['ok',`위치 확인 · 소상공인 상가정보${month} 기준${ago}. 이름이 같은 업소가 200m 안에 한 곳 있어요.`];
+  }
+  return ['check',identity?.pending?'공공 자료를 확인하고 있어요.':''];
+}
 function identityEvidence(place){
-  const verified=place.naver_place_id_verified===true||(typeof verifiedMapTargets!=='undefined'&&verifiedMapTargets.has(place.id));
-  const item=evidenceItem('위치',verified?'ok':'check',verified?IDENTITY_VERIFIED:IDENTITY_UNVERIFIED);
-  item.dataset.identityPlaceId=place.id;
+  identityPlaces.set(place.id,place);
+  const identity=identityViews.get(place.id),[state,text]=identityText(identity);
+  const item=evidenceItem('위치',state,text);
+  item.dataset.identityPlaceId=place.id;item.dataset.identityStatus=identity?.status||'unknown';
+  // 링크는 글 칸 안에 이어 붙인다(판정이 없으면 이 링크가 글 칸의 전부다).
+  if(typeof placeMapLink==='function'){const map=placeMapLink('네이버 지도에서 확인 ↗',place);map.classList.add('evidence-map-link');item.querySelector('.evidence-text').append(text?' ':'',map);}
+  if(identity?.pending)watchIdentity(place);
   return item;
 }
-function markIdentityVerified(placeId){
+function refreshEvidenceCount(item){
+  const details=item.closest('details');if(!details)return;
+  const pending=details.querySelectorAll('.evidence-list .evidence-check').length,summary=details.querySelector('summary');
+  let count=summary?.querySelector('.evidence-summary-count');
+  if(!pending){count?.remove();return;}
+  if(!count&&summary){count=node('span','','evidence-summary-count');summary.append(count);}
+  if(count)count.textContent=`방문 전 확인 ${pending}개`;
+}
+function showIdentity(place,identity){
+  identityViews.set(place.id,identity);
   for(const item of document.querySelectorAll('li[data-identity-place-id]')){
-    if(item.dataset.identityPlaceId!==placeId||item.classList.contains('evidence-ok'))continue;
-    const fresh=evidenceItem('위치','ok',IDENTITY_VERIFIED);fresh.dataset.identityPlaceId=placeId;item.replaceWith(fresh);
+    if(item.dataset.identityPlaceId!==place.id)continue;
+    const fresh=identityEvidence(identityPlaces.get(place.id)||place);item.replaceWith(fresh);refreshEvidenceCount(fresh);
   }
+}
+// 사진 요청(/media)이 준 판정을 받는다(app.js rememberVerifiedMapTarget). '위치' 줄이 화면에 있으면 바로 바꾼다.
+function markIdentity(place,identity){
+  if(place&&identity)showIdentity(place,identity);
+}
+// 판정이 '확인 중'인 장소만, 그 장소의 '위치' 줄이 화면에 있는 동안 정해진 횟수만큼 다시 묻는다. 실패하면 조용히 다음 차례로 넘긴다(링크는 이미 있다).
+// 끝까지 판정이 없으면 '확인하고 있어요' 문구를 내리고 링크만 남긴다(다음에 코스를 열 때 저장된 판정이 있으면 보인다).
+function watchIdentity(place){
+  if(identityRechecks.has(place.id))return;
+  identityRechecks.set(place.id,true);
+  let step=0;
+  const shown=()=>[...document.querySelectorAll('li[data-identity-place-id]')].some(item=>item.dataset.identityPlaceId===place.id);
+  const next=()=>{
+    if(step>=IDENTITY_RECHECK_MS.length){
+      identityRechecks.delete(place.id);
+      const last=identityViews.get(place.id);
+      if(last?.pending)showIdentity(place,{...last,pending:false});
+      return;
+    }
+    setTimeout(async()=>{
+      step+=1;
+      if(!shown()){identityRechecks.delete(place.id);return;}
+      let identity=null;
+      try{identity=(await api('/places/'+encodeURIComponent(place.id)+'/identity?mode=real',null,'GET',{timeout:15000})).identity;}catch{}
+      if(identity)showIdentity(place,identity);
+      if(identity&&!identity.pending){identityRechecks.delete(place.id);return;}
+      next();
+    },IDENTITY_RECHECK_MS[step]);
+  };
+  next();
 }
 // 한국관광공사 TourAPI 의 영업 안내(app/tour_places.py tour_hours, /media 응답의 tour_hours). 관광공사에 제공된 글 그대로이고
 // 언제 확인한 정보인지 모르므로 '확인 필요' 상태는 그대로 두고 안내 글과 출처만 덧붙인다(일정 계산에도 넣지 않는다).
@@ -134,8 +190,9 @@ function evidenceItem(label,state,text){
   item.append(node('span',{ok:'확인됨',check:'확인 필요',info:'참고'}[state],'evidence-badge'),node('strong',label),node('span',text,'evidence-text'));
   return item;
 }
-const PRICE_EVIDENCE={web_reference:['check','블로그 글에 나온 가격이에요. 지금 가격인지는 확인하지 못했어요.'],
-  planning_assumption:['check','예산을 짜려고 넣은 가정 금액이에요. 실제 메뉴 가격이 아니에요.'],
+// 블로그 글에서 읽은 가격(web_reference)은 더 이상 없다(네이버 검색 API 특약 2.2, app/pricing.py). operator_menu 는 운영자가 확인한 제공 메뉴.
+const PRICE_EVIDENCE={planning_assumption:['check','예산을 짜려고 넣은 가정 금액이에요. 실제 가격이 아니에요. 네이버 지도에서 확인해 주세요.'],
+  operator_menu:['check','운영자가 확인해 둔 메뉴 가격이에요. 지금 가격은 원문에서 확인해 주세요.'],
   naver_menu:['check','모아 둔 메뉴 가격이에요. 지금 가격은 원문에서 확인해 주세요.'],
   confirmed:['ok','등록된 가격 자료가 있어요.'],estimated:['check','추정한 가격이에요. 실제 가격과 다를 수 있어요.'],unknown:['check','가격을 확인하지 못했어요.']};
 function placeEvidencePanel(plan,index){
@@ -151,13 +208,11 @@ function placeEvidencePanel(plan,index){
     // 확인된 자료가 없을 때만, 사진 요청이 한국관광공사 안내를 받아 오면 그 글을 덧붙인다(markTourHours).
     if(!current)operating.dataset.operatingPlaceId=place.id;
     list.append(operating);
-    list.append(evidenceItem('블로그 언급','info',fact.blog_match?'이번에 찾은 코스 블로그 글에 이 장소가 나와요. 평점이나 방문자 수를 확인한 것은 아니에요.':'이번에 찾은 블로그 글에는 나오지 않았어요. 입력한 조건에 맞춰 함께 추천한 곳이에요.'));
     const [state,text]=PRICE_EVIDENCE[fact.price_kind]||['check','가격 근거: '+fact.price_kind];
     list.append(evidenceItem('가격',state,text));
     details.append(list);
     const pending=list.querySelectorAll('.evidence-check').length;
     if(pending)summary.append(node('span',`방문 전 확인 ${pending}개`,'evidence-summary-count'));
-    for(const q of fact.price_sources){details.append(sourceLinks('가격이 나온 블로그 글 보기 · '+(q.posted_at||'작성일 미확인'),q.source,place.name+' 메뉴 가격'),node('p',q.evidence||'','hint'));}
   }
   return details;
 }

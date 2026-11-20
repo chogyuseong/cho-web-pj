@@ -157,7 +157,7 @@ def mount_lazy_photos(page, base):
     def media(route):
         place = route.request.url.split('/api/places/')[1].split('/media')[0]
         url = f'{base}/lazy-photo-{place}.png'
-        route.fulfill(json={'status': 'available', 'photos': [{'kind': 'search_result', 'source_label': '업체 등록 사진', 'title': '사진',
+        route.fulfill(json={'status': 'available', 'photos': [{'kind': 'place_public', 'source_label': '업체 등록 사진', 'title': '사진',
                       'source': url, 'image_url': url, 'search_url': base, 'checked_at': '2026-11-17'}]})
 
     def image(route):

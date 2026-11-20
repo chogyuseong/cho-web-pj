@@ -1,13 +1,13 @@
 """네이버 약관 준수(2026-11-19): 화면 자동 조회를 끄고 공식 API·공공데이터로 대신한다.
 
 - app/naver_pages.py 가 꺼져 있으면 search.naver.com·m.place.naver.com·m.blog.naver.com 에 요청이 나가지 않는다.
-- 메뉴 가격은 공식 블로그 검색 API 요약문의 가격으로(app/menus.py blog_menu), 없으면 네이버 지도 링크로 안내한다.
-- 같은 업체 확인은 공식 지역 검색 API 로(app/place_identity.py), 사진·영업 안내는 한국관광공사 TourAPI 로(app/tour_places.py).
+- 메뉴 가격은 읽어 오지 않고 네이버 지도 링크로 안내한다(app/menus.py map_menu_link. 블로그 요약의 가격은 2단계에서 없앰).
+- 같은 업체 확인은 공공 자료로(app/place_identity.py, tests/test_public_identity.py), 사진·영업 안내는 한국관광공사 TourAPI 로(app/tour_places.py).
 """
 import httpx
 import pytest
 
-from app import naver_pages, place_identity, tour_places
+from app import naver_pages, tour_places
 
 PLACE = dict(id='p1', name='어니언 성수점', category='카페·미식', lat=37.5446, lon=127.0557, address='서울 성동구 아차산로9길 8', region='서울')
 
@@ -36,54 +36,36 @@ def test_gate_is_off_by_default():
 
 def test_page_fetchers_do_not_touch_naver_pages(no_naver_pages, monkeypatch):
     from app.blog_photos import read_post
-    from app.course_search import public_body
     from app.public_place_photos import public_place_photos
+    from app.review_facts import BlogText, public_body
 
     monkeypatch.setattr('app.store.cached', lambda key: None)
     assert public_body('https://blog.naver.com/a/1') == ''
+    assert public_body('https://example.com/private') == ''
+    # 남겨 둔 본문 읽기 규칙: 본문 칸의 글자만, 스크립트·메뉴는 뺀다.
+    parser = BlogText()
+    parser.feed('<div>navigation</div><div class="se-main-container"><div>서울숲</div><script>fake</script>산책</div><div>footer</div>')
+    assert ' '.join(parser.parts) == '서울숲 산책'
     assert read_post(dict(url='https://blog.naver.com/a/1'), PLACE) == []
     assert public_place_photos(PLACE)['photos'] == []
     assert no_naver_pages == []
 
 
-def test_menu_uses_blog_api_quotes_and_points_to_naver_map(no_naver_pages, monkeypatch):
+def test_menu_reads_no_price_and_points_to_naver_map(no_naver_pages, monkeypatch):
+    """모아 둔 메뉴가 없는 식당: 블로그 검색 요약에서 가격을 읽지 않고(검색 API 호출 없음) 네이버 지도 링크만 준다."""
     from app import menus
 
+    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test')
+    monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'secret')
     monkeypatch.setattr('app.store.cached', lambda key: None)
-    quotes = [dict(item='카페라떼', amount=6500, source='https://blog.naver.com/a/1', posted_at='2026-10-01'),
-              dict(item='카페라떼', amount=7000, source='https://blog.naver.com/b/2', posted_at='2026-10-02')]
-    monkeypatch.setattr('app.pricing.lookup_price', lambda place, force=False: dict(status='available', quotes=quotes))
-    menu = menus.restaurant_menu(PLACE)
-    assert menu['status'] == 'available' and [i['name'] for i in menu['items']] == ['카페라떼']
-    assert menu['items'][0]['amount'] == 6500 and menu['source_label'] == '블로그 글에 나온 가격'
-    assert menu['source_url'].startswith('https://map.naver.com/p/search/')
-    assert menus.cost_menu_options(menu)[0]['amount'] == 6500
-    monkeypatch.setattr('app.pricing.lookup_price', lambda place, force=False: dict(status='not_found', quotes=[]))
-    empty = menus.restaurant_menu(PLACE)
-    assert empty['status'] == 'not_found' and '네이버 지도에서 확인' in empty['message']
+    monkeypatch.setattr(httpx.Client, 'request', lambda self, *a, **k: pytest.fail('외부 호출'))
+    menu = menus.restaurant_menu(PLACE, force=True)
+    assert menu['status'] == 'not_found' and menu['items'] == [] and menu['reason'] == 'not_collected'
+    assert menu['source_kind'] == 'map_link' and menu['source_url'].startswith('https://map.naver.com/p/search/')
+    assert '네이버 지도에서 확인' in menu['message'] and '블로그' not in menu['message']
+    assert menus.cost_menu_options(menu) == []
+    assert not hasattr(menus, 'blog_menu')
     assert no_naver_pages == []
-
-
-def local_item(title, lat, lon):
-    return dict(title=f'<b>{title}</b>', mapx=str(int(lon * 1e7)), mapy=str(int(lat * 1e7)))
-
-
-def test_identity_needs_same_name_within_400m_and_only_one():
-    near = local_item('어니언', 37.5448, 127.0559)
-    assert place_identity.matches(PLACE, [near]) == 1, '지점 낱말을 뗀 이름도 같은 업체로 본다'
-    assert place_identity.matches(PLACE, [local_item('어니언 성수점', 37.5600, 127.0700)]) == 0, '400m 밖'
-    assert place_identity.matches(PLACE, [local_item('다른 카페', 37.5447, 127.0558)]) == 0
-    assert place_identity.matches(PLACE, [near, local_item('어니언 성수점', 37.5445, 127.0556)]) == 2
-
-
-def test_identity_api_result(monkeypatch):
-    monkeypatch.setattr('app.store.cached', lambda key: None)
-    monkeypatch.setattr('app.store.cache', lambda *a: None)
-    monkeypatch.setattr('app.image_search.search_enabled', lambda: True)
-    monkeypatch.setattr('app.discovery.local_lookup', lambda name, area, sort='random': ([local_item('어니언', 37.5448, 127.0559)], 'available'))
-    assert place_identity.verify_identity(PLACE) == dict(verified=True, method='naver_local_search_api')
-    monkeypatch.setattr('app.discovery.local_lookup', lambda name, area, sort='random': ([], 'unavailable'))
-    assert place_identity.verify_identity(PLACE)['verified'] is False
 
 
 def tour_row(title, lat, lon, image='https://tong.visitkorea.or.kr/a.jpg', kind='Type1', content='123', type_id='39'):

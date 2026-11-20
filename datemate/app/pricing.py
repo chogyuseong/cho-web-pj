@@ -1,139 +1,38 @@
-from .service_time import today
-"""요청 시 가격 검색. 공식 단가 / 웹 참고 단가 / 계획용 가정을 구분한다."""
-import copy
-import os
-from collections import Counter
-from contextlib import contextmanager
-from contextvars import ContextVar
-import re
-from urllib.parse import unquote,urlsplit
-from datetime import datetime,timezone,date
-from concurrent.futures import ThreadPoolExecutor
-import httpx
-from .telemetry import observed_http,prepaid
+"""코스 비용 계산. 등록된 단가(업체 제공·등록 출처·운영자가 확인한 메뉴)와 계획용 가정 범위를 구분한다.
 
-BLOG_SEARCH_URL='https://naverapihub.apigw.ntruss.com/search/v1/blog'
-from . import naver_cache as store
-from .image_search import plain,safe_https,search_enabled
-from .request_usage import context_map,cache_hit
+네이버 검색 API 특약 2.2·2.3(2026-09 개정, docs/naver-terms-stage2-design.ko.md 3.2(a)):
+블로그 검색 요약에서 금액을 읽어 비용 표·합계·예산 판정에 넣던 것(extract_quote·lookup_price, 'web_reference' 가격)을 없앴다.
+가격을 찾는 외부 호출은 없다. 등록된 단가가 없는 장소는 사용자가 허용하면 계획용 가정 범위(ASSUMPTIONS)로, 아니면 '확인 필요'(합계에서 빠짐)로 둔다.
+그래서 합계는 '계획용 가정 범위' 중심이고 실제 가격과 다를 수 있다 — 화면이 비용 표 옆에 그렇게 적는다(static/plan-detail.js).
+"""
+import copy
+from datetime import datetime,timezone
 
 # 조회 가격이 아닌 예산 계획용 1인 범위. 사용자가 허용한 경우에만 사용한다.
 ASSUMPTIONS={'문화·예술':[0,10000],'카페·미식':[6000,15000],'체험·제작':[15000,40000],
     '오락·놀이':[10000,30000],'레저·활동':[10000,30000],'휴식·힐링':[0,15000],'산책·풍경':[0,5000]}
+ASSUMPTION_BASIS='계획용 1인 범위 · 등록된 단가가 없어 넣은 가정 (실제 단가 아님)'
+ASSUMPTION_SOURCE='서비스 예산 계획용 가정'
+UNKNOWN_BASIS='등록된 단가가 없어요. 가격은 방문 전에 확인해 주세요.'
+# 메뉴를 골라 넣은 식당 가격(app/experience.meal_draft). operator_menu = 운영자가 확인한 제공 메뉴(app/operating_evidence.py),
+# naver_menu = 네이버 화면에서 읽던 메뉴(app/naver_pages.py 가 꺼져 있어 새로 생기지 않음).
+MENU_PRICE_KINDS=('operator_menu','naver_menu')
 
-def price_name(place):
-    wiki=urlsplit(place.get('wikipedia') or '')
-    if wiki.hostname=='ko.wikipedia.org':
-        name=re.sub(r'\s*\([^)]*\)$','',unquote(wiki.path.rsplit('/',1)[-1]).replace('_',' '))
-        if name and re.search(r'[가-힣]',name):return name
-    return place['name']
-
-def extract_quote(place,item):
-    from .course_search import without_branch
-    title=plain(item.get('title',''));description=plain(item.get('description',''));text=title+' '+description
-    compact=re.sub(r'\s+','',text).casefold()
-    if place.get('image_keywords'):
-        if not all(re.sub(r'\s+','',word).casefold() in compact for word in place['image_keywords']):return None
-    # 지점 이름('OO 성수점')은 글에서 지점 없이 쓰이는 일이 많아 지점을 뗀 이름도 본다(course_search.without_branch, 2026-11-19).
-    else:
-        short=without_branch(place['name'])
-        names=[price_name(place),place['name']]+([short] if len(re.sub(r'\s+','',short))>=3 else [])
-        if not any(re.sub(r'\s+','',name).casefold() in compact for name in names):return None
-    url=item.get('link','')
-    if not safe_https(url):return None
-    posted=str(item.get('postdate',''))
-    try:posted_date=datetime.strptime(posted,'%Y%m%d').date()
-    except ValueError:return None
-    if not 0<=(today()-posted_date).days<=365:return None
-    category=place['category']
-    keywords=r'성인(?:\s*입장료)?|일반(?:\s*관람료)?|입장료|관람료|1인\s*이용료'
-    # 2026-11-19 넓힘: 예전 목록은 카페에서 아메리카노·칼국수 등 몇 개, 체험·레저에서 1인 체험비 정도라 대부분의 글을 놓쳤다
-    # (요가 '원데이 클래스 25,000원', 카페 '라떼 6,000원'). 낱말 바로 뒤의 금액만 읽는 규칙과 500~30만 원 범위는 그대로라 엉뚱한 숫자는 걸러진다.
-    if category=='카페·미식':keywords=r'아메리카노|카페\s*라떼|라떼|플랫화이트|콜드브루|핸드드립|커피|에이드|케이크|디저트|브런치|칼국수|국밥|냉면|돈까스|돈가스|파스타|보이차|우롱차|녹차|홍차|말차|대추차|유자차|쌍화차'
-    elif category in ('체험·제작','레저·활동','오락·놀이'):keywords+=r'|1인\s*체험비|1인\s*체험료|1인\s*이용권|체험비|체험료|원데이\s*클래스|원데이|1회\s*체험|1회권|1회\s*이용|수강료|이용료|이용권|1시간'
-    free=re.search(r'(상설전시(?:\s*관람료)?|입장료|관람료)\s*(?:은|는|:|：|이|가)?\s*무료(?!\s*(?:아니|아닌|아닙))',text)
-    if free and category!='카페·미식':return dict(amount=0,item=free[1],source=url,posted_at=posted_date.isoformat(),evidence=text[max(0,free.start()-30):free.end()+40])
-    match=re.search(r'('+keywords+r')\s*(?:은|는|:|：|이|가)?\s*(?:(?:1인|1회)(?:당)?\s*)?(\d[\d,]*(?:\.\d+)?)\s*(만|천)?\s*원',text)
-    if not match:return None
-    value=int(float(match[2].replace(',',''))*({'만':10000,'천':1000}.get(match[3],1)))
-    if not 500<=value<=300000:return None
-    return dict(amount=value,item=match[1],source=url,posted_at=posted_date.isoformat(),evidence=text[max(0,match.start()-30):match.end()+40])
-
-def usable(cached):
-    return bool(cached) and not (cached['status']=='key_missing' and search_enabled())
-
-def search_client():
-    """가격 검색 묶음(price_plans 한 번)이 함께 쓰는 HTTP 클라이언트.
-
-    전에는 검색마다 httpx.get 이 클라이언트를 새로 만들어 TLS 설정을 다시 읽고 TCP·TLS 연결을 새로 맺었다.
-    묶음 안에서 연결을 다시 쓰면 둘째 차례부터 연결 왕복(TCP 1번·TLS 1번)과 새 연결의 느린 시작이 빠진다.
-    보내는 요청(주소·검색어·헤더·시간 제한)은 같다. 쿠키는 받지도 보내지도 않는다(호출마다 새 클라이언트였던 때와 같음).
-    연결 수는 제한하지 않는다: 동시 실행은 price_plans 의 price_parallel()(기본 4건)과 telemetry 의 전체 슬롯이 정한다(풀 대기가 생기지 않게).
-    """
-    import http.cookiejar
-    client=httpx.Client(limits=httpx.Limits(max_connections=None,max_keepalive_connections=6,keepalive_expiry=30))
-    client.cookies.jar.set_policy(http.cookiejar.DefaultCookiePolicy(allowed_domains=[]))
-    return client
-
-_ORIGINAL_SEARCH_CLIENT=search_client
-
-# price_plans 가 묶음 동안 걸어 두는 클라이언트. 작업 스레드에는 context_map 이 문맥째 넘긴다.
-_batch_client=ContextVar('price_search_client',default=None)
-
-def lookup_price(place,force=False,writes=None,client=None):
-    """writes 에 리스트를 넘기면 캐시 저장을 바로 하지 않고 (키, 값, ttl)로 모아 둔다(price_plans 가 한 번에 저장).
-    client(또는 price_plans 묶음의 클라이언트)가 있으면 그 연결을 다시 쓰고, 없으면 전처럼 httpx.get 으로 한 번 보낸다."""
-    client=client if client is not None else _batch_client.get()
-    key='price-search-v2:'+place['id']
-    if not force:
-        cached=store.cached(key)
-        if usable(cached):cache_hit('price');return cached
-    result=dict(status='key_missing',quotes=[],checked_at=datetime.now(timezone.utc).isoformat())
-    if search_enabled():
-        try:
-            keys=place.get('image_keywords') or []
-            search_name=' '.join(keys) if len(keys)>=2 else price_name(place)
-            if len(keys)<2 and ' ' in search_name:search_name='"'+search_name+'"'
-            # 체험·레저·오락은 '입장료'보다 '가격'으로 찾을 때 수업·이용 요금 글이 나온다(2026-11-19).
-            query=search_name+' '+('메뉴 가격' if place['category']=='카페·미식' else '가격' if place['category'] in ('체험·제작','레저·활동','오락·놀이') else '입장료')
-            response=observed_http(client.get if client is not None else httpx.get,BLOG_SEARCH_URL,params=dict(query=query,display=30,start=1,sort='sim',format='json'),
-                headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=7)
-            response.raise_for_status();quotes=[];seen=set()
-            for item in response.json().get('items',[]):
-                if not isinstance(item,dict):continue
-                quote=extract_quote(place,item)
-                if quote and quote['source'] not in seen:quotes.append(quote);seen.add(quote['source'])
-                if len(quotes)==3:break
-            result.update(status='available' if quotes else 'not_found',quotes=quotes)
-        except (httpx.HTTPError,ValueError,TypeError,KeyError):result['status']='unavailable'
-    entry=(key,result,3600 if result['status']=='available' else 300)
-    if writes is None:store.cache(*entry)
-    else:writes.append(entry)
-    return result
-
-def apply_prices(plan,lookups):
+def apply_prices(plan):
     plan=copy.deepcopy(plan)
     if plan['conditions']['mode']!='real':return plan
     allow=plan['conditions'].get('allow_price_estimates',True);people=plan['conditions']['people'];updates=[]
     for index,place in enumerate(plan['places']):
         row=plan['costs'][index]
-        if row.get('price_kind')=='naver_menu':continue
+        if row.get('price_kind') in MENU_PRICE_KINDS:continue
         if row['unit'] is not None and not row.get('price_kind'):
             row['price_basis']=('업체 제공 단가 · 확인일 기준' if row.get('source_kind')=='merchant' else '등록 출처 단가 · 확인일 기준') if row['status']=='confirmed' else '저장된 단가 · 지금 가격은 따로 확인해 주세요';continue
-        result=lookups.get(place['id'],{});quotes=result.get('quotes',[])
-        if quotes:
-            # 서로 다른 메뉴를 섞어 단가 범위로 만들지 않는다.
-            item=quotes[0]['item'];quotes=[q for q in quotes if q['item']==item]
-            unit=[min(q['amount'] for q in quotes),max(q['amount'] for q in quotes)]
-            basis='블로그 글에 나온 가격 · '+item+' 1인 기준 · 지금 가격인지는 확인하지 못했어요';source=quotes[0]['source'];kind='web_reference'
-        elif allow:
-            unit=ASSUMPTIONS.get(place['category'],[0,20000]);basis='계획용 1인 범위 · 검색에서 가격을 확보하지 못해 사용한 가정 (실제 단가 아님)';source='서비스 예산 계획용 가정';kind='planning_assumption'
-        else:
-            row.update(price_basis='검색에서 단가를 확보하지 못했어요.',price_lookup_status=result.get('status','not_found'),checked_at=result.get('checked_at'));continue
+        if not allow:
+            row.update(price_basis=UNKNOWN_BASIS);continue
+        unit=ASSUMPTIONS.get(place['category'],[0,20000])
         amount=[v*people for v in unit]
-        row.update(unit=unit,quantity=people,formula=f'1인 기준 × {people}',amount=amount,status='estimated',source=source,
-            checked_at=result.get('checked_at'),price_basis=basis,price_kind=kind,price_evidence=quotes,
-            price_lookup_status=result.get('status','not_found'))
+        row.update(unit=unit,quantity=people,formula=f'1인 기준 × {people}',amount=amount,status='estimated',source=ASSUMPTION_SOURCE,
+            checked_at=None,price_basis=ASSUMPTION_BASIS,price_kind='planning_assumption')
         updates.append(place['name']+' 가격')
     plan['unknown']=[u for u in plan['unknown'] if u not in updates]
     total=[sum(r['amount'][i] for r in plan['costs'] if r['amount'] is not None) for i in (0,1)]
@@ -153,55 +52,6 @@ def apply_prices(plan,lookups):
         plan=audit_plan(plan)
     return plan
 
-_stats=ContextVar('price_stats',default=None)
-
-@contextmanager
-def collecting_stats():
-    """이 안에서 부르는 price_plans 의 조회 구성(대상 장소 수, 캐시 적중, 새로 조회한 장소 id, 결과 상태별 수)을 dict 로 모은다.
-    진단용이다(recommendation_service 가 개수만 timing.counts 에 남김)."""
-    box={}
-    token=_stats.set(box)
-    try:yield box
-    finally:_stats.reset(token)
-
-def price_parallel():
-    """가격 검색 동시 건수. 7~8건이 3차례에서 2차례로 줄도록 기본 4건(전에는 3건).
-    네이버 API 허브 문서의 한도는 하루 25,000회(429 = 하루 허용량 초과)뿐이고 초당 한도는 적혀 있지 않다(2026-11-17 확인).
-    동시 건수는 하루 호출 수를 바꾸지 않는다. 문제가 보이면 DATEMATE_PRICE_PARALLEL=3 으로 되돌린다(1~6)."""
-    try:return min(6,max(1,int(os.getenv('DATEMATE_PRICE_PARALLEL','4'))))
-    except ValueError:return 4
-
-def price_plans(plans,force=False):
-    from .perf_trace import span
-    needed={p['id']:p for plan in plans if plan['conditions']['mode']=='real' for p in plan['places'] if p['price'] is None}
-    # 캐시는 한 번에 읽고(force 가 아니면) 새로 찾은 가격은 끝난 뒤 한 번에 저장한다. 조회 대상·캐시 시간은 그대로, 동시 건수는 price_parallel().
-    with span('price.cache_read'):
-        known={} if force or not needed else store.cached_many('price-search-v2:'+pid for pid in needed)
-    writes=[]
-    misses=sum(not usable(known.get('price-search-v2:'+pid)) for pid in needed) if search_enabled() else 0
-    # 새로 찾을 가격이 있을 때만 묶음 클라이언트를 만든다(모두 캐시면 TLS 설정을 읽지 않음).
-    # 추천 작업의 네이버 연결 풀(telemetry.naver_session)이 열려 있으면 장소 검색이 맺어 둔 연결을 이어 쓴다.
-    # search_client 를 바꿔 둔 경우(테스트의 가짜 응답)는 그것을 쓴다.
-    from .telemetry import shared_naver_client
-    shared=shared_naver_client() if search_client is _ORIGINAL_SEARCH_CLIENT else None
-    client=(shared or search_client()) if misses else None
-    def one(p):
-        cached=known.get('price-search-v2:'+p['id'])
-        if usable(cached):cache_hit('price');return cached
-        return lookup_price(p,True,writes)
-    # 새로 찾을 가격 검색의 제공자 예산은 한 번에 잡는다(호출마다 잡으면 운영 DB의 쓰기 잠금에서 줄을 선다).
-    token=_batch_client.set(client)
-    try:
-        with span('price.lookups'),prepaid(BLOG_SEARCH_URL,misses),ThreadPoolExecutor(max_workers=price_parallel()) as executor:
-            data=dict(zip(needed,context_map(executor,one,needed.values())))
-    finally:
-        _batch_client.reset(token)
-        if client is not None and client is not shared:client.close()
-    with span('price.cache_write'):
-        store.cache_many(writes)
-    stats=_stats.get()
-    if stats is not None:
-        looked={key.removeprefix('price-search-v2:') for key,_,_ in writes}
-        stats.update(places=len(needed),cached=len(needed)-len(looked),looked_up=looked,
-            statuses=dict(Counter(data[pid].get('status') for pid in looked)))
-    return [apply_prices(p,data) for p in plans]
+def price_plans(plans):
+    """코스마다 비용을 계산한다(외부 호출 없음)."""
+    return [apply_prices(p) for p in plans]

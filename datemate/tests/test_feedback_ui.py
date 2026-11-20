@@ -154,14 +154,16 @@ def test_place_evidence_uses_plain_words_and_status_badges(audit_page):
     evidence = page.locator('#plan-detail .place-evidence').first
     evidence.locator('summary').click()
     items = evidence.locator('.evidence-item')
-    assert items.count() == 4
+    # 위치 · 영업 정보 · 가격. '블로그 언급' 줄은 없앴다(블로그 검색 결과를 추천 근거로 쓰지 않음, 네이버 검색 API 특약 2.2).
+    assert items.count() == 3 and '블로그 언급' not in evidence.inner_text()
     texts = items.all_inner_texts()
-    assert texts[0].startswith('확인 필요') and '같은 지점인지는 확인하지 못했' in texts[0]
-    assert '가격' in texts[3] and evidence.locator('.evidence-summary-count').count() == 1
+    # '위치' 줄: 공공 자료 판정이 없으면 판정 문구 없이 네이버 지도 링크만(2026-11-20, app/place_identity.py).
+    assert texts[0].startswith('확인 필요') and '네이버 지도에서 확인' in texts[0]
+    assert '가격' in texts[2] and evidence.locator('.evidence-summary-count').count() == 1
     joined = evidence.inner_text()
     for old in ('지점 일치 여부는 원문 확인 필요', '최신 운영 확인 필요', '검색 글에서 직접 등장 확인 없음', '현재가 미검증'):
         assert old not in joined
-    assert evidence.locator('.evidence-badge').count() == 4
+    assert evidence.locator('.evidence-badge').count() == 3
 
 
 def test_mobile_section_indicator_follows_the_current_heading(audit_page):

@@ -3,7 +3,7 @@ const photoLoads=new Map();
 function photoCandidates(photo){
   // 검색 썸네일은 카드 크기로 확대하면 흐려지므로 원본을 먼저 시도한다.
   // Commons의 source는 이미지가 아닌 설명 페이지이므로 후보로 쓰지 않는다.
-  const urls=photo.kind==='search_result'?[photo.source,photo.image_url,photo.url]:[photo.image_url,photo.url];
+  const urls=[photo.image_url,photo.url];
   return [...new Set(urls.filter(Boolean))].filter(url=>{try{return ['https:','http:'].includes(new URL(url,location.origin).protocol);}catch{return false;}});
 }
 function probePhoto(url){
@@ -22,18 +22,16 @@ function photoCheckedAt(value){
 // 촬영·확인 시점, 변경 여부, 이용 조건은 '사진 정보' 접기 안에 둔다(전에는 사진마다 본문 크기 4줄, 2026-11-17 가독성 정리).
 // 네이버 사진의 구분(업체 등록 / 방문자 후기 / 업체 연결 공개 사진 · 등록 주체 미확인, 내용 미검사)도 2026-11-18 부터 여기 첫 줄이다
 // (출처 줄에서 옮김, 사용자 지시 — photoCredits 머리 주석). 접기가 없는 크게 보기 창에서는 '원본' 링크의 이름·title 로만 남는다.
-// 검색으로 찾은 사진: 네이버 공개 사진(search_result·place_public)과 엄격한 이미지 검색 사진(image_search, 2026-11-19 app/image_search.strict_place_images).
-const SEARCH_PHOTO_KINDS=['search_result','place_public','image_search'];
+// 네이버 공개 사진(place_public): 네이버와 서면으로 허락을 받았을 때만 켜지는 경로의 사진이다(app/naver_pages.py, 지금은 꺼짐).
+// 네이버 이미지 검색으로 고른 '검색 사진'은 2026-11-20 에 없앴다(특약 2.2, docs/naver-terms-stage2-design.ko.md 3.4(c)).
+const NAVER_PHOTO_KINDS=['place_public'];
 function photoMetaLines(photo){
   const lines=[node('p',`촬영 ${photo.taken_at||'시점 미확인'} · 자료 확인 ${photoCheckedAt(photo.checked_at)}`,'hint'),node('p',photo.changes||'원본 변경 없음','hint')];
-  if(SEARCH_PHOTO_KINDS.includes(photo.kind))lines.unshift(node('p','사진 구분: '+photoLabel(photo,photo.kind==='image_search'?'검색 사진':'네이버 공개 사진'),'hint photo-kind'));
-  if(SEARCH_PHOTO_KINDS.includes(photo.kind))lines.push(node('p','검색 참고 이미지 · 원본 이용 조건 확인 필요','hint'));
+  if(NAVER_PHOTO_KINDS.includes(photo.kind))lines.unshift(node('p','사진 구분: '+photoLabel(photo,'네이버 공개 사진'),'hint photo-kind'));
+  if(NAVER_PHOTO_KINDS.includes(photo.kind))lines.push(node('p','참고 이미지 · 원본 이용 조건 확인 필요','hint'));
   return lines;
 }
-// 검색 사진 출처 줄 앞머리: 엄격한 이미지 검색 사진은 '검색 사진', 네이버 공개 사진은 그대로.
-// 네이버 이미지 검색 사진은 '네이버 검색결과'임을 앞에 밝힌다(특약 2.1, 2026-11-20).
-function searchPhotoPrefix(photo){return photo.kind==='image_search'?'네이버 검색결과 · 검색 사진 · ':'네이버 공개 사진 · ';}
-// 사진이 끝내 없을 때 빈칸 대신 보여 줄 네이버 지도 링크. 다른 지도 링크와 같은 주소(app.js placeMapLink: 확인된 업체 번호가 있으면 그 업체 화면)를 쓴다.
+// 사진이 없을 때 빈칸 대신 보여 줄 네이버 지도 링크(등록·관광공사 사진이 없는 가게는 이 링크가 사진 칸이다). 다른 지도 링크와 같은 주소(app.js placeMapLink: 확인된 업체 번호가 있으면 그 업체 화면)를 쓴다.
 function photoMapLink(place){
   const a=placeMapLink('네이버 지도에서 사진 보기 ↗',place);a.classList.add('photo-map-link');return a;
 }
@@ -47,8 +45,7 @@ function photoMeta(photo,full){
 // 장소 일치만 확인하고 사진 내용 검사는 하지 않은 사진임을 라벨에 드러낸다.
 function photoLabel(photo,fallback){return (photo.source_label||fallback)+(photo.visual_verification?.status==='unverified'?' · 내용 미검사':'');}
 /* 사진 아래 출처 줄. 카드·크게 보기 창·장소 정보 창의 추가 사진이 같은 표기를 쓴다.
-   네이버 사진(search_result·place_public): '네이버 공개 사진 · 원본 · 검색' 한 줄.
-   엄격한 이미지 검색 사진(image_search, 2026-11-19): '검색 사진 · 원본 · 검색' 한 줄(원본 = 사진 원래 주소, 검색 = 네이버 이미지 검색 결과).
+   네이버 사진(place_public): '네이버 공개 사진 · 원본 · 검색' 한 줄.
      2026-11-18 전에는 '네이버 사진 자료 · 업체 연결 공개 사진 · 등록 주체 미확인 · 검색 결과'였는데, 휴대폰 식당 카드에서 여러 줄로 쌓여 줄였다(사용자 지시).
      빠진 사진 구분(업체 등록 / 방문자 후기 / 등록 주체 미확인, 내용 미검사)은 '사진 정보' 접기로 옮겼다(사용자 지시):
        · 결과·식당 카드와 장소 정보 창: '사진 정보' 접기 안 첫 줄 '사진 구분: …'(photoMetaLines)
@@ -63,8 +60,8 @@ function photoSourceLink(photo,text){
 }
 function photoCredits(photo){
   const credits=node('figcaption');
-  if(SEARCH_PHOTO_KINDS.includes(photo.kind)){
-    credits.append(node('span',searchPhotoPrefix(photo)),photoSourceLink(photo,'원본'));
+  if(NAVER_PHOTO_KINDS.includes(photo.kind)){
+    credits.append(node('span','네이버 공개 사진 · '),photoSourceLink(photo,'원본'));
     // 검색 주소가 없으면 '검색' 자체를 뺀다(전에는 '검색 결과'가 링크 아닌 글자로 남았다).
     if(photo.search_url){const search=link('검색',photo.search_url);if(search.tagName==='A')search.setAttribute('aria-label','네이버 검색 결과');credits.append(node('span',' · '),search);}
   }
@@ -270,7 +267,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       viewport.addEventListener('touchcancel',()=>{touch=null;},{passive:true});
     }
     if(data.photos.length>1&&!full){const more=button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode));copy.append(more);}
-    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(SEARCH_PHOTO_KINDS.includes(item.kind))credit.append(node('span',searchPhotoPrefix(item)),photoSourceLink(item,'원본'));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',item.title+' 사진 크게 보기');open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')),{thumb:true});}panel.append(extra);}
+    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(NAVER_PHOTO_KINDS.includes(item.kind))credit.append(node('span','네이버 공개 사진 · '),photoSourceLink(item,'원본'));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',item.title+' 사진 크게 보기');open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')),{thumb:true});}panel.append(extra);}
   }catch(error){panel.replaceChildren(node('p','사진 정보를 불러오지 못했습니다. 다시 시도해 주세요.','photo-status'),retry());}}
   // 목록 전체를 한 번에 조회하지 않고 화면 근처의 장소만 불러온다.
   if(eager)load();else if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){observer.disconnect();load();}},{rootMargin:'150px'});observer.observe(panel);}else load();

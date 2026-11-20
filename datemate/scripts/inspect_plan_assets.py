@@ -13,7 +13,7 @@ if __name__=='__main__':
             'map_id_matches_js':os.getenv('NAVER_MAPS_KEY_ID')==os.getenv('NAVER_MAPS_JS_KEY_ID'),
             'map_js_matches_secret':bool(os.getenv('NAVER_MAPS_JS_KEY_ID')) and os.getenv('NAVER_MAPS_JS_KEY_ID')==os.getenv('NAVER_MAPS_KEY'),
             'map_js_has_whitespace':os.getenv('NAVER_MAPS_JS_KEY_ID','')!=os.getenv('NAVER_MAPS_JS_KEY_ID','').strip(),
-            'image_search_configured':bool(os.getenv('NAVER_SEARCH_CLIENT_ID') and os.getenv('NAVER_SEARCH_CLIENT_SECRET'))}
+            'naver_search_configured':bool(os.getenv('NAVER_SEARCH_CLIENT_ID') and os.getenv('NAVER_SEARCH_CLIENT_SECRET'))}
     if (RUNTIME/'datemate.sqlite').exists():
         with store.connect() as db:
             rows=db.execute('SELECT payload FROM plans ORDER BY rowid DESC LIMIT 1').fetchall()

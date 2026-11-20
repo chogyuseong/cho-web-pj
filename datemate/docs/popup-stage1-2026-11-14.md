@@ -1,3 +1,5 @@
+> 2026-11-20 2단계에서 판정 기능 제거: 팝업 여부·기간·거점 판정, 모아 보기 분류, 재정렬, 대표 사진을 없애고 '글 목록 + 거점 사전 지도'만 남겼다(docs/naver-terms-stage2-design.ko.md 3.3). 아래는 그 전의 기록이다.
+
 # 팝업스토어 탐색 1단계 1a 보고 (2026-11-14)
 
 - 계약: `datemate/docs/popup-stores-spec.md` (0-5 가 1단계 확정 사항). 0단계 보고: `datemate/docs/popup-stage0-2026-11-14.md`.

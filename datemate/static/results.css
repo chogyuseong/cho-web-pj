@@ -379,13 +379,13 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 
 
 /* ---------------------------------------------------------------- 블로그 후기 접기·추천 이유와 정보 확인·후기에서 읽은 정보 (5-3d-3)
-   만드는 곳: place-blogs.js — details.place-blogs(summary「블로그 후기 보기」, div.place-blog-content 안 ul.blog-post-list > li.blog-search-post,
+   만드는 곳: place-blogs.js — details.place-blogs(summary「블로그 후기 보기」, div.place-blog-content 안 div.naver-result-block > ol.blog-post-list > li.blog-search-post,
    불러오는 중 .blog-skeleton*, 실패·빈 상태 .blog-state). 일정 장소 칸, 식당 제안 카드, 코스 카드의 사진 미리보기(.plan-photo-preview),
    장소 정보 대화상자에 들어간다. plan-evidence.js 의 details.place-evidence(ul.evidence-list > li.evidence-item.evidence-ok|check|info),
    review-facts.js 의 div.review-facts, meal-suggestions.js·recommendation-feedback.js 의 .verified-facts.
    예전 출처: place-photos·selle·calm·editorial·clarity·line 의 규칙 약 80개(블로그 목록 규칙 대부분은 place-photos.css 에 있었다).
    남겨 둔 공통 규칙: readability.css 의 main :is(…,.place-blogs) 안 p·a 글자 크기·색(대화상자 안에서는 걸리지 않는다),
-   main :is(…,.place-evidence p,…) 15px. 코스 검색 근거(.course-evidence)와 비용 표의 블로그 근거(.price-blog-evidence)는 뒤 단계. */
+   main :is(…,.place-evidence p,…) 15px. 코스 조사 패널(.course-evidence)은 뒤 단계. */
 
 /* 접기 상자 공통 모양: 흰 바탕·1px 선·모서리 10px. !important 는 line.css 의 같은 모양 상자 목록과 맞춘 값(5-5 에서 정리). */
 .place-blogs { margin:12px 0; overflow:hidden; font-size:15px; line-height:1.75; border:1px solid var(--line)!important; border-radius:10px!important; background:#fff!important; }
@@ -395,20 +395,16 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .place-blog-content { min-width:0; padding:0 12px 12px; }
 .place-blogs h5 { font-size:14px; margin:14px 0 6px; }
 .blog-post-list { list-style:none; margin:0; padding:0; }
-.place-blogs .blog-search-post { min-width:0; padding:12px 0; border-bottom:1px solid var(--line); }
-.place-blogs .blog-search-post:last-child { border-bottom:0; }
-.blog-search-post>a { display:block; overflow-wrap:anywhere; }
-.blog-search-post a { font-size:16px; font-weight:600; }
-/* 글 제목은 두 줄까지 */
-.blog-search-post a.blog-post-title { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; overflow-wrap:anywhere; }
-.blog-search-post a.blog-read-more { white-space:nowrap; color:var(--cheong); }
-.blog-search-post .source-link-options { display:block; }
-.blog-search-post p { margin:7px 0; font-size:14px; line-height:1.8; }
+/* 네이버 블로그 검색 결과 블록(place-blogs.js naverBlogBlock, 코스 조사 패널도 같은 블록): 출처 표시 + 받은 순서 그대로의 글 목록.
+   제목·요약은 받은 글자 그대로 다 보여 준다(줄 수로 자르지 않음). 블록 뒤의 「더 보기」(.blog-more)는 블록 밖이다. */
+.naver-result-block { min-width:0; margin:8px 0; padding:4px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+.naver-result-block .blog-search-post { min-width:0; padding:12px 0; border-bottom:1px solid var(--line); }
+.naver-result-block .blog-search-post:last-child { border-bottom:0; }
+.blog-search-post .blog-post-title { display:block; overflow-wrap:anywhere; font-size:16px; font-weight:600; }
+.blog-search-post p { margin:7px 0; font-size:14px; line-height:1.8; overflow-wrap:anywhere; color:var(--ink); }
 .blog-search-post small { display:block; margin-top:5px; font-size:14px; color:var(--muted); }
 .blog-search-post .blog-meta { display:block; margin-top:4px; }
-.place-blog-content .blog-excerpt { font-size:14px; line-height:1.8; color:var(--ink); }
-.blog-preview-label { display:inline-block; margin-right:4px; padding:0 6px; border:1px solid var(--line); border-radius:999px; background:var(--platform);
-  font-size:14px; line-height:1.6; font-weight:600; color:var(--muted); }
+.blog-more { min-height:44px; margin:4px 0 8px; }
 .blog-scope-note { margin:0 0 4px; }
 .blog-state { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:4px 0 8px; padding:12px; background:var(--platform); }
 .blog-state p { margin:0; flex:1 1 200px; }
@@ -466,8 +462,8 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 /* ---------------------------------------------------------------- 비교 표·비용 표·실행 요약·결정 상자 (5-3e)
    만드는 곳: plan-evidence.js optionComparison() — #results 의 details.comparison-details > section.option-comparison(h3, div.table-scroll > table:
    thead th 열 제목, tbody th 코스 이름 + .comparison-course-title, td 숫자 칸 .num).
-   plan-detail.js — details.cost-table-details > (가격 다시 조회 .price-refresh-control, div.table-scroll > table.cost-table, div.total-row 합계).
-   price-controls.js 의 칸 안 .price-basis·.price-blog-evidence, execution-summary.js 의 section.execution-summary(.execution-grid 항목,
+   plan-detail.js — details.cost-table-details > (div.table-scroll > table.cost-table), p.cost-basis-note(합계의 성격 한 줄), div.total-row 합계.
+   price-controls.js 의 칸 안 .price-basis·.price-map-check, execution-summary.js 의 section.execution-summary(.execution-grid 항목,
    details.verification-places > .verification-place 줄, details.route-assumptions), planning-outcomes.js 의 section.planning-decision,
    recommendation-feedback.js 의 details.verification-notes.
    예전 출처: style·place-photos·selle·calm·editorial·readability·line 과 execution-summary.css·planning-outcomes.css(이제 비어 있다) 규칙 약 140개.
@@ -504,7 +500,6 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 
 /* 장소·구간별 비용 표(일정 안). 표는 700px 이상 폭을 유지하고 좁은 화면에서는 상자 안에서 가로로 넘긴다. */
 .cost-table-details { margin:8px 0 12px; }
-.price-refresh-control { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:12px 0; }
 .detail .table-scroll { margin:16px 0; background-color:#fff; border:0; border-radius:0; }
 .detail .table-scroll:focus-visible { outline:3px solid var(--hong); outline-offset:3px; }
 .detail table { white-space:normal; min-width:700px; }
@@ -516,10 +511,9 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .detail .cost-table td:first-child { min-width:160px; font-weight:650; }
 .detail .cost-table td:last-child { overflow-wrap:anywhere; }
 .cost-table :is(th,td).num { text-align:right; font-variant-numeric:tabular-nums; }
-/* 비용 칸 안의 블로그 가격 근거 */
-.price-blog-evidence { display:grid; gap:6px; margin-top:12px; min-width:200px; max-width:340px; white-space:normal; }
-.price-blog-evidence strong { font-size:14px; color:var(--ink); }
-.price-blog-evidence a { display:block; font-size:14px; line-height:1.7; overflow-wrap:anywhere; word-break:break-word; color:var(--cheong); }
+/* 등록 단가가 없는 장소의 '네이버 지도에서 가격 확인' 링크(칸 안)와, 표 아래 합계의 성격 한 줄 */
+.table-scroll td a.price-map-check { margin-top:6px; font-size:14px; line-height:1.7; color:var(--cheong); }
+.detail .cost-basis-note { margin:8px 0 12px; }
 /* 합계 줄 */
 .detail .total-row { display:flex; justify-content:space-between; gap:16px; margin:8px 0; padding:12px 0; background:none; border:0; border-bottom:1px solid var(--line); border-radius:0;
   font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; }
@@ -702,12 +696,13 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 
 #plan-extras>.plan-extras-panel { margin-top:24px; }
 
-/* 코스 검색 근거(추천에 참고한 블로그·장소 정보). 상자 모양 !important 는 line.css 의 같은 모양 상자 목록과 맞춘 값. */
+/* 코스 조사 패널(코스 구성 메모 + 네이버 블로그 글 블록 .naver-result-block, course-search.js). 상자 모양 !important 는 line.css 의 같은 모양 상자 목록과 맞춘 값. */
 .course-evidence { padding-bottom:0; }
 .course-evidence>summary { color:var(--ink)!important; }
 .course-search-panel { margin-bottom:22px; padding:23px; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
 .course-evidence .course-search-panel { margin-bottom:0; }
-.course-search-panel h3 { margin:6px 0; font-size:22px; }
+.course-search-panel h3 { margin:6px 0; font-size:22px; overflow-wrap:anywhere; }
+.course-search-panel .blog-post-list { list-style:none; margin:0; padding:0; }
 
 /* 둘이 함께 고르기·반드시 지킬 조건·다녀온 뒤 피드백 */
 .experience-panel { margin:25px 0; }

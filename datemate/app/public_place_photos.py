@@ -245,7 +245,7 @@ def public_place_photos(place, force=False):
     if place.get("demo"):
         return result
     # 2026-11-19: 네이버 검색 결과·플레이스 화면을 자동으로 읽지 않는다(약관·robots.txt, app/naver_pages.py).
-    # 사진은 media.py 가 공식 이미지 검색 API(app/image_search.py)로 대신 찾는다.
+    # 사진은 media.py 가 등록 사진과 한국관광공사 사진으로만 채운다(네이버 이미지 검색 사진은 2026-11-20 에 없앰).
     from .naver_pages import allowed
 
     if not allowed():

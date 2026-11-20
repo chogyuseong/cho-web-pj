@@ -16,7 +16,6 @@ CONDITIONS = {'visit_date': '2026-10-24', 'max_leg': 180, 'budget': 1000000}
 REVIEW = {'rating': 5, 'body': '좋았어요', 'nickname': '방문자', 'visited': '2026-01-01'}
 PLAN_ROUTES = {
     ('GET', '/api/plans/{id}'): None,
-    ('POST', '/api/plans/{id}/prices'): None,
     ('GET', '/api/plans/{id}/restaurant-matches'): None,
     ('GET', '/api/plans/{id}/restaurants'): None,
     ('GET', '/api/plans/{id}/parking'): None,

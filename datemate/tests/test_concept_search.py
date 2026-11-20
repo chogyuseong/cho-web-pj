@@ -1,6 +1,5 @@
-import httpx
 from app.models import Conditions
-from app.course_search import course_query,search_courses
+from app.course_search import course_query
 from app.preferences import fit_score
 from app.taxonomy import concept_score
 
@@ -24,20 +23,4 @@ def test_each_concept_changes_query_and_concrete_place_ranking():
     assert concept_score(arcade,child)>concept_score(game,child)
     assert concept_score(dict(name='박물관',description=None,tags=None,search_aliases=None),intellectual)>0
 
-
-def test_search_relaxes_only_after_empty_result_and_records_queries(monkeypatch):
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID','test');monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET','secret')
-    queries=[]
-    def get(url,**kwargs):
-        queries.append(kwargs['params']['query'])
-        items=[] if len(queries)==1 else [dict(title='종로 코스',description='박물관',link='https://blog.naver.com/example/123',postdate='20261020')]
-        return httpx.Response(200,request=httpx.Request('GET',url),json={'items':items})
-    monkeypatch.setattr(httpx,'get',get)
-    monkeypatch.setattr('app.course_search.public_body',lambda url:'')
-    areas=[]
-    monkeypatch.setattr('app.discovery.discover',lambda posts,area:(areas.append(area) or [],{}))
-    result=search_courses(conditions('지적인 데이트'))
-    assert '박물관' in queries[0] and queries[1]=='종로 데이트 코스'
-    assert result['search_relaxed'] and len(result['search_history'])==2
-    assert result['requested_query']==queries[0]
-    assert areas==['종로 데이트 코스']
+# 검색 결과가 없을 때 검색어를 줄여 다시 찾는 것은 tests/test_course_search.py 에서 본다.

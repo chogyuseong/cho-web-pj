@@ -10,8 +10,10 @@
 네이버 유래로 보는 것:
   · 장소: id 가 discovered:·food:naver- 로 시작하거나, source_type 에 '네이버'가 있거나, license 가 '검색 결과…' 인 장소
     (네이버 지역 검색으로 찾은 장소 전체 — 이름·주소·좌표·업종이 모두 검색 결과다).
-  · 코스: course_search(블로그 검색 글·선정 근거·발견 진단), blog_score, 이유 문장의 '네이버 코스 검색 n위 글' 부분.
-  · 비용: price_evidence(블로그 요약 조각), 블로그 가격(web_reference·naver_menu)의 출처 링크·근거 문장.
+  · 코스: course_search(블로그 검색 글. 2단계부터 네이버가 준 순서·건수·원문 그대로이고 추천 계산에는 쓰지 않는다, app/course_search.py).
+  · 비용: 2단계부터 블로그 요약에서 금액을 읽지 않는다(app/pricing.py). 예전에 저장된 블로그 가격(web_reference·블로그에서 온 naver_menu,
+    price_evidence)·blog_score·이유 문장의 '네이버 코스 검색 n위 글' 머리말은 마이그레이션 v0006 이 한 번 정리했다.
+    아래의 그 필드 처리(REASON_PREFIX, NAVER_PRICE_KINDS, _expire_prices)는 정리에서 빠진 코스가 있어도 21일 정리와 AI 근거에서 지우는 안전망이다.
 """
 
 import copy
@@ -22,6 +24,8 @@ import time
 HISTORY_MAX_SECONDS = 21 * 86400
 NAVER_ID_PREFIXES = ("discovered:", "food:naver-")
 NAVER_LICENSES = ("검색 결과", "검색 결과와 원문 인용")
+# 네이버에서 읽은 가격 종류(예전 저장분). web_reference = 블로그 요약의 금액(2단계에서 없앰), naver_menu = 블로그·네이버 화면에서 읽은 메뉴 가격.
+# 운영자가 확인한 제공 메뉴는 operator_menu 라서 여기에 들지 않는다(app/pricing.MENU_PRICE_KINDS).
 NAVER_PRICE_KINDS = ("web_reference", "naver_menu")
 EXPIRED_NAME = "보관 기간이 지난 검색 장소"
 AI_PLACEHOLDER = "네이버 검색 장소"
@@ -224,8 +228,8 @@ def _expire_legs(plan, renames):
 def strip_plan(plan, for_ai=False):
     """네이버 유래 필드를 뺀 코스 사본. for_ai 면 LLM 근거용.
 
-    21일 정리(for_ai=False)에서 지우는 것: 블로그 코스 검색(course_search·blog_score·이유 문장의 블로그 순위), 지역 검색 장소의 이름·주소·업종·
-    설명·링크·사진·좌표, 그 장소에 닿는 구간의 길찾기 링크·도로 경로, 블로그 가격(금액은 '확인 필요'로 돌리고 합계에서 뺌), 검색 결과일 수 있는
+    21일 정리(for_ai=False)에서 지우는 것: 블로그 검색 글(course_search)과 예전 저장분의 blog_score·이유 문장의 블로그 순위, 지역 검색 장소의 이름·주소·업종·
+    설명·링크·사진·좌표, 그 장소에 닿는 구간의 길찾기 링크·도로 경로, 예전 저장분의 블로그 가격(금액은 '확인 필요'로 돌리고 합계에서 뺌), 검색 결과일 수 있는
     출발지·귀가지 이름. 출발지·귀가지 좌표는 남긴다(조건 모델이 요구하고, 지도·일정 검사의 기준점이다 — 남은 위험).
     화면은 course_search·price_evidence 가 없어도, 장소 이름이 EXPIRED_NAME 이고 좌표가 없어도 그린다(지도는 좌표 있는 곳만).
     """
@@ -273,8 +277,8 @@ def ai_safe_plan(plan):
 
 # 21일 정리로 좌표를 지운 장소가 있는 코스는 경로·주변 검색을 다시 계산할 수 없다(좌표가 없음). 바꾸는 요청은 이 문구로 거절한다.
 EXPIRED_CHANGE_MESSAGE = (
-    "만든 지 21일이 지나 네이버 검색으로 찾은 장소의 정보를 지운 코스예요. 장소·이동 수단 바꾸기, 주변 식당·주차장 찾기, "
-    "가격 다시 찾기는 할 수 없어요. 같은 조건으로 새로 추천받아 주세요."
+    "만든 지 21일이 지나 네이버 검색으로 찾은 장소의 정보를 지운 코스예요. 장소·이동 수단 바꾸기, 주변 식당·주차장 찾기는 "
+    "할 수 없어요. 같은 조건으로 새로 추천받아 주세요."
 )
 
 

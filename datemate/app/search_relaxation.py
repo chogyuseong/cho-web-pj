@@ -69,7 +69,7 @@ def reselect(options,reserve,adapt,conditions,stage):
     return chosen,diagnostics['option_selection'],reserve_candidates(pool,chosen,conditions,limit=12)
 
 
-def search_progressively(c,evidence=None,out=None):
+def search_progressively(c,out=None):
     """out(dict)을 주면 최종 코스를 고른 선택의 진단(diagnostics)과 experience 모드 예비 후보(reserve)를 담는다."""
     from .planner import recommend_strict
     from .condition_audit import audit_plan
@@ -78,7 +78,7 @@ def search_progressively(c,evidence=None,out=None):
     attempts=[];last=None
     for attempt,messages,changes in relaxation_steps(c):
         last=attempt
-        result=recommend_strict(attempt,evidence,stage='relaxation')
+        result=recommend_strict(attempt,stage='relaxation')
         serialized=attempt.model_dump(mode='json')
         attempts.append(dict(step=len(attempts)+1,changes={key:serialized[key] for key in changes},plans=len(result['plans'])))
         def adapt(p):
@@ -106,7 +106,7 @@ def search_progressively(c,evidence=None,out=None):
             return options
     # Last resort remains a labelled approximation; known closures and locks still apply.
     if last:
-        options=suggest(last,evidence,out,stage='relaxation_best_effort')
+        options=suggest(last,out,stage='relaxation_best_effort')
         def label(p):
             p['conditions']=c.model_dump(mode='json');audit_plan(annotate(p,c),c)
             p['search_adjustments']=dict(stage='nearby',origin_unchanged=True,original_radius_km=c.neighborhood_radius_km,

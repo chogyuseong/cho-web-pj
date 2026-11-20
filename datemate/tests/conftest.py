@@ -55,6 +55,17 @@ def storage():
         db.execute('DELETE FROM cache')
 
 
+# 같은 업체 확인(app/place_identity.py)은 공공 API 를 배경 스레드에서 부른다. 테스트에서는 스레드를 띄우지 않는다
+# (TOUR_API_KEY 를 넣은 테스트가 /media 를 불러도 실제 공공 API 로 나가지 않게). 조회 자체를 보는 테스트는 lookup·_work 를 직접 부른다.
+@pytest.fixture(autouse=True)
+def no_public_identity_worker(monkeypatch):
+    from app import place_identity
+    monkeypatch.setattr(place_identity, '_start_worker', lambda: None)
+    place_identity._queue.clear()
+    yield
+    place_identity._queue.clear()
+
+
 # 네이버 검색 결과는 사용자별로만 보관한다(app/naver_cache.py). HTTP 를 거치지 않고 함수를 직접 부르는 테스트는
 # 한 사용자(소유자)의 요청 안에서 부른 것으로 본다. TestClient 요청은 미들웨어가 그 요청의 소유자로 다시 건다.
 # 테스트마다 새 소유자다(다른 테스트가 남긴 보관분을 읽지 않게). 요청 안 메모는 쓰지 않는다(직접 부르기 한 번 = 요청 하나).

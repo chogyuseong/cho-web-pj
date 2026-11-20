@@ -1,10 +1,12 @@
-"""코스 지도의 팝업 표시 층(1단계 1c): 실제 브라우저, /api/popups 는 page.route 가짜 응답.
+"""코스 지도의 팝업 표시 층: 실제 브라우저, /api/popups 는 page.route 가짜 응답.
 
+2026-11-20(특약 2.2)부터 지도의 팝업 표시는 응답의 hubs(우리 거점 사전)만으로 그린다. 검색된 글과 잇지 않는다(글 수·글 링크 없음).
 네이버 지도는 SDK 를 대신하는 가짜 객체(test_feedback_ui.NAVER_STUB 를 넓힌 것)로, Leaflet 대체 지도는 저장소에 든 실제 Leaflet 으로 본다.
 실제 네이버 지도 SDK 와의 연결은 이 테스트가 확인하지 않는다(외부 요청을 막음)."""
 
 import json
 import os
+import re
 import socket
 import threading
 import time
@@ -22,23 +24,19 @@ from app.main import app as main_app
 
 LONG = BUILDING | dict(
     hub_id="seoul-long",
-    name="롯데백화점 본점 에비뉴엘 SUPERLONGHUBNAMEWITHOUTSPACESFORTESTING 지하 1층 행사장",
+    name="롯데백화점 본점 <img src=x id=xss-pop> 에비뉴엘 SUPERLONGHUBNAMEWITHOUTSPACESFORTESTING 지하 1층 행사장",
     district="중구",
     lat=37.565,
     lon=126.981,
 )
-# 거점 셋(더현대 글 5건, 성수 일대 글 2건, 긴 이름 건물 1건) + 위치 미확인 글 1건.
+# 거점 셋(건물, 동네, 긴 이름 건물). 글은 거점과 무관하다: 거점 이름이 든 글이 여럿이어도 지도·단추에 글 수나 링크가 붙지 않는다.
 MAP = payload(
     "ready",
-    [post(i, title=f"더현대 글 {i}", place=BUILDING) for i in range(1, 6)]
-    + [
-        post(6, title="<img src=x id=xss-pop> 성수 글", place=AREA),
-        post(7, title="성수 글 둘", place=AREA),
-        post(8, title="긴 이름 건물 글", place=LONG),
-        post(9, title="위치 모르는 글"),
-    ],
+    [post(i, title=f"더현대 서울 팝업 글 {i}") for i in range(1, 6)]
+    + [post(6, title="성수 팝업 글"), post(9, title="어디인지 모를 글")],
+    hubs=[BUILDING, AREA, LONG],
 )
-ONE = payload("ready", [post(20, title="롯데월드몰 글", place=WORLD)])
+ONE = payload("ready", [post(20, title="롯데월드몰 글")], hubs=[WORLD])
 DEMO = dict(
     mode="demo",
     region="서울",
@@ -81,18 +79,18 @@ def test_naver_popup_layer_markers_info_cleanup_and_fallback(audit_page):
     )
     idle(page)
     page.wait_for_function(f"{POPUPS}.length===3")
-    # 거점당 표시 하나: 카드 묶음 수 = 표시 수(위치 미확인 글은 카드 묶음에도 지도에도 없음).
+    # 거점당 표시 하나: 거점 목록 수 = 표시 수 = 응답의 hubs 수(글 7건과 무관).
     assert page.locator("#popup-course .popup-hub").count() == 3
     assert page.evaluate("PopupCourse.mapItems.length") == 3
     markers = page.evaluate(
         f"{POPUPS}.map(m=>({{title:m.options.title,content:m.options.icon.content,z:m.options.zIndex}}))"
     )
     assert [m["title"] for m in markers] == [
-        "팝업 글 장소 · 더현대 서울 · 검색된 글 5건",
-        "팝업 글 장소 · 성수 일대(대략) · 검색된 글 2건",
-        f"팝업 글 장소 · {LONG['name']} · 검색된 글 1건",
+        "팝업이 자주 열리는 곳 · 더현대 서울",
+        "팝업이 자주 열리는 곳 · 성수 일대(대략)",
+        f"팝업이 자주 열리는 곳 · {LONG['name']}",
     ]
-    # 마커 HTML 은 고정 문자열뿐(검색 결과 글자를 넣지 않음). 건물과 동네 기준점은 모양·글자로 다르다.
+    # 마커 HTML 은 고정 문자열뿐(거점 이름을 넣지 않음). 건물과 동네 거점은 모양·글자로 다르다.
     assert [m["content"] for m in markers] == [
         '<span class="route-marker popup-marker">팝업</span>',
         '<span class="route-marker popup-marker popup-marker-area">팝업 일대</span>',
@@ -100,44 +98,52 @@ def test_naver_popup_layer_markers_info_cleanup_and_fallback(audit_page):
     ]
     note = page.locator(".plan-map .map-popup-note").inner_text()
     assert (
-        "팝업 글에서 읽은 장소 3곳" in note
-        and "위치를 확인하지 못한 글은 지도에 없어요" in note
+        "팝업이 자주 열리는 곳 3곳" in note
+        and "데이트메이트가 정해 둔 목록" in note
+        and "지금 팝업이 열리는지는 알 수 없어요" in note
     )
     assert (
         "노란 ‘축제’ 표시: 방문일 축제 2곳"
         in page.locator(".plan-map .map-festival-note").inner_text()
     )
     assert page.locator(".map-legend-popups").is_visible()
-    assert (
-        "점선 네모 ‘팝업 일대’는 동네 기준점"
-        in page.locator(".map-legend").inner_text()
-    )
+    legend = page.locator(".map-legend").inner_text()
+    assert "점선 네모 ‘팝업 일대’는 동네 기준 장소" in legend
+    assert "네모 ‘팝업’은 팝업이 자주 열리는 곳이에요" in legend
 
-    # 같은 거점의 여러 글은 지도 아래 정보 칸의 목록: 처음 3건 + "외 N건". 내용은 DOM(텍스트 노드)이다. 지도 안 정보창은 열지 않는다.
+    # 지도 표시를 누르면 지도 아래 정보 칸에 거점 설명이 열린다. 글 수·글 링크는 없다. 내용은 DOM(텍스트 노드)이다. 지도 안 정보창은 열지 않는다.
     info = page.evaluate(
         """()=>{const l=window.__naverListeners.find(l=>!l.removed&&l.target.options?.title?.includes('더현대 서울'));l.fn();
-          const c=document.querySelector('.plan-map .map-popup-panel .popup-map-info');return {text:c.textContent,links:[...c.querySelectorAll('a')].map(a=>a.href)}}"""
+          const c=document.querySelector('.plan-map .map-popup-panel .popup-map-info');
+          return {text:c.textContent,links:c.querySelectorAll('a').length,buttons:[...c.querySelectorAll('button')].map(b=>b.textContent)}}"""
     )
     assert page.evaluate("window.__opened.length") == 0
-    assert "더현대 서울" in info["text"] and "건물 위치 확인" in info["text"]
+    assert "더현대 서울" in info["text"] and "건물 위치" in info["text"]
     assert (
-        "코스에 포함되지 않은 주변 후보예요. 기간과 장소는 원문에서 확인해 주세요."
+        "팝업이 자주 열리는 곳으로 데이트메이트가 정해 둔 장소예요. 코스에 포함되지 않았고, 지금 팝업이 열리는지는 알 수 없어요."
         in info["text"]
     )
-    assert "외 2건" in info["text"]
-    assert info["links"] == [f"https://blog.naver.com/test/{i}" for i in (1, 2, 3)]
-    area = page.evaluate(
-        """()=>{const l=window.__naverListeners.find(l=>!l.removed&&l.target.options?.title?.includes('성수 일대'));l.fn();
+    assert info["links"] == 0 and "건" not in info["text"].replace("건물", "")
+    assert info["buttons"] == ["이 장소 주변 코스 버튼으로 가기"]
+    long = page.evaluate(
+        """()=>{const l=window.__naverListeners.find(l=>!l.removed&&l.target.options?.title?.includes('SUPERLONG'));l.fn();
           const c=document.querySelector('.plan-map .map-popup-panel .popup-map-info');return {text:c.textContent,img:c.querySelectorAll('img').length}}"""
     )
-    assert "<img src=x id=xss-pop> 성수 글" in area["text"] and area["img"] == 0
-    assert "동네 기준점 성수역 · 대략 위치" in area["text"]
+    # 거점 이름은 텍스트로만 넣는다.
+    assert "<img src=x id=xss-pop>" in long["text"] and long["img"] == 0
+    assert page.locator("#xss-pop").count() == 0
+    area = page.evaluate(
+        """()=>{const l=window.__naverListeners.find(l=>!l.removed&&l.target.options?.title?.includes('성수 일대'));l.fn();
+          const c=document.querySelector('.plan-map .map-popup-panel .popup-map-info');return {text:c.textContent,buttons:[...c.querySelectorAll('button')].map(b=>b.textContent)}}"""
+    )
+    assert "동네 기준 장소 성수동 카페거리 · 대략 위치" in area["text"]
+    assert area["buttons"] == ["이 일대 주변 코스 버튼으로 가기"]
     # 지도 아래 장소 단추: 거점마다 하나, 지도 표시를 누르면 그 단추가 열림 상태가 된다(한 번에 하나).
     chips = page.locator(".plan-map .map-popup-hub")
     assert chips.evaluate_all("cs=>cs.map(c=>c.textContent)") == [
-        "팝업더현대 서울 · 글 5건",
-        "팝업 일대성수 일대(대략) · 글 2건",
-        f"팝업{LONG['name']} · 글 1건",
+        "팝업더현대 서울",
+        "팝업 일대성수 일대(대략)",
+        f"팝업{LONG['name']}",
     ]
     assert chips.evaluate_all("cs=>cs.map(c=>c.getAttribute('aria-expanded'))") == [
         "false",
@@ -211,10 +217,7 @@ def test_leaflet_popup_layer_lifecycle_view_and_failures(audit_page):
         "팝업",
     ]
     assert marks.nth(1).locator(".popup-marker-area").count() == 1
-    assert (
-        marks.nth(0).get_attribute("title")
-        == "팝업 글 장소 · 더현대 서울 · 검색된 글 5건"
-    )
+    assert marks.nth(0).get_attribute("title") == "팝업이 자주 열리는 곳 · 더현대 서울"
     # 팝업 표시는 이동선에 잇지 않는다: 이동선은 코스 지점 사이 구간 수 그대로.
     legs = page.evaluate("selected.places.length+(selected.conditions.return_home?1:0)")
     assert page.locator(".plan-map path.route-leg").count() == legs
@@ -227,16 +230,13 @@ def test_leaflet_popup_layer_lifecycle_view_and_failures(audit_page):
     )
     assert marks.count() == 3 and page.evaluate(view) == before
 
-    # 표시를 누르면 지도 아래 정보 칸에 거점 이름·안내·글 목록(처음 3건 + 외 N건). 지도 안 정보창(Leaflet 팝업)은 열지 않는다.
+    # 표시를 누르면 지도 아래 정보 칸에 거점 이름·안내(글 목록·글 수 없음). 지도 안 정보창(Leaflet 팝업)은 열지 않는다.
     # 팝업 표시는 지도 범위를 넓히지 않으므로 코스 범위 밖 거점의 표시는 화면 밖일 수 있어 클릭 이벤트를 직접 보낸다.
     marks.nth(0).dispatch_event("click")
     info = page.locator(".plan-map .map-popup-panel .popup-map-info")
     info.wait_for()
-    assert (
-        "코스에 포함되지 않은 주변 후보예요" in info.inner_text()
-        and "외 2건" in info.inner_text()
-    )
-    assert info.locator("a").count() == 3
+    assert "코스에 포함되지 않았고, 지금 팝업이 열리는지는 알 수 없어요" in info.inner_text()
+    assert info.locator("a").count() == 0 and info.locator(".popup-map-goto").count() == 1
     assert page.locator(".plan-map .leaflet-popup").count() == 0
     # 긴 이름: 정보 칸을 연 채로 4개 폭에서 문서 가로 넘침이 없다.
     marks.nth(2).dispatch_event("click")
@@ -280,10 +280,7 @@ def test_leaflet_popup_layer_lifecycle_view_and_failures(audit_page):
     )
     page.wait_for_timeout(300)
     assert marks.count() == 1
-    assert (
-        marks.nth(0).get_attribute("title")
-        == "팝업 글 장소 · 롯데월드몰 · 검색된 글 1건"
-    )
+    assert marks.nth(0).get_attribute("title") == "팝업이 자주 열리는 곳 · 롯데월드몰"
 
     # 팝업 조회 실패: 팝업 표시만 없어지고 코스·축제 표시(원·이동선)와 지도 보기는 그대로.
     paths = page.locator(".plan-map .leaflet-overlay-pane path").count()
@@ -306,9 +303,9 @@ def test_leaflet_popup_layer_lifecycle_view_and_failures(audit_page):
 
 LEAFLET_CAPTURE = """async()=>{await loadLeaflet();statusData.map_js_key=null;window.courseMaps=[];const create=L.map;
   L.map=function(...args){const map=create(...args);window.courseMaps.push(map);return map;};}"""
-# 성수처럼 동네 기준점 거점이 출발지와 같은 좌표인 경우(나머지 거점은 그대로).
+# 성수처럼 동네 거점이 출발지와 같은 좌표인 경우(나머지 거점은 그대로).
 AREA_AT_ORIGIN = """()=>{const o=selected.conditions.origin;
-  PopupCourse.setMapItems(PopupCourse.mapItems.map(g=>g.hub.level==='area_anchor'?{...g,hub:{...g.hub,lat:o.lat,lon:o.lon}}:g));}"""
+  PopupCourse.setMapItems(PopupCourse.mapItems.map(g=>g.hub.kind==='area'?{...g,hub:{...g.hub,lat:o.lat,lon:o.lon}}:g));}"""
 # 장소 단추마다: 크기, 가운데 점의 맨 위 요소가 그 단추인지(가려지지 않음), 글자 크기. 화면 밖이면 elementFromPoint 가 없으므로 먼저 바로 스크롤한다.
 HUB_BUTTONS = """()=>[...document.querySelectorAll('.plan-map .map-popup-hub')].map(c=>{c.scrollIntoView({block:'center',behavior:'instant'});
   const r=c.getBoundingClientRect(),top=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
@@ -410,14 +407,14 @@ def test_hub_buttons_and_panel_work_with_the_keyboard(audit_page):
     page.keyboard.press("Enter")
     assert page.evaluate(EXPANDED) == ["false"] * 3
     assert page.locator(".plan-map .map-popup-panel").is_hidden()
-    # 둘째 단추를 열고 Tab 으로 칸 안 첫 글 링크까지 간 뒤 Esc: 닫히고 둘째 단추로 돌아온다.
+    # 둘째 단추를 열고 Tab 으로 칸 안 첫 단추(주변 코스 버튼으로 가기)까지 간 뒤 Esc: 닫히고 둘째 단추로 돌아온다.
     page.keyboard.press("Tab")
     page.keyboard.press("Enter")
     assert page.evaluate(EXPANDED) == ["false", "true", "false"]
     page.keyboard.press("Tab")
     page.keyboard.press("Tab")
     assert page.evaluate(
-        "document.activeElement===document.querySelector('.plan-map .map-popup-panel a')"
+        "document.activeElement===document.querySelector('.plan-map .map-popup-panel .popup-map-goto')"
     ), page.evaluate(focused)
     page.keyboard.press("Escape")
     assert page.evaluate(EXPANDED) == ["false"] * 3
@@ -437,7 +434,7 @@ def test_hub_buttons_and_panel_work_with_the_keyboard(audit_page):
     ).get_attribute("id")
 
 
-AT_ORIGIN = """()=>{const o=selected.conditions.origin,g=PopupCourse.mapItems.find(g=>g.hub.level==='area_anchor');
+AT_ORIGIN = """()=>{const o=selected.conditions.origin,g=PopupCourse.mapItems.find(g=>g.hub.kind==='area');
   PopupCourse.setMapItems([{...g,hub:{...g.hub,lat:o.lat,lon:o.lon}}]);}"""
 
 
@@ -554,18 +551,18 @@ def test_naver_hub_buttons_and_markers_open_the_panel_below_the_map(audit_page):
 
 
 def many_hubs(count):
-    """거점 count 곳(건물·동네 기준점을 번갈아), 거점마다 글 2건. 받은 순서(데모 코스는 출발지 기준이 없음)가 거점 순서다."""
-    posts = []
-    for i in range(count):
-        base = AREA if i % 2 else BUILDING
-        place = base | dict(
+    """거점 count 곳(건물·동네를 번갈아). 사전 순서(데모 코스는 출발지 기준이 없음)가 거점 순서다. 글은 거점과 무관하게 2건."""
+    hubs = [
+        (AREA if i % 2 else BUILDING)
+        | dict(
             hub_id=f"seoul-many-{i}",
             name=f"거점{i} " + ("일대" if i % 2 else "백화점"),
             lat=37.53 + i * 0.004,
             lon=126.95 + i * 0.006,
         )
-        posts += [post(i * 10 + j, title=f"거점{i} 글 {j}", place=place) for j in (1, 2)]
-    return payload("ready", posts)
+        for i in range(count)
+    ]
+    return payload("ready", [post(1), post(2)], hubs=hubs)
 
 
 VISIBLE = "[...document.querySelectorAll('.plan-map .map-popup-hub')].map(c=>!c.hidden&&c.getBoundingClientRect().height>0)"
@@ -594,7 +591,7 @@ def test_many_hub_buttons_fold_behind_a_more_button(audit_page):
         # 지도에는 8곳 모두, 단추는 8개 중 앞의 3개만 보인다(순서는 거점 순서 그대로).
         assert page.locator(".plan-map .popup-divicon").count() == 8
         assert chips.evaluate_all("cs=>cs.map(c=>c.textContent)") == [
-            f"{'팝업 일대' if i % 2 else '팝업'}거점{i} {'일대(대략)' if i % 2 else '백화점'} · 글 2건"
+            f"{'팝업 일대' if i % 2 else '팝업'}거점{i} {'일대(대략)' if i % 2 else '백화점'}"
             for i in range(8)
         ]
         assert page.evaluate(VISIBLE) == [True] * 3 + [False] * 5, width
@@ -653,10 +650,7 @@ def test_hub_buttons_fold_only_above_four_hubs_on_both_maps(audit_page):
     page.wait_for_function(f"{POPUPS}.length===4", timeout=20000)
     assert page.evaluate(VISIBLE) == [True] * 4
     assert page.locator(".plan-map .map-popup-more").count() == 0
-    page.evaluate(
-        "items=>{const groups=PopupCourse.groups(items.posts,null);PopupCourse.setMapItems(groups)}",
-        many_hubs(5),
-    )
+    page.evaluate("data=>PopupCourse.setMapItems(PopupCourse.hubItems(data,null))", many_hubs(5))
     page.wait_for_function(f"{POPUPS}.length===5")
     assert page.evaluate(VISIBLE) == [True] * 3 + [False] * 2
     assert page.evaluate(MORE)["text"] == "장소 2곳 더 보기"
@@ -673,30 +667,25 @@ def test_hub_buttons_fold_only_above_four_hubs_on_both_maps(audit_page):
     assert page.locator(".map-popup-more").count() == 1
     assert page.evaluate(VISIBLE) == [True] * 3 + [False] * 2
     assert page.locator(".plan-map .map-popup-panel").is_hidden()
-    page.evaluate(
-        "items=>PopupCourse.setMapItems(PopupCourse.groups(items.posts,null))", many_hubs(4)
-    )
+    page.evaluate("data=>PopupCourse.setMapItems(PopupCourse.hubItems(data,null))", many_hubs(4))
     assert page.locator(".plan-map .map-popup-more").count() == 0
     assert page.evaluate(VISIBLE) == [True] * 4
 
 
 REVEALED = """id=>{const b=[...document.querySelectorAll('#popup-course .popup-hub')].find(b=>b.dataset.hubId===id),r=b.getBoundingClientRect(),
   header=parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop)||0;
-  return {posts:b.querySelectorAll('.popup-post').length,more:b.querySelectorAll('.popup-hub-more').length,
+  return {posts:b.querySelectorAll('.popup-post').length,buttons:[...b.querySelectorAll('button')].map(x=>x.textContent),
     focus:document.activeElement===b.querySelector('.popup-hub-name'),name:b.querySelector('.popup-hub-name').textContent,
     top:Math.round(r.top),header:Math.round(header),inView:r.top>=header-2&&r.top<innerHeight/2,
     hubsMore:document.querySelectorAll('#popup-course .popup-hubs-more').length}}"""
 
 
-def test_panel_rest_line_names_the_section_and_jumps_to_the_hub_group(audit_page):
-    """정보 칸의 "외 n건"은 위치("아래")를 말하지 않고 ‘팝업스토어 글’ 구역 이름으로 부르며, 「이 장소 글 n건 모두 보기」는
-    그 구역의 같은 거점 묶음을 펼쳐(다른 장소·이 장소의 글 더 보기) 그곳으로 스크롤하고 거점 이름에 포커스를 둔다. 데스크톱 2단·390px 모두."""
+def test_panel_button_jumps_to_the_hub_in_the_hub_list(audit_page):
+    """정보 칸의 「이 장소 주변 코스 버튼으로 가기」는 팝업 구역 거점 목록의 같은 거점을 펼쳐(「다른 장소 n곳 더 보기」) 그곳으로 스크롤하고
+    거점 이름에 포커스를 둔다. 위치("아래")를 말하지 않는다. 데스크톱 2단·390px 모두. 거점에는 글이 붙지 않는다."""
     page, base, errors = audit_page
     route_festivals(page)
     data = many_hubs(5)
-    # 다섯째 거점(구역에서는 「다른 장소 2곳 더 보기」 뒤, 지도 아래에서는 접힌 쪽)에 글을 3건 더 둔다(모두 5건).
-    fifth = data["posts"][-1]["place"]
-    data["posts"] += [post(100 + j, title=f"거점4 더 {j}", place=fifth) for j in range(3)]
     Api(page, default=data)
     page.evaluate(LEAFLET_CAPTURE)
     generate(page)
@@ -709,54 +698,51 @@ def test_panel_rest_line_names_the_section_and_jumps_to_the_hub_group(audit_page
     for width in (1440, 390):
         if width == 390:
             narrow(page, width)
-        # 구역을 처음 상태로 다시 그린다(앞 폭에서 펼친 묶음을 되돌림).
+        # 구역을 처음 상태로 다시 그린다(앞 폭에서 펼친 목록을 되돌림).
         page.evaluate("d=>PopupCourse.render(d,selected.conditions)", data)
         page.wait_for_function("document.querySelectorAll('.plan-map .map-popup-hub').length===5")
         assert page.evaluate("document.querySelectorAll('#popup-course .popup-hub').length") == 3
-        # 글이 2건뿐인 거점은 "외 n건"·단추가 없다.
-        page.locator(".plan-map .map-popup-hub").nth(0).click()
-        assert page.locator(".plan-map .map-popup-panel .popup-map-goto").count() == 0
         # 접힌 다섯째 거점을 지도 표시로 연다.
         page.locator(".plan-map .popup-divicon").nth(4).dispatch_event("click")
         panel = page.locator(".plan-map .map-popup-panel")
         text = panel.inner_text()
-        assert "외 2건은 ‘팝업스토어 글’ 구역에서 볼 수 있어요." in text, text
-        assert "아래" not in text, text
+        assert "아래" not in text and not re.search(r"\d\s*건", text), text
+        assert panel.locator("a").count() == 0
         goto = panel.locator(".popup-map-goto")
-        assert goto.inner_text() == "이 장소 글 5건 모두 보기"
+        assert goto.inner_text() == "이 장소 주변 코스 버튼으로 가기"
         h = goto.evaluate("b=>[b.getBoundingClientRect().height,parseFloat(getComputedStyle(b).fontSize)]")
         assert h[0] >= 44 and h[1] >= 14, h
         # 키보드로 누른다.
         goto.focus()
         page.keyboard.press("Enter")
         state = page.evaluate(REVEALED, "seoul-many-4")
-        assert state["posts"] == 5 and state["more"] == 0, (width, state)
+        assert state["posts"] == 0 and state["buttons"] == ["이 장소 주변 코스 추천받기"], (width, state)
         assert state["hubsMore"] == 0 and state["focus"] and state["name"] == "거점4 백화점", (width, state)
         # 문서 스크롤은 부드럽게 움직인다(shell.css scroll-behavior:smooth, 예전 selle.css). 고정 머리글 아래 화면 위쪽 절반에 멈춘다.
         page.wait_for_function(f"id=>({REVEALED})(id).inView", arg="seoul-many-4")
         assert page.evaluate("document.querySelectorAll('#popup-course .popup-hub').length") == 5
         assert page.evaluate("document.documentElement.scrollWidth<=innerWidth"), width
-        # 이미 펼친 묶음으로 다시 가도(더 보기 단추가 없어도) 같은 곳으로 간다.
+        # 이미 펼친 목록으로 다시 가도(더 보기 단추가 없어도) 같은 곳으로 간다.
         page.evaluate("window.scrollTo({top:0,behavior:'instant'})")
         page.locator(".plan-map .popup-divicon").nth(4).dispatch_event("click")
         panel.locator(".popup-map-goto").click()
         page.wait_for_function(f"id=>({REVEALED})(id).inView", arg="seoul-many-4")
         state = page.evaluate(REVEALED, "seoul-many-4")
-        assert state["posts"] == 5 and state["focus"], (width, state)
-    # 구역이 숨으면(스위치 꺼짐 404 등) 단추를 두지 않고 문구만 남는다.
+        assert state["focus"], (width, state)
+    # 구역이 숨으면(스위치 꺼짐 404 등) 단추를 두지 않고 설명만 남는다.
     page.evaluate("document.getElementById('popup-course').hidden=true")
     page.locator(".plan-map .popup-divicon").nth(4).dispatch_event("click")
     page.locator(".plan-map .map-popup-hub").nth(0).click()
     page.locator(".plan-map .map-popup-hub").nth(4).click()
     assert page.locator(".plan-map .map-popup-panel .popup-map-goto").count() == 0
-    assert "외 2건은 ‘팝업스토어 글’ 구역에서" in page.locator(".plan-map .map-popup-panel").inner_text()
+    assert "지금 팝업이 열리는지는 알 수 없어요" in page.locator(".plan-map .map-popup-panel").inner_text()
 
 
 # 오른쪽 지도 패널(.plan-map-card, 자체 스크롤) 안에서 지도와 열린 정보 칸이 각각 몇 px 보이는지. 고정된 지도에 가려진 칸 부분은 보이지 않은 것으로 센다.
 RAIL_VIEW = """()=>{const card=document.querySelector('.plan-map-rail .plan-map-card'),map=card.querySelector('.naver-plan-map'),
   panel=card.querySelector('.map-popup-panel'),c=card.getBoundingClientRect(),m=map.getBoundingClientRect(),p=panel.getBoundingClientRect();
   const sticky=getComputedStyle(map).position==='sticky',top=Math.max(c.top,sticky?m.bottom:c.top);
-  return {sticky,card:Math.round(c.height),map:Math.round(m.height),scrollTop:Math.round(card.scrollTop),
+  return {sticky,card:Math.round(c.height),map:Math.round(m.height),scrollTop:Math.round(card.scrollTop),panel:Math.round(p.height),
     mapVisible:Math.round(Math.max(0,Math.min(m.bottom,c.bottom)-Math.max(m.top,c.top))),
     panelVisible:Math.round(Math.max(0,Math.min(p.bottom,c.bottom)-Math.max(p.top,top)))}}"""
 # 패널 안 요소가 고정 지도 밑에 숨지 않았는지(패널 안에서 보이는 자리, 지도 아래).
@@ -790,12 +776,13 @@ def test_desktop_rail_keeps_the_map_in_view_while_reading_the_panel(audit_page):
         view = page.evaluate(RAIL_VIEW)
         assert view["sticky"] and view["scrollTop"] > 0, (width, view)
         assert view["mapVisible"] == view["map"] and view["map"] >= 240, (width, view)
-        assert view["panelVisible"] >= least, (width, view)
+        # 정보 칸은 글 목록이 없어 짧다: 칸 전체(또는 least px 이상)가 지도 아래에 보인다.
+        assert view["panelVisible"] >= min(least, view["panel"] - 1), (width, view)
         # 지도가 패널의 절반 넘게 가리지 않는다.
         assert view["map"] <= view["card"] / 2, (width, view)
         # 패널을 끝까지 내린 뒤 Shift+Tab 으로 위쪽 단추에 가도 지도 밑에 숨지 않는다.
         page.evaluate("()=>{const c=document.querySelector('.plan-map-rail .plan-map-card');c.scrollTop=c.scrollHeight;}")
-        page.locator(".plan-map .map-popup-panel a").first.focus()
+        page.locator(".plan-map .map-popup-panel button").first.focus()
         page.keyboard.press("Shift+Tab")
         assert page.evaluate("document.activeElement===document.querySelectorAll('.plan-map .map-popup-hub')[2]")
         assert page.evaluate(UNDER_MAP, ".plan-map .map-popup-hub:nth-child(3)"), width
@@ -873,7 +860,7 @@ def test_hub_buttons_cause_no_csp_violation_or_console_error():
             page.locator(".plan-map .map-popup-close").click()
             page.locator(".plan-map .popup-divicon").nth(0).dispatch_event("click")
             poll(page, "!document.querySelector('.plan-map .map-popup-panel').hidden")
-            # 「이 장소 글 n건 모두 보기」(팝업 글 구역으로 이동)와 거점이 많을 때의 펼침 단추.
+            # 「이 장소 주변 코스 버튼으로 가기」(팝업 구역의 거점 목록으로 이동)와 거점이 많을 때의 펼침 단추.
             page.locator(".plan-map .popup-map-goto").click()
             poll(page, "document.activeElement?.classList.contains('popup-hub-name')")
             page.evaluate(

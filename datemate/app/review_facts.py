@@ -1,6 +1,7 @@
 """블로그 후기 본문에서 읽은 영업시간·휴무와 메뉴 가격 예(참고용). 추천 계산에는 쓰지 않고 결과 화면에 '후기 기준'으로만 보인다.
 
-장소 블로그 검색(blog_search.place_blogs, 1시간 캐시)이 고른 글 최대 3개의 공개 본문(course_search.public_body)을 읽는다.
+장소 블로그 검색(blog_search.place_blogs, 1시간 캐시) 결과의 앞 3개 글의 공개 본문(public_body)을 읽는다.
+(본문 읽기는 app/naver_pages.py 스위치가 꺼져 있어 지금은 동작하지 않는다. 링크가 없는 글은 본문이 빈 글로 처리된다.)
 한 글에 여러 장소가 나오므로 장소 이름이 나온 자리 바로 뒤(WINDOW 글자)에서만 '영업·운영·이용 시간 HH:MM~HH:MM'과
 휴무 표현을 찾는다. 공원·해변 같은 산책·풍경 장소는 근처 가게의 시간이 잡히기 쉬워 읽지 않는다.
 이름과 시간 사이에 다른 시·군·구 주소가 나오면(다른 지점) 버린다.
@@ -14,8 +15,13 @@ import hashlib
 import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
+from html.parser import HTMLParser
+from urllib.parse import urlsplit
+
+import httpx
 
 from . import naver_cache
+from .telemetry import observed_stream
 
 CACHE_SECONDS = 24 * 3600
 EMPTY_SECONDS = 3600
@@ -154,6 +160,69 @@ def read_prices(body, place):
     return found
 
 
+class BlogText(HTMLParser):
+    """모바일 블로그 글의 본문(div.se-main-container) 글자만 모은다."""
+
+    def __init__(self):
+        super().__init__()
+        self.depth = 0
+        self.capture = 0
+        self.skip = 0
+        self.parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style"):
+            self.skip += 1
+        if tag == "div":
+            self.depth += 1
+            if "se-main-container" in dict(attrs).get("class", "").split():
+                self.capture = self.depth
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style"):
+            self.skip = max(0, self.skip - 1)
+        if tag == "div":
+            if self.depth == self.capture:
+                self.capture = 0
+            self.depth = max(0, self.depth - 1)
+
+    def handle_data(self, data):
+        if self.capture and not self.skip:
+            self.parts.append(data)
+
+
+def public_body(url):
+    """고정 네이버 호스트의 공개 문서만 조회. 로그인·차단 우회 없음.
+
+    2026-11-19: 네이버 약관상 글 본문 자동 수집을 하지 않는다(app/naver_pages.py). 스위치가 꺼져 있으면 늘 빈 글이다.
+    (예전에는 app/course_search.py 에 있었다. 코스 블로그 판정이 없어져 이 모듈만 쓴다.)"""
+    from .naver_pages import allowed
+
+    if not allowed():
+        return ""
+    parsed = urlsplit(url)
+    if parsed.scheme != "https" or parsed.hostname not in ("blog.naver.com", "m.blog.naver.com"):
+        return ""
+    # 외부 리디렉션 및 임의 URL 접속 방지.
+    target = "https://m.blog.naver.com" + parsed.path + ("?" + parsed.query if parsed.query else "")
+    try:
+        with httpx.Client(timeout=5, follow_redirects=False) as client:
+            with observed_stream(client, "GET", target) as response:
+                response.raise_for_status()
+                if response.status_code != 200:
+                    return ""
+                data = bytearray()
+                for chunk in response.iter_bytes():
+                    data.extend(chunk)
+                    if len(data) > 1_500_000:
+                        return ""
+        parser = BlogText()
+        parser.feed(data.decode("utf-8", errors="replace"))
+        return " ".join(parser.parts)[:60000]
+    except (httpx.HTTPError, ValueError):
+        return ""
+
+
 def review_facts(place):
     """GET /api/places/{id}/review-facts 의 응답."""
     empty = dict(
@@ -180,7 +249,7 @@ def review_facts(place):
     blogs = place_blogs(place)
     if blogs.get("status") != "available":
         return dict(empty, status=blogs.get("status") or "unavailable")
-    posts = blogs["posts"][:3]
+    posts = [p for p in blogs["posts"] if p.get("url")][:3]
     key = (
         "review-facts-v3:"
         + hashlib.sha256(
@@ -190,7 +259,6 @@ def review_facts(place):
     cached = naver_cache.cached(key)
     if cached:
         return cached
-    from .course_search import public_body
     from .request_usage import context_map
     from .telemetry import prepaid
 

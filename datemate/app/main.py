@@ -535,7 +535,8 @@ def place_media(
             p, prefer_public=fallback == "place", force=refresh, review_only=fallback == "reviews"
         )
     )
-    # 같은 업체 확인(공식 지역 검색 API, app/place_identity.py). 화면의 '위치' 줄이 이 값으로 '확인됨'이 된다.
+    # 같은 업체 확인(공공 자료: 상가정보·인허가, app/place_identity.py). 저장해 둔 판정만 읽어 화면의 '위치' 줄에 쓴다.
+    # 판정이 아직 없으면 pending 으로 답하고 화면이 /identity 를 다시 묻는다(공공 API 는 배경에서만 부른다).
     # 후기 사진만 다시 찾는 요청(fallback=reviews)에는 붙이지 않는다(첫 요청에서 이미 받음).
     if fallback != "reviews":
         from .place_identity import verify_identity
@@ -545,6 +546,17 @@ def place_media(
         # 한국관광공사 영업 안내(글 그대로, app/tour_places.py). 없으면 None.
         data["tour_hours"] = tour_hours(p)
     return data
+
+
+@app.get("/api/places/{id}/identity")
+def place_identity_status(id: str, mode: Literal["demo", "real"] = "real"):
+    """'위치' 줄의 판정만 다시 묻는 가벼운 요청. 저장된 판정을 읽을 뿐 공공 API 를 기다리지 않는다(app/place_identity.py)."""
+    p = get_place(id, mode)
+    if p is None:
+        raise HTTPException(404, "장소를 찾을 수 없습니다.")
+    from .place_identity import verify_identity
+
+    return dict(place_id=p["id"], identity=verify_identity(p))
 
 
 @app.get("/photo-thumb", include_in_schema=False)
@@ -649,28 +661,6 @@ def get_plan(id: str, request: Request):
     # 만든 브라우저만 받으므로 늘 True. 예전 화면 코드가 이 값을 읽어 남겨 둔다.
     plan["can_edit"] = True
     return plan
-
-
-@app.post("/api/plans/{id}/prices")
-def refresh_prices(id: str, request: Request):
-    _, plan = changeable_plan_row(id, request.state.owner)
-    refresh_allowed("price", request.state.owner, "단가 검색은 잠시 후 다시 시도해 주세요.")
-    from .pricing import price_plans
-
-    updated = price_plans([plan], force=True)[0]
-    from .preferences import hard_blocks
-
-    if hard_blocks(updated):
-        raise HTTPException(
-            409,
-            "재조회 가격 또는 조건이 필수 조건을 넘어요. 필수 조건을 조정한 뒤 다시 추천해 주세요.",
-        )
-    from .plan_changes import save_change
-
-    try:
-        return save_change(updated, plan, request.state.owner)
-    except ValueError as exc:
-        raise HTTPException(409, str(exc))
 
 
 @app.get("/api/plans/{id}/restaurant-matches")

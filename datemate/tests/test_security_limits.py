@@ -455,21 +455,6 @@ def test_busy_menu_and_photo_slots_fail_fast(monkeypatch, naver_pages_allowed):
     assert store.cached('restaurant-menu-v4:' + place['id']) is None
 
 
-def test_busy_image_slot_fails_fast_without_caching(monkeypatch):
-    from app import image_search
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test')
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'secret')
-    monkeypatch.setattr(image_search, 'LOCK_WAIT_SECONDS', 0.05)
-    held = 0
-    while image_search._image_slots.acquire(blocking=False):
-        held += 1
-    try:
-        result = image_search.search_place_images({'id': 'busy-img-' + uuid.uuid4().hex, 'name': '바쁜곳'})
-        assert result == {'status': 'unavailable', 'photos': []}
-    finally:
-        for _ in range(held):
-            image_search._image_slots.release()
-
 
 def test_wiki_pacing_only_for_wikipedia_and_bounded(monkeypatch):
     from app import collection

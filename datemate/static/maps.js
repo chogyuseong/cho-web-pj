@@ -103,7 +103,7 @@ function mapLegend(plan){
   const dashed=styles.has('short')||styles.has('long');
   const legend=node('p','선 모양: '+parts.join(' · ')+(dashed?'. 점선은 직선 연결이며 실제 경로가 아니에요.':'.'),'hint map-legend');
   // 팝업 표시 설명은 지도에 팝업 표시가 있을 때만 보인다(popupMapNote 가 켜고 끈다).
-  if(typeof PopupCourse!=='undefined'){const popups=node('span',' 네모 ‘팝업’은 팝업 글에서 읽은 주변 장소예요(코스·이동선에 넣지 않음). 점선 네모 ‘팝업 일대’는 동네 기준점이라 위치가 대략이에요.','map-legend-popups');popups.hidden=!popupMapItems().length;legend.append(popups);}
+  if(typeof PopupCourse!=='undefined'){const popups=node('span',' 네모 ‘팝업’은 팝업이 자주 열리는 곳이에요(데이트메이트가 정해 둔 목록 · 코스·이동선에 넣지 않음 · 지금 열리는지는 알 수 없어요). 점선 네모 ‘팝업 일대’는 동네 기준 장소라 위치가 대략이에요.','map-legend-popups');popups.hidden=!popupMapItems().length;legend.append(popups);}
   return legend;
 }
 
@@ -121,25 +121,23 @@ function festivalMapNote(note,items){
   note.textContent=items.length?`노란 ‘축제’ 표시: 방문일 축제 ${items.length}곳 (코스에는 포함되지 않아요)${chosen?' · 진한 표시가 고른 축제예요':''}`:'';
 }
 
-/* 팝업 글에서 읽은 거점은 축제와 별도의 표시 층이다. 데이터는 코스 결과 팝업 구역의 거점 묶음(PopupCourse.mapItems)과 같은 배열이고,
-   위치가 확인된 거점마다 표시 하나와 지도 아래 단추 하나(같은 거점의 여러 글은 지도 아래 정보 칸의 목록). 코스 역(원)·축제(노란 알약)와 다른 네모 모양이며,
-   동네 기준점은 점선 네모 + ‘일대’ 글자로 건물과 구분한다. 이동선에 잇지 않고 지도 범위 계산에도 넣지 않는다(중심·확대를 바꾸지 않음). */
+/* 팝업 거점(우리 거점 사전, app/popup_hubs.py)은 축제와 별도의 표시 층이다. 검색된 글과는 무관하다(2026-11-20 부터 글에서 거점을 읽지 않음).
+   데이터는 코스 결과 팝업 구역의 거점 목록(PopupCourse.mapItems, {hub, meters})과 같은 배열이고, 거점마다 표시 하나와 지도 아래 단추 하나.
+   코스 역(원)·축제(노란 알약)와 다른 네모 모양이며, 동네 거점은 점선 네모 + ‘일대’ 글자로 건물과 구분한다.
+   이동선에 잇지 않고 지도 범위 계산에도 넣지 않는다(중심·확대를 바꾸지 않음). */
 function popupMapItems(){return typeof PopupCourse==='undefined'?[]:PopupCourse.mapItems;}
-// 네이버 마커 HTML 은 고정 문자열만 쓴다. 거점 이름·글 제목은 title 과 지도 아래 단추·정보 칸의 텍스트 노드로만 전달한다.
+// 네이버 마커 HTML 은 고정 문자열만 쓴다. 거점 이름은 title 과 지도 아래 단추·정보 칸의 텍스트 노드로만 전달한다.
 const POPUP_MARKER_HTML={building:'<span class="route-marker popup-marker">팝업</span>',area:'<span class="route-marker popup-marker popup-marker-area">팝업 일대</span>'};
-function popupMarkerNode(group){const area=group.hub.level==='area_anchor';return node('span',area?'팝업 일대':'팝업','route-marker popup-marker'+(area?' popup-marker-area':''));}
-function popupMapTitle(group){return '팝업 글 장소 · '+PopupCourse.label(group.hub)+' · 검색된 글 '+group.posts.length+'건';}
+function popupMarkerNode(group){const area=group.hub.kind==='area';return node('span',area?'팝업 일대':'팝업','route-marker popup-marker'+(area?' popup-marker-area':''));}
+function popupMapTitle(group){return '팝업이 자주 열리는 곳 · '+PopupCourse.label(group.hub);}
 function popupMapInfo(group){
-  const hub=group.hub,box=node('div',undefined,'popup-map-info'),list=node('ul',undefined,'popup-map-posts'),shown=group.posts.slice(0,3);
-  box.append(node('strong',PopupCourse.label(hub)),node('p',PopupCourse.levelText(hub)),node('p','코스에 포함되지 않은 주변 후보예요. 기간과 장소는 원문에서 확인해 주세요.','hint'),node('p',`검색된 글 ${group.posts.length}건 · 네이버 블로그`));
-  for(const post of shown){const item=node('li');item.append(link((post.title||'(제목 없음)')+' ↗',post.url));list.append(item);}
-  box.append(list);
-  // 나머지 글은 코스 결과의 ‘팝업스토어 글’ 구역(제목 "…에서 찾은 팝업스토어 글")에 있다. 구역이 지도 아래(모바일)일 수도 왼쪽(데스크톱 2단)일 수도 있어
-  // 위치를 말하지 않고 구역 이름으로 부르며, 그 거점 묶음으로 바로 가는 단추를 둔다(묶음이 접혀 있으면 펼침, popups.js 의 PopupCourse.revealHub).
-  if(group.posts.length>shown.length){
-    box.append(node('p',`외 ${group.posts.length-shown.length}건은 ‘팝업스토어 글’ 구역에서 볼 수 있어요.`,'hint'));
-    if(PopupCourse.canReveal(hub.hub_id))box.append(button(`${hub.level==='area_anchor'?'이 일대':'이 장소'} 글 ${group.posts.length}건 모두 보기`,()=>PopupCourse.revealHub(hub.hub_id),'secondary popup-map-goto'));
-  }
+  const hub=group.hub,box=node('div',undefined,'popup-map-info');
+  box.append(node('strong',PopupCourse.label(hub)),node('p',PopupCourse.levelText(hub)));
+  if(group.meters!==null&&group.meters!==undefined)box.append(node('p',PopupCourse.distanceText(group.meters,hub)));
+  box.append(node('p','팝업이 자주 열리는 곳으로 데이트메이트가 정해 둔 장소예요. 코스에 포함되지 않았고, 지금 팝업이 열리는지는 알 수 없어요.','hint'));
+  // 주변 코스 버튼은 코스 결과 팝업 구역의 거점 목록에 있다. 구역이 지도 아래(모바일)일 수도 왼쪽(데스크톱 2단)일 수도 있어
+  // 위치를 말하지 않고, 그 거점으로 바로 가는 단추를 둔다(접혀 있으면 펼침, popups.js 의 PopupCourse.revealHub).
+  if(PopupCourse.canReveal(hub.hub_id))box.append(button(`${hub.kind==='area'?'이 일대':'이 장소'} 주변 코스 버튼으로 가기`,()=>PopupCourse.revealHub(hub.hub_id),'secondary popup-map-goto'));
   return box;
 }
 /* 지도 아래의 팝업 장소 단추 목록과 정보 칸. 지도 위 팝업 표시는 코스 표시 아래 층이라 출발지와 같은 자리면 대부분 가려지고(확대 단계마다 달라짐),
@@ -189,13 +187,13 @@ function popupHubList(){
     const pad=parseFloat(getComputedStyle(card).scrollPaddingTop)||0,top=panel.getBoundingClientRect().top-card.getBoundingClientRect().top;
     if(top<pad||panel.getBoundingClientRect().bottom>card.getBoundingClientRect().bottom)card.scrollTop+=top-pad;
   };
-  // 정보 칸 안(글 링크·닫기)에서 Esc 를 누르면 닫고 그 장소 단추로 돌아간다.
+  // 정보 칸 안(단추·닫기)에서 Esc 를 누르면 닫고 그 장소 단추로 돌아간다.
   panel.addEventListener('keydown',event=>{if(event.key==='Escape'&&open>=0){const at=open;show(-1);chips()[at]?.focus();}});
   const set=items=>{
     groups=items;list.replaceChildren();list.hidden=!items.length;
     items.forEach((group,index)=>{
-      const area=group.hub.level==='area_anchor',chip=button('',()=>show(open===index?-1:index),'secondary map-popup-hub');
-      chip.append(node('span',area?'팝업 일대':'팝업','map-popup-badge'+(area?' is-area':'')),node('span',`${PopupCourse.label(group.hub)} · 글 ${group.posts.length}건`,'map-popup-hub-name'));
+      const area=group.hub.kind==='area',chip=button('',()=>show(open===index?-1:index),'secondary map-popup-hub');
+      chip.append(node('span',area?'팝업 일대':'팝업','map-popup-badge'+(area?' is-area':'')),node('span',PopupCourse.label(group.hub),'map-popup-hub-name'));
       chip.setAttribute('aria-expanded','false');chip.setAttribute('aria-controls',panel.id);list.append(chip);
     });
     if(items.length>POPUP_HUBS_FIRST+1)list.append(more);
@@ -205,7 +203,7 @@ function popupHubList(){
 }
 function popupMapNote(note,items){
   note.hidden=!items.length;
-  note.textContent=items.length?`네모 ‘팝업’ 표시: 팝업 글에서 읽은 장소 ${items.length}곳 (코스에 포함되지 않은 주변 후보예요 · 위치를 확인하지 못한 글은 지도에 없어요). 아래 장소나 지도 표시를 누르면 글 목록이 열려요.`:'';
+  note.textContent=items.length?`네모 ‘팝업’ 표시: 팝업이 자주 열리는 곳 ${items.length}곳 (데이트메이트가 정해 둔 목록이에요 · 코스에 포함되지 않아요 · 지금 팝업이 열리는지는 알 수 없어요). 아래 장소나 지도 표시를 누르면 설명이 열려요.`:'';
   const legend=note.closest('.plan-map-card')?.querySelector('.map-legend-popups');if(legend)legend.hidden=!items.length;
 }
 
@@ -402,7 +400,7 @@ function drawPlanMap(plan){
         if(disposed||!canvas.isConnected)return;
         clearPopups();const items=popupMapItems();
         items.forEach((group,index)=>{
-          const area=group.hub.level==='area_anchor',position=new naver.maps.LatLng(group.hub.lat,group.hub.lon);
+          const area=group.hub.kind==='area',position=new naver.maps.LatLng(group.hub.lat,group.hub.lon);
           const marker=new naver.maps.Marker({map,position,title:popupMapTitle(group),zIndex:120,
             icon:{content:POPUP_MARKER_HTML[area?'area':'building'],anchor:new naver.maps.Point(area?36:22,14)}});
           // 지도 안 정보창 대신 지도 아래 정보 칸을 연다(지도 폭이 좁아 정보창 본문이 160px 남짓이었음).

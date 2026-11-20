@@ -35,7 +35,7 @@ function renderDetail() {
   if (p.delta) box.append(node('p', `${p.change_reason} 시간 ${p.delta.minutes>=0?'+':''}${p.delta.minutes}분 · ${costChangeText(totalBefore(p), p.total)}`, 'warning'));
   if (p.conditions.mode === 'demo') box.append(node('p', '모든 장소와 운영·가격 조건은 가상입니다. 이동선은 직선거리로 만든 개략도이며 실제 경로가 아닙니다.', 'warning'));
   if (p.conditions.mode === 'real' && p.conditions.allow_estimates) box.append(estimatedPlanNotice());
-  // 보관 기한(21일)이 지나 좌표까지 지운 네이버 검색 장소가 있으면 다시 계산하는 기능(바꾸기·주변 찾기·가격 재검색)을 그리지 않는다.
+  // 보관 기한(21일)이 지나 좌표까지 지운 네이버 검색 장소가 있으면 다시 계산하는 기능(바꾸기·주변 찾기)을 그리지 않는다.
   const expired = planHistoryExpired(p);
   if (expired) box.append(planHistoryExpiredNote());
   if (p.parent && p.can_edit !== false) {
@@ -159,7 +159,7 @@ function renderDetail() {
     }
     cells[2].className = 'num';
     r.lastElementChild.replaceChildren();
-    appendPriceEvidence(r.lastElementChild, c);
+    appendPriceEvidence(r.lastElementChild, c, p.places[p.costs.indexOf(c)]);
     tbody.append(r);
   }
   table.append(tbody);
@@ -168,8 +168,11 @@ function renderDetail() {
   scroll.setAttribute('role', 'region');
   scroll.setAttribute('aria-label', '장소별 비용 표 · 가로로 넘겨 확인');
   const costs = node('details', undefined, 'cost-table-details');
-  costs.append(node('summary', `장소·구간별 비용 표 ${p.costs.length}항목`), priceRefreshControl(p), node('p', '표가 잘리면 좌우로 넘겨 단가와 출처를 확인하세요.', 'hint'), scroll);
+  costs.append(node('summary', `장소·구간별 비용 표 ${p.costs.length}항목`), node('p', '표가 잘리면 좌우로 넘겨 단가와 출처를 확인하세요.', 'hint'), scroll);
   box.append(costs);
+  // 합계의 성격을 표 바로 아래에 한 줄로 밝힌다(실제 장소 코스만). 블로그 글의 금액은 읽지 않으므로 등록 단가가 없는 곳은 가정 범위나 미확인이다.
+  const basisNote = costBasisNote(p);
+  if (basisNote) box.append(basisNote);
   for (const [label, value] of [
       ['확인된 비용', range(p.confirmed)],
       ['추정 비용', range(p.estimated)],
@@ -212,12 +215,10 @@ function renderDetail() {
   const more = node('section', undefined, 'detail panel plan-extras-panel');
   more.setAttribute('aria-label', '더 둘러보기');
   more.append(leisureCoursePanel(p), regionalRestaurantPanel(p));
-  if (p.course_search) {
-    const research = node('details', undefined, 'course-evidence'),
-      panel = courseSearchPanel(p.course_search, p);
-    research.append(node('summary', `추천에 참고한 블로그·장소 정보 (글 ${p.course_search.posts?.length || 0}개)`), panel);
-    // 경고는 닫힌 접힘 안에 두지 않는다.
-    for (const warning of panel.querySelectorAll('.warning')) more.append(warning);
+  // 네이버 블로그 글은 받은 그대로의 독립 블록으로만 보여 준다(course-search.js). 예전 형식(우리가 고른 5건, format 없음)은 그리지 않는다.
+  if (p.course_search?.format === 2) {
+    const research = node('details', undefined, 'course-evidence');
+    research.append(node('summary', `코스 구성 메모 · 네이버 블로그 글 ${p.course_search.posts?.length || 0}건`), courseSearchPanel(p.course_search, p));
     more.append(research);
   }
   more.append(node('p', '외부 장소 평점: 확보한 평가 자료가 없습니다. 아래 자체 후기와 별도입니다.', 'hint'));

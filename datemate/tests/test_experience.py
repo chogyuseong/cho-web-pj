@@ -26,7 +26,7 @@ def food_fixture(monkeypatch,plan):
     food=copy.deepcopy(plan['places'][0]);food.update(id='food:fixture',name='테스트식당',meal=True,price=None,lat=food['lat']+.001,source='https://example.org/restaurant')
     original=catalog.get_place
     monkeypatch.setattr(catalog,'get_place',lambda pid,mode:food if pid==food['id'] else original(pid,mode))
-    monkeypatch.setattr(menus,'restaurant_menu',lambda _:dict(items=[dict(name='테스트정식',amount=24000,display_price='24,000원')],source_url='https://map.naver.com/p/entry/place/123',checked_at='2026-10-22'))
+    monkeypatch.setattr(menus,'restaurant_menu',lambda _:dict(items=[dict(name='테스트정식',amount=24000,display_price='24,000원')],source_kind='operator_reviewed_menu',source_label='운영자가 확인한 제공 메뉴',source_url='https://example.org/menu',checked_at='2026-10-22'))
     return food
 
 
@@ -37,7 +37,8 @@ def test_meal_preview_recalculates_but_only_apply_changes_and_is_idempotent(monk
         assert result['can_apply'] and len(result['plan']['places'])==3
         assert result['plan']['conditions']['locked']=={'0':original['places'][0]['id']}
         assert result['plan']['costs'][2]['amount']==[48000,48000]
-        assert result['plan']['costs'][2]['price_kind']=='naver_menu'
+        # 운영자가 확인한 제공 메뉴로 넣은 가격은 operator_menu(네이버에서 읽은 가격이 아님).
+        assert result['plan']['costs'][2]['price_kind']=='operator_menu' and '운영자가 확인한 제공 메뉴' in result['plan']['costs'][2]['price_basis']
         assert result['plan']['minutes']>original['minutes']
         assert len(json.loads(store.get_plan(original['id'])['payload'])['places'])==2
         payload=dict(token=result['token'])
@@ -125,8 +126,8 @@ def test_changed_partner_vote_invalidates_existing_preview():
 def test_budget_hard_filter_after_actual_price_calculation(monkeypatch):
     import app.pricing as pricing
     original=pricing.price_plans
-    def over_budget(plans,force=False):
-        result=original(plans,force)
+    def over_budget(plans):
+        result=original(plans)
         for p in result:
             p['condition_checks'].append(dict(condition='budget',label='예산',state='unmet',message='가격 재계산 후 초과'))
         return result

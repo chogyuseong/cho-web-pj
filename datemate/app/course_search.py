@@ -1,58 +1,24 @@
-"""지역·취향별 검색 후보에서 후기 5개를 선정하고 검증한 장소를 추천한다."""
+"""지역·취향 검색어로 찾은 네이버 블로그 글을 받은 그대로 보여 주기 위한 조회.
+
+네이버 검색 API 특약 2.2(2026-09 개정, docs/naver-terms-stage2-design.ko.md 3.1(a)):
+  · 검색 결과는 네이버가 준 순서 그대로, 받은 건수 그대로, 제목·요약 원문 그대로 독립 블록으로만 보여 준다(static/course-search.js).
+  · 추천 계산(후보·순위·이유 문장)에는 쓰지 않는다. 글을 골라내거나 점수를 매기지 않고, 글에 나온 장소를 찾지도 않는다.
+여기서 추천이 쓰는 것은 검색어 문자열(course_query, 우리 조건에서 만든 값)뿐이다.
+"""
 import os
 import re
-from html.parser import HTMLParser
-from urllib.parse import urlsplit, unquote
 from datetime import datetime, timezone
-from concurrent.futures import ThreadPoolExecutor
 import httpx
-from .telemetry import observed_http, observed_stream, prepaid
+from .telemetry import observed_http
 from . import naver_cache as store
-from .image_search import plain, search_enabled
-from .catalog import places
+from .blog_search import BLOG_SEARCH_URL, original_posts
+from .image_search import search_enabled
 from .routes import distance
-from .request_usage import context_map,cache_hit
-from .perf_trace import span
+from .request_usage import cache_hit
 
-
-class BlogText(HTMLParser):
-    def __init__(self):
-        super().__init__(); self.depth=0; self.capture=0; self.skip=0; self.parts=[]
-    def handle_starttag(self,tag,attrs):
-        if tag in ('script','style'):self.skip+=1
-        if tag=='div':
-            self.depth+=1
-            if 'se-main-container' in dict(attrs).get('class','').split():self.capture=self.depth
-    def handle_endtag(self,tag):
-        if tag in ('script','style'):self.skip=max(0,self.skip-1)
-        if tag=='div':
-            if self.depth==self.capture:self.capture=0
-            self.depth=max(0,self.depth-1)
-    def handle_data(self,data):
-        if self.capture and not self.skip:self.parts.append(data)
-
-
-def public_body(url):
-    """고정 네이버 호스트의 공개 문서만 조회. 로그인·차단 우회 없음."""
-    # 2026-11-19: 네이버 약관상 글 본문 자동 수집을 하지 않는다(app/naver_pages.py). 판정은 API 의 제목·요약문으로만 한다.
-    from .naver_pages import allowed
-    if not allowed():return ''
-    parsed=urlsplit(url)
-    if parsed.scheme!='https' or parsed.hostname not in ('blog.naver.com','m.blog.naver.com'):return ''
-    # 외부 리디렉션 및 임의 URL 접속 방지.
-    target='https://m.blog.naver.com'+parsed.path+('?' + parsed.query if parsed.query else '')
-    try:
-        with httpx.Client(timeout=5,follow_redirects=False) as client:
-            with observed_stream(client,'GET',target) as response:
-                response.raise_for_status()
-                if response.status_code!=200:return ''
-                data=bytearray()
-                for chunk in response.iter_bytes():
-                    data.extend(chunk)
-                    if len(data)>1_500_000:return ''
-        parser=BlogText();parser.feed(data.decode('utf-8',errors='replace'))
-        return ' '.join(parser.parts)[:60000]
-    except (httpx.HTTPError,ValueError):return ''
+# 화면이 새 형식(받은 그대로)인지 가리는 값. 이 값이 없는 예전 저장 코스의 course_search 는 그리지 않는다(마이그레이션 v0006 이 지움).
+FORMAT = 2
+DISPLAY = 20
 
 
 def base_course_query(c):
@@ -92,78 +58,6 @@ def course_query(c):
     return base+' '+ ' '.join(word for word in additions if word not in base)
 
 
-def compact(text):return re.sub(r'[^가-힣a-z0-9]','',text.casefold())
-
-
-def disclosure(text):
-    """Explicit disclosure only; absence is not proof of an independent visit."""
-    return bool(re.search(r'협찬|광고\s*포함|원고료|제공\s*받|제공받|체험단',text))
-
-
-def negative_mention(text,name):
-    # Conservative local check: a complaint elsewhere must not taint every venue.
-    for match in re.finditer(re.escape(name),text):
-        tail=text[match.end():match.end()+55]
-        clause=re.split(r'[.!?\n]',tail)[0]
-        if re.search(r'폐업|영업\s*종료|문을\s*닫|비추천|추천하지\s*않|다시\s*안\s*갈',clause):return True
-    return False
-
-
-def select_posts(items,query):
-    """검색 순위·지역 일치·최근성을 참고하고 작성자가 중복되지 않는 글 5개 선정."""
-    area=re.search(r'[가-힣]{1,8}(?:구|동)',query)
-    candidates=[];seen=set()
-    for rank,item in enumerate(items,1):
-        url=item.get('link','');parsed=urlsplit(url)
-        if parsed.scheme!='https' or parsed.hostname not in ('blog.naver.com','m.blog.naver.com') or url in seen:continue
-        seen.add(url)
-        author=parsed.path.strip('/').split('/')[0]
-        if author in ('PostView.naver','PostView.nhn'):
-            from urllib.parse import parse_qs
-            author=parse_qs(parsed.query).get('blogId',[url])[0]
-        title=plain(item.get('title',''));description=plain(item.get('description',''))
-        try:age=(datetime.now(timezone.utc).date()-datetime.strptime(item.get('postdate',''),'%Y%m%d').date()).days
-        except (ValueError,TypeError):age=None
-        recent=age is not None and 0<=age<=365
-        local=bool(area and area[0] in title+' '+description)
-        sponsored=disclosure(title+' '+description)
-        score=1/rank+int(local)*2+int(recent)-int(sponsored)*2
-        candidates.append(dict(search_rank=rank,title=title,description=description,url=url,posted_at=item.get('postdate',''),author=author,
-                               commercial_disclosure=sponsored,
-                               selection_reason=' · '.join(['검색 순위 '+str(rank)]+(['지역명 일치'] if local else [])+(['최근 1년 작성'] if recent else [])+(['광고·협찬 문구 있어 가중치 축소'] if sponsored else [])),_score=score))
-    selected=[];authors=set()
-    for post in sorted(candidates,key=lambda p:p['_score'],reverse=True):
-        if post['author'] in authors:continue
-        authors.add(post['author']);post.pop('_score');post['rank']=len(selected)+1;selected.append(post)
-        if len(selected)==5:break
-    return selected
-
-
-def match_places(posts,rows):
-    matches={}
-    rank_ceiling=max(3,max((p['rank'] for p in posts),default=3))+1
-    # 글마다 본문(최대 6만 자)을 한 번만 정리한다. 전에는 장소 수 × 글 수만큼 다시 정리해 CPU 시간이 대부분 여기서 쓰였다.
-    texts=[]
-    for post in posts:
-        raw=post['title']+' '+post['description']+' '+post.get('_body','')
-        texts.append((post,raw,compact(raw)))
-    for place in rows:
-        names=[place['name'],*(place.get('search_aliases') or [])]
-        wiki=urlsplit(place.get('wikipedia') or '')
-        if wiki.hostname=='ko.wikipedia.org':names.append(unquote(wiki.path.rsplit('/',1)[-1]).replace('_',' '))
-        names=[re.sub(r'\s*\([^)]*\)$','',n) for n in names]
-        # 2026-11-19: 지점 이름('OO카페 성수점', 'OO 강남본점')은 글에서 흔히 지점 없이 쓰여 일치하지 않았다.
-        # 띄어 쓴 마지막 낱말이 …점/…지점/…본점이면 그것을 뗀 이름도 찾는다. 붙여 쓴 '서점'·'백화점'은 건드리지 않는다.
-        # 뗀 이름이 3자 미만이면(아래 길이 조건) 쓰지 않아 너무 흔한 이름으로 잘못 맞추지 않는다.
-        names+=[without_branch(n) for n in names]
-        names=list(dict.fromkeys(compact(n) for n in names))
-        hits=[]
-        for post,raw,text in texts:
-            if any(len(n)>=3 and n in text for n in names) and not any(negative_mention(raw,n) for n in [place['name'],*(place.get('search_aliases') or [])]):hits.append(post['rank'])
-        if hits:matches[place['id']]={'ranks':hits,'score':sum(rank_ceiling-rank for rank in hits)}
-    return matches
-
-
 # 지점 낱말이 아니라 업종을 뜻하는 '…점'. 이 낱말로 끝나면 떼지 않는다('책방 서점'을 '책방'으로 줄이지 않게).
 NOT_BRANCH=('서점','백화점','편의점','상점','매점','주점','문구점','할인점','전문점','음식점','제과점','정육점','과일점')
 
@@ -175,68 +69,42 @@ def without_branch(name):
     return head.strip()
 
 
+def _fetch(query):
+    response=observed_http(httpx.get,BLOG_SEARCH_URL,params=dict(query=query,display=DISPLAY,start=1,sort='sim',format='json'),
+        headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
+    response.raise_for_status()
+    data=response.json()
+    if not isinstance(data,dict) or not isinstance(data.get('items',[]),list):raise ValueError('invalid_response')
+    return data.get('items',[])
+
+
 def search_courses(c):
+    """코스 조사 패널에 보여 줄 블로그 검색 결과. requested_query 는 조건에서 만든 검색어(검색 결과와 무관)라 추천의 동네 기준에 쓴다.
+    posts 는 네이버가 준 순서·건수·제목·요약 그대로다(blog_search.original_posts). 결과가 0건이면 취향 낱말을 뺀 지역 검색어로 한 번 더 찾고
+    그 사실(search_relaxed)과 실제 검색어(query)를 함께 돌려준다."""
     query=course_query(c)
-    result=dict(query=query,provider='네이버 검색 후보에서 지역·최근성·작성자 중복을 고려한 후기 최대 5개',posts=[],matches={},
+    result=dict(format=FORMAT,query=query,provider='네이버 블로그 검색 · 관련도순 최대 '+str(DISPLAY)+'건',posts=[],
                 requested_query=query,search_history=[],concept=c.date_subcategory,search_relaxed=False,
-                rating_status='unavailable',rating_note='현재 연결된 공식 API는 네이버 장소 평점을 제공하지 않아 평점을 순위에 반영하지 않았어요.',
                 checked_at=datetime.now(timezone.utc).isoformat(),status='key_missing')
     if not search_enabled():return result
     if '지도 위치의 지역명 확인 필요' in query:
-        result.update(status='location_unresolved',message='선택 좌표의 지역명을 확인하지 못했어요. 지역명을 검색해 선택하거나 네이버 Maps Reverse Geocoding 설정을 확인해 주세요. 위치 주변 기존 장소로 보완합니다.')
+        result.update(status='location_unresolved',message='선택 좌표의 지역명을 확인하지 못해 블로그 글을 찾지 않았어요. 지역명을 검색해 선택하면 그 지역의 글을 볼 수 있어요.')
         return result
-    key='course-blog-five-v3:'+query+':'+str(c.visit_date)
+    key='course-blog-v4:'+query+':'+str(c.visit_date)
     cached=store.cached(key)
     if cached:cache_hit('course_blog');return cached
     try:
-        response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=20,start=1,sort='sim',format='json'),
-            headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
-        response.raise_for_status()
-        result['search_history'].append(dict(query=query,result_count=len(response.json().get('items',[]))))
-        if not response.json().get('items') and query!=base_course_query(c):
-            query=base_course_query(c)
-            response=observed_http(httpx.get,'https://naverapihub.apigw.ntruss.com/search/v1/blog',params=dict(query=query,display=20,start=1,sort='sim',format='json'),
-                headers={'X-NCP-APIGW-API-KEY-ID':os.environ['NAVER_SEARCH_CLIENT_ID'],'X-NCP-APIGW-API-KEY':os.environ['NAVER_SEARCH_CLIENT_SECRET']},timeout=8)
-            response.raise_for_status()
+        items=_fetch(query)
+        result['search_history'].append(dict(query=query,result_count=len(items)))
+        base=base_course_query(c)
+        if not items and query!=base:
+            query=base
+            items=_fetch(query)
             result.update(query=query,search_relaxed=True)
-            result['search_history'].append(dict(query=query,result_count=len(response.json().get('items',[]))))
-        result['posts']=select_posts(response.json().get('items',[]),query)
-        result['selection_note']='실제 방문자 수나 평점 순위가 아닌, 검색 결과 기반 선정입니다.'
-        # 본문 5건의 제공자 예산은 한 번에 잡는다(호출마다 잡으면 운영 DB의 쓰기 잠금에서 줄을 선다).
-        with span('course_search.blog_bodies'),prepaid('https://m.blog.naver.com/',len(result['posts'])),ThreadPoolExecutor(max_workers=5) as pool:
-            bodies=context_map(pool,public_body,[p['url'] for p in result['posts']])
-        for post,body in zip(result['posts'],bodies):
-            post.update(_body=body,content_scope='공개 본문 + 검색 요약' if body else '검색 요약만 확인',summary=post['description'])
-            post['commercial_disclosure']=post['commercial_disclosure'] or disclosure(body)
-            post['evidence_note']='광고·협찬 표시 확인 · 추천 가중치 축소' if post['commercial_disclosure'] else '광고·협찬 표시 미확인 · 실제 방문 인증은 아님'
-        from .discovery import discover
-        with span('course_search.discover'):
-            new_places,discovery=discover(result['posts'],base_course_query(c))
-        result['discovery']=discovery
-        result['discovered_ids']=[p['id'] for p in new_places]
-        with span('course_search.match_places'):
-            # 같은 장소 목록을 두 번 읽지 않는다(match_places 는 목록을 바꾸지 않음).
-            rows=places('real',c.visit_date)
-            result['matches']=match_places(result['posts'],rows)
-        for post in result['posts']:
-            post['mentioned_places']=[p['name'] for p in rows if post['rank'] in result['matches'].get(p['id'],{}).get('ranks',[])][:12]
-        # 같은 작성자의 반복 게시물은 독립적인 추천으로 중복 가산하지 않는다.
-        for match in result['matches'].values():
-            authors=set();score=0
-            for post in result['posts']:
-                if post['rank'] not in match['ranks'] or post['author'] in authors:continue
-                authors.add(post['author'])
-                try:age=(datetime.now(timezone.utc).date()-datetime.strptime(post['posted_at'],'%Y%m%d').date()).days
-                except (ValueError,TypeError):age=None
-                score+=(6-post['rank'])*(1 if age is not None and 0<=age<=365 else .5)*(.25 if post['commercial_disclosure'] else 1)*(.6 if not post.get('_body') else 1)
-            match.update(score=score,independent_authors=len(authors))
-        for post in result['posts']:post.pop('_body',None)
+            result['search_history'].append(dict(query=query,result_count=len(items)))
+        result['posts']=original_posts(items)
         result['status']='available' if result['posts'] else 'not_found'
-        result['message']='검색 글에서 확인한 장소를 우선 추천해요.' if result['matches'] else '상위 글에서 현재 장소 데이터와 연결되는 장소를 찾지 못해 기존 조건 기반 추천을 표시해요.'
+        result['message']='' if result['posts'] else '이 검색어로 찾은 블로그 글이 없어요.'
         store.cache(key,result,900)
-    except (httpx.HTTPError,ValueError,TypeError,KeyError):result.update(status='unavailable',message='네이버 코스 검색에 연결하지 못해 기존 조건 기반 추천을 표시해요.')
+    except (httpx.HTTPError,ValueError,TypeError,KeyError):result.update(status='unavailable',message='네이버 블로그 검색에 연결하지 못했어요. 코스 추천에는 영향이 없어요.')
     return result
-
-
-def priority(plan,evidence):
-    return sum(evidence.get('matches',{}).get(p['id'],{}).get('score',0) for p in plan['places'])

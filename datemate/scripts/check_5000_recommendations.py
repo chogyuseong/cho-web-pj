@@ -26,7 +26,7 @@ def main():
         prototype=json.loads((root/'data/demo_places.json').read_text('utf-8'))[0]
         original=catalog.places;current=[]
         def venues(mode='demo',visit_date=None):return current if mode=='real' else original(mode,visit_date)
-        evidence=dict(query='가상 검증 지역',posts=[],matches={},status='not_found',rating_note='fixture',provider='controlled fixture',search_history=[])
+        evidence=dict(format=2,query='가상 검증 지역',requested_query='가상 검증 지역',posts=[],status='not_found',provider='controlled fixture',search_history=[],search_relaxed=False)
         count=0;passed=0;failed=[];started=time.perf_counter()
         suffix=str(limit)+('-offset'+str(offset) if limit!=5000 else '')
         outfile=root/'docs'/('recommendation-matrix-'+suffix+'.jsonl')

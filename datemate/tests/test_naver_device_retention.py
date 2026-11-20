@@ -1,8 +1,8 @@
 """브라우저 저장소의 네이버 검색 결과 보관(특약 2.4 기기: 24시간 또는 새 질의 시까지 중 짧은 기간, static/form-state.js).
 
-'지난번처럼 추천'(localStorage datemate-last-conditions)이 유일하게 남기는 곳이다. 지역 검색(장소 이름으로 찾기)·팝업 거점에서 온
+'지난번처럼 추천'(localStorage datemate-last-conditions)이 유일하게 남기는 곳이다. 지역 검색(장소 이름으로 찾기)에서 온
 출발지에는 받은 시각(naver_at)과 검색 종류(naver_query)를 붙이고, 24시간이 지나거나 같은 종류의 새 검색을 하면 출발지만 지운다.
-동네 칩·현재 위치·지도·주소 검색(지오코딩) 출발지와 시간·예산 같은 조건은 그대로 둔다.
+동네 칩·현재 위치·지도·주소 검색(지오코딩)·팝업 거점(우리 거점 사전) 출발지와 시간·예산 같은 조건은 그대로 둔다.
 """
 
 import json
@@ -34,8 +34,8 @@ def test_device_keeps_a_search_origin_for_a_day_or_until_a_new_search(audit_page
     first_at = loaded['origin']['naver_at']
     page.evaluate("s=>LastConditions.save({...s,mode:'real',festival:null})", loaded)
     assert json.loads(page.evaluate(f'localStorage.getItem("{key}")'))['origin']['naver_at'] == first_at
-    # 다른 종류의 새 검색(팝업)은 지우지 않고, 같은 종류(출발지 검색)의 새 검색은 지운다.
-    page.evaluate("LastConditions.newQuery('popups')")
+    # 다른 종류의 새 검색은 지우지 않고, 같은 종류(출발지 검색)의 새 검색은 지운다.
+    page.evaluate("LastConditions.newQuery('other')")
     assert page.evaluate('LastConditions.load()')['origin']['name'] == LOCAL_ORIGIN
     page.evaluate("LastConditions.newQuery('local')")
     assert page.evaluate('LastConditions.load()') is None

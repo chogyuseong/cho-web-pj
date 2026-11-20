@@ -44,9 +44,6 @@ footer { margin-top:30px; border-color:var(--line); }
   .step-category { margin-bottom:10px; }
   .option-heading { align-items:start!important; }
 }
-.course-source { padding:11px 0; border-bottom:1px solid var(--line); font-size:14px; }
-.course-source a { font-weight:700; overflow-wrap:anywhere; }
-.course-source small { display:block; font-size:14px; color:var(--muted); margin-top:4px; }
 .partner-agreement label { background:white; border-radius:10px; padding:12px; border:1px solid var(--line); }
 body { background:var(--paper); }
 header { background:#fff; }

@@ -162,8 +162,8 @@ function placeMapLink(label, place) {
 
 function rememberVerifiedMapTarget(place, data) {
   if (data.place_id && data.place_id !== place.id) return;
-  // 공식 지역 검색 API 로 같은 업체를 확인했으면(app/place_identity.py) '위치' 줄을 '확인됨'으로. 지도 링크는 그대로(업체 번호가 없음).
-  if (data.identity?.verified === true && typeof markIdentityVerified === 'function') markIdentityVerified(place.id);
+  // 공공 자료(상가정보·인허가)로 본 같은 업체 판정(app/place_identity.py)을 '위치' 줄에 넘긴다. 지도 링크는 그대로(업체 번호가 없음).
+  if (data.identity && typeof markIdentity === 'function') markIdentity(place, data.identity);
   // 한국관광공사 영업 안내가 있으면 '영업 정보' 줄에 덧붙인다(plan-evidence.js markTourHours).
   if (data.tour_hours && typeof markTourHours === 'function') markTourHours(place.id, data.tour_hours);
   const id = String(data.naver_place_id || '');
@@ -173,8 +173,6 @@ function rememberVerifiedMapTarget(place, data) {
   for (const anchor of document.querySelectorAll('a[data-map-place-id]')) {
     if (anchor.dataset.mapPlaceId === place.id) anchor.href = url;
   }
-  // 장소 정보 확인의 '위치' 줄도 '확인됨'으로(plan-evidence.js).
-  if (typeof markIdentityVerified === 'function') markIdentityVerified(place.id);
 }
 
 function normalizeMapQuery(value) {
@@ -552,7 +550,7 @@ function beginPlanSearch() {
   const icon = node('span', undefined, 'search-spinner');
   icon.setAttribute('aria-hidden', 'true');
   const copy = node('div', undefined, 'search-progress-copy');
-  copy.append(node('strong', '우리에게 맞는 코스를 찾고 있어요'), node('p', '조건 확인 → 코스 탐색 → 실시간 단가 검색·비용 계산 중…'), node('small', '검색을 진행 중이에요. 결과가 준비되면 여기에 보여드릴게요.'));
+  copy.append(node('strong', '우리에게 맞는 코스를 찾고 있어요'), node('p', '조건 확인 → 코스 탐색 → 비용 계산 중…'), node('small', '검색을 진행 중이에요. 결과가 준비되면 여기에 보여드릴게요.'));
   // 실패 안내의 단추(이어보기·다시 검색)를 연달아 탭하면 두 번째 탭이 같은 자리에 새로 나타난 이 단추를 눌러
   // 방금 시작한 검색을 취소했다(2026-11-19 확인). 나타난 뒤 0.6초 안의 누름은 무시한다.
   const shownAt = performance.now();

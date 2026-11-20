@@ -1,10 +1,11 @@
-/* 팝업 둘러보기 (1단계 1a)와 코스 결과의 팝업 글 구역 (1b·1c).
-   1a: 장소 둘러보기 안의 [장소]·[팝업스토어] 전환으로 연다(헤더 탭을 늘리지 않음).
-   1b: 코스 결과의 축제 구역 바로 뒤에 같은 지역·방문일의 팝업 글을 보이고(PopupCourse), 거점 기준 주변 코스 버튼을 둔다.
-   1c: 그 글을 거점별로 묶고, 같은 묶음을 코스 지도(maps.js 의 팝업 표시)에 거점당 하나씩 그린다.
-   출처 중심: 네이버 블로그 검색 글 하나가 항목 하나다. 제목·요약·링크는 받은 그대로 텍스트로만 넣고,
-   데이트메이트가 읽은 기간·장소·거리는 원문 인용과 나뉜 별도 칸에 "검색 요약에서 읽은 …"으로 적는다.
-   두 화면이 같은 항목 구성(PopupView.card·list·periodText·placeText·notes)을 쓴다.
+/* 팝업 글 둘러보기와 코스 결과의 팝업 구역.
+   2026-11-20(네이버 검색 API 특약 2.2: 가공 없이 독립적으로 노출, 순위·내용 수정 금지)부터 두 가지만 그린다.
+   1) 네이버 블로그 검색 결과 블록(PopupView.block): 서버가 준 글을 받은 순서 그대로, 받은 건수 그대로, 제목·요약은 받은 글자 그대로
+      텍스트로만 넣는다. 블록 안에는 네이버가 준 값(블로거·작성일·제목·요약·원문 링크)과 출처 표시만 둔다.
+      글을 고르거나 나누거나 다시 줄 세우지 않고, 글에서 기간·장소를 읽어 적지 않는다. 사진도 없다.
+   2) 팝업 거점 목록(PopupCourse.hubList)과 코스 지도의 팝업 표시(maps.js): 데이트메이트가 정해 둔 거점 사전(app/popup_hubs.py,
+      좌표는 한국관광공사 자료)만으로 그린다. 검색된 글과 잇지 않는다(글 수·기간을 붙이지 않음). 출발지에서의 직선거리는 우리 계산이다.
+   장소 둘러보기 안의 [장소]·[팝업스토어] 전환으로 연다(헤더 탭을 늘리지 않음). 코스 결과에서는 축제 구역 바로 뒤에 둔다.
    서버 상태(/api/status)의 popups_enabled 가 true 일 때만 전환과 구역을 그린다. 늦게 온 응답은 generation 으로 버린다. */
 const PopupView = {
   generation: 0,
@@ -15,6 +16,8 @@ const PopupView = {
   firstPage: 10,
   regions: ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'],
   placesHeading: '',
+  // 블록 밖에 적는 한 줄: 왜 기간·장소·사진이 없는지.
+  about: '네이버 블로그 검색 결과를 받은 순서 그대로 보여 드려요. 글을 고르거나 다시 정렬하지 않아 팝업이 아닌 글이나 끝난 팝업 글이 섞일 수 있어요. 기간과 장소는 글 원문에서 확인해 주세요.',
   mount(enabled) {
     this.enabled = enabled === true;
     if (this.enabled) PopupCourse.mount();
@@ -71,7 +74,7 @@ const PopupView = {
       // 한글 조합 중 Enter 는 글자 확정이라 검색하지 않는다.
       if (event.key === 'Enter' && !event.isComposing && event.keyCode !== 229) this.search();
     });
-    const about = node('p', '네이버 블로그 검색 결과를 글마다 그대로 보여 드려요. 기간·장소는 검색 요약에서 읽은 것이라 실제 운영과 다를 수 있어요. 방문 전 원문을 확인해 주세요.', 'hint popup-about');
+    const about = node('p', this.about, 'hint popup-about');
     const status = node('p', '', 'popup-status');
     status.id = 'popup-status';
     status.setAttribute('role', 'status');
@@ -111,8 +114,6 @@ const PopupView = {
     document.getElementById('popup-status').textContent = `${region}의 팝업 글을 찾고 있어요.`;
     document.getElementById('popup-results').replaceChildren();
     this.setBusy(true);
-    // 새 질의: 앞 팝업 검색의 거점으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 2.4, form-state.js).
-    LastConditions.newQuery('popups');
     try {
       const params = new URLSearchParams({
         region,
@@ -135,168 +136,58 @@ const PopupView = {
     document.getElementById('popup-status').textContent = '팝업 글을 불러오지 못했어요.';
     document.getElementById('popup-results').replaceChildren(this.errorBox(message, () => this.search()));
   },
-  // 날짜는 "2026.11.14" 꼴. 연도까지 확인된 날짜에만 쓴다.
+  // 작성일은 "2026.11.14" 꼴.
   day(value) {
     return String(value).replaceAll('-', '.');
   },
-  basisText(data) {
-    return data.basis === 'today' ? `오늘(${this.day(data.visit_date)})` : `방문일(${this.day(data.visit_date)})`;
+  source(data) {
+    return (data.sources || [])[0] || {};
   },
-  periodText(period, data) {
-    const basis = data.basis === 'today' ? '오늘' : '방문일';
-    if (period.level === 'confirmed') {
-      if (period.start && period.end) {
-        const state = period.status === 'ongoing' ? `${basis} 기준 진행 중` : period.status === 'upcoming' ? `${basis} 기준 오픈 예정` : '기간 미확인';
-        return {
-          known: period.status !== 'unknown',
-          text: `${this.day(period.start)} ~ ${this.day(period.end)} · ${state} · 원문 확인`
-        };
-      }
-      if (period.start) return {
-        known: period.status === 'upcoming',
-        text: period.status === 'upcoming' ? `시작일 ${this.day(period.start)}만 읽었어요 · ${basis} 기준 오픈 예정` : `기간 미확인 · 시작일 ${this.day(period.start)}만 읽었어요`
-      };
-      return {
-        known: false,
-        text: `기간 미확인 · 종료일 ${this.day(period.end)}만 읽었어요`
-      };
-    }
-    if (period.level === 'month_day') return {
-      known: false,
-      text: `기간 미확인 · 검색 요약에 적힌 날짜: ${period.evidence[0]}`
-    };
-    if (period.level === 'conflict') return {
-      known: false,
-      text: `기간 미확인 · 요약에 기간이 여럿 적혀 있어요: ${period.evidence.join(' / ')}`
-    };
-    return {
-      known: false,
-      text: '기간 미확인 · 요약에서 기간을 찾지 못했어요'
-    };
+  // "네이버 블로그 검색 ‘2026년 11월 서울 팝업스토어’ · 최신순 50건". 어떤 검색어의 결과인지 그대로 적는다.
+  scopeText(data, count) {
+    const source = this.source(data);
+    return `네이버 블로그 검색 ‘${source.query || data.region + ' 팝업스토어'}’ · ${source.sort === 'date' ? '최신순 ' : ''}${count}건`;
   },
-  placeText(place) {
-    if (!place.hub_id) return {
-      known: false,
-      text: place.reason === 'multiple' ? '위치 미확인 · 요약에 장소가 여러 곳 적혀 있어요' : '위치 미확인 · 요약에서 장소를 찾지 못했어요'
-    };
-    const name = place.kind === 'area' ? `${place.name}(대략)` : place.name;
-    if (place.level === 'building') return {
-      known: true,
-      text: `${name} · 건물 위치 확인(행사장 층·입구는 원문 확인)`
-    };
-    if (place.level === 'area_anchor') return {
-      known: true,
-      text: `${name} · 동네 기준점 ${place.anchor}`
-    };
-    return {
-      known: false,
-      text: `${name} · 위치 미확인(지도 위치를 확정하지 못했어요)`
-    };
+  // 같은 검색어의 네이버 블로그 검색 화면(블록의 원본 링크).
+  searchUrl(data) {
+    const query = this.source(data).query;
+    return query ? 'https://search.naver.com/search.naver?' + new URLSearchParams({
+      where: 'blog',
+      query
+    }) : null;
   },
-  fact(label, value, kind) {
-    const row = node('div', undefined, `popup-fact popup-${kind}` + (value.known ? '' : ' is-unconfirmed'));
-    row.append(node('dt', label), node('dd', value.text));
-    return row;
-  },
-  // 글 하나 = 항목 하나. extra.facts 는 읽은 정보 칸에 더할 줄(코스 구역의 거리 등), extra.action 은 항목 맨 아래 행동 줄.
-  // extra.place 가 false 면 장소 줄을 빼고(코스 구역의 거점 묶음은 머리에 장소를 한 번만 적음), extra.titleTag 로 제목 태그를 바꾼다.
-  card(post, data, extra = {}) {
+  // 글 하나 = 항목 하나. 네이버가 준 값만 적는다: 블로거 이름 · 작성일, 제목, 요약, 원문 링크.
+  card(post, titleTag = 'h4') {
     const card = node('article', undefined, 'popup-post');
     card.dataset.postId = post.id;
-    const quote = node('div', undefined, 'popup-quote');
-    const meta = ['네이버 블로그', post.blogger, post.posted_at ? this.day(post.posted_at) + ' 글' : null].filter(Boolean).join(' · ');
+    const meta = [post.blogger, post.posted_at ? this.day(post.posted_at) : null].filter(Boolean).join(' · ');
     const source = link('블로그 원문 보기 ↗', post.url);
     source.classList.add('popup-source-link');
-    quote.append(node('p', meta, 'popup-meta'), node(extra.titleTag || 'h4', post.title || '(제목 없음)', 'popup-title'), node('p', post.description, 'popup-summary'), source);
-    // 대표 사진(서버가 행사명·거점이 맞는 이미지 검색 사진 한 장을 고른 경우만, app/popup_api.post_photos)은 소개 옆 작은 칸에 둔다.
-    const photo = this.photo(post.photo);
-    let intro = quote;
-    if (photo) {
-      intro = node('div', undefined, 'popup-intro');
-      intro.append(quote, photo);
-    }
-    const reading = node('div', undefined, 'popup-reading');
-    const facts = node('dl', undefined, 'popup-facts');
-    facts.append(this.fact('기간', this.periodText(post.period, data), 'period'));
-    if (extra.place !== false) facts.append(this.fact('장소', this.placeText(post.place), 'place'));
-    facts.append(...(extra.facts || []));
-    reading.append(node('p', '데이트메이트가 검색 요약에서 읽은 정보', 'popup-reading-title'), facts);
-    card.append(intro, reading);
-    if (extra.action) card.append(extra.action);
+    if (meta) card.append(node('p', meta, 'popup-meta'));
+    card.append(node(titleTag, post.title || '(제목 없음)', 'popup-title'), node('p', post.description, 'popup-summary'), source);
     return card;
   },
-  // 대표 사진 칸: 작은 사진(누르면 원본) + '검색 사진 · 출처' 줄. 사진 주소는 https 만 쓰고, 검색 결과 제목은 글자로만(alt·title 에 넣지 않음).
-  // 작은 사진이 깨지면 원본을 한 번 시험하고, 그것도 안 되면 칸을 통째로 지운다(깨진 그림·빈칸을 남기지 않음).
-  photo(photo) {
-    const safe = url => {
-      try {
-        const u = new URL(String(url || ''));
-        return u.protocol === 'https:' && !u.username && !u.password ? u.href : null;
-      } catch {
-        return null;
-      }
-    };
-    const src = safe(photo?.image_url);
-    if (!src) return null;
-    const figure = node('figure', undefined, 'popup-photo'),
-      img = node('img');
-    img.alt = '팝업 관련 검색 사진';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    img.referrerPolicy = 'no-referrer';
-    img.width = 96;
-    img.height = 96;
-    const backup = safe(photo.original_url);
-    img.addEventListener('error', () => {
-      if (backup && img.src !== backup) img.src = backup;
-      else figure.remove();
-    });
-    img.src = src;
-    const open = link('', photo.source);
-    if (open.tagName === 'A') {
-      open.classList.add('popup-photo-open');
-      open.setAttribute('aria-label', '검색 사진 원본 보기');
-      open.append(img);
-    }
-    const caption = node('figcaption', undefined, 'popup-photo-credit');
-    const source = link('출처 ↗', photo.source);
-    if (source.tagName === 'A') source.setAttribute('aria-label', '검색 사진 출처');
-    caption.append(node('span', '네이버 검색결과 · 검색 사진'), source);
-    figure.append(open.tagName === 'A' ? open : img, caption);
-    return figure;
-  },
-  // 처음 size 건 + "글 더 보기". options: size, heading(제목 태그), cardOf(항목 만들기).
-  list(title, posts, data, options = {}) {
-    const size = options.size || this.firstPage,
-      cardOf = options.cardOf || (post => this.card(post, data));
-    const block = node('section', undefined, 'popup-list');
-    if (title) block.append(node(options.heading || 'h3', title));
+  // 네이버 검색결과 블록: 제목 줄(출처 표시) + 받은 순서 그대로의 글 + 「글 더 보기」. options: size(처음 보이는 수), heading·titleTag(제목 태그).
+  // 「글 더 보기」는 뒤쪽 글을 접어 둔 것뿐이라 순서와 내용은 그대로다.
+  block(data, options = {}) {
+    const posts = Array.isArray(data.posts) ? data.posts : [],
+      size = options.size || this.firstPage;
+    const block = node('section', undefined, 'popup-list popup-naver-block');
     const items = node('div', undefined, 'popup-items');
-    const render = rows => items.append(...rows.map(cardOf));
+    const render = rows => items.append(...rows.map(post => this.card(post, options.titleTag)));
     render(posts.slice(0, size));
-    block.append(items);
+    block.append(node(options.heading || 'h3', `네이버 블로그 검색 결과 ${posts.length}건`), naverAttribution('블로그 검색', this.searchUrl(data)), items);
     if (posts.length > size) {
       const more = button(`글 더 보기 (${posts.length - size}건)`, () => {
         more.remove();
         render(posts.slice(size));
+        // 키보드 사용자가 새로 열린 첫 글에서 이어 읽게 한다.
+        items.children[size]?.querySelector('.popup-source-link')?.focus();
       });
       more.classList.add('popup-more');
       block.append(more);
     }
     return block;
-  },
-  notes(data, withUnknown = true) {
-    const counts = data.counts || {},
-      lines = [];
-    if (counts.hidden_ended) lines.push(`${this.basisText(data)} 기준 종료로 확인된 글 ${counts.hidden_ended}건은 숨겼어요.`);
-    if (counts.excluded_other_region) lines.push(`다른 시·도 장소로 읽힌 글 ${counts.excluded_other_region}건은 뺐어요.`);
-    if (withUnknown && counts.location_unknown) lines.push(`위치를 확인하지 못한 글 ${counts.location_unknown}건은 뒤에 두었어요.`);
-    return lines;
-  },
-  // "서울 · 오늘(2026.11.14) 기준 · 네이버 블로그 검색 결과 최신 50건 중"
-  scopeText(data) {
-    const source = (data.sources || [])[0] || {};
-    return `${data.region} · ${this.basisText(data)} 기준 · ${data.attribution || '네이버 블로그 검색 결과'} 최신 ${source.returned ?? source.display ?? ''}건 중`;
   },
   // 서버 상태가 검색원을 쓰지 못한 경우(키 없음·연결 실패)의 상자. retry 가 있으면 연결 실패에만 "다시 찾기"를 둔다.
   stateBox(data, retry) {
@@ -310,6 +201,12 @@ const PopupView = {
     box.append(node('p', message), button('다시 찾기', retry));
     return box;
   },
+  emptyBox(data, hint) {
+    const box = node('div', undefined, 'popup-state popup-state-empty');
+    box.append(node('p', data.message || '이 검색어로 검색된 글이 없어요.'));
+    if (hint) box.append(node('p', hint, 'hint'));
+    return box;
+  },
   render(data) {
     const status = document.getElementById('popup-status'),
       results = document.getElementById('popup-results');
@@ -320,44 +217,30 @@ const PopupView = {
       results.append(this.stateBox(data, () => this.search()));
       return;
     }
-    const scope = this.scopeText(data);
-    if (data.status === 'empty' || !posts.length) {
-      status.textContent = `${scope} 보여 드릴 팝업 글이 없어요.`;
-      const box = node('div', undefined, 'popup-state popup-state-empty');
-      box.append(node('p', data.message || '검색된 글 중에 보여 드릴 팝업 글이 없어요.'), ...this.notes(data).map(line => node('p', line, 'hint')), node('p', '다른 시·도나 검색어로 찾아보세요.', 'hint'));
-      results.append(box);
+    status.textContent = this.scopeText(data, posts.length);
+    if (!posts.length) {
+      results.append(this.emptyBox(data, '다른 시·도나 검색어로 찾아보세요.'));
       return;
     }
-    // 안내 줄과 목록 제목은 같은 기준(보여 주는 글 = posts)으로 센다. 모아 보기 글은 따로 모으므로, 있으면 안내 줄에 나눈 수를 함께 적어
-    // 안내 줄의 전체 수 = 일반 글 목록 수 + 모아 보기 목록 수가 화면에서 바로 맞게 한다.
-    const general = posts.filter(post => !post.roundup),
-      roundups = posts.filter(post => post.roundup);
-    status.textContent = `${scope} 팝업 글 ${posts.length}건` + (roundups.length ? ` (일반 글 ${general.length}건 · 여러 팝업을 모아 소개한 글 ${roundups.length}건)` : '');
-    if (data.status === 'partial') results.append(node('p', data.message || '일부 장소의 위치를 확인하지 못해 위치 미확인으로 표시했어요.', 'popup-state popup-state-partial'));
-    for (const line of this.notes(data)) results.append(node('p', line, 'hint popup-note'));
-    if (general.length) results.append(this.list(`${roundups.length ? '일반 팝업 글' : '검색된 팝업 글'} ${general.length}건`, general, data));
-    if (roundups.length) results.append(this.list(`여러 팝업을 모아 소개한 글 ${roundups.length}건`, roundups, data));
-    results.append(node('p', `출처: ${data.attribution || '네이버 블로그 검색 결과'} · 순위나 인기순이 아니에요.`, 'hint popup-attribution'), naverAttribution('블로그 검색'));
+    results.append(this.block(data));
   }
 };
 
-/* 코스 결과의 팝업 글 구역 (1b, 1c 에서 거점별 묶음으로). 축제 구역 바로 뒤에 둔다. 코스·지도와 따로 조회하고, 실패해도 코스·축제·지도·탭 동작에 영향이 없다.
-   기본 목록은 위치가 확인된 글(건물·동네 기준점)을 거점별로 묶은 것. 묶음 머리에 거점 이름·위치 등급·거리·주변 코스 버튼·글 수를 한 번만 적고,
-   그 아래 글은 하나씩 독립 항목(제목·요약·링크는 받은 그대로, 글끼리 합치지 않음)으로 둔다. 묶음은 출발지에서 가까운 순(직선거리, 같으면 거점 ID).
-   위치 미확인 글은 접어 두고 거리를 만들지 않는다. 코스 지도(maps.js)는 같은 묶음(mapItems)에서 거점당 표시 하나를 그린다.
+/* 코스 결과의 팝업 구역. 축제 구역 바로 뒤에 둔다. 코스·지도와 따로 조회하고, 실패해도 코스·축제·지도·탭 동작에 영향이 없다.
+   위: 네이버 블로그 검색 결과 블록(PopupView.block, 받은 순서 그대로). 아래: 팝업 거점 목록(우리 거점 사전, 글과 무관).
+   거점은 출발지에서 가까운 순(직선거리, 같으면 거점 ID), 출발지 기준이 없으면 사전 순서. 코스 지도(maps.js)는 같은 배열(mapItems)에서 거점당 표시 하나를 그린다.
+   거점은 '팝업이 자주 열리는 곳'일 뿐이고 지금 열리는지는 알 수 없다는 것을 목록 머리와 지도 설명에 적는다.
    주변 코스 버튼은 출발지(와 시·도)만 거점으로 바꾸고 방문일·시간대·예산·교통수단·취향은 조건 화면 값 그대로 다시 추천한다.
    festival 필드나 새 요청 필드를 싣지 않는다. 고른 거점과 되돌릴 출발지는 이 탭의 메모리에만 두고, 저장 코스를 다시 열면 되살리지 않는다.
+   거점 좌표는 네이버 검색 결과가 아니라(관광공사 자료) 기기 보관 기한 표시(form-state.js 의 NaverDeviceRetention)를 붙이지 않는다.
    거리 계산·거리 문구는 축제 구역의 FestivalPanel.originOf·distance·distanceText 를 그대로 부른다(축제 파일은 고치지 않음). */
 const PopupCourse = {
   generation: 0,
   controller: null,
-  // 위치 미확인 글 목록의 첫 화면 수.
+  // 코스 결과에서 처음 보이는 글 수와 거점 수. 나머지는 「더 보기」.
   firstPage: 6,
-  // 첫 화면에 보이는 거점 묶음 수와 묶음마다 보이는 글 수. 나머지는 「더 보기」.
-  // 390px 실측(서울 성수, 실제 응답 38건): 2×4 = 4,021px, 1×4 = 3,342px, 1×3 = 2,647px. 지도에는 모든 거점이 나오므로 1×3 을 쓴다.
   firstHubs: 3,
-  postsPerHub: 1,
-  // 코스 지도에 그릴, 지금 세대의 거점 묶음({hub, posts, meters}). 카드 묶음과 같은 배열이다.
+  // 코스 지도에 그릴, 지금 세대의 거점({hub, meters}). 거점 목록과 같은 배열이다.
   mapItems: [],
   // 「이 장소 주변 코스 추천받기」로 고른 거점({hub, label, originName}). 출발지가 그 거점이 아니게 되면 지운다.
   chosen: null,
@@ -390,16 +273,15 @@ const PopupCourse = {
     status.setAttribute('aria-live', 'polite');
     const results = node('div', undefined, 'popup-results');
     results.id = 'popup-course-results';
-    section.append(heading,
-      node('p', '네이버 블로그 검색 결과예요. 기간과 장소는 원문에서 확인해 주세요.', 'hint popup-course-about'),
-      node('p', '코스에 넣지 않은 주변 후보예요. 주변 코스 버튼은 출발지만 그 장소로 바꾸고 날짜·시간·예산·교통·취향은 그대로 다시 추천해요.', 'hint popup-course-about'),
-      demo, status, results);
+    const hubs = node('div', undefined, 'popup-course-hubs');
+    hubs.id = 'popup-course-hubs';
+    section.append(heading, node('p', '코스에 넣지 않은 참고 자료예요. ' + PopupView.about, 'hint popup-course-about'), demo, status, results, hubs);
     festival.after(section);
   },
   ready() {
     return PopupView.enabled && Boolean(document.getElementById('popup-course'));
   },
-  // 코스 제목 옆 '축제 보기' 옆에서 팝업스토어 글 구역으로 바로 이어 준다(구역이 보일 때만).
+  // 코스 제목 옆 '축제 보기' 옆에서 팝업 구역으로 바로 이어 준다(구역이 보일 때만).
   jump(text) {
     const jump = document.getElementById('popup-jump');
     if (!jump) return;
@@ -422,7 +304,7 @@ const PopupCourse = {
       });
     };
   },
-  // 저장된 코스를 열거나 진행 중이던 검색을 이어받을 때. 팝업 거점 선택은 되살리지 않는다(0단계 보고 8절).
+  // 저장된 코스를 열거나 진행 중이던 검색을 이어받을 때. 팝업 거점 선택은 되살리지 않는다.
   restore(conditions) {
     this.chosen = null;
     this.previous = null;
@@ -438,8 +320,8 @@ const PopupCourse = {
     this.setMapItems([]);
     this.request(conditions, generation);
   },
-  setMapItems(groups) {
-    this.mapItems = groups;
+  setMapItems(items) {
+    this.mapItems = items;
     document.querySelectorAll('.plan-map').forEach(map => map.updatePopups?.());
   },
   async request(conditions, generation) {
@@ -450,11 +332,12 @@ const PopupCourse = {
     const section = document.getElementById('popup-course'),
       status = document.getElementById('popup-course-status'),
       results = document.getElementById('popup-course-results');
-    document.getElementById('popup-course-title').textContent = `${region}에서 찾은 팝업스토어 글`;
+    document.getElementById('popup-course-title').textContent = `${region} 팝업스토어 글`;
     document.getElementById('popup-course-demo').hidden = conditions.mode !== 'demo';
     section.hidden = false;
     this.jump(`${region} 팝업스토어 보기 ↓`);
     results.replaceChildren();
+    document.getElementById('popup-course-hubs').replaceChildren();
     results.setAttribute('aria-busy', 'true');
     status.textContent = `${region}의 팝업 글을 찾고 있어요.`;
     try {
@@ -462,18 +345,11 @@ const PopupCourse = {
         region
       });
       if (day) params.set('visit_date', day);
-      // 새 질의(지역·방문일이 앞 요청과 다름): 앞 팝업 검색의 거점으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 2.4).
-      // 같은 조건으로 다시 그리는 것은 새 질의로 보지 않는다(서버 app/naver_cache 의 새 질의 기준과 같음).
-      const query = params.toString();
-      if (this.lastQuery !== undefined && this.lastQuery !== query) LastConditions.newQuery('popups');
-      this.lastQuery = query;
       const data = await api('/popups?' + params, null, 'GET', {
         timeout: 20000,
         signal: controller.signal
       });
       if (generation !== this.generation) return;
-      // 거점 좌표(네이버 지역 검색 결과)를 받은 시각. 이 목록에서 고른 출발지의 기기 보관 기한을 여기서 센다.
-      this.receivedAt = Date.now();
       this.render(data, conditions);
     } catch (error) {
       if (generation !== this.generation) return;
@@ -495,160 +371,100 @@ const PopupCourse = {
     document.getElementById('popup-course-status').textContent = '팝업 글을 불러오지 못했어요. 코스 추천에는 영향이 없어요.';
     document.getElementById('popup-course-results').replaceChildren(PopupView.errorBox(error.message || '팝업 글을 불러오지 못했어요.', () => this.load(conditions)));
   },
-  located(place) {
-    return Boolean(place && (place.level === 'building' || place.level === 'area_anchor') && Number.isFinite(place.lat) && Number.isFinite(place.lon));
-  },
   // 사용자가 고른 실제 출발지만 기준으로 쓴다(데모 출발점·이어받은 검색은 기준이 없다). 축제 구역과 같은 규칙.
   originOf(conditions) {
     return typeof FestivalPanel === 'undefined' ? null : FestivalPanel.originOf(conditions);
   },
-  // 위치가 확인된 글을 거점별로 묶는다. 묶음 순서는 출발지에서 가까운 순(같으면 거점 ID), 출발지가 없으면 받은 순서(거점이 처음 나온 순).
-  // 묶음 안은 기간이 확인된 글 먼저(진행 중 → 오픈 예정), 그다음 나머지, 같으면 글 ID 순. 같은 입력이면 같은 결과다.
-  groups(posts, origin) {
-    const byHub = new Map();
-    for (const post of posts) {
-      if (!this.located(post.place)) continue;
-      const id = post.place.hub_id;
-      if (!byHub.has(id)) byHub.set(id, {
-        hub: post.place,
-        posts: [],
-        meters: null
-      });
-      byHub.get(id).posts.push(post);
-    }
-    const order = (a, b) => a < b ? -1 : a > b ? 1 : 0,
-      rank = post => post.period?.status === 'ongoing' ? 0 : post.period?.status === 'upcoming' ? 1 : 2;
-    const groups = [...byHub.values()];
-    for (const group of groups) group.posts.sort((a, b) => rank(a) - rank(b) || order(a.id, b.id));
-    if (!origin) return groups;
-    for (const group of groups) group.meters = FestivalPanel.distance(origin, group.hub);
-    return groups.sort((a, b) => a.meters - b.meters || order(a.hub.hub_id, b.hub.hub_id));
+  // 서버가 준 거점 사전(좌표 있는 것만)을 {hub, meters} 로. 출발지가 있으면 가까운 순(같으면 거점 ID), 없으면 사전 순서. 같은 입력이면 같은 결과다.
+  hubItems(data, origin) {
+    const hubs = (Array.isArray(data.hubs) ? data.hubs : []).filter(hub => hub && Number.isFinite(hub.lat) && Number.isFinite(hub.lon));
+    const items = hubs.map(hub => ({
+      hub,
+      meters: origin ? FestivalPanel.distance(origin, hub) : null
+    }));
+    if (!origin) return items;
+    return items.sort((a, b) => a.meters - b.meters || (a.hub.hub_id < b.hub.hub_id ? -1 : a.hub.hub_id > b.hub.hub_id ? 1 : 0));
   },
-  // 건물은 축제와 같은 문구. 동네 기준점은 기준점이 대략이라 km 단위로만 적고 무엇을 기준으로 잰 것인지 붙인다.
-  distanceText(origin, place) {
-    const meters = FestivalPanel.distance(origin, place);
-    if (place.level === 'area_anchor') return `출발지에서 직선거리 ${meters < 1000 ? '1km 이내' : `약 ${Math.round(meters / 1000)}km`} · ${place.name} 기준`;
+  // 건물은 축제와 같은 문구. 동네는 기준 장소의 좌표라 km 단위로만 적고 무엇을 기준으로 잰 것인지 붙인다.
+  distanceText(meters, hub) {
+    if (hub.kind === 'area') return `출발지에서 직선거리 ${meters < 1000 ? '1km 이내' : `약 ${Math.round(meters / 1000)}km`} · ${hub.anchor} 기준`;
     return `출발지에서 직선거리 ${FestivalPanel.distanceText(meters)}`;
   },
-  label(place) {
-    return place.level === 'area_anchor' ? `${place.name}(대략)` : place.name;
+  label(hub) {
+    return hub.kind === 'area' ? `${hub.name}(대략)` : hub.name;
   },
-  isChosen(place) {
-    return Boolean(this.chosen && place && this.chosen.hub.hub_id === place.hub_id);
+  isChosen(hub) {
+    return Boolean(this.chosen && hub && this.chosen.hub.hub_id === hub.hub_id);
   },
-  // 방문일 기준 상태가 확인되지 않았거나 아직 열리지 않은 글이 있으면 버튼 바로 옆에 글자로 적는다.
-  // 묶음의 글마다 기간이 다를 수 있어 글 수로 나눠 적는다(묶음 전체의 기간을 하나로 정하지 않음).
-  stateNote(posts, data) {
-    const basis = data.basis === 'today' ? '오늘' : '방문일',
-      count = status => posts.filter(post => post.period?.status === status).length;
-    const ongoing = count('ongoing'),
-      upcoming = count('upcoming'),
-      unknown = posts.length - ongoing - upcoming;
-    if (!upcoming && !unknown) return '';
-    if (posts.length === 1) return upcoming ? `${basis} 기준 오픈 예정이에요. 방문일에 열리는지 원문에서 확인해 주세요.` : '기간 미확인 · 방문일에 열리는지 원문에서 확인해 주세요.';
-    const parts = [ongoing ? `${basis} 기준 진행 중 ${ongoing}건` : null, upcoming ? `오픈 예정 ${upcoming}건` : null, unknown ? `기간 미확인 ${unknown}건` : null].filter(Boolean);
-    return `${parts.join(' · ')} · 방문일에 열리는지 글마다 원문에서 확인해 주세요.`;
+  // 위치 줄. 건물 좌표는 행사장 층·입구가 아니고, 동네는 기준 장소의 좌표라 대략이다.
+  levelText(hub) {
+    return hub.kind === 'area' ? `동네 기준 장소 ${hub.anchor} · 대략 위치` : '건물 위치 · 행사장 층·입구는 현장에서 확인';
   },
-  hubAction(group, data, chosen) {
-    const row = node('div', undefined, 'popup-action'),
-      hub = group.hub;
+  fact(label, text, kind) {
+    const row = node('div', undefined, 'popup-fact popup-' + kind);
+    row.append(node('dt', label), node('dd', text));
+    return row;
+  },
+  // 네이버에서 '{거점} 팝업'을 직접 찾아보는 바깥 링크(검색 API 를 쓰지 않는다).
+  searchLink(hub) {
+    const query = `${hub.name.replace(/ 일대$/, '')} 팝업`;
+    const a = link(`네이버에서 ‘${query}’ 찾아보기 ↗`, 'https://search.naver.com/search.naver?' + new URLSearchParams({
+      query
+    }));
+    a.classList.add('popup-hub-search');
+    return a;
+  },
+  hubAction(hub, chosen) {
+    const row = node('div', undefined, 'popup-action');
     if (chosen) {
       row.classList.add('is-chosen');
       row.append(node('p', `지금 코스는 ‘${this.label(hub)}’ 주변에서 출발해요.`, 'popup-action-note'));
-      return row;
-    }
-    const go = button(hub.level === 'area_anchor' ? '이 일대 주변 코스 추천받기' : '이 장소 주변 코스 추천받기', () => this.planAround(hub));
-    row.append(go);
-    const state = this.stateNote(group.posts, data);
-    if (state) {
-      const note = node('p', state, 'popup-action-note');
-      note.id = 'popup-action-' + String(hub.hub_id).replace(/[^a-zA-Z0-9_-]/g, '-');
-      go.setAttribute('aria-describedby', note.id);
-      row.append(note);
-    }
+    } else row.append(button(hub.kind === 'area' ? '이 일대 주변 코스 추천받기' : '이 장소 주변 코스 추천받기', () => this.planAround(hub)));
+    row.append(this.searchLink(hub));
     return row;
   },
-  // 묶음 머리의 위치 등급 줄. 건물 좌표는 행사장 층·입구가 아니고, 동네는 기준점이라 대략이다.
-  levelText(hub) {
-    return hub.level === 'area_anchor' ? `동네 기준점 ${hub.anchor} · 대략 위치` : '건물 위치 확인 · 층·입구는 원문 확인';
-  },
-  // 묶음 안의 글 하나: 그 글에만 해당하는 것(출처 줄·제목·요약·원문 링크·기간과 방문일 기준 상태, 모아 보기 종류)만 적는다.
-  postItem(post, data) {
-    return PopupView.card(post, data, {
-      place: false,
-      titleTag: 'h6',
-      facts: post.roundup ? [PopupView.fact('종류', {
-        known: true,
-        text: '여러 팝업을 모아 소개한 글'
-      }, 'kind')] : []
-    });
-  },
-  hubBlock(group, data, origin) {
-    const hub = group.hub,
+  hubBlock(item, origin) {
+    const hub = item.hub,
       chosen = this.isChosen(hub);
     const block = node('section', undefined, 'popup-hub' + (chosen ? ' popup-hub-chosen' : ''));
     block.dataset.hubId = hub.hub_id;
-    const head = node('div', undefined, 'popup-hub-head'),
-      facts = node('dl', undefined, 'popup-facts');
-    facts.append(PopupView.fact('위치', {
-      known: true,
-      text: this.levelText(hub)
-    }, 'place'));
+    const facts = node('dl', undefined, 'popup-facts');
+    facts.append(this.fact('위치', this.levelText(hub), 'place'));
     // 고른 거점은 곧 출발지라 거리를 적지 않는다.
-    if (origin && !chosen) facts.append(PopupView.fact('거리', {
-      known: true,
-      text: this.distanceText(origin, hub)
-    }, 'distance'));
-    // 거점 이름과 글 수는 한 줄(좁으면 줄바꿈). 글 수는 이번 검색 범위의 글 수일 뿐 인기 지표가 아니다.
-    const title = node('div', undefined, 'popup-hub-title');
-    title.append(node('h5', this.label(hub), 'popup-hub-name'), node('p', `검색된 글 ${group.posts.length}건`, 'popup-hub-count'));
-    head.append(node('p', '데이트메이트가 검색 요약에서 읽은 장소', 'popup-reading-title'), title, facts, this.hubAction(group, data, chosen));
-    const posts = node('div', undefined, 'popup-hub-posts');
-    const render = rows => posts.append(...rows.map(post => this.postItem(post, data)));
-    render(group.posts.slice(0, this.postsPerHub));
-    block.append(head, posts);
-    const rest = group.posts.length - this.postsPerHub;
-    if (rest > 0) {
-      const more = button(`이 장소의 글 ${rest}건 더 보기`, () => block.showAll(true), 'secondary popup-more popup-hub-more');
-      // 코스 지도 정보 칸에서 이 묶음으로 올 때(revealHub)도 같은 펼치기를 쓴다(그때는 포커스를 거점 이름에 둠).
-      block.showAll = focus => {
-        if (!more.isConnected) return;
-        more.remove();
-        render(group.posts.slice(this.postsPerHub));
-        // 키보드 사용자가 새로 열린 첫 글에서 이어 읽게 한다.
-        if (focus) posts.children[this.postsPerHub]?.querySelector('.popup-source-link')?.focus();
-      };
-      block.append(more);
-    }
+    if (origin && !chosen) facts.append(this.fact('거리', this.distanceText(item.meters, hub), 'distance'));
+    block.append(node('h5', this.label(hub), 'popup-hub-name'), facts, this.hubAction(hub, chosen));
     return block;
   },
-  hubList(groups, data, origin, total) {
+  hubList(items, data, origin) {
     const block = node('section', undefined, 'popup-list popup-hubs');
-    const order = origin ? '출발지에서 가까운 순(직선거리)' : '출발지 기준이 없어 받은 순서';
-    block.append(node('h4', `위치를 확인한 글 ${total}건 · 장소 ${groups.length}곳 · ${order}`));
-    const items = node('div', undefined, 'popup-hub-items');
-    const render = rows => items.append(...rows.map(group => this.hubBlock(group, data, origin)));
-    render(groups.slice(0, this.firstHubs));
-    block.append(items);
-    const rest = groups.length - this.firstHubs;
+    const order = origin ? '출발지에서 가까운 순(직선거리)' : '출발지 기준이 없어 정해 둔 순서';
+    const provider = data.hub_coordinates?.provider;
+    block.append(node('h4', `팝업이 자주 열리는 곳 ${items.length}곳 · ${order}`),
+      node('p', `데이트메이트가 정해 둔 목록이에요${provider ? `(위치: ${provider} 자료)` : ''}. 위 검색 글과는 관계없고, 지금 팝업이 열리는지는 알 수 없어요.`, 'hint popup-hubs-about'));
+    const list = node('div', undefined, 'popup-hub-items');
+    const render = rows => list.append(...rows.map(item => this.hubBlock(item, origin)));
+    render(items.slice(0, this.firstHubs));
+    block.append(list);
+    const rest = items.length - this.firstHubs;
     if (rest > 0) {
       const more = button(`다른 장소 ${rest}곳 더 보기`, () => block.showAll(true), 'secondary popup-more popup-hubs-more');
+      // 코스 지도 정보 칸에서 이 목록으로 올 때(revealHub)도 같은 펼치기를 쓴다(그때는 포커스를 거점 이름에 둠).
       block.showAll = focus => {
         if (!more.isConnected) return;
         more.remove();
-        render(groups.slice(this.firstHubs));
-        if (focus) items.children[this.firstHubs]?.querySelector('button,.popup-source-link')?.focus();
+        render(items.slice(this.firstHubs));
+        if (focus) list.children[this.firstHubs]?.querySelector('button,a')?.focus();
       };
       block.append(more);
     }
     return block;
   },
-  // 코스 지도 아래 정보 칸의 「이 장소 글 n건 모두 보기」. 지금 세대의 거점이고 구역에 거점 묶음 목록이 있을 때만 단추를 둔다.
+  // 코스 지도 아래 정보 칸의 「목록에서 보기」. 지금 세대의 거점이고 구역에 거점 목록이 있을 때만 단추를 둔다.
   canReveal(hubId) {
     const section = document.getElementById('popup-course');
-    return Boolean(section && !section.hidden && section.querySelector('.popup-hubs') && this.mapItems.some(group => group.hub.hub_id === hubId));
+    return Boolean(section && !section.hidden && section.querySelector('.popup-hubs') && this.mapItems.some(item => item.hub.hub_id === hubId));
   },
-  // 그 거점 묶음이 접혀 있으면 펼치고(「다른 장소 n곳 더 보기」·「이 장소의 글 n건 더 보기」), 묶음으로 스크롤해 거점 이름에 포커스를 둔다.
+  // 그 거점이 접혀 있으면 펼치고(「다른 장소 n곳 더 보기」), 거점으로 스크롤해 거점 이름에 포커스를 둔다.
   revealHub(hubId) {
     if (!this.canReveal(hubId)) return false;
     const list = document.querySelector('#popup-course .popup-hubs'),
@@ -656,7 +472,6 @@ const PopupCourse = {
     if (!find()) list.showAll?.(false);
     const block = find();
     if (!block) return false;
-    block.showAll?.(false);
     const name = block.querySelector('.popup-hub-name');
     name.tabIndex = -1;
     block.scrollIntoView({
@@ -667,81 +482,34 @@ const PopupCourse = {
     });
     return true;
   },
-  // 위치 미확인 글: 거리·버튼 없이 이유 한 줄. 장소 줄은 글마다 다르므로 남긴다.
-  unknownCard(post, data) {
-    const facts = post.roundup ? [PopupView.fact('종류', {
-      known: true,
-      text: '여러 팝업을 모아 소개한 글'
-    }, 'kind')] : [];
-    const action = node('div', undefined, 'popup-action');
-    action.append(node('p', '위치를 확인하지 못해 주변 코스 추천을 할 수 없어요.', 'popup-action-note'));
-    return PopupView.card(post, data, {
-      facts,
-      action
-    });
-  },
-  unknownBlock(posts, data) {
-    const wrap = node('div', undefined, 'popup-unknown'),
-      panel = node('div', undefined, 'popup-unknown-list');
-    panel.id = 'popup-course-unknown';
-    panel.hidden = true;
-    const label = open => `위치를 확인하지 못한 글 ${posts.length}건 ${open ? '접기' : '보기'}`;
-    const toggle = button(label(false), () => {
-      const open = panel.hidden;
-      panel.hidden = !open;
-      toggle.textContent = label(open);
-      toggle.setAttribute('aria-expanded', String(open));
-      if (open && !panel.childElementCount) {
-        panel.append(node('p', '장소를 확인하지 못해 거리를 적지 않았고, 주변 코스 추천도 할 수 없어요. 지도에도 표시하지 않아요.', 'hint popup-note'),
-          PopupView.list(null, posts, data, {
-            size: this.firstPage,
-            cardOf: post => this.unknownCard(post, data)
-          }));
-      }
-    }, 'secondary popup-unknown-toggle');
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.setAttribute('aria-controls', panel.id);
-    wrap.append(toggle, panel);
-    return wrap;
-  },
   render(data, conditions) {
     const status = document.getElementById('popup-course-status'),
-      results = document.getElementById('popup-course-results');
+      results = document.getElementById('popup-course-results'),
+      hubs = document.getElementById('popup-course-hubs');
     results.replaceChildren();
+    hubs.replaceChildren();
+    // 거점 목록과 지도 표시는 검색 결과와 무관하다: 글이 없거나 검색을 못 써도 그린다.
+    const origin = this.originOf(conditions),
+      items = this.hubItems(data, origin);
+    if (items.length) hubs.append(this.hubList(items, data, origin));
+    this.setMapItems(items);
     if (data.status === 'key_missing' || data.status === 'unavailable') {
       status.textContent = (data.status === 'key_missing' ? '팝업 글을 찾을 수 없어요.' : '팝업 글을 불러오지 못했어요.') + ' 코스 추천에는 영향이 없어요.';
       results.append(PopupView.stateBox(data, () => this.load(conditions)));
       return;
     }
     const posts = Array.isArray(data.posts) ? data.posts : [];
-    const origin = this.originOf(conditions);
-    const groups = this.groups(posts, origin),
-      located = posts.filter(post => this.located(post.place)),
-      unknown = posts.filter(post => !this.located(post.place));
-    const scope = PopupView.scopeText(data),
-      notes = PopupView.notes(data, false);
-    if (data.status === 'empty' || !posts.length) {
-      status.textContent = `${scope} 보여 드릴 팝업 글이 없어요.`;
-      const box = node('div', undefined, 'popup-state popup-state-empty');
-      box.append(node('p', data.message || '검색된 글 중에 보여 드릴 팝업 글이 없어요.'), ...notes.map(line => node('p', line, 'hint')));
-      results.append(box);
+    status.textContent = PopupView.scopeText(data, posts.length);
+    if (!posts.length) {
+      results.append(PopupView.emptyBox(data));
       return;
     }
-    status.textContent = `${scope} 팝업 글 ${posts.length}건 · 위치를 확인한 글 ${located.length}건`;
-    this.jump(`${conditions.region || '서울'} 팝업스토어 ${posts.length}건 보기 ↓`);
-    if (data.status === 'partial') results.append(node('p', data.message || '일부 장소의 위치를 확인하지 못해 위치 미확인으로 표시했어요.', 'popup-state popup-state-partial'));
-    for (const line of notes) results.append(node('p', line, 'hint popup-note'));
-    if (groups.length) {
-      results.append(this.hubList(groups, data, origin, located.length));
-      // 지도는 카드와 같은 묶음 배열을 쓴다(거점당 표시 하나, 위치 미확인 글은 지도에 없음).
-      this.setMapItems(groups);
-    } else {
-      const box = node('div', undefined, 'popup-state popup-state-empty popup-state-unlocated');
-      box.append(node('p', '위치를 확인한 글이 없어 거리순으로 보여 드릴 글이 없어요.'));
-      results.append(box);
-    }
-    if (unknown.length) results.append(this.unknownBlock(unknown, data));
-    results.append(node('p', `출처: ${data.attribution || '네이버 블로그 검색 결과'} · 순위나 인기순이 아니에요.`, 'hint popup-attribution'), naverAttribution('블로그 검색'));
+    this.jump(`${conditions.region || '서울'} 팝업스토어 글 ${posts.length}건 보기 ↓`);
+    results.append(PopupView.block(data, {
+      size: this.firstPage,
+      heading: 'h4',
+      titleTag: 'h5'
+    }));
   },
   matches(conditions) {
     const chosen = this.chosen,
@@ -759,10 +527,10 @@ const PopupCourse = {
     note.hidden = !this.chosen;
     note.replaceChildren();
     if (!this.chosen) return;
-    const area = this.chosen.hub.level === 'area_anchor',
+    const area = this.chosen.hub.kind === 'area',
       fromDemo = this.previous && this.previous.mode === 'demo';
     note.append(node('strong', `‘${this.chosen.label}’ 주변 기준 코스`, 'popup-origin-title'),
-      node('span', `팝업 글에서 읽은 ${area ? '동네 기준점' : '장소'}을 출발지로 바꿔 다시 추천했어요. ${fromDemo ? '가상 장소 데모 대신 실제 장소로 찾았고, ' : ''}날짜·시간·예산·교통·취향은 그대로예요. 팝업 운영 여부는 원문에서 확인해 주세요.`),
+      node('span', `팝업이 자주 열리는 ${area ? '동네의 기준 장소' : '장소'}를 출발지로 바꿔 다시 추천했어요. ${fromDemo ? '가상 장소 데모 대신 실제 장소로 찾았고, ' : ''}날짜·시간·예산·교통·취향은 그대로예요. 지금 팝업이 열리는지는 알 수 없으니 방문 전에 확인해 주세요.`),
       button(this.previous ? '원래 출발지로 다시 추천' : '팝업 기준 해제 · 조건 다시 고르기', () => this.clearChoice()));
   },
   // 되돌릴 출발지. 지금 출발지가 고른 축제 장소이면 축제를 고르기 전 출발지를 쓴다(축제 쪽이 기억하는 값).
@@ -787,16 +555,16 @@ const PopupCourse = {
       originName: source.originName
     } : null;
   },
-  planAround(place) {
+  planAround(hub) {
     const submit = document.getElementById('submit-plan');
     if (submit.disabled) {
       toast('코스를 찾는 중이에요. 끝난 뒤 다시 눌러 주세요.');
       return;
     }
-    const area = place.level === 'area_anchor',
-      label = this.label(place);
-    // 기존 지역 검색이 동네를 알 수 있게 "시·도 시·군·구 (동네 기준점)"을 ' · ' 앞에 둔다(축제 버튼과 같은 형식).
-    const head = [place.region, place.district, area ? place.anchor : null].filter(Boolean).join(' ');
+    const area = hub.kind === 'area',
+      label = this.label(hub);
+    // 기존 지역 검색이 동네를 알 수 있게 "시·도 시·군·구 (동네 기준 장소)"를 ' · ' 앞에 둔다(축제 버튼과 같은 형식).
+    const head = [hub.region, hub.district, area ? hub.anchor : null].filter(Boolean).join(' ');
     const originName = `${head} · ${label} 주변`.slice(0, 200);
     // 다른 거점으로 바꿔 골라도 되돌릴 출발지는 처음 거점을 고르기 전의 것이다.
     if (!this.chosen) this.previous = this.snapshot();
@@ -807,17 +575,17 @@ const PopupCourse = {
       }));
     }
     // 지역 change 이벤트를 보내지 않는다. 보내면 방금 넣은 출발지가 지워진다. 방문일·시간·예산·교통·취향은 건드리지 않는다.
-    form.elements.region.value = place.region || form.elements.region.value;
-    // 거점 좌표는 네이버 지역 검색 결과다. 받은 시각을 붙여 기기 보관을 24시간·새 팝업 검색까지로 묶는다(form-state.js).
-    locationState.origin = NaverDeviceRetention.mark({
+    form.elements.region.value = hub.region || form.elements.region.value;
+    // 거점 좌표는 우리 거점 사전의 값(관광공사 자료)이라 네이버 검색 결과의 기기 보관 표시를 붙이지 않는다.
+    locationState.origin = {
       name: originName,
-      lat: place.lat,
-      lon: place.lon
-    }, 'popups', this.receivedAt);
+      lat: hub.lat,
+      lon: hub.lon
+    };
     form.elements.origin_name.value = originName;
     this.chosen = {
       hub: {
-        ...place
+        ...hub
       },
       label,
       originName

@@ -1,20 +1,19 @@
 """추천 대기 시간 줄이기(2026-11-14)의 동작 확인. 외부 호출 없음.
 
-1) 고정 입력 비교: 네이버 검색·블로그 본문·가격 검색을 고정 자료로 흉내 내고 실제 장소 모드 추천 전체(generate)를 돌려,
-   3안의 장소·순서·이름·비용과 조건 확인이 변경 전(커밋 dd5b03d)에 만든 기준 파일과 같은지 본다. 캐시가 빈 상태와 찬 상태 모두.
-   기준 파일은 변경 전 코드에서 DATEMATE_WRITE_RECOMMENDATION_GOLDEN=1 로 이 테스트를 돌려 만들었다.
-2) 바꾼 부분 단위 확인: 저장 묶음(store.cached_many·cache_many), 외부 호출 지표 묶어 쓰기, 블로그 본문 장소 대조,
-   가격 캐시 묶음, 긴 폴링(단계가 바뀔 때·취소될 때 바로 답함).
+1) 고정 입력 비교: 네이버 검색을 고정 자료로 흉내 내고 실제 장소 모드 추천 전체(generate)를 돌려,
+   3안의 장소·순서·이름·비용과 조건 확인이 기준 파일과 같은지 본다. 캐시가 빈 상태와 찬 상태 모두.
+   기준 파일은 DATEMATE_WRITE_RECOMMENDATION_GOLDEN=1 로 이 테스트를 돌려 만든다.
+   2026-11-20(네이버 검색 API 특약 2단계)에 다시 만들었다: 블로그 글을 추천 계산에 쓰지 않고(가산점·이유 문장 없음),
+   블로그 요약에서 가격을 읽지 않아(가격 검색 호출 0건) 3안과 비용이 달라졌다. 블로그 결과와 추천의 분리는 tests/test_blog_independent_block.py.
+2) 바꾼 부분 단위 확인: 저장 묶음(store.cached_many·cache_many), 외부 호출 지표 묶어 쓰기, 긴 폴링(단계가 바뀔 때·취소될 때 바로 답함).
 """
 import asyncio
-import copy
 import json
 import os
-import re
 import threading
 import time
 import uuid
-from datetime import date, datetime as real_datetime
+from datetime import datetime as real_datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -25,7 +24,6 @@ from app import store
 from app.models import Conditions
 
 GOLDEN = Path(__file__).parent / 'fixtures' / 'recommendation_golden.json'
-FIXED_TODAY = date(2026, 11, 14)
 POSTDATE = '20261101'
 
 JEONJU = dict(name='전북 전주 한옥마을 지역 중심', lat=35.8150, lon=127.1530)
@@ -78,14 +76,6 @@ def blog_items(query):
         dict(title='같은 작성자 다른 글', description='중복', link='https://blog.naver.com/author0/223999999999', postdate=POSTDATE)]
 
 
-def price_items(query):
-    name = query.replace('"', '').replace(' 메뉴 가격', '').replace(' 입장료', '')
-    body = next((b for b in BODIES if name in b), '')
-    if not body:
-        return []
-    return [dict(title=f'{name} 방문기', description=body, link=f'https://blog.naver.com/price/{BODIES.index(body)}{len(name)}', postdate=POSTDATE)]
-
-
 def local_items(query, region):
     term = query.split()[-1]
     lat, lon = (JEONJU if region == '전북' else SEONGSU)['lat'], (JEONJU if region == '전북' else SEONGSU)['lon']
@@ -101,44 +91,34 @@ class FixedDatetime(real_datetime):
 
 @pytest.fixture
 def naver(monkeypatch):
-    """네이버 검색 키가 있는 것처럼 하고, 모든 외부 호출을 고정 자료로 답한다."""
-    from app import course_search, pricing
+    """네이버 검색 키가 있는 것처럼 하고, 모든 외부 호출을 고정 자료로 답한다.
+    blog 에 함수를 넣으면 블로그 검색 응답(items)을 바꿀 수 있다(검색어를 받음). 코스 블로그 검색(display=20)이 아닌 블로그 검색
+    (예전의 가격 검색)은 나가면 안 되므로 호출 기록에 'unexpected-blog'로 남긴다."""
+    from app import course_search
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test-id')
     monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'test-secret')
     monkeypatch.setenv('DATEMATE_OPTION_SELECTOR', 'experience')
     monkeypatch.setattr(course_search, 'datetime', FixedDatetime)
-    monkeypatch.setattr(pricing, 'today', lambda: FIXED_TODAY)
     calls = []
     region = {}
+    state = SimpleNamespace(calls=calls, region=region, blog=blog_items)
 
     def fake_get(url, params=None, **kwargs):
         query = (params or {}).get('query', '')
         path = httpx.URL(url).path
-        calls.append(path)
         if path == '/search/v1/local':
             items = local_items(query, region['name'])
         elif path == '/search/v1/blog' and params.get('display') == 20:
-            items = blog_items(query)
-        elif path == '/search/v1/blog':
-            items = price_items(query)
+            items = state.blog(query)
         else:
+            path = 'unexpected-blog' if path == '/search/v1/blog' else path
             items = []
+        calls.append(path)
         return httpx.Response(200, json=dict(items=items), request=httpx.Request('GET', url))
 
     monkeypatch.setattr(httpx, 'get', fake_get)
-
-    # 가격 검색 묶음은 한 클라이언트로 연결을 다시 써서 보낸다(app.pricing.search_client, 2026-11-14 둘째 작업).
-    # 같은 가짜 응답(fake_get)을 실제 httpx.Client 경로로 돌려준다. 요청 주소·검색어·호출 기록은 전과 같다.
-    def price_client():
-        def handler(request):
-            return fake_get(str(request.url.copy_with(query=None)), params=dict(request.url.params))
-        return httpx.Client(transport=httpx.MockTransport(handler))
-
-    monkeypatch.setattr(pricing, 'search_client', price_client)
-    bodies = {f'https://blog.naver.com/author{i}/22300000000{i}': body for i, body in enumerate(BODIES)}
-    monkeypatch.setattr(course_search, 'public_body', lambda url: (calls.append('body'), bodies.get(url, ''))[1])
     before = discovered_keys()
-    yield SimpleNamespace(calls=calls, region=region)
+    yield state
     # 이 테스트가 찾은 장소는 지운다(다른 테스트가 장소 목록을 그대로 세는 경우가 있음).
     with store.connect() as db:
         for key in discovered_keys() - before:
@@ -157,7 +137,7 @@ def clean_region(region):
         for key, payload in rows:
             if json.loads(payload).get('region') == region:
                 db.execute('DELETE FROM cache WHERE key=?', (key,))
-        for prefix in ('course-blog-five-v3:', 'intent-local-v6', 'price-search-v2:'):
+        for prefix in ('course-blog-v4:', 'intent-local-v6'):
             db.execute('DELETE FROM cache WHERE key LIKE ?', (prefix + '%',))
 
 
@@ -214,6 +194,9 @@ def test_same_input_and_cache_state_give_the_same_recommendation_as_before(name,
     assert summary(warm) == [(p.get('option_purpose'), [x['name'] for x in p['places']], p.get('total')) for p in expected['warm']['plans']]
     # 외부 호출 종류와 횟수도 같다(묶음 저장·지표 묶어 쓰기는 호출 수를 바꾸지 않음).
     assert got['cold_calls'] == expected['cold_calls']
+    # 블로그 검색은 코스 조사 패널용 한 번뿐이다(가격을 찾는 블로그 검색 없음). 같은 사용자의 같은 조건 재추천은 외부 호출이 없다.
+    assert cold_calls.count('/search/v1/blog') == 1 and 'unexpected-blog' not in naver.calls
+    assert naver.calls == cold_calls
     assert json.loads(json.dumps(got, ensure_ascii=False, sort_keys=True)) == expected
 
 
@@ -378,77 +361,6 @@ def test_prepaid_never_exceeds_the_hourly_provider_budget(monkeypatch):
     assert budget_used(provider) == 4
 
 
-# --- 블로그 본문 장소 대조 ---
-
-def legacy_match_places(posts, rows):
-    """변경 전 course_search.match_places 그대로(글마다 본문을 장소 수만큼 다시 정리하던 방식)."""
-    from urllib.parse import urlsplit, unquote
-    from app.course_search import compact, negative_mention
-    matches = {}
-    rank_ceiling = max(3, max((p['rank'] for p in posts), default=3)) + 1
-    for place in rows:
-        names = [place['name'], *(place.get('search_aliases') or [])]
-        wiki = urlsplit(place.get('wikipedia') or '')
-        if wiki.hostname == 'ko.wikipedia.org':
-            names.append(unquote(wiki.path.rsplit('/', 1)[-1]).replace('_', ' '))
-        names = [compact(re.sub(r'\s*\([^)]*\)$', '', n)) for n in names]
-        hits = []
-        for post in posts:
-            raw = post['title'] + ' ' + post['description'] + ' ' + post.get('_body', '')
-            text = compact(raw)
-            if any(len(n) >= 3 and n in text for n in names) and not any(negative_mention(raw, n) for n in [place['name'], *(place.get('search_aliases') or [])]):
-                hits.append(post['rank'])
-        if hits:
-            matches[place['id']] = {'ranks': hits, 'score': sum(rank_ceiling - rank for rank in hits)}
-    return matches
-
-
-def test_match_places_gives_the_same_matches_as_before():
-    from app.catalog import places
-    from app.course_search import match_places
-    rows = places('real')
-    names = [p['name'] for p in rows[:40]]
-    posts = [dict(rank=i + 1, title=f'후기 {i}', description=' '.join(names[i::5][:3]),
-                  _body=' '.join(names[i * 7:(i + 1) * 7]) + ' ' + names[i] + '는 비추천이에요. ' + '가' * 20000) for i in range(5)]
-    posts.append(dict(rank=6, title='본문 없음', description=names[0]))
-    expected = legacy_match_places(copy.deepcopy(posts), rows)
-    assert expected
-    assert match_places(posts, rows) == expected
-
-
-# --- 가격 캐시 묶음 ---
-
-def test_price_plans_reads_cache_once_and_saves_new_prices_together(monkeypatch):
-    from app import pricing
-    from app.perf_trace import recording
-    from test_leisure_results import fixture_plan
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_ID', 'test-id')
-    monkeypatch.setenv('NAVER_SEARCH_CLIENT_SECRET', 'test-secret')
-    plan = fixture_plan()
-    plan['conditions'].update(mode='real')
-    for i, p in enumerate(plan['places']):
-        p.update(id=f'speed-price-{uuid.uuid4().hex}-{i}', price=None)
-    first = plan['places'][0]
-    from app import naver_cache
-    naver_cache.cache('price-search-v2:' + first['id'], dict(status='available', quotes=[], checked_at='x'), 600)
-    looked = []
-    monkeypatch.setattr(pricing, 'lookup_price', lambda p, force=False, writes=None: (
-        looked.append((p['id'], force)), writes.append(('price-search-v2:' + p['id'], dict(status='not_found', quotes=[]), 300)),
-        dict(status='not_found', quotes=[]))[2])
-    with recording() as trace:
-        pricing.price_plans([plan])
-        db = trace.summary()['db']['count']
-    others = [p['id'] for p in plan['places'][1:]]
-    assert sorted(i for i, _ in looked) == sorted(others) and all(force for _, force in looked)
-    assert all(naver_cache.cached('price-search-v2:' + i)['status'] == 'not_found' for i in others)
-    # 캐시 읽기 1번 + 새 가격 저장 1번 + 제공자 예산 미리 잡기·남은 몫 돌려주기 2번(조회를 흉내 내 실제 호출이 없음).
-    assert db == 4
-    # force 는 캐시를 읽지 않고 모두 다시 찾는다.
-    looked.clear()
-    pricing.price_plans([plan], force=True)
-    assert sorted(i for i, _ in looked) == sorted(p['id'] for p in plan['places'])
-
-
 # --- 긴 폴링 ---
 
 def start_job(owner, stage='장소 검색', status='running'):
@@ -587,23 +499,6 @@ def test_prepay_failure_falls_back_to_reserving_per_call(monkeypatch):
         assert box['left'] == 0
         assert telemetry.observed_http(lambda u, **kw: httpx.Response(200), f'https://{provider}/x').status_code == 200
     assert budget_used(provider) == 1
-
-
-def test_recommendation_succeeds_when_returning_unused_budget_fails(monkeypatch, naver):
-    """고정 자료에서는 블로그 본문을 흉내 내 본문 5건 몫이 쓰이지 않고 남는다. 그 몫을 돌려주는 쓰기가 실패해도 결과는 같다."""
-    import sqlite3
-    released = []
-
-    def fail(*args):
-        released.append(args)
-        raise sqlite3.OperationalError('database is locked')
-
-    monkeypatch.setattr(store, 'release_budget', fail)
-    clean_region('전북')
-    result = run('jeonju', naver)
-    assert released
-    expected = json.loads(GOLDEN.read_text('utf-8'))['jeonju']['cold']
-    assert json.loads(json.dumps(comparable(result), ensure_ascii=False)) == expected
 
 
 def test_timing_failure_keeps_a_successful_recommendation(monkeypatch):

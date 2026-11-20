@@ -66,6 +66,20 @@ def no_public_identity_worker(monkeypatch):
     place_identity._queue.clear()
 
 
+# 추천 작업 목록(app/plan_jobs._jobs)은 프로세스 메모리에 있고, 끝난 작업도 600초 동안 남아 '작업 100개'(start 의 429 '검색 요청이 많아요')에 센다.
+# 테스트 실행 전체가 한 프로세스라 10분 안에 코스를 100번 넘게 만들면 그 뒤 테스트의 추천이 429 로 막혀 generate() 가 45초를 기다리다 실패했다
+# (2026-11-21 확인: CI test (sqlite) 의 간헐 실패 test_readability_stage1_ui·test_print_ui 가 로컬 Docker 전체 실행에서 재현됐고, 실패 순간 POST /api/plan-jobs 가 429).
+# 테스트마다 앞 테스트들이 남긴 끝난 작업을 지워 다른 테스트가 만든 작업이 세어지지 않게 한다(tests/test_readability_stage6_ui.py 의
+# release_finished_plan_jobs 를 모든 테스트로 넓힘). 아직 도는 작업은 그대로 둔다(그 작업이 끝나면 다음 테스트 시작 때 지워짐).
+@pytest.fixture(autouse=True)
+def fresh_plan_jobs():
+    from app import plan_jobs
+    with plan_jobs._lock:
+        for key in [k for k, job in plan_jobs._jobs.items() if job.get('status') != 'running']:
+            del plan_jobs._jobs[key]
+    yield
+
+
 # 네이버 검색 결과는 사용자별로만 보관한다(app/naver_cache.py). HTTP 를 거치지 않고 함수를 직접 부르는 테스트는
 # 한 사용자(소유자)의 요청 안에서 부른 것으로 본다. TestClient 요청은 미들웨어가 그 요청의 소유자로 다시 건다.
 # 테스트마다 새 소유자다(다른 테스트가 남긴 보관분을 읽지 않게). 요청 안 메모는 쓰지 않는다(직접 부르기 한 번 = 요청 하나).

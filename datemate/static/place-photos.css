@@ -170,4 +170,24 @@ main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; li
 .photo-empty-card { background:var(--platform); color:var(--ink); border-radius:0; }
 .detail .photo-copy-fold { grid-column:auto; align-self:start; }
 .detail .place-photo-panel .photo-more { justify-self:start; }
+/* 사진 칸 정렬(2026-11-20, 사용자 스크린샷: 제주 애월 코스의 장소 사진 3칸·식당 카드 '고이정'·일정 카드 '한담해변').
+   사진이 패널 테두리에 붙는 칸(코스 미리보기 3칸 .plan-photo-preview, 식당 카드 .meal-photo, 둘러보기 카드 .catalog)은 패널 안쪽 여백이 0 이라
+   출처 줄·'사진 정보' 접기·'장소 사진 n장 보기'·사진 없음 안내가 테두리에 붙었다. 그 칸에서만 글 쪽에 12px(블로그 후기 상자 머리와 같은 값)을 주고,
+   사진 없는 칸의 회색 이름표(.photo-empty-card)도 같은 12px 로 맞춰 이름·안내 글·지도 링크·단추가 한 왼쪽 선에 선다.
+   패널 자체에 16px 이 있는 칸(일정 카드·장소 정보 창)은 사진·회색 이름표의 가장자리가 왼쪽 선이다(사진 아래 출처 줄과 같은 선).
+   사진 없음 안내·지도 링크·다시 불러오기는 한 상자(.photo-empty-body, place-photos.js)에 담고, 단추는 어느 칸에서나 글자 폭이다
+   (전에는 3칸 목록에서는 글자 폭, 일정 카드에서는 전체 폭). 출처 줄은 뜻 단위(.photo-credit-part)로만 줄을 바꾼다. */
+:is(.plan-photo-preview,.meal-photo,.catalog) .place-photo figcaption { padding:0 12px; margin-bottom:8px; }
+:is(.plan-photo-preview,.meal-photo,.catalog) .photo-copy-fold { margin:0; padding:10px 12px; }
+:is(.plan-photo-preview,.meal-photo,.catalog) .place-photo-panel>.photo-more { margin:0 12px 12px; }
+:is(.plan-photo-preview,.meal-photo,.catalog) .photo-empty-card { padding:16px 12px; }
+.photo-credit-part { display:inline-block; max-width:100%; }
+.photo-empty-body { display:grid; justify-items:start; gap:10px; min-width:0; padding:12px 0 0; }
+:is(.plan-photo-preview,.meal-photo,.catalog) .photo-empty-body,.photo-viewport>.photo-empty-body { padding:12px; }
+.photo-empty-body>.photo-status { margin:0; padding:0; }
+.photo-empty-body>.photo-retry { width:auto; margin:0; }
+/* 코스 미리보기 3칸: 칸마다 사진 칸 높이가 달라 아래 '블로그 후기 보기' 상자가 다른 높이에 놓였다. 칸을 세로 상자로 두고 사진 패널이 남는 높이를 채워
+   블로그 상자를 칸 맨 아래 같은 줄에 둔다(그리드 행은 이미 칸 높이를 맞춘다). 한 칸(800px 이하)에서는 차이가 없다. */
+.plan-photo-item { display:flex; flex-direction:column; }
+.plan-photo-item>.place-photo-panel { flex:1 0 auto; }
 

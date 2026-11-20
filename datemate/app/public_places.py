@@ -94,7 +94,8 @@ STORE_CAPS = {
 }
 CANDIDATE_PREFIX = "public-candidate:"
 NEARBY_PREFIX = "public-nearby:"
-# 측정용 누적 수(프로세스 단위). 이름: {tour_district|tour_area|tour_keyword|store|district}_{call|cache|failed|limited}.
+# 측정용 누적 수(프로세스 단위). 이름: {tour_district|tour_area|tour_keyword|tour_image|store|district}_{call|cache|failed|limited}.
+# tour_image 는 장소 사진의 detailImage2(app/tour_places.tour_images)로, 이 모듈의 관광공사 하루 상한을 함께 쓴다.
 STATS = Counter()
 
 log = logging.getLogger(__name__)
@@ -401,15 +402,11 @@ def _hit(name):
 
 
 def _tour_image(item):
-    """(사진 주소, 공공누리 유형). 공공누리 제1·제3유형이고 관광공사 사진 호스트일 때만(app/tour_places.py 와 같은 규칙)."""
-    from .festivals import IMAGE_HOST, festival_image
+    """(사진 주소, 공공누리 유형). 공공누리 제1·제3유형이고 관광공사 사진 호스트일 때만(app/tour_places.py 와 같은 함수).
+    대표 사진이 비어 있는 항목은 장소 카드가 열릴 때 detailImage2 에서 사진을 찾는다(tour_places.tour_photo_result)."""
+    from .tour_places import row_photo
 
-    upgraded = {
-        field: "https://" + str(item[field])[len("http://") :]
-        for field in ("firstimage", "firstimage2")
-        if str(item.get(field) or "").startswith("http://" + IMAGE_HOST + "/")
-    }
-    return festival_image(dict(item, **upgraded))
+    return row_photo(item)
 
 
 def _tour_row(item):
@@ -470,9 +467,11 @@ def _tour_fetch(kind, url, key, params, ttl=TOUR_SECONDS, pages=1):
             response.raise_for_status()
             if len(response.content) > 4_000_000:
                 raise ValueError("oversized_response")
-            body = (response.json().get("response") or {}).get("body") or {}
-            from .tour_places import _items
+            # 키·권한 오류(200 + OpenAPI_ServiceResponse 본문, 머리 없는 응답)는 tour_body 가 오류로 본다. 예전에는 '항목 0개'로 읽어
+            # 빈 목록을 7일 보관했다(2026-11-20 운영 키 오류 점검). 오류는 아래에서 1분(FAIL_SECONDS)만 둔다.
+            from .tour_places import _items, tour_body
 
+            body = tour_body(response)
             items = _items(response)
             rows.extend(row for row in map(_tour_row, items) if row)
             if (

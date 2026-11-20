@@ -135,12 +135,15 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
     # 한국관광공사 TourAPI 의 같은 장소 사진(좌표 400m 안 + 이름 같음 + 하나뿐, 공공누리 제1·제3유형만, app/tour_places.py)으로 채운다.
     # 2026-11-20: 네이버 이미지 검색 결과에서 사진을 골라 쓰지 않는다(특약 2.2 — 검색 결과를 거르거나 다시 줄 세우지 않음,
     # docs/naver-terms-stage2-design.ko.md 3.4(c)). 등록·관광공사 사진이 없는 가게는 사진 칸에 네이버 지도 링크만 나온다.
+    # 2026-11-20: 대표 사진이 없는 관광공사 항목은 detailImage2 의 공공누리 제1·제3유형 사진을 쓰고, 이름 맞추기를 넓혔다(app/tour_places.py).
     official = dict(status="not_found", photos=[])
     if len(photos) < 2 and not place.get("demo"):
-        from .tour_places import tour_photos
+        from .tour_places import tour_photo_result
 
-        official = dict(status="available", photos=tour_photos(place))
+        official = tour_photo_result(place, force)
         extend(official["photos"])
+    # '사진 다시 불러오기'는 다시 시도할 뜻이 있을 때만(관광공사 호출 실패) 보인다. 자료에 사진이 없다고 확정되면(없음·키 없음·하루 상한) 숨긴다.
+    retry_useful = official.get("status") == "unavailable"
     searched = empty
     if len(photos) < 2 and not prefer_public:
         searched = blog_photos(place, force)
@@ -170,6 +173,7 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
             place["id"] if only_registry and re.fullmatch(r"Q[1-9][0-9]*", place["id"]) else None
         )
         result["photo_lookup_incomplete"] = len(photos) < 2
+        result["photo_retry"] = False
         if len(photos) < 2:
             result["message"] = (
                 "사진이 없는 것이 아니라 추가 사진을 자동으로 확보하지 못했어요. 네이버 지도에서 확인해 주세요."
@@ -184,6 +188,7 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
         status="demo" if place.get("demo") else "not_found",
         photo_source="identity_checked_sources",
         search_status=searched["status"],
+        photo_retry=retry_useful,
         description=place.get("description"),
         search_url="https://search.naver.com/search.naver?"
         + urlencode({"where": "image", "query": place_query(place)}),
@@ -191,6 +196,11 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
         map_url=None if place.get("demo") else map_url,
         message="가상 장소이므로 실제 장소 사진을 제공하지 않습니다."
         if place.get("demo")
+        else "한국관광공사 사진 자료에 지금 연결하지 못했어요. 잠시 뒤 다시 불러오거나 네이버 지도에서 사진을 확인해 주세요."
+        if retry_useful
+        # 하루 호출 상한(app/public_places._reserve)에 걸려 관광공사 추가 사진을 묻지 못했다. '없는 곳'이라고 하지 않는다.
+        else "오늘은 한국관광공사 사진을 더 확인하지 못했어요. 네이버 지도에서 사진을 확인해 주세요."
+        if official.get("status") == "limited"
         # 검색 사진을 없앤 까닭을 한 줄로 알 수 있게 적는다(2026-11-20).
         else "등록 사진이나 한국관광공사 사진이 없는 곳이에요. 네이버 검색 결과에서 사진을 골라 쓰지 않아요. "
         "네이버 지도에서 사진을 확인해 주세요.",

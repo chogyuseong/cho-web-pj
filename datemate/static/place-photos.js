@@ -65,7 +65,10 @@ function photoCredits(photo){
     // 검색 주소가 없으면 '검색' 자체를 뺀다(전에는 '검색 결과'가 링크 아닌 글자로 남았다).
     if(photo.search_url){const search=link('검색',photo.search_url);if(search.tagName==='A')search.setAttribute('aria-label','네이버 검색 결과');credits.append(node('span',' · '),search);}
   }
-  else credits.append(node('span','사진: '+photo.author+' · '),link(photo.license,photo.license_url),node('span',' · '),link('사진 원문',photo.source));
+  // 출처 줄은 뜻 단위 셋('사진: 한국관광공사 ·' / '공공누리 제3유형(변경 금지) ·' / '사진 원문')으로만 줄을 바꾼다(.photo-credit-part, place-photos.css).
+  // 전에는 좁은 칸에서 '(변경 금지)'만 다음 줄로 떨어졌다(2026-11-20 사용자 스크린샷). 보이는 글자는 전과 같다.
+  else{const part=(...nodes)=>{const span=node('span',undefined,'photo-credit-part');span.append(...nodes);return span;};
+    credits.append(part(node('span','사진: '+photo.author),node('span',' ·')),' ',part(link(photo.license,photo.license_url),node('span',' ·')),' ',part(link('사진 원문',photo.source)));}
   return credits;
 }
 // 장소 사진 크게 보기: 같은 페이지 안의 대화상자에서 자르지 않고 보여 준다. 여러 장이면 이전·다음, Esc·닫기·바깥 누르기로 닫는다.
@@ -199,11 +202,15 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
   const pending=node('p','장소 사진을 불러오고 있어요…','photo-status');pending.setAttribute('role','status');panel.append(pending);
   let refreshNext=false;
   const retry=()=>button('사진 다시 불러오기',()=>{refreshNext=true;placePhotoRequests.delete(photoMode+':'+place.id);photoLoads.clear();panel.replaceChildren(node('p','장소 사진을 불러오고 있어요…','photo-status'));return load();},'secondary photo-retry');
+  // 사진이 없을 때의 안내 글·지도 링크·다시 불러오기 단추를 한 상자(.photo-empty-body)에 담아 같은 안쪽 여백·같은 폭 규칙을 쓴다(2026-11-20).
+  // 다시 불러오기는 다시 시도할 뜻이 있을 때만: 사진 목록 요청 실패, 서버가 관광공사 호출 실패를 알린 경우(photo_retry), 사진 받기 실패.
+  // 자료에 사진이 없다고 확정된 경우(photo_retry 가 없음)에는 숨긴다.
+  const emptyBody=(...parts)=>{const body=node('div',undefined,'photo-empty-body');body.append(...parts);return body;};
   async function load(){try{
     let data=await fetchPlacePhotos(place,photoMode,refreshNext);refreshNext=false;
     panel.replaceChildren();
     // 사진이 없으면 빈 사진 칸 대신 이름·주소 카드와 네이버 지도 링크를 둔다(2026-11-19, 전에는 네이버 이미지 검색 결과 링크).
-    if(!data.photos.length){const empty=node('div',undefined,'photo-empty-card');empty.append(node('strong',place.name),node('p',place.category||'장소'),node('p',place.address||'주소는 장소 정보에서 확인해 주세요.'));panel.append(empty);panel.append(node('p',data.message||'해당 장소의 사진을 찾지 못했습니다.','photo-status'),photoMapLink(place),retry());return;}
+    if(!data.photos.length){const empty=node('div',undefined,'photo-empty-card');empty.append(node('strong',place.name),node('p',place.category||'장소'),node('p',place.address||'주소는 장소 정보에서 확인해 주세요.'));panel.append(empty,emptyBody(node('p',data.message||'해당 장소의 사진을 찾지 못했습니다.','photo-status'),photoMapLink(place),...(data.photo_retry?[retry()]:[])));return;}
     const photo=data.photos[0],figure=node('figure',undefined,'place-photo'),img=node('img');
     img.alt=photo.title+' — '+place.name;img.loading=eager?'eager':'lazy';img.decoding='async';img.width=640;img.height=420;
     // 사진을 받기 전(화면 근처를 기다리는 동안)에는 src 없는 img 의 대체 글자가 보이지 않게 숨겨 둔다. 자리는 .photo-viewport 가 잡는다.
@@ -243,7 +250,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       if(eager&&!full)startPhotoNearViewport(figure,begin);else begin();
     });
     // 후보 사진을 하나도 띄우지 못하면(깨진 칸 대신) 안내 글과 네이버 지도 링크를 둔다.
-    function unavailable(){loading.remove();const box=node('div',undefined,'photo-status');box.append(node('p','현재 표시할 수 있는 장소 사진이 없어요.'),photoMapLink(place));imageLink.replaceWith(box);panel.append(retry());}
+    function unavailable(){loading.remove();imageLink.replaceWith(emptyBody(node('p','현재 표시할 수 있는 장소 사진이 없어요.','photo-status'),photoMapLink(place),retry()));}
     if(data.photos.length>1){
       viewport.tabIndex=0;viewport.setAttribute('role','group');viewport.setAttribute('aria-label',place.name+' 사진 · 좌우로 넘기기');
       counter=node('span',`1 / ${data.photos.length}`,'photo-counter');counter.setAttribute('aria-live','polite');
@@ -268,7 +275,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
     }
     if(data.photos.length>1&&!full){const more=button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode));copy.append(more);}
     if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(NAVER_PHOTO_KINDS.includes(item.kind))credit.append(node('span','네이버 공개 사진 · '),photoSourceLink(item,'원본'));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',item.title+' 사진 크게 보기');open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')),{thumb:true});}panel.append(extra);}
-  }catch(error){panel.replaceChildren(node('p','사진 정보를 불러오지 못했습니다. 다시 시도해 주세요.','photo-status'),retry());}}
+  }catch(error){panel.replaceChildren(emptyBody(node('p','사진 정보를 불러오지 못했습니다. 다시 시도해 주세요.','photo-status'),retry()));}}
   // 목록 전체를 한 번에 조회하지 않고 화면 근처의 장소만 불러온다.
   if(eager)load();else if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){observer.disconnect();load();}},{rootMargin:'150px'});observer.observe(panel);}else load();
   return panel;

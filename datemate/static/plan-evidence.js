@@ -116,6 +116,8 @@ function identityText(identity){
     const month=/^\d{6}$/.test(identity.data_month||'')?`(${identity.data_month.slice(0,4)}년 ${Number(identity.data_month.slice(4))}월 자료)`:'';
     return ['ok',`위치 확인 · 소상공인 상가정보${month} 기준${ago}. 이름이 같은 업소가 200m 안에 한 곳 있어요.`];
   }
+  // reason 'unavailable': 공공 API 조회가 실패했다(자료에 없다는 뜻이 아님). 서버는 30분 뒤 이 장소를 다시 볼 때 새로 조회한다(app/place_identity.py RETRY_SECONDS).
+  if(!identity?.pending&&identity?.reason==='unavailable')return ['check','공공 자료에 지금 연결하지 못했어요. 나중에 다시 조회해요.'];
   return ['check',identity?.pending?'공공 자료를 확인하고 있어요.':''];
 }
 function identityEvidence(place){

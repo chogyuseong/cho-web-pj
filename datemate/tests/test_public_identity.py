@@ -221,7 +221,8 @@ def test_slow_or_failing_api_leaves_no_verdict_and_backs_off(public_api):
     place_identity.lookup(MEAL)
     calls = len(public_api['calls'])
     seen = place_identity.verify_identity(MEAL)
-    assert seen == dict(status='unknown', pending=False, source=None, reason='not_found'), '판정 없음 — 화면은 링크만'
+    # 조회 실패는 '자료에 없음'(not_found)이 아니라 '연결 실패'(unavailable)로 답한다(2026-11-20 운영 키 오류 점검).
+    assert seen == dict(status='unknown', pending=False, source=None, reason='unavailable'), '판정 없음 — 화면은 링크만'
     assert not place_identity._queue, '실패 직후에는 다시 맡기지 않는다(RETRY_SECONDS)'
     place_identity.lookup(MEAL)
     assert len(public_api['calls']) == calls

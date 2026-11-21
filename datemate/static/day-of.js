@@ -38,6 +38,9 @@ function shortAddress(place) {
 
 function fieldItineraryText(plan) {
   const lines = [`${plan.conditions.visit_date} 데이트 일정 (${plan.conditions.start} 출발)`];
+  // 운영 시간에 맞춰 맨 앞에 고정한 축제(app/festival_time.py).
+  const festival = plan.festival_visit;
+  if (festival) lines.push(`${festival.arrival}~${festival.departure} 축제 · ${festival.title} (운영 시간에 맞춰 고정)`);
   plan.places.forEach((place, i) => {
     const leg = plan.legs?.[i],
       t = plan.timeline[i];

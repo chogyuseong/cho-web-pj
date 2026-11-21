@@ -15,6 +15,7 @@
 원본 코스·공유본·방문 기록을 바꾸지 않는다(저장하지 않는다). 대체 장소 추천은 하지 않는다.
 """
 
+from .festival_time import places_start
 from .models import Conditions
 from .planner import clock, minutes, visit_window
 
@@ -36,7 +37,8 @@ def delay_check(plan, index, delay):
         legs[i].get("minutes") is None for i in range(index, len(places))
     ):
         raise ValueError("이 코스는 구간 이동 시간이 저장돼 있지 않아 다시 계산할 수 없어요.")
-    previous_departure = minutes(timeline[index - 1]["departure"]) if index else minutes(c.start)
+    # 첫 장소의 출발 시각: 축제를 맨 앞에 고정한 코스는 축제가 끝난 때(app/festival_time.py), 아니면 코스 시작.
+    previous_departure = minutes(timeline[index - 1]["departure"]) if index else places_start(c)
     planned_arrival = previous_departure + _leg_minutes(legs[index], c)
     now = planned_arrival + delay
     rows, pending, estimated, no_last_entry = [], [], [], []

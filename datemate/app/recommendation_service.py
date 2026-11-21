@@ -40,6 +40,10 @@ def generate(data: Conditions, owner: str):
         try:
             # 구간별 수단은 만든 코스를 바꿀 때만 생긴다. 새 추천은 기본 수단 하나로 찾는다.
             data = normalize(data.model_copy(update={"leg_modes": []}))
+            # 축제 참석 시간 고정(app/festival_time.py): 운영 시간은 받아 둔 축제 상세 캐시에서만 읽는다(외부 호출 없음).
+            from .festivals import with_cached_hours
+
+            data = with_cached_hours(data)
             if data.planning_session_id:
                 from .planning_outcomes import session_for
 

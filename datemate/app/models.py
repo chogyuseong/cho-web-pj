@@ -26,6 +26,17 @@ class FestivalAnchor(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
+    # 관광공사 상세의 운영 시간 글(playtime). 화면이 보낸 값은 쓰지 않고 추천을 시작할 때 서버가 상세 캐시에서 채운다
+    # (recommendation_service.generate). 저장된 코스는 이 값으로 축제 방문 시각을 다시 계산한다(app/festival_time.py).
+    hours: str | None = Field(default=None, max_length=300)
+
+    @model_serializer(mode='wrap')
+    def _omit_missing_hours(self, handler):
+        # 시간이 없으면 저장·비교되는 조건 모양을 예전과 같게 둔다(hours 키 없음).
+        data = handler(self)
+        if isinstance(data, dict) and self.hours is None:
+            data.pop('hours', None)
+        return data
 
 TransportMode = Literal['walk', 'transit', 'car', 'bicycle']
 

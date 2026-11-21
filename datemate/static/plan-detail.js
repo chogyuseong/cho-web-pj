@@ -10,6 +10,16 @@ function costStatusLabel(c) {
   } [c.status] || c.status;
 }
 
+// 고정한 축제 방문 한 칸. 장소 칸(article.stop)이 아니다: 장소 순번·지도 표시·장소 단추(maps.js·place-dialog.js 는 .stop 만 센다)에 끼지 않는다.
+// 요금은 주최 측 자유 글이라 비용에 넣지 않는다(festivals.js 와 같은 원칙).
+function festivalVisitBlock(visit) {
+  const block = node('section', undefined, 'festival-visit');
+  block.setAttribute('aria-label', '운영 시간에 맞춰 고정한 축제 방문');
+  block.append(node('strong', `${visit.arrival}~${visit.departure} 축제 · ${visit.title}`, 'festival-visit-title'),
+    node('p', `안내된 운영 시간 ${visit.hours} 기준으로 시각을 고정했어요${visit.wait ? ` · 시작까지 ${visit.wait}분 기다림` : ''}. 축제가 끝나면 행사장에서 아래 첫 장소로 이동해요. 개최·시간은 방문 전 주최 측에서 다시 확인해 주세요.`, 'hint'));
+  return block;
+}
+
 function sharedLegSource(plan) {
   const sources = (plan.legs || []).map(leg => leg.source).filter(Boolean);
   return sources.length > 1 && sources.every(source => source === sources[0]) ? sources[0] : null;
@@ -64,6 +74,8 @@ function renderDetail() {
   if (p.id && typeof delayCheckPanel === 'function') box.append(delayCheckPanel(p));
   // 약속 당일 도구(day-of.js): 마지막 출발 시각, 한 곳씩 크게 보기, 현장용 일정 복사. 서버에 묻지 않는다.
   if (typeof dayOfTools === 'function') box.append(dayOfTools(p));
+  // 운영 시간에 맞춰 맨 앞에 고정한 축제 방문(app/festival_time.py). 첫 구간 줄(행사장 → 첫 장소) 바로 앞에 둔다.
+  if (p.festival_visit) box.append(festivalVisitBlock(p.festival_visit));
   p.places.forEach((place, i) => {
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
     const stop = node('article', undefined, 'stop');

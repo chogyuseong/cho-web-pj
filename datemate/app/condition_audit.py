@@ -22,7 +22,11 @@ def audit_plan(plan,c=None):
         if parsed['exclusive']:
             ok=len(matched)==len(venues)
         else:ok=bool(matched)
-        test('request_activity','입력한 활동',ok,INTENTS[key][1][0]+' 요청 반영: '+', '.join(matched),INTENTS[key][1][0]+' 요청에 맞는 장소가 부족해 다른 활동을 보완했어요. 입력한 지역·범위에서 후보를 확인해 주세요.')
+        label=INTENTS[key][1][0]
+        # 추천할 때 동네 반경 밖에서 찾아 둔 가장 가까운 곳(recommendation_service._nearest_outside). 저장 코스를 다시 대조할 때도 다시 찾지 않는다.
+        near=next((h for h in plan.get('nearest_outside') or [] if h.get('intent')==label),None)
+        hint=f" 공공 관광 자료에서 가장 가까운 곳은 {near['name']}({c.area_center.name}에서 직선 {near['km']:g}km, 동네 반경 {c.neighborhood_radius_km:g}km 밖)이에요." if near and c.area_center else ''
+        test('request_activity','입력한 활동',ok,label+' 요청 반영: '+', '.join(matched),label+' 요청에 맞는 장소가 부족해 다른 활동을 보완했어요. 입력한 지역·범위에서 후보를 확인해 주세요.'+hint)
     def mins(value):
         h,m=map(int,value.split(':'));return h*60+m
     names=lambda rows:', '.join(p['name'] for p in rows)

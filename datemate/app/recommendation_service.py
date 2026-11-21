@@ -255,6 +255,42 @@ def _verify_car_routes(data, plans):
             )
 
 
+def _nearest_outside(data, plans):
+    """요청한 활동이 동네 반경 안에 없어 미충족인 안에, 반경 밖에서 가장 가까운 곳(이름·직선거리)을 붙인다.
+
+    받아 둔 관광공사 목록만 읽어 외부 호출이 없다(public_places.nearest_outside). 코스는 바꾸지 않고 조건 확인 문장에만 쓴다
+    (condition_audit). 걸어서는 반경 밖에 닿지 않는다는 판단(배포-이어가기.txt 6-1)은 그대로다."""
+    if data.mode != "real" or not data.area_center:
+        return
+    from . import public_places
+    from .condition_audit import audit_plan
+    from .request_intent import INTENTS, intent, matches
+
+    keys = intent(data)["intents"]
+    if not keys or not public_places.enabled():
+        return
+    found = {}
+    for i, plan in enumerate(plans):
+        missing = [key for key in keys if not any(matches(p, key) for p in plan["places"])]
+        hints = []
+        for key in missing:
+            if key not in found:
+                found[key] = public_places.nearest_outside(
+                    data.area_center.lat,
+                    data.area_center.lon,
+                    data.neighborhood_radius_km,
+                    data.region,
+                    # 요청 활동의 종류(INTENTS 의 첫 값)인 곳만. '솔향식빵공방' 같은 빵집이 '공방' 낱말로 걸리지 않게(실제 키 강릉 확인).
+                    lambda place, key=key: matches(place, key)
+                    and place.get("category") == INTENTS[key][0],
+                )
+            if found[key]:
+                hints.append(dict(intent=INTENTS[key][1][0], **found[key]))
+        if hints:
+            plan["nearest_outside"] = hints
+            plans[i] = audit_plan(plan, data)
+
+
 def _shape(plans):
     """가격 확인 전후 비교용: 안마다 (장소 id 순서, 이름, 설명). 진단에만 쓰고 응답에는 개수만 싣는다."""
     return [
@@ -397,6 +433,8 @@ def _finish(data, result, owner):
             "일부 자료 조회가 요청 한도에 도달해 확인 자료와 추정을 함께 표시했어요. 누락된 영업·가격·이동 정보는 방문 전 확인해 주세요."
         )
 
+    with span("price.nearest_outside"):
+        _nearest_outside(data, result["plans"])
     with span("price.verification_summary"):
         for p in result["plans"]:
             if result.get("resource_notice"):

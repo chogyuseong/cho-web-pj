@@ -40,3 +40,10 @@
 .festival-photo-credit { font-size:14px; color:var(--muted); text-align:left; }
 .festival-origin-note { background:var(--platform); border:0; border-left:8px solid var(--cheong); border-radius:0; color:var(--ink); }
 .festival-origin-note .festival-origin-title { color:var(--ink)!important; }
+/* 코스 맨 앞에 고정한 축제(shared.js: section.shared-festival-visit, 이름·시각만). 장소 칸(article)과 같은 자리에 레일만 청색으로 잇는다
+   (결과 화면 results.css 의 .festival-visit 과 같은 생각). 축제가 첫 자식이라 첫 장소의 레일은 위에서부터 이어진다. */
+.shared-festival-visit { position:relative; padding:0 0 24px 52px; }
+.shared-festival-visit::before { content:''; position:absolute; left:14px; top:12px; bottom:0; border-left:8px solid var(--cheong); }
+.shared-festival-visit::after { content:''; position:absolute; left:6px; top:2px; width:24px; height:24px; box-sizing:border-box; border:3px solid var(--cheong); border-radius:50%; background:#fff; }
+.shared-festival-visit h2 { margin:0 0 4px; font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; color:var(--cheong); }
+.shared-festival-visit p { margin:0 0 10px; }

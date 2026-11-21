@@ -27,6 +27,13 @@ function link(text,url){
   // 잠든 서버가 켜지는 동안에는 다시 물으며 안내를 보여 준다(server-wake.js).
   ServerWake.load(timeout=>request('/api/shared-plan',undefined,timeout)).then(data=>{
     status.textContent=data.notice;
+    // 운영 시간에 맞춰 코스 맨 앞에 고정한 축제(이름·시각만 공유된다). 의견을 고르는 장소 칸(article)이 아니라 그 앞의 section 이다.
+    const visit=data.festival_visit;
+    if(visit){
+      const block=node('section',undefined,'shared-festival-visit');block.setAttribute('aria-label','코스 맨 앞에 고정한 축제 방문');
+      block.append(node('h2',`${visit.title} · ${visit.arrival}~${visit.departure}`),node('p','축제를 먼저 들른 뒤 아래 장소로 이동해요. 개최·운영 시간은 방문 전 주최 측 안내를 확인해 주세요.','hint'));
+      document.getElementById('shared-places').append(block);
+    }
     for(const place of data.places){
       const article=document.createElement('article'),title=document.createElement('h2'),text=document.createElement('p'),label=document.createElement('label'),select=document.createElement('select');
       title.textContent=place.name;text.textContent=`${place.arrival} ~ ${place.departure} · ${place.address}`;

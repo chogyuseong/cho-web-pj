@@ -7,13 +7,21 @@
 
 ★ 지금 상태 (2026-11-21 기준)
 ----------------------------------------------------------------------
-운영에 올라간 것: 커밋 4c4a2c1(main, 병합 = feat/missing-kind-nearest-hint), Worker 버전 1252a511-48ec-46b6-a3b9-3a7d0999d486 (예순일곱 번째 배포, 2026-11-21)
+운영에 올라간 것: 커밋 154ee4a(main, 병합 = feat/festival-fixed-time), Worker 버전 aa2a8687-602c-47c9-b7b5-1df00ffcd892 (예순여덟 번째 배포, 2026-11-21)
+  · 사용자 'CI 통과하면 병합하고 배포해'. 브랜치 head 41041a4 CI Run 44905536175 5개 성공 → main 에 --no-ff 병합·push → npm run test:security 25 통과 → wrangler deploy
+    (Windows PC, Docker Desktop. 정적 파일 6개 올라감: day-of.js·plan-detail.js·plan-results.js·results.css 는 이번 변경,
+    maps.js·plan-map.css 는 내용 변경 없이 이 PC 의 core.autocrlf=true 로 작업 폴더가 CRLF 라 해시가 달라져 다시 올라감 — 동작 무해. 컨테이너 진입점은 python 이라 CRLF 영향 없음).
+  · 운영 확인: /api/status 200(Server-Timing 있음), 첫 화면 plan-detail.js?v=d644dcb15fdf·plan-results.js?v=e2b1a83c0b69·day-of.js?v=0e5524865f25·results.css?v=31ff5f7b8883
+    = 로컬 sha256 앞 12자리, /api/explore?region=제주 ready 24곳, /api/festivals(서울, 11-21~12-05) available 19건.
+    축제 고정 동작은 운영에서 보지 않음(운영 코스를 만들지 않음, 새 컨테이너로 바뀌었는지도 API 로 확인하지 못함). 내용은 아래 브랜치 feat/festival-fixed-time 기록.
+  · 되돌리는 법: git revert -m 1 154ee4a 후 재배포(DB 마이그레이션 없음).
+이전 운영(67차): 커밋 4c4a2c1(main, 병합 = feat/missing-kind-nearest-hint), Worker 버전 1252a511-48ec-46b6-a3b9-3a7d0999d486 (예순일곱 번째 배포, 2026-11-21)
   · 브랜치 head 9981a8a CI Run 44892297748 5개 성공 → main 에 --no-ff 병합·push → npm run test:security 25 통과 → wrangler deploy(서버 코드만, 정적 파일 변경 없음).
   · 운영 확인: /api/status 200(Server-Timing 있음), /api/explore?region=제주 ready 24곳, /api/festivals(서울, 11-21~12-05) available 19건.
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
-브랜치 feat/festival-fixed-time (2026-11-21, 병합·배포 안 함 — 7절 구조 분석 제안 '축제 참석 시간 고정'. 병합·배포는 사용자 승인 필요)
+브랜치 feat/festival-fixed-time (2026-11-21, 68차로 병합·배포됨 — 7절 구조 분석 제안 '축제 참석 시간 고정'. 사용자 'CI 통과하면 병합하고 배포해')
   · 무엇을: '이 축제 주변 코스 추천받기'로 고른 축제(conditions.festival, 행사장 = 출발지)의 방문을 운영 시간에 맞춰 일정 맨 앞에 고정하고,
     첫 장소는 축제가 끝난 시각에 행사장에서 출발하게 함. 예: 운영 10:00~18:00, 코스 11:00~19:00, 체류 60분 → 축제 11:00~12:00, 첫 장소는 12:00 + 이동.
     시간이 없거나 맞출 수 없으면 코스는 예전 그대로 짜고 조건 확인 '축제 참석 시간'(방문 전 확인)에 까닭과 바꿀 시간을 적음

@@ -187,8 +187,13 @@ def start(data: Conditions, request: Request):
                 if j.get("fingerprint") == fingerprint:
                     return {"id": key}
                 raise HTTPException(429, "이미 코스를 찾고 있어요. 잠시 기다려 주세요.")
-        if len(_jobs) >= 100 or sum(j["status"] == "running" for j in _jobs.values()) >= 6:
+        if sum(j["status"] == "running" for j in _jobs.values()) >= 6:
             raise HTTPException(429, "검색 요청이 많아요. 잠시 후 다시 시도해 주세요.")
+        # 끝난 작업은 DB 에도 저장돼 있으므로(_persist) 메모리가 100개에 차면 오래 끝난 것부터 비운다.
+        # 끝난 작업 수로 새 검색을 막지 않는다(전에는 10분에 100번이 넘으면 진행 중 작업이 없어도 429).
+        finished = sorted((j["finished"], k) for k, j in _jobs.items() if "finished" in j)
+        for _, key in finished[: max(0, len(_jobs) - 99)]:
+            del _jobs[key]
         key = secrets.token_urlsafe(24)
         job = dict(
             fingerprint=fingerprint,

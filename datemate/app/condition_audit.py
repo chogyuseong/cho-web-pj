@@ -53,6 +53,11 @@ def audit_plan(plan,c=None):
         if p['last_entry'] is not None and arrival>p['last_entry']:add('visit_date','마지막 입장','unmet',p['name']+' — 마지막 입장 시간이 지난 뒤 도착해요.')
         if any(arrival<end and departure>start for start,end in p.get('breaks') or []):add('visit_date','휴게시간','unmet',p['name']+' — 방문 시간이 등록된 휴게시간과 겹쳐요.')
     add('start','시작 시간','met',c.start+'에 출발하는 일정이에요.')
+    if c.festival:
+        # 축제 참석 시간 고정(app/festival_time.py). 고정했으면 충족, 시간을 모르거나 맞출 수 없으면 코스는 그대로 두고 '방문 전 확인'으로 알린다.
+        from .festival_time import explain
+        _,message=explain(c.festival.title,c.festival.hours,c.start,c.end,c.stay_minutes,plan.get('finish'))
+        add('festival','축제 참석 시간','met' if plan.get('festival_visit') else 'unknown',message)
     excess=mins(c.start)+plan['minutes']-mins(c.end)
     test('end','종료 시간',excess<=0,'종료 '+plan['finish']+' — 요청한 '+c.end+' 이내예요.',f"종료 {plan['finish']} — 요청한 {c.end}보다 {excess}분 늦어요.")
     add('people','인원','unknown' if real and c.people>=10 else 'met',f'{c.people}명을 비용 계산에 반영했어요.'+(' 단체 방문이므로 장소별 단체 입장 가능 여부는 확인이 필요해요.' if real and c.people>=10 else ''))

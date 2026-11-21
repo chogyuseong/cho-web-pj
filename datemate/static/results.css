@@ -603,7 +603,8 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
    만드는 곳: festivals.js — 결과 아래 section#festival-section.festival-panel(제목 .section-heading h3, 데모 안내 .festival-demo-note,
    #festival-results 격자 안 article.festival-card(사진 .festival-photo, 분류 .tag, strong 이름, 링크, 「이 축제에서 출발」 단추,
    고른 카드는 .festival-chosen), 「더 보기」 #festival-more), 출발지로 고른 축제 안내 #festival-origin-note.festival-origin-note,
-   코스 카드의 .festival-course-tag, 일정의 .festival-context.
+   코스 카드의 .festival-course-tag, 일정의 .festival-context, 일정 맨 앞에 고정한 축제 방문 section.festival-visit
+   (plan-detail.js festivalVisitBlock: strong.festival-visit-title 시각·이름 + p.hint 근거. 장소 칸 .stop 이 아니라 레일만 같은 자리에 청색으로 잇는다).
    예전 출처: style·clarity·line 의 규칙 약 35개. 선택자는 예전 그대로라 명시도는 바뀌지 않았다.
    남겨 둔 공통 규칙: style.css 인쇄의 '#results 의 다른 자식 숨김' 목록(#festival-section·#festival-origin-note 포함). */
 
@@ -640,6 +641,14 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 /* 코스 카드의 「축제 장소에서 출발」 꼬리표: 청색 테두리 알약 */
 .festival-course-tag { display:inline-block; margin:4px 0 10px; padding:4px 12px; border:1px solid var(--cheong); border-radius:999px!important; background:#fff;
   color:var(--cheong); font-size:14px; font-weight:700; overflow-wrap:anywhere; }
+/* 고정한 축제 방문(축제 참석 시간 고정, 2026-11-21): 구간 줄(.route-line-block)과 같은 들여쓰기·레일 자리, 레일만 축제 청색 */
+.detail .festival-visit { position:relative; display:grid; gap:4px; margin:0; padding:4px 0 16px var(--band); }
+@media(max-width:800px) { .detail .festival-visit { padding-left:var(--rail); } }
+.detail .festival-visit::before { content:''; display:block; position:absolute; top:0; bottom:0; left:calc(var(--time) + var(--rail) / 2 - 4px); border-left:8px solid var(--cheong); }
+@media(max-width:800px) { .detail .festival-visit::before { left:calc(var(--rail) / 2 - 4px); } }
+.detail .festival-visit-title { font-family:var(--font-head); font-size:19px; font-weight:800; line-height:1.4; color:var(--ink); overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.detail .festival-visit .hint { margin:0; }
+@media print { .detail .festival-visit::before { print-color-adjust:exact; -webkit-print-color-adjust:exact; } }
 
 
 /* ---------------------------------------------------------------- 레저(코스 주변 즐길 거리) (5-3g-2)

@@ -1,6 +1,7 @@
 from collections import Counter
 import re
 from .catalog import places
+from .festival_time import festival_slot,visit_record
 from .models import Conditions
 from .routes import leg, distance
 from .taxonomy import classification_themes,concept_score
@@ -69,7 +70,9 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
     if any(same_place(a,b) for i,a in enumerate(selected) for b in selected[i+1:]):return None,'같은 장소 중복'
     if not partial and len(selected)!=c.count and not soft:return None,'방문 장소 수 불일치'
     route_conditions=c.model_copy(update={'allow_estimates':True}) if soft and c.mode=='real' else c
-    now=minutes(c.start); end=minutes(c.end); legs=[]; timeline=[]; costs=[]; unknown=[]; walking=0
+    # 축제 참석 시간 고정(app/festival_time.py): 고른 축제를 운영 시간에 맞춰 맨 앞에 두면, 첫 장소는 축제가 끝난 때 행사장(출발지)에서 떠난다.
+    festival=festival_slot(c)
+    now=festival['departure'] if festival else minutes(c.start); end=minutes(c.end); legs=[]; timeline=[]; costs=[]; unknown=[]; walking=0
     previous=c.origin.model_dump()
     # 구간별 수단 예외: (출발 id, 도착 id) → 수단. 없으면 모든 구간이 기본 수단(c.transport)이다.
     overrides={(m.from_,m.to):m.mode for m in c.leg_modes}
@@ -132,10 +135,13 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
     estimated=[total[i]-known[i] for i in (0,1)]
     status='데모 가정 기준 통과' if c.mode=='demo' else '실제 장소 · 추정 일정 (영업·총예산 미검증)' if c.allow_estimates else '확인 필요' if unknown else '확인 자료 기준 통과'
     if unknown:status+=' · 미확인 비용 있음'
-    return dict(places=selected,timeline=timeline,legs=legs,costs=costs,total=total,confirmed=known,estimated=estimated,
+    plan=dict(places=selected,timeline=timeline,legs=legs,costs=costs,total=total,confirmed=known,estimated=estimated,
         unknown=sorted(set(unknown)),remaining=None if c.budget_unlimited else [c.budget-total[1],c.budget-total[0]],minutes=now-minutes(c.start),
         walking=walking,finish=clock(now),status=status,conditions=c.model_dump(mode='json'),
-        reasons=[f'{p["category"]} · 체류 {t["stay"]}분'+(' (사용자 설정)' if p['stay'] is None else '')+(' · 식사 방문 (시간·예산 포함)' if p.get('meal') else '')+(' · '+p['discovery_verification'] if p.get('discovery_verification') else '')+f' · 근거: {p["source"]}' for p,t in zip(selected,timeline)]),None
+        reasons=[f'{p["category"]} · 체류 {t["stay"]}분'+(' (사용자 설정)' if p['stay'] is None else '')+(' · 식사 방문 (시간·예산 포함)' if p.get('meal') else '')+(' · '+p['discovery_verification'] if p.get('discovery_verification') else '')+f' · 근거: {p["source"]}' for p,t in zip(selected,timeline)])
+    # 축제를 고정하지 않은 코스에는 키를 두지 않는다(저장·비교되는 코스 모양이 예전과 같다).
+    if festival:plan['festival_visit']=visit_record(c,festival)
+    return plan,None
 
 def recommend_strict(c,stage='planner'):
     pool=candidates(c); reasons=Counter(); beam=[[]]

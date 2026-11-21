@@ -30,6 +30,13 @@ def festival_context(plan):
     from .planner import minutes,clock
     c=plan.get('conditions') or {};f=c.get('festival')
     if not f:return None
+    if f.get('hours'):
+        # 추천 때 받아 둔 운영 시간이 조건에 있으면(app/festival_time.py) 그 값으로 고정했는지·못 했는지를 알린다.
+        from .festival_time import explain
+        _,text=explain(f['title'],f['hours'],c['start'],c['end'],c.get('stay_minutes',60),plan.get('finish'))
+        return dict(id=f['id'],title=f['title'],hours=f['hours'],fixed=bool(plan.get('festival_visit')),
+                    notes=[f"‘{f['title']}’ 행사장을 출발점으로 삼아 주변 장소로 코스를 짰어요.",text])
+    # 운영 시간 없이 만든 코스(예전 코스 포함): 이미 조회해 둔 상세 캐시로 코스 시간과의 관계만 알린다.
     detail=store.cached('festival-detail:v1:'+f['id']) if re.fullmatch(r'\d{1,12}',str(f['id'])) else None
     hours=(detail or {}).get('hours')
     notes=[f"‘{f['title']}’ 행사장을 출발점으로 삼아 주변 장소로 코스를 짰어요. 축제 방문 시간은 코스에 넣지 않았어요."]

@@ -223,6 +223,18 @@ def fetch_festival_detail(content_id):
                     message='요금 정보를 불러오지 못했어요.')
 
 
+def with_cached_hours(conditions):
+    """추천 조건의 축제에 운영 시간(playtime)을 상세 캐시에서만 채운다. 화면이 보낸 값은 버린다.
+    축제 카드가 상세를 불러 둔 경우에만 값이 있고, 없으면 None(새 외부 호출을 만들지 않는다 — 콘텐츠 캐시 시간은 그대로)."""
+    festival = conditions.festival
+    if not festival:
+        return conditions
+    cached = store.cached('festival-detail:v1:' + festival.id) if re.fullmatch(r'\d{1,12}', festival.id) else None
+    hours = (cached or {}).get('hours') if isinstance(cached, dict) else None
+    hours = hours[:300] if isinstance(hours, str) and hours.strip() else None
+    return conditions.model_copy(update={'festival': festival.model_copy(update={'hours': hours})})
+
+
 @router.get('/api/festivals/{content_id}/detail')
 def festival_detail(content_id: str = Path(pattern=r'^\d{1,12}$')):
     # Arbitrary IDs must not turn into tourism API calls: only festivals a recent

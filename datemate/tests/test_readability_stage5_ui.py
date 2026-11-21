@@ -11,7 +11,8 @@ NAVER_LAYOUT = """()=>{const host=document.querySelector('.plan-map .naver-plan-
   host.scrollIntoView({block:'center',behavior:'instant'});
   const extra=[{icon:{content:'<span class="route-marker restaurant-marker">1-1 / 2-1</span>',anchor:{x:19,y:19}}},
     {icon:{content:'<span class="route-marker parking-marker">P</span>',anchor:{x:16,y:16}}},
-    {icon:{content:'<span class="route-marker festival-marker">축제</span>',anchor:{x:24,y:14}}}];
+    {icon:{content:'<span class="route-marker festival-marker">축제</span>',anchor:{x:24,y:13}}},
+    {icon:{content:'<span class="route-marker festival-marker festival-marker-chosen">축제</span>',anchor:{x:24,y:13}}}];
   const list=[...window.__naverMarkers.filter(m=>!m.removed&&!/popup-marker|festival-marker/.test(m.options.icon.content)).map(m=>m.options),...extra];
   const box=host.getBoundingClientRect();
   return list.map((o,i)=>{const x=50+(i%3)*110,y=50+Math.floor(i/3)*90,el=document.createElement('div');el.style.cssText=`position:absolute;left:${x-o.icon.anchor.x}px;top:${y-o.icon.anchor.y}px`;
@@ -37,6 +38,9 @@ def test_naver_markers_get_a_44px_touch_area_on_phones_only(audit_page):
         assert abs(row['dx']) <= 1 and abs(row['dy']) <= 1, row
     # 보이는 번호 원은 38px 그대로(투명 여백으로만 넓힘).
     assert all(r['w'] == 38 and r['h'] == 38 for r in course), course
+    # 축제 표시는 글꼴과 관계없이 48×26px(maps.js 의 anchor 24,13 이 가운데). 고른 축제도 같은 크기.
+    festival = [r for r in rows if 'festival-marker' in r['html']]
+    assert len(festival) == 2 and all(r['w'] == 48 and r['h'] == 26 for r in festival), festival
     # 데스크톱은 투명 여백 없이 전과 같다.
     page.set_viewport_size({'width': 1440, 'height': 1000})
     page.wait_for_function("document.querySelector('#plan-map-rail .naver-plan-map')", timeout=20000)

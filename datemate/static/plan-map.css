@@ -80,8 +80,9 @@
 .route-marker.restaurant-marker { font-size:11px; background:#a3480f; }
 .restaurant-map-info { padding:14px; max-width:260px; font-size:14px; color:var(--ink); }
 .restaurant-map-info p { margin:6px 0; }
-/* 축제: 노란 점선 알약, 고른 축제는 진하게(같은 명시도라 .festival-marker-chosen 이 뒤에 있어야 한다). */
-.route-marker.festival-marker { width:auto; min-width:0; height:26px; padding:0 8px; line-height:24px; border-radius:999px; border:2px dashed #8a5a00;
+/* 축제: 노란 점선 알약, 고른 축제는 진하게(같은 명시도라 .festival-marker-chosen 이 뒤에 있어야 한다).
+   폭은 48px 로 고정한다. 글꼴(system-ui)이 기기마다 달라 폭이 41~48px 로 바뀌면 maps.js 의 anchor(24,13 = 48×26 의 가운데)가 좌표 점에서 어긋났다. */
+.route-marker.festival-marker { width:48px; min-width:0; height:26px; padding:0; line-height:24px; border-radius:999px; border:2px dashed #8a5a00;
   background:#f2b632; color:#3d2800; font-size:12px; font-weight:800; white-space:nowrap; }
 .route-marker.festival-marker-chosen { border:3px solid #5c3d00; background:#c58a00; color:#fff; font-size:13px; }
 .festival-map-info { max-width:240px; padding:10px 12px; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }

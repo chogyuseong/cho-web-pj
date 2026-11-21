@@ -70,6 +70,9 @@ def test_readability_and_controls(audit_page,tmp_path):
     page.emulate_media(reduced_motion='reduce')
     page.locator('.map-option-tabs button').first.click()
     assert page.locator('.plan-option-tabs [aria-pressed=true]').get_attribute('data-option')=='1'
+    # 지도 탭은 다시 그린 뒤 다음 화면 갱신(requestAnimationFrame)에서 눌린 탭으로 포커스를 돌려놓는다(maps.js).
+    # 그 전에 비교 표로 옮기면 뒤늦게 탭이 포커스를 가져간다(macOS Chromium 에서 매번 그랬음). 탭에 온 것을 보고 옮긴다.
+    page.wait_for_function("document.activeElement?.matches('.plan-map-card [aria-pressed=\"true\"]')", timeout=5000)
     page.locator('.option-comparison [role=region]').focus()
     assert page.locator('.option-comparison [role=region]').evaluate('(el)=>el===document.activeElement')
     (output/'readability.json').write_text(json.dumps(reports,ensure_ascii=False,indent=2),encoding='utf-8')

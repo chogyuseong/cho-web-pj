@@ -7,7 +7,13 @@
 
 ★ 지금 상태 (2026-11-21 기준)
 ----------------------------------------------------------------------
-운영에 올라간 것: 커밋 154ee4a(main, 병합 = feat/festival-fixed-time), Worker 버전 aa2a8687-602c-47c9-b7b5-1df00ffcd892 (예순여덟 번째 배포, 2026-11-21)
+운영에 올라간 것: 커밋 0c5f3b5(main, 병합 = feat/share-festival-visit), Worker 버전 69ee214e-7d8a-4f01-adbe-4297e82d4852 (예순아홉 번째 배포, 2026-11-21)
+  · 사용자 '진행해'(CI 통과하면 병합·배포). 브랜치 head 37f6956 CI Run 44910299734 5개 성공(gh CLI 로 확인) → main 에 --no-ff 병합·push → npm run test:security 25 통과 → wrangler deploy(Windows PC).
+  · 운영 확인: /api/status 200(Server-Timing 있음), /static/shared.js·shared.css 에 shared-festival-visit 있음, /api/explore?region=제주 ready 24곳,
+    /api/festivals(서울, 11-21~12-05) available 19건. 실제 공유 링크로 축제 칸이 보이는지는 운영 코스를 만들지 않아 보지 않음. 내용은 아래 브랜치 feat/share-festival-visit 기록.
+  · 참고: 이 Windows PC 에 gh CLI 2.105.0 설치·로그인(2026-11-21). 공개 API 는 시간당 60회라 CI 를 30초 간격으로 물으면 금방 막힘 — gh run list/view 를 씀.
+  · 되돌리는 법: git revert -m 1 0c5f3b5 후 재배포(DB 마이그레이션 없음).
+이전 운영(68차): 커밋 154ee4a(main, 병합 = feat/festival-fixed-time), Worker 버전 aa2a8687-602c-47c9-b7b5-1df00ffcd892 (예순여덟 번째 배포, 2026-11-21)
   · 사용자 'CI 통과하면 병합하고 배포해'. 브랜치 head 41041a4 CI Run 44905536175 5개 성공 → main 에 --no-ff 병합·push → npm run test:security 25 통과 → wrangler deploy
     (Windows PC, Docker Desktop. 정적 파일 6개 올라감: day-of.js·plan-detail.js·plan-results.js·results.css 는 이번 변경,
     maps.js·plan-map.css 는 내용 변경 없이 이 PC 의 core.autocrlf=true 로 작업 폴더가 CRLF 라 해시가 달라져 다시 올라감 — 동작 무해. 컨테이너 진입점은 python 이라 CRLF 영향 없음).
@@ -21,7 +27,7 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
-브랜치 feat/share-festival-visit (2026-11-21, 병합·배포 안 함 — 사용자 결정 '공유 화면에 축제 이름과 방문 시각만')
+브랜치 feat/share-festival-visit (2026-11-21, 69차로 병합·배포됨 — 사용자 결정 '공유 화면에 축제 이름과 방문 시각만')
   · 무엇을: 축제를 운영 시간에 맞춰 고정한 코스(plan['festival_visit'])의 공유 링크 화면에, 장소 일정 앞에 '축제 이름 · 시작~끝 시각' 구간을 보여 줌.
     예: '점검 등불축제 · 11:00~12:00' + '축제를 먼저 들른 뒤 아래 장소로 이동해요. 개최·운영 시간은 방문 전 주최 측 안내를 확인해 주세요.'
   · 공유 응답(/api/shared-plan): 고정한 코스에만 festival_visit = {title, arrival, departure} 세 필드를 화이트리스트로 만들어 실음

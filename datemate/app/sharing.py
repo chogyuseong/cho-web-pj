@@ -55,14 +55,31 @@ def public_plan(plan):
         if not is_naver_place(p):return {}
         source=next((u for u in (p.get('place_source'),p.get('source')) if str(u or '').startswith('https://')),None)
         return dict(naver_result=True,source=source,naver_expired=bool(p.get('naver_expired')))
-    return {'places': [dict(id=p['id'], name=p['name'], category=p.get('category',''),
-                            address=p.get('address',''),
-                            arrival=plan['timeline'][i]['arrival'],
-                            departure=plan['timeline'][i]['departure'],
-                            **naver_fields(p))
-                       for i,p in enumerate(plan['places'])],
-            'festival_search': festival_search(plan.get('conditions') or {}),
-            'notice': '공유용 코스예요. 영업·예약·이동 시간은 방문 전 확인해 주세요.'}
+    shared = {'places': [dict(id=p['id'], name=p['name'], category=p.get('category',''),
+                              address=p.get('address',''),
+                              arrival=plan['timeline'][i]['arrival'],
+                              departure=plan['timeline'][i]['departure'],
+                              **naver_fields(p))
+                         for i,p in enumerate(plan['places'])],
+              'festival_search': festival_search(plan.get('conditions') or {}),
+              'notice': '공유용 코스예요. 영업·예약·이동 시간은 방문 전 확인해 주세요.'}
+    visit = festival_visit(plan)
+    if visit:
+        shared['festival_visit'] = visit
+    return shared
+
+
+def festival_visit(plan):
+    """운영 시간에 맞춰 고정한 축제 방문(plan['festival_visit'], app/festival_time.visit_record)의 이름과 시각만.
+    행사장 = 출발지라 좌표·주소·출발지 이름은 싣지 않고, 운영 시간 원문(hours)·축제 id·기다림도 싣지 않는다.
+    고정하지 않은 코스는 None(공유 응답에 키가 없다 — 예전 모양 그대로)."""
+    visit = plan.get('festival_visit')
+    if not isinstance(visit, dict):
+        return None
+    fields = {key: visit.get(key) for key in ('title', 'arrival', 'departure')}
+    if not all(isinstance(value, str) and value for value in fields.values()):
+        return None
+    return fields
 
 
 @router.post('/api/plans/{plan_id}/shares')

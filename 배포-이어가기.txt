@@ -21,6 +21,23 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
+브랜치 feat/share-festival-visit (2026-11-21, 병합·배포 안 함 — 사용자 결정 '공유 화면에 축제 이름과 방문 시각만')
+  · 무엇을: 축제를 운영 시간에 맞춰 고정한 코스(plan['festival_visit'])의 공유 링크 화면에, 장소 일정 앞에 '축제 이름 · 시작~끝 시각' 구간을 보여 줌.
+    예: '점검 등불축제 · 11:00~12:00' + '축제를 먼저 들른 뒤 아래 장소로 이동해요. 개최·운영 시간은 방문 전 주최 측 안내를 확인해 주세요.'
+  · 공유 응답(/api/shared-plan): 고정한 코스에만 festival_visit = {title, arrival, departure} 세 필드를 화이트리스트로 만들어 실음
+    (app/sharing.festival_visit — 원본 dict 를 복사하지 않음. 셋 중 하나라도 비었거나 문자열이 아니면 키 자체를 안 실음).
+    싣지 않는 것: 축제 id·좌표·주소·출발지 이름('… 행사장 주변')·운영 시간 원문(hours)·기다림(wait)·체류(stay)·conditions. 고정하지 않은 코스는 응답 키가 예전과 똑같음.
+  · 구현 위치: app/sharing.py(public_plan 끝에서 festival_visit 붙임), static/shared.js(공유 화면은 plan-detail.js 를 쓰지 않고 따로 그림 —
+    #shared-places 첫 자식 section.shared-festival-visit, 의견 고르는 장소 칸 article 이 아니라 선택 상자·장소 수 세기에 안 낌),
+    static/shared.css(장소 칸과 같은 자리에 청색 레일·동그라미, 결과 화면 .festival-visit 과 같은 생각). datemate/README.md 축제 행 문장.
+  · 하지 않은 것: 공유 화면에 운영 시간 원문·기다림 안내(원문은 주최 측 자유 글이라 비공개 유지), 고정 안 한 축제의 이름 표시(= 출발지라 그대로 비공개),
+    공유 화면 PNG/인쇄 모양 확인(인쇄 규칙 따로 안 넣음), 이미 만든 공유 링크도 새 코드로 읽으므로 배포 뒤에는 기존 링크에도 이름·시각이 나옴(의도된 동작).
+  · 검증: tests/test_festival_restore.py — 기존 '축제 이름 없음' 검사를 새 원칙으로 고침(고정 안 한 축제 코스: 응답 키 집합이 예전 그대로·이름·좌표 없음),
+    새 3개(고정 코스 응답 = 이름·시각 세 필드만, hours·좌표·행사장·id 없음 / 축제 없는 코스 응답 키 그대로 / 브라우저: 축제 구간이 첫 장소 앞·select 없음),
+    기존 공유 브라우저 테스트에 '고정 안 한 코스엔 구간 없음' 추가. 고치기 전 새 2개 실패 확인. 관련 8개 파일 77 통과,
+    이 Windows PC SQLite 전체 1259 통과·1 건너뜀·오류 1(test_leisure_sports_ui 의 브라우저 고정 장치 준비 오류 — 그 파일만 다시 돌려 3 통과, 이번 변경과 무관으로 봄),
+    format_sources --check 통과. PostgreSQL 은 로컬에서 안 돌림 — 이 기록이 든 브랜치 커밋의 CI 결과는 병합할 때 이 줄에 적을 것.
+  · 되돌리는 법: 병합 전이면 브랜치 버림. 병합·배포 뒤에는 병합 커밋 git revert -m 1 후 재배포(DB 마이그레이션 없음, 저장 자료 모양 그대로).
 브랜치 feat/festival-fixed-time (2026-11-21, 68차로 병합·배포됨 — 7절 구조 분석 제안 '축제 참석 시간 고정'. 사용자 'CI 통과하면 병합하고 배포해')
   · 무엇을: '이 축제 주변 코스 추천받기'로 고른 축제(conditions.festival, 행사장 = 출발지)의 방문을 운영 시간에 맞춰 일정 맨 앞에 고정하고,
     첫 장소는 축제가 끝난 시각에 행사장에서 출발하게 함. 예: 운영 10:00~18:00, 코스 11:00~19:00, 체류 60분 → 축제 11:00~12:00, 첫 장소는 12:00 + 이동.
@@ -36,7 +53,7 @@
     화면: plan-detail.js festivalVisitBlock(첫 구간 줄 앞 section.festival-visit — .stop 이 아니라 장소 순번·지도·장소 단추에 안 낌, results.css 축제 구역),
     plan-results.js 카드 꼬리표·시간 줄, day-of.js 현장용 일정 첫 줄.
   · 하지 않은 것: 축제를 코스 끝·중간에 두기(행사장으로 돌아오는 구간이 따로 필요해 구간 목록·지도·귀가·당일 도구 계산이 모두 바뀜 — 저녁 축제는 안내로만),
-    공유 링크 화면에 축제 표시(public_plan 은 출발지를 싣지 않는 원칙이고 고른 축제 = 출발지라, tests/test_festival_restore 가 축제 이름이 없는지 봄 — 결정 필요),
+    [처리됨 → 브랜치 feat/share-festival-visit: 이름·방문 시각만 공유] 공유 링크 화면에 축제 표시(public_plan 은 출발지를 싣지 않는 원칙이고 고른 축제 = 출발지라, tests/test_festival_restore 가 축제 이름이 없는지 봄 — 결정 필요),
     축제 요금을 비용에 넣기, '18시~22시'·'오후 6시' 같은 글 시각 읽기, 캐시가 없을 때 상세 조회(호출 늘어남), 실제 키로 playtime 표기 표본 확인(하지 않음).
   · 검증: 새 tests/test_festival_fixed_time.py 17개(고치기 전 14 실패 확인, 브라우저 1개 포함), 이 Windows PC SQLite 전체 1257 통과·1 건너뜀·실패 0
     (17분, Edge. 이 PC 에는 가상환경이 없어 datemate/.venv 를 새로 만듦 — .gitignore 대상), format_sources --check 통과. PostgreSQL 은 로컬에서 안 돌림 — 브랜치 커밋 f2d1604 CI Run 44903528127 5개 성공(sqlite·postgres 포함).

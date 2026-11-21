@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from pathlib import Path
 import time
 import pytest
 from fastapi.testclient import TestClient
@@ -206,3 +207,24 @@ def test_automatic_backup_and_expired_cleanup(monkeypatch,tmp_path):
     with sqlite3.connect(backups[0]) as db:
         assert db.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
         assert db.execute('SELECT COUNT(*) FROM cache WHERE key=?',('expired-for-maintenance',)).fetchone()[0]==0
+
+
+# 운영 진입점에서는 app.* 의 INFO 기록(recommendation_timing 등)이 표준 출력으로 나가야 Cloudflare 컨테이너 로그에 남는다.
+# 전에는 루트 로거에 처리기가 없어 WARNING 미만이 모두 버려졌다. uvicorn 이 시작할 때 자기 로그 설정을 적용한 뒤에도 남는지 본다.
+def test_production_entrypoint_prints_app_info_logs():
+    import subprocess, sys
+    code = (
+        'import logging, logging.config, uvicorn.config\n'
+        'from app import cloud_start\n'
+        'cloud_start.configure_logging()\n'
+        'logging.config.dictConfig(uvicorn.config.LOGGING_CONFIG)\n'
+        'logging.getLogger("app.recommendation_service").info("recommendation_timing status=complete {}")\n'
+        'logging.getLogger("app.other").debug("debug_hidden")\n'
+        'logging.getLogger("httpx").info("httpx_hidden")\n'
+    )
+    done = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=30,
+                          cwd=str(Path(__file__).resolve().parents[1]))
+    assert done.returncode == 0, done.stderr
+    assert 'recommendation_timing status=complete' in done.stdout
+    assert 'debug_hidden' not in done.stdout + done.stderr
+    assert 'httpx_hidden' not in done.stdout + done.stderr

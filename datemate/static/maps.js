@@ -388,7 +388,7 @@ function drawPlanMap(plan){
           const chosen=FestivalPanel.isChosen(festival),position=new naver.maps.LatLng(festival.lat,festival.lon);
           // 축제 이름은 HTML에 넣지 않고 title과 정보창의 텍스트 노드로만 전달한다.
           const marker=new naver.maps.Marker({map,position,title:'축제 · '+festival.title,zIndex:chosen?300:150,
-            icon:{content:'<span class="route-marker festival-marker'+(chosen?' festival-marker-chosen':'')+'">축제</span>',anchor:new naver.maps.Point(24,14)}});
+            icon:{content:'<span class="route-marker festival-marker'+(chosen?' festival-marker-chosen':'')+'">축제</span>',anchor:new naver.maps.Point(24,13)}});
           const info=new naver.maps.InfoWindow({content:festivalMapInfo(festival)});naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
           festivalMarkers.push(marker);
           if(chosen&&!bounds.hasLatLng?.(position)){bounds.extend(position);map.fitBounds(bounds,{top:45,right:45,bottom:45,left:45});}

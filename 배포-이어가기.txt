@@ -7,7 +7,13 @@
 
 ★ 지금 상태 (2026-11-21 기준)
 ----------------------------------------------------------------------
-브랜치 feat/missing-kind-nearest-hint (2026-11-21, 배포 전 — 사용자 '추천대로 진행해'(7절 강릉 ②) → 'CI 통과하면 병합하고 배포해')
+운영에 올라간 것: 커밋 4c4a2c1(main, 병합 = feat/missing-kind-nearest-hint), Worker 버전 1252a511-48ec-46b6-a3b9-3a7d0999d486 (예순일곱 번째 배포, 2026-11-21)
+  · 브랜치 head 9981a8a CI Run 44892297748 5개 성공 → main 에 --no-ff 병합·push → npm run test:security 25 통과 → wrangler deploy(서버 코드만, 정적 파일 변경 없음).
+  · 운영 확인: /api/status 200(Server-Timing 있음), /api/explore?region=제주 ready 24곳, /api/festivals(서울, 11-21~12-05) available 19건.
+    새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
+  · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
+이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
+브랜치 feat/missing-kind-nearest-hint (2026-11-21, 67차로 병합·배포됨 — 사용자 '추천대로 진행해'(7절 강릉 ②) → 'CI 통과하면 병합하고 배포해')
   · 요청 활동이 동네 반경 안에 없어 '입력한 활동'이 미충족인 안에, 반경 밖에서 가장 가까운 곳을 조건 확인 문장 끝에 붙임. 코스는 그대로.
     예(실제 키, 강릉 안목해변 '공방 체험'): '… 공공 관광 자료에서 가장 가까운 곳은 허균 허난설헌 기념공원 초희전통차체험관(강원 강릉 안목해변 지역 중심에서 직선 3.9km, 동네 반경 2.5km 밖)이에요.'
   · 구현: app/public_places.nearest_outside — 추천이 받아 둔 시·군·구 목록(공용 캐시)만 읽음, 새 호출 없음(테스트·실제 키로 확인), 없으면 None.
@@ -15,12 +21,12 @@
     app/condition_audit — plan['nearest_outside'] 를 읽어 문장에 붙임(저장 코스를 다시 열어도 다시 찾지 않음).
   · 실제 키로 찾은 문제와 고침: 처음엔 '솔향식빵공방'(카페·미식, 3.1km)이 '공방' 낱말로 걸림 → 요청 활동의 종류(INTENTS 첫 값, 공방=체험·제작)인 곳만 고름. 테스트로 남김.
   · 하지 않은 것: 테마 미충족(맞는 곳이 일부 있고 구성만 어긋난 경우라 '가장 가까운 곳'이 헷갈림), 출발지 기준(동네를 고르지 않은) 추천, 상가정보 항목.
-  · 검증: tests/test_public_candidates.py 새 2개(고치기 전 실패 확인), 관련 50개 통과, 이 Mac SQLite 전체 1240 통과·1 건너뜀·실패 0, format_sources --check 통과. CI 는 push 뒤.
+  · 검증: tests/test_public_candidates.py 새 2개(고치기 전 실패 확인), 관련 50개 통과, 이 Mac SQLite 전체 1240 통과·1 건너뜀·실패 0, format_sources --check 통과. CI Run 44892297748 5개 성공.
   · 되돌리는 법: 병합 전이면 브랜치 버림, 병합·배포 뒤에는 병합 커밋 git revert -m 1 후 재배포(DB 마이그레이션 없음. 이미 저장된 코스의 nearest_outside 는 남아도 무해).
 측정: 동네 반경 밖 종류(2026-11-21, 배포 없음 — 사용자 '진행해', 7절 '강릉 안목해변' 재측정)
   · scripts/measure_neighborhood_reach.py 추가, 결과 datemate/docs/neighborhood-reach-measure-2026-11-21.ko.md. 실제 키, 임시 SQLite, 공공 API 38건(관광공사 30·시·군·구 찾기 6·상가정보 2).
   · 결론: 강릉 안목해변 2.5km 안 체험·제작 0·문화·예술 1. 6-1 판단(도보 구간 약 1.5km 라 넓혀도 못 씀)은 유지. 다음 결정: 7절 '강릉' 항목의 ①②③. 앱 코드 변경 없음.
-운영에 올라간 것: 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d (예순여섯 번째 배포, 2026-11-21)
+(66차 상세) 커밋 5072a66, Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d (예순여섯 번째 배포, 2026-11-21)
   · 브랜치 head 0168fcb CI Run 44888607598 5개 성공 → main 에 --no-ff 병합·push → npm run test:security 25 통과 → wrangler deploy(정적 파일 2개 새로 올라감).
   · 운영 확인: 첫 화면 plan-map.css?v=d2c2250ce087·maps.js?v=0f73c0ab1b74 = 로컬 sha256 앞 12자리, /static/plan-map.css 에 'festival-marker { width:48px',
     /api/status 200, /api/festivals(서울, 11-21~12-05) available 19건. 실제 네이버 지도 위 축제 표시 위치는 눈으로 보지 않음(휴대폰 실기기도).

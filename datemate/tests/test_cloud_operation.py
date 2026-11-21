@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 import httpx
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from app import store, plan_jobs
 from app.config import validate_runtime
@@ -190,3 +191,41 @@ def test_postgres_revocation_and_cache_owner_triggers():
         store.cache('pg-late',{'owner':owner})
     with pytest.raises(psycopg.IntegrityError):
         store.chat_save(owner,'scope','late','answer')
+
+
+# 끝난 작업은 DB 에도 저장되므로 메모리 상한(100)이 차면 오래 끝난 것부터 비우고, 429 는 진행 중 작업 수로만 낸다.
+def test_finished_jobs_do_not_block_new_searches(monkeypatch):
+    monkeypatch.setattr(plan_jobs._pool,'submit',lambda *args:None)
+    from app.models import Conditions
+    now=time.monotonic();stale=[f'finished-cap-{i}' for i in range(100)]
+    with plan_jobs._lock:
+        for i,key in enumerate(stale):
+            plan_jobs._jobs[key]=dict(owner='finished-cap-other',status='complete',started=now,finished=now-i)
+    request=SimpleNamespace(state=SimpleNamespace(owner='finished-cap-owner'))
+    new_key=None
+    try:
+        new_key=plan_jobs.start(Conditions(visit_date='2026-10-31'),request)['id']
+        assert len(plan_jobs._jobs)<=100
+        assert new_key in plan_jobs._jobs
+        assert stale[-1] not in plan_jobs._jobs  # 가장 오래 전에 끝난 것부터 비움
+        assert stale[0] in plan_jobs._jobs
+    finally:
+        with plan_jobs._lock:
+            for key in stale+[new_key]:plan_jobs._jobs.pop(key,None)
+
+
+def test_running_jobs_still_cap_new_searches(monkeypatch):
+    monkeypatch.setattr(plan_jobs._pool,'submit',lambda *args:None)
+    from app.models import Conditions
+    running=[f'running-cap-{i}' for i in range(6)]
+    with plan_jobs._lock:
+        for key in running:
+            plan_jobs._jobs[key]=dict(owner='running-cap-other-'+key,status='running',started=time.monotonic())
+    request=SimpleNamespace(state=SimpleNamespace(owner='running-cap-owner'))
+    try:
+        with pytest.raises(HTTPException) as caught:
+            plan_jobs.start(Conditions(visit_date='2026-10-31'),request)
+        assert caught.value.status_code==429
+    finally:
+        with plan_jobs._lock:
+            for key in running:plan_jobs._jobs.pop(key,None)

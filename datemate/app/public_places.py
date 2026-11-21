@@ -631,6 +631,33 @@ def tour_near(lat, lon, radius_km, types=TOUR_TYPES):
     )
 
 
+def nearest_outside(lat, lon, radius_km, region, accept):
+    """반경 radius_km 밖에서 accept(장소)를 만족하는 가장 가까운 관광공사 항목. dict(name, km) 또는 None.
+
+    추천이 tour_near 로 받아 둔 시·군·구 목록(공용 캐시)만 읽고 새로 부르지 않는다. 시·군·구 목록은 시·군·구 전체라
+    반경 밖 항목도 들어 있다(docs/neighborhood-reach-measure-2026-11-21.ko.md). 받아 둔 목록이 없으면 None."""
+    slat, slon = snap(lat, lon)
+    radius = int(min(max(radius_km * 1000, 1000), 3000) + SNAP_MARGIN_M)
+    found = store.cached(f"public-district-v1:{slat}:{slon}:{radius}")
+    if not found or not found.get("districts"):
+        return None
+    keys = [
+        f"public-tour-district-v1:{code}:{kind}"
+        for code in found["districts"]
+        for kind in TOUR_TYPES
+    ]
+    center, best = dict(lat=lat, lon=lon), None
+    for data in store.cached_many(keys).values():
+        for row in data.get("rows") or []:
+            km = distance(center, row)
+            if km <= radius_km or (best and km >= best[0]):
+                continue
+            place = tour_place(row, region)
+            if place and accept(place):
+                best = (km, place["name"])
+    return dict(name=best[1], km=round(best[0], 1)) if best else None
+
+
 def _lcls_params(prefix):
     """새 분류 조건: 'FD' / 'FD05' / 'FD050100' → lclsSystm1~3."""
     prefix = str(prefix or "")

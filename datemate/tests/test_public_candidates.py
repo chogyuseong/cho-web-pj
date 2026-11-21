@@ -401,3 +401,41 @@ def test_leisure_options_come_from_public_data_and_stay_out_of_default_pools(api
     used = len(api['calls'])
     assert leisure.discover_leisure(c, anchor)['cache_hit'] and len(api['calls']) == used
     assert not api['naver']
+
+
+# ---------------------------------------------------------------- 동네 반경 밖의 가장 가까운 곳(요청 활동 미충족 안내)
+
+
+def test_nearest_outside_reads_only_lists_already_fetched(api):
+    busan(api)
+    api['tour'].append(tour_item(110, '전포 도자기 공방', *near(.036), cat3='A04010700', type_id='38'))  # 약 4km
+    public_places.tour_near(BUJEON['lat'], BUJEON['lon'], 2.5)  # 추천이 받아 두는 것과 같은 목록
+    before = len(api['calls'])
+    from app.request_intent import matches
+    found = public_places.nearest_outside(BUJEON['lat'], BUJEON['lon'], 2.5, '부산', lambda p: matches(p, 'workshop'))
+    assert found == dict(name='전포 도자기 공방', km=4.0)
+    assert len(api['calls']) == before  # 새로 부르지 않는다
+    # 받아 둔 목록이 없는 곳(다른 동네)은 모른다고 답한다(호출하지 않음).
+    assert public_places.nearest_outside(37.0, 127.0, 2.5, '경기', lambda p: True) is None
+    assert len(api['calls']) == before
+
+
+def test_unmet_requested_activity_names_the_nearest_place_outside_the_neighborhood(api):
+    from app.condition_audit import audit_plan
+    from app.recommendation_service import generate
+    busan(api)
+    api['stores'] = [s for s in api['stores'] if '공방' not in s['bizesNm']]
+    api['tour'].append(tour_item(110, '전포 도자기 공방', *near(.036), cat3='A04010700', type_id='38'))
+    # 이름에 '공방'이 든 빵집(카페·미식)은 더 가까워도 공방 체험 안내로 쓰지 않는다(요청 활동의 종류만).
+    api['tour'].append(tour_item(111, '전포 식빵공방', *near(.030), cat3='A05020900'))
+    center = {'name': '서면 지역 중심', **BUJEON}
+    result = generate(conditions(origin=center, area_center=center, request='공방 체험 하고 싶어'), naver_cache.current_owner())
+    assert result['plans'], result.get('reasons')
+    plan = result['plans'][0]
+    check = next(r for r in plan['condition_checks'] if r['condition'] == 'request_activity')
+    assert check['state'] == 'unmet'
+    assert '가장 가까운 곳은 전포 도자기 공방' in check['message'] and '4km' in check['message'] and '반경 2.5km 밖' in check['message']
+    assert plan['nearest_outside'] == [dict(intent='공방', name='전포 도자기 공방', km=4.0)]
+    # 저장한 코스를 다시 열어 조건을 다시 대조해도 안내가 남는다(다시 찾지 않음).
+    again = audit_plan(json.loads(json.dumps(plan)))
+    assert '가장 가까운 곳은 전포 도자기 공방' in next(r for r in again['condition_checks'] if r['condition'] == 'request_activity')['message']

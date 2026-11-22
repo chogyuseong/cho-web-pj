@@ -71,7 +71,7 @@ def public_plan(plan):
 
 def festival_visit(plan):
     """운영 시간에 맞춰 고정한 축제 방문(plan['festival_visit'], app/festival_time.visit_record)의 이름과 시각만.
-    행사장 = 출발지라 좌표·주소·출발지 이름은 싣지 않고, 운영 시간 원문(hours)·축제 id·기다림도 싣지 않는다.
+    행사장 = 출발지라 좌표·주소·출발지 이름은 싣지 않고, 운영 시간 원문(hours)·축제 id·기다림·돌아오는 구간도 싣지 않는다.
     고정하지 않은 코스는 None(공유 응답에 키가 없다 — 예전 모양 그대로)."""
     visit = plan.get('festival_visit')
     if not isinstance(visit, dict):
@@ -79,6 +79,8 @@ def festival_visit(plan):
     fields = {key: visit.get(key) for key in ('title', 'arrival', 'departure')}
     if not all(isinstance(value, str) and value for value in fields.values()):
         return None
+    # 코스 맨 앞('first')인지, 장소를 돈 뒤 행사장으로 돌아와 마무리하는지('last'). 돌아오는 구간(leg)은 싣지 않는다.
+    fields['position'] = 'last' if visit.get('position') == 'last' else 'first'
     return fields
 
 

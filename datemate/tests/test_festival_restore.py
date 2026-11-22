@@ -66,7 +66,7 @@ def test_shared_plan_shows_only_name_and_time_of_the_fixed_festival():
         shared = shared_body(owner, guest, plan)
         body = shared.json()
         # 화이트리스트: 이름과 방문 시작·종료 시각만. 축제 id·좌표·주소·운영 시간 원문·출발지·기다림은 싣지 않는다.
-        assert body['festival_visit'] == {'title': '점검 등불축제', 'arrival': '11:00', 'departure': '12:00'}
+        assert body['festival_visit'] == {'title': '점검 등불축제', 'arrival': '11:00', 'departure': '12:00', 'position': 'first'}
         assert set(body) == SHARED_KEYS | {'festival_visit'}
         assert FIXED_HOURS not in shared.text and '입장 마감' not in shared.text and '10:00~18:00' not in shared.text
         assert str(ANCHOR['lat']) not in shared.text and str(ANCHOR['lon']) not in shared.text
@@ -202,4 +202,23 @@ def test_shared_link_shows_the_fixed_festival_before_the_places(audit_page):
     assert page.evaluate("""()=>{const f=document.querySelector('.shared-festival-visit'),s=document.querySelector('#shared-places article');
         return !!(f.compareDocumentPosition(s)&Node.DOCUMENT_POSITION_FOLLOWING);}""")
     assert '입장 마감' not in block.inner_text()
+    assert not errors
+
+
+def test_shared_link_shows_the_evening_festival_after_the_places(audit_page):
+    page, base, errors = audit_page
+    with TestClient(app) as client:
+        # 11:00 시작 코스에 13:00 개막: 맨 앞에 두기엔 늦어 장소를 돈 뒤 행사장으로 돌아와 마무리한다(app/festival_time.py).
+        plan = saved_plan(client, festival=True, hours='13:00~22:00')
+        assert plan['festival_visit']['position'] == 'last'
+        token = client.post('/api/plans/' + plan['id'] + '/shares').json()['url']
+    route_festivals(page)
+    page.goto(base + token)
+    page.wait_for_function('document.querySelectorAll("#shared-places article").length===2')
+    block = page.locator('#shared-places .shared-festival-visit')
+    assert block.count() == 1 and '마무리' in block.inner_text()
+    visit = plan['festival_visit']
+    assert block.locator('h2').inner_text() == f"점검 등불축제 · {visit['arrival']}~{visit['departure']}"
+    assert page.evaluate("""()=>{const f=document.querySelector('.shared-festival-visit'),s=[...document.querySelectorAll('#shared-places article')].at(-1);
+        return !!(s.compareDocumentPosition(f)&Node.DOCUMENT_POSITION_FOLLOWING);}""")
     assert not errors

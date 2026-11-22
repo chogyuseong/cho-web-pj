@@ -54,7 +54,7 @@
     '꺼짐이면 예전과 같음' 테스트는 같은 조건 두 번 비교뿐.
   · 검증: tests/test_fresh_place.py 18개(브라우저 2개 포함, 고치기 전 실패 확인), 이 Mac SQLite 전체 1286 통과·1 건너뜀·실패 0(Chrome), format_sources --check 통과,
     상세·조건 화면 스크린샷 확인. PostgreSQL 은 로컬에서 안 돌림 — CI 결과는 병합할 때 이 줄에 적을 것. 설계·계획: docs/superpowers/specs·plans/2026-11-22-fresh-place*.
-  · 되돌리는 법: 병합 전이면 브랜치 버림. 병합·배포 뒤에는 git revert -m 1 후 재배포(DB 마이그레이션 없음. 저장 조건의 fresh_* 키는 되돌린 모델이 모르는 값으로 무시 — extra 허용 여부 확인할 것).
+  · 되돌리는 법: 병합 전이면 브랜치 버림. 병합·배포 뒤에는 git revert -m 1 후 재배포(DB 마이그레이션 없음. 저장 조건의 fresh_* 키는 되돌린 모델이 무시함 — Conditions 는 extra 기본값(ignore), 2026-11-22 확인).
 브랜치 feat/festival-at-end (2026-11-22, 70차로 병합·배포됨 — 사용자 '저녁 축제를 코스 끝에' → (나) '맞는 조합이 없을 때만 예전처럼')
   · 무엇을: 개막이 코스 시작보다 60분(festival_time.MAX_WAIT) 넘게 늦어 맨 앞에 못 두던 축제(late_opening)를, 장소를 먼저 돈 뒤
     마지막 장소 → 행사장으로 돌아와 운영 시간에 맞춰 마지막에 둠(plan['festival_visit'].position='last'). 귀가는 행사장에서 출발.

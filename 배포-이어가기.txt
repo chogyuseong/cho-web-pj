@@ -7,7 +7,13 @@
 
 ★ 지금 상태 (2026-11-22 기준)
 ----------------------------------------------------------------------
-운영에 올라간 것: 커밋 309a8ac(main, 병합 = feat/action-card), Worker 버전 3f116ee0-327f-4a0d-9952-4665e9607a2d (일흔두 번째 배포, 2026-11-22)
+운영에 올라간 것: 커밋 92cb9eb(main, 병합 = fix/followup-wording), Worker 버전 e73a4f95-3d9c-4b2f-9332-7ff7f8f591a8 (일흔세 번째 배포, 2026-11-22)
+  · 사용자 '진행해'. 브랜치 head 5724aaf CI Run 45003938721 5개 성공 → main 에 --no-ff 병합·push → npm run test:security 25 통과 → wrangler deploy(이 Mac, 정적 파일 action-card.js).
+  · 운영 확인: /api/status 200(Server-Timing 있음), /static/action-card.js 에 actionCardStorable 있음, /api/explore?region=제주 ready 24곳.
+    '새로운 곳' 문장·기록 읽기(서버)는 컨테이너가 바뀐 뒤 반영 — 운영 코스로 확인하지 않음. 내용은 아래 브랜치 fix/followup-wording 기록.
+  · 참고: 이 배포부터 저장소 최상위에 git 이 무시하는 .superpowers/(작업용 worktree·검토 메모)가 있을 수 있음 — .dockerignore 가 datemate 앱·자료·정적 파일만 넣어 이미지에 안 들어감.
+  · 되돌리는 법: git revert -m 1 92cb9eb 후 재배포.
+이전 운영(72차): 커밋 309a8ac(main, 병합 = feat/action-card), Worker 버전 3f116ee0-327f-4a0d-9952-4665e9607a2d (일흔두 번째 배포, 2026-11-22)
   · 사용자 '진행해'. 브랜치 head cbfb54e CI Run 45000168860 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push →
     npm run test:security 25 통과 → wrangler deploy(이 Mac. 정적 파일 4개: action-card.js·plan-detail.js·results.css·index.html).
   · 운영 확인: /api/status 200(Server-Timing 있음), 첫 화면에 action-card.js?v=e2efca42c30a, /static/action-card.js 에 actionCardItems 있음,
@@ -54,7 +60,7 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
-브랜치 fix/followup-wording (2026-11-22, 병합·배포 전 — 사용자 '개발로 남은 것 진행': 71·72차 최종 검토에서 남긴 작은 문제 정리)
+브랜치 fix/followup-wording (2026-11-22, 73차로 병합·배포됨 — 사용자 '개발로 남은 것 진행': 71·72차 최종 검토에서 남긴 작은 문제 정리)
   · 한 곳만 새로운 곳으로: 새로운 곳이 없을 때 문장을 '지금 코스에는 최근 코스에 드물던 종류가 없어요. 이 동네 후보에 없거나 장소를 바꿨을 수 있어요.'로
     (사용자가 직접 바꾼 뒤에도 '동네 후보에서 못 찾음'이라고 하던 것). 다른 모드 코스가 많이 쌓여도 같은 모드 기록을 찾도록 최근 코스를 60개씩 300개까지 읽음.
   · 실행 카드: 저장소가 막히면 '이 브라우저에선 체크 표시가 저장되지 않아요', 예약이 필요한 곳은 '예약하기'만(같은 장소 '예약 확인' 겹침 없앰), 데모 코스는 확인 줄 없음.

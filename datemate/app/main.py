@@ -801,6 +801,8 @@ class TransportInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     default: TransportMode | None = None
     legs: list[LegModeInput] = Field(default_factory=list, max_length=6)
+    # 코스 끝에 둔 저녁 축제로 돌아오는 구간(festival_visit.leg — 구간 번호 밖, app/festival_time.py)의 수단.
+    festival: TransportMode | None = None
 
 
 @app.post("/api/plans/{id}/transport")
@@ -808,13 +810,15 @@ def change_transport(id: str, data: TransportInput, request: Request):
     """구간별 또는 전체 이동 수단을 바꿔 새 버전으로 저장한다. 되돌리기는 /undo."""
     from .leg_modes import Blocked, NoChange, apply_change, prepare_change
 
-    if data.default is None and not data.legs:
+    if data.default is None and not data.legs and data.festival is None:
         raise HTTPException(422, "바꿀 구간이나 이동 수단을 골라 주세요.")
     if len({leg.index for leg in data.legs}) != len(data.legs):
         raise HTTPException(422, "같은 구간을 두 번 골랐어요.")
     _, plan = changeable_plan_row(id, request.state.owner)
     try:
-        prepared = prepare_change(plan, data.default, [(leg.index, leg.mode) for leg in data.legs])
+        prepared = prepare_change(
+            plan, data.default, [(leg.index, leg.mode) for leg in data.legs], data.festival
+        )
     except NoChange as exc:
         raise HTTPException(422, str(exc))
     except ValueError as exc:

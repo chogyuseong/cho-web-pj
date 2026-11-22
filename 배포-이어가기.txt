@@ -71,7 +71,7 @@
     ② 장소 5곳 + 귀가 + 축제 = 구간 7개면 조건 검사(leg_modes 최대 6)가 영어 오류를 냄 → 최대 7 ③ 가운데 장소를 바꾸면 축제 구간 예외가 지워짐 → 남김(app/plan_changes.save_change)
     ④ 차 위치 안내(car_position_notes)가 축제 구간을 모름 → 행사장을 거쳐 따라감.
   · 남긴 것(작음): 축제 구간을 자동차로 바꿨을 때 길찾기 조회 실패·구간 이동 시간 초과 경고가 이 구간엔 안 나옴, 전체 수단 고르기 단추의 '지금 수단' 표시가 축제 구간을 안 봄.
-  · 검증: tests/test_festival_leg.py 13개(고치기 전 실패 확인), 관련 leg_modes·축제 테스트 64 통과, 이 Mac SQLite 전체(검토 수정 전 1307 통과·1 건너뜀, 수정 후 결과는 아래 줄),
+  · 검증: tests/test_festival_leg.py 13개(고치기 전 실패 확인), 관련 leg_modes·축제 테스트 64 통과, 이 Mac SQLite 전체(검토 수정 전 1307 통과·1 건너뜀, 수정 후 1311 통과·1 건너뜀·실패 0, Chrome),
     축제 칸 스크린샷 확인. PostgreSQL 은 CI 로. 작업은 git worktree(.superpowers/wt/festival-leg, git 무시)에서 했음.
   · 되돌리는 법: 병합 전이면 브랜치 버림, 병합·배포 뒤에는 git revert -m 1 후 재배포(DB 마이그레이션 없음. 저장된 코스의 (…, 'festival') 수단 예외는 되돌린 코드도 planner 가 읽음 — leg_modes 7개짜리 조건은 되돌린 모델(최대 6)이 거부하니 그런 코스는 다시 열 때 오류 가능 — 드묾).
 브랜치 fix/followup-wording (2026-11-22, 73차로 병합·배포됨 — 사용자 '개발로 남은 것 진행': 71·72차 최종 검토에서 남긴 작은 문제 정리)

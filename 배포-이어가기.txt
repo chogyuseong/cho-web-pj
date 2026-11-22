@@ -33,6 +33,25 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
+브랜치 feat/festival-at-end (2026-11-22, 병합·배포 전 — 사용자 '저녁 축제를 코스 끝에' → (나) '맞는 조합이 없을 때만 예전처럼')
+  · 무엇을: 개막이 코스 시작보다 60분(festival_time.MAX_WAIT) 넘게 늦어 맨 앞에 못 두던 축제(late_opening)를, 장소를 먼저 돈 뒤
+    마지막 장소 → 행사장으로 돌아와 운영 시간에 맞춰 마지막에 둠(plan['festival_visit'].position='last'). 귀가는 행사장에서 출발.
+    예(테스트): 16:00~22:00 코스, 축제 17:30~22:00 → 장소 2곳 16:09~17:12, 행사장으로 도보 7분, 11분 기다려 17:30~18:30 축제, 귀가 17분 18:47.
+  · 설계: 돌아오는 구간은 plan['legs'] 에 넣지 않고 festival_visit.leg 에만 둠(minutes·mode·walking·status·source·buffer_minutes·cost 만 — 장소 이름·링크·경로 모양 없음).
+    legs 는 '구간 i = 장소 i 도착, 그 뒤 귀가'라는 약속을 주차·구간별 수단·지각 확인·지도·현장 일정 등 20여 곳이 쓰기 때문. 비용 표에는 '마지막 장소 → 축제 행사장' 교통 줄로 들어감.
+    행사장에 닿은 뒤 60분 넘게 기다리거나 운영 종료·코스 종료(귀가 포함)를 넘기는 조합은 축제 없이 예전처럼 끝냄(조합을 버리지 않음).
+    planner.prefer_festival: recommend_strict 가 고를 때 축제를 넣은 조합이 하나라도 있으면 그것만 남김(그래서 추천 수가 줄 수 있음).
+  · 구현 위치: app/festival_time.py(evening_window·last_slot·visit_record(back)·explain(visit)), app/planner.py(evaluate 끝·prefer_festival),
+    app/delay_check.py(축제 줄, kind='festival'), app/sharing.py(공유에 position 추가 — 'first'/'last'), condition_audit·recommendation_summary(문장),
+    static/plan-detail.js(마지막 장소 뒤·귀가 앞 블록 + 행사장으로 가는 구간 한 줄), day-of.js(현장 일정·마지막 출발 안내 = 축제 행사장 기준),
+    plan-results.js(카드 '축제로 마무리하는 코스'), shared.js·shared.css(공유 화면 장소 뒤), delay-check.js, datemate/README.md 축제 행.
+  · 하지 않은 것: 축제를 코스 중간에 두기, 돌아오는 구간의 지도 선·수단 바꾸기(기본 수단으로만, 키 (마지막 장소 id,'festival') 예외는 화면에 없음),
+    빔 탐색 단계에서 축제 시각에 맞는 조합을 앞세우기(마지막 평가에서만 봄 — 60개 빔 안에 맞는 조합이 없으면 예전 코스), 실제 키로 저녁 축제 표본 확인.
+  · 검증: tests/test_festival_fixed_time.py 새 8개 + test_festival_restore.py 공유 화면 1개(고치기 전 8개 실패 확인), 기존 공유 응답 검사에 position 'first' 추가.
+    이 Mac(2026-11-22, datemate/.venv 새로 만듦, Edge 없어 DATEMATE_BROWSER_CHANNEL=chrome) SQLite 전체 1269 통과·1 건너뜀·실패 0(12분),
+    format_sources --check 통과, 상세 화면 스크린샷 확인. PostgreSQL 은 로컬에서 안 돌림 — CI 결과는 병합할 때 이 줄에 적을 것.
+  · 되돌리는 법: 병합 전이면 브랜치 버림. 병합·배포 뒤에는 병합 커밋 git revert -m 1 후 재배포(DB 마이그레이션 없음. 저장된 코스의 festival_visit.position='last'·leg 는
+    되돌린 코드가 맨 앞 축제로 그릴 수 있음 — 다시 열면(evaluate) 사라짐).
 브랜치 feat/share-festival-visit (2026-11-21, 69차로 병합·배포됨 — 사용자 결정 '공유 화면에 축제 이름과 방문 시각만')
   · 무엇을: 축제를 운영 시간에 맞춰 고정한 코스(plan['festival_visit'])의 공유 링크 화면에, 장소 일정 앞에 '축제 이름 · 시작~끝 시각' 구간을 보여 줌.
     예: '점검 등불축제 · 11:00~12:00' + '축제를 먼저 들른 뒤 아래 장소로 이동해요. 개최·운영 시간은 방문 전 주최 측 안내를 확인해 주세요.'
@@ -1747,7 +1766,7 @@ Copy-Item .env.example .env
 2026-11-21 대조: 아래 항목을 코드·git 기록과 맞춰 봤습니다. [완료]·[전제 바뀜] 은 처리한 커밋이나 까닭을 적었고, 표시 없는 항목은 아직 남은 것입니다.
   (64차 직후 이 목록만 보고 팝업 지도 '고칠 후보'를 다음 작업으로 골랐다가 11-15 에 모두 끝난 것을 알게 되어 정리함.)
   지금 개발로 남은 것: (먼 동네의 요청 활동 0곳은 ② 안내로 처리 — feat/missing-kind-nearest-hint) 구조 분석 제안 가운데 지각 복구(대체 장소)·실행 카드·한 곳만 낯설게
-  (축제 참석 시간 고정은 feat/festival-fixed-time 로 68차 배포, 공유 링크의 축제 이름·방문 시각은 feat/share-festival-visit 로 69차 배포 — 맨 위 ★. 남은 것: 저녁 축제를 코스 끝에 두기),
+  (축제 참석 시간 고정은 feat/festival-fixed-time 로 68차 배포, 공유 링크의 축제 이름·방문 시각은 feat/share-festival-visit 로 69차 배포, 저녁 축제를 코스 끝에 두기는 feat/festival-at-end 에 구현·병합 대기 — 맨 위 ★),
   운영 대시보드 Container logs 에서 recommendation_timing 이 실제로 보이는지 확인(65차에서 출력은 고침). 나머지는 휴대폰 실기기 확인과 '직접 해야 하는 일'.
 
 팝업스토어 글 탐색 (열세 번째 배포로 올라감, 확인한 것은 맨 위 ★)
@@ -1842,7 +1861,7 @@ Copy-Item .env.example .env
   53차 1add966 에서 '아직 안 정했어요' 기본값)이 있습니다 — 다만 추천 '조건'을 두 사람이 맞추는 단계는 아닙니다.
   아직 없는 것: 확인할 것을 순서로 바꾸는 실행 카드(53차의 '당일 도구' static/day-of.js 가 일부 겹침), 한 곳만 낯설게.
   [완료, 68차 배포] 축제 참석 시간 고정: feat/festival-fixed-time(맨 위 ★). 운영 시간이 맞으면 축제를 일정 맨 앞에 고정, 아니면 조건 확인 안내.
-    남은 것: 저녁 축제(개막이 코스 시작보다 60분 넘게 늦음)를 코스 끝에 두기(행사장으로 돌아오는 구간 필요).
+    [구현함, 병합 대기] 저녁 축제(개막이 코스 시작보다 60분 넘게 늦음)를 코스 끝에 두기: feat/festival-at-end(맨 위 ★).
     [완료, 69차 배포] 공유 링크 표시: feat/share-festival-visit — 축제 이름·방문 시각만 싣고 좌표·행사장·운영 시간 원문은 비공개 유지.
 
 

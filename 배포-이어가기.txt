@@ -7,6 +7,9 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
+검토 대기 브랜치: feat/festival-middle (낮 축제를 코스 중간 두 장소 사이에 두기, 커밋 2cbdf75·2a95897, CI Run 45044996194 5개 성공). main 병합·배포 전 —
+  자세한 기록·남은 위험·되돌리기 영향은 그 브랜치의 이 문서 맨 앞 브랜치 기록. 다음 세션에서 검토 → main 에 --no-ff 병합 → test:security → 사용자가 ! npx wrangler deploy
+  (wrangler deploy 는 Claude Code 자동 권한 검사가 막음. Docker Desktop 먼저 실행: %LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe).
 운영에 올라간 것: 커밋 748c343(main, 병합 = feat/delay-recovery), Worker 버전 90c0a686-463d-4721-8793-d102b02589ab (일흔여섯 번째 배포, 2026-11-23)
   · 사용자 '모든 권한, 최대한 완성도 있게'. 브랜치 head a88b08c CI Run 45032368633·45034354401 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push →
     npm run test:security 25 통과 → wrangler deploy 는 Claude Code 자동 권한 검사가 막아 사용자가 ! npx wrangler deploy 로 직접 실행(Windows PC, Docker Desktop.

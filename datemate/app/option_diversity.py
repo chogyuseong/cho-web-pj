@@ -149,8 +149,8 @@ def travel_basis(plan):
 def fit_key(plan,c):
     from .request_intent import plan_penalty
     from .quality import meal_penalty
-    from .fresh_place import fresh_penalty
-    return (plan_penalty(plan,c),meal_penalty(plan,c),fresh_penalty(plan,c),plan.get('penalty',0))
+    # '새로운 곳'(app/fresh_place.py) 점수는 넣지 않는다: 이 키는 첫 안보다 나쁜 안을 버리는 데 쓰여, 넣으면 안이 줄어든다.
+    return (plan_penalty(plan,c),meal_penalty(plan,c),plan.get('penalty',0))
 
 
 def forbidden(plan,c):

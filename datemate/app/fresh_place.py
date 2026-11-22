@@ -1,8 +1,10 @@
 """한 곳만 새로운 곳으로: 켠 사람(conditions.fresh_one)의 코스에서 장소 한 곳을 그 사람에게 익숙하지 않은 종류로 채운다.
 
 - 종류: 3안 선택과 같은 묶음(option_diversity.place_group — 식사·카페·보기·걷기·하기·쉬기). '기타'는 세지 않는다.
-- 익숙한 종류: 이 브라우저(owner)의 최근 새 추천 코스(parent 없음) RECENT 개 가운데 3분의 1 이상에 나온 묶음.
-  저장 코스가 MIN_HISTORY 개보다 적으면 흔한 데이트 구성(DEFAULT_FAMILIAR)으로 본다. 로그인이 없어 '간 곳'이 아니라 '최근 추천받은 곳'이다.
+- 익숙한 종류: 이 브라우저(owner)의 최근 추천 RECENT 번 가운데 3분의 1 이상에 나온 묶음. 추천 한 번은 같은 recommendation_group_id 로
+  저장된 안들이고 그 첫 안(조건에 가장 맞는 대표 안)만 센다 — 3안은 일부러 서로 다르게 고른 것이라 다 세면 한 번 만에 거의 모든 종류가
+  익숙해진다. 그룹 id 가 없는 예전 코스는 한 코스를 한 번으로 센다. 바꾼 코스(parent 있음)는 세지 않는다.
+  추천이 MIN_HISTORY 번보다 적으면 흔한 데이트 구성(DEFAULT_FAMILIAR)으로 본다. 로그인이 없어 '간 곳'이 아니라 '최근 추천받은 곳'이다.
 - 추천을 시작할 때(recommendation_service.generate) 서버가 한 번 계산해 조건(fresh_familiar·fresh_basis)에 담는다.
   화면이 보낸 값은 버린다. 저장된 코스는 그 값을 그대로 가지고 있어 다시 열거나 장소를 바꿔도 같은 기준이다.
 - 하지 않는 것: 후보를 거르거나 조합을 버리기(정렬 키만 더한다), 새 외부 호출, 공유 화면에 싣기.
@@ -13,8 +15,10 @@ import math
 
 from . import store
 
-RECENT = 15
-MIN_HISTORY = 3
+RECENT = 5
+MIN_HISTORY = 1
+# 같은 모드의 추천 RECENT 번을 찾으려고 읽는 최근 코스 수(추천 한 번에 3안이 저장된다).
+SCAN = 60
 DEFAULT_FAMILIAR = ['식사', '카페']
 
 
@@ -25,16 +29,19 @@ def familiar_groups(owner, mode):
     with store.connect() as db:
         rows = db.execute(
             'SELECT payload FROM plans WHERE owner=? AND parent IS NULL ORDER BY created DESC LIMIT ?',
-            (owner, RECENT * 4),
+            (owner, SCAN),
         ).fetchall()
-    seen = []
+    # 최신순으로 읽으므로 같은 추천의 안은 마지막에 본 것이 먼저 저장된 첫 안이다.
+    runs = {}
     for row in rows:
         plan = json.loads(row['payload'])
         if (plan.get('conditions') or {}).get('mode') != mode:
             continue
-        seen.append({place_group(p) for p in plan.get('places') or []})
-        if len(seen) == RECENT:
-            break
+        key = plan.get('recommendation_group_id') or plan.get('id')
+        if key not in runs and len(runs) == RECENT:
+            continue
+        runs[key] = {place_group(p) for p in plan.get('places') or []}
+    seen = list(runs.values())
     if len(seen) < MIN_HISTORY:
         return list(DEFAULT_FAMILIAR), 'default'
     need = math.ceil(len(seen) / 3)

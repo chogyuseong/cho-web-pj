@@ -222,11 +222,12 @@ def recommend_strict(c,stage='planner'):
         from .preferences import fit_score
         next_beam.sort(key=lambda p:-fit_score(p,c))
         if meal_due(c) and position<c.count-1:next_beam.sort(key=lambda p:max(0,sum(is_meal(x) for x in p['places'])-1))
-        if position==c.count-1:next_beam.sort(key=lambda p:meal_penalty(p,c))
         # 한 곳만 새로운 곳으로(app/fresh_place.py): 마지막 단계에서 새로운 종류가 정확히 1곳인 조합을 앞세운다(켜지 않으면 0).
+        # 식사 배치 정렬보다 먼저 해서 식사 배치가 더 강한 키로 남는다(tier 와 같은 순서).
         from .fresh_place import fresh_penalty
         final_step=position==c.count-1
         if final_step:next_beam.sort(key=lambda p:fresh_penalty(p,c))
+        if position==c.count-1:next_beam.sort(key=lambda p:meal_penalty(p,c))
         from .request_intent import plan_penalty
         next_beam.sort(key=lambda p:plan_penalty(p,c))
         from .option_diversity import composition_beam

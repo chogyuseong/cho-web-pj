@@ -36,20 +36,34 @@ def test_familiar_groups_default_without_history():
         assert familiar_groups(owner(), 'demo') == (['식사', '카페'], 'default')
 
 
-def test_familiar_groups_count_recent_fifteen():
+def run(who, *options, mode='demo'):
+    """추천 한 번(같은 recommendation_group_id)에 저장되는 안들. 첫 안이 그 추천의 대표다."""
+    group = uuid.uuid4().hex
+    for groups in options:
+        store.save_plan(dict(course(*groups, mode=mode), recommendation_group_id=group), who)
+
+
+def test_familiar_groups_count_recent_runs():
     with TestClient(app):
         who = owner()
-        # 가장 오래된 코스에만 '하기'. 최근 15개: 모두 카페, 6개에 보기(≥5), 4개에 걷기(<5).
-        store.save_plan(course('카페', '하기', '하기'), who)
-        for i in range(15):
-            store.save_plan(course('카페', '보기' if i < 6 else '쉬기' if i < 11 else '걷기'), who)
+        # 가장 오래된 추천에만 '하기'. 최근 5번(RECENT): 첫 안이 모두 카페, 2번에 보기(≥2), 1번에 걷기(<2).
+        run(who, ('카페', '하기', '하기'))
+        for i in range(5):
+            run(who, ('카페', '보기' if i < 2 else '쉬기' if i < 4 else '걷기'), ('하기', '하기'))
         # 바꾼 코스(parent 있음)와 다른 모드 코스는 세지 않는다.
         store.save_plan(course('하기', '하기'), who, parent='x')
-        store.save_plan(course('하기', '하기', mode='real'), who)
+        run(who, ('하기', '하기'), mode='real')
         groups, basis = familiar_groups(who, 'demo')
         assert basis == 'history'
-        assert '카페' in groups and '보기' in groups and '쉬기' in groups
-        assert '걷기' not in groups and '하기' not in groups
+        assert groups == ['카페', '보기', '쉬기']
+
+
+def test_one_run_counts_its_first_option_not_every_option():
+    """한 번 추천에 일부러 서로 다르게 고른 3안이 저장된다. 그 셋을 다 세면 거의 모든 종류가 익숙해진다(검토 지적)."""
+    with TestClient(app):
+        who = owner()
+        run(who, ('걷기', '카페', '보기'), ('쉬기', '하기', '하기'), ('카페', '걷기', '쉬기'))
+        assert familiar_groups(who, 'demo') == (['카페', '보기', '걷기'], 'history')
 
 
 def test_screen_value_is_replaced():
@@ -80,9 +94,11 @@ def on(familiar, basis='history', **extra):
 
 
 def demo(*groups):
-    """데모 장소에서 묶음 순서대로 한 곳씩."""
-    pool = places('demo')
-    return [next(p for p in pool if place_group(p) == g) for g in groups]
+    """데모 장소에서 묶음 순서대로 한 곳씩. 같은 묶음이 또 나오면 그 묶음의 다음 장소."""
+    pool, used = places('demo'), []
+    for g in groups:
+        used.append(next(p for p in pool if place_group(p) == g and p not in used))
+    return used
 
 
 def audited(c, *groups):
@@ -142,6 +158,17 @@ def test_reopen_keeps_the_same_judgement():
     plan = audited(on(['카페', '하기']), '카페', '보기', '하기')
     again = audit_plan(dict(plan), Conditions.model_validate(plan['conditions']))
     assert again['fresh_place'] == plan['fresh_place']
+
+
+def test_selection_keeps_three_options_when_on():
+    """3안 선택의 '요청 조건과 덜 맞음' 거르기에 새로운 곳 점수를 넣으면, 첫 안만 새로운 곳이 1곳일 때 나머지가 모두 빠졌다(검토 지적).
+    새로운 곳은 정렬만 바꾸고 안을 버리지 않는다."""
+    from app.option_diversity import select_options
+    familiar = ['카페', '걷기']
+    built = lambda c: [audited(c, *g) for g in (('카페', '걷기', '보기'), ('카페', '걷기', '카페'), ('걷기', '카페', '걷기'), ('카페', '보기', '하기'))]
+    off = select_options(built(conditions()), conditions())
+    fresh = select_options(built(on(familiar)), on(familiar))
+    assert len(off) == 3 and len(fresh) == len(off)
 
 
 def test_demo_recommendation_puts_one_fresh_place():

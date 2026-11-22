@@ -7,7 +7,14 @@
 
 ★ 지금 상태 (2026-11-22 기준)
 ----------------------------------------------------------------------
-운영에 올라간 것: 커밋 5375ff3(main, 병합 = feat/festival-leg), Worker 버전 c089a455-2203-4def-a09c-4386aa23e2b9 (일흔네 번째 배포, 2026-11-22)
+운영에 올라간 것: 커밋 cd03e49(main, 병합 = fix/festival-leg-followup), Worker 버전 500c941b-10bd-433b-a387-b3766c21a425 (일흔다섯 번째 배포, 2026-11-22)
+  · 사용자 '진행하고 바로 다음작업'. 브랜치 head b52f13f CI Run 45021599314 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push → npm run test:security 25 통과 →
+    wrangler deploy(Windows PC. Docker Desktop 이 꺼져 있어 첫 시도 실패 → %LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe 실행 후 성공.
+    정적 파일 14개 올라감 — 바뀐 것은 plan-actions.js 하나, 나머지는 이 PC 의 CRLF 로 해시가 달라진 것(68차와 같음, 동작 무해)).
+  · 운영 확인: /api/status 200(Server-Timing 있음), /static/plan-actions.js 에 축제 구간 세기 코드 있음, /api/explore?region=제주 ready 24곳.
+    경고 문장(서버)은 컨테이너가 바뀐 뒤 반영 — 운영 코스로 확인하지 않음. 내용은 아래 브랜치 fix/festival-leg-followup 기록.
+  · 되돌리는 법: git revert -m 1 cd03e49 후 재배포(DB 마이그레이션 없음, 저장된 route_fallback 키는 되돌린 코드가 무시).
+이전 운영(74차): 커밋 5375ff3(main, 병합 = feat/festival-leg), Worker 버전 c089a455-2203-4def-a09c-4386aa23e2b9 (일흔네 번째 배포, 2026-11-22)
   · 사용자 '진행해'. 브랜치 head a9a0740 CI Run 45007089881 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push → npm run test:security 25 통과 →
     wrangler deploy(이 Mac. 정적 파일 3개: maps.js·place-dialog.js·plan-detail.js).
   · 운영 확인: /api/status 200(Server-Timing 있음), /api/explore?region=제주 ready 24곳, /api/festivals(서울, 11-22~12-06) available 18건.
@@ -67,7 +74,7 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
-브랜치 fix/festival-leg-followup (2026-11-22, 병합·배포 전 — 74차 feat/festival-leg 의 '남긴 것(작음)' 두 가지)
+브랜치 fix/festival-leg-followup (2026-11-22, 75차로 병합·배포됨, CI Run 45021599314 5개 성공 —74차 feat/festival-leg 의 '남긴 것(작음)' 두 가지)
   · 축제 구간 경고: 저녁 축제(코스 끝)의 돌아오는 구간(festival_visit.leg)도 수단을 바꾼 뒤 다른 구간과 같은 기준으로
     '… → (축제) 행사장 이동이 N분으로 요청한 M분보다 길어요'·'자동차 길찾기 조회에 실패해 이 구간은 추정 시간이에요. (마지막 장소 → … 행사장)'를 냄
     (app/leg_modes.festival_leg·describe, route_verification 문장도 이 구간의 조회 실패를 셈). 조회 실패를 알 수 있게 app/festival_time.visit_record 가
@@ -1858,7 +1865,7 @@ Copy-Item .env.example .env
 2026-11-21 대조: 아래 항목을 코드·git 기록과 맞춰 봤습니다. [완료]·[전제 바뀜] 은 처리한 커밋이나 까닭을 적었고, 표시 없는 항목은 아직 남은 것입니다.
   (64차 직후 이 목록만 보고 팝업 지도 '고칠 후보'를 다음 작업으로 골랐다가 11-15 에 모두 끝난 것을 알게 되어 정리함.)
   지금 개발로 남은 것: (먼 동네의 요청 활동 0곳은 ② 안내로 처리 — feat/missing-kind-nearest-hint) 구조 분석 제안 가운데 지각 복구(대체 장소)(실행 카드는 feat/action-card 로 72차 배포, 한 곳만 낯설게는 feat/fresh-place 로 71차 배포 — 맨 위 ★)
-  (축제 참석 시간 고정은 feat/festival-fixed-time 로 68차 배포, 공유 링크의 축제 이름·방문 시각은 feat/share-festival-visit 로 69차 배포, 저녁 축제를 코스 끝에 두기는 feat/festival-at-end 로 70차 배포, 그 돌아오는 구간의 지도 선·수단 바꾸기는 feat/festival-leg 로 74차 배포 — 맨 위 ★. 축제를 코스 중간에 두기는 아직 없음),
+  (축제 참석 시간 고정은 feat/festival-fixed-time 로 68차 배포, 공유 링크의 축제 이름·방문 시각은 feat/share-festival-visit 로 69차 배포, 저녁 축제를 코스 끝에 두기는 feat/festival-at-end 로 70차 배포, 그 돌아오는 구간의 지도 선·수단 바꾸기는 feat/festival-leg 로 74차 배포, 그 구간 경고·지금 수단 표시는 fix/festival-leg-followup 로 75차 배포 — 맨 위 ★. 축제를 코스 중간에 두기는 아직 없음),
   운영 대시보드 Container logs 에서 recommendation_timing 이 실제로 보이는지 확인(65차에서 출력은 고침). 나머지는 휴대폰 실기기 확인과 '직접 해야 하는 일'.
 
 팝업스토어 글 탐색 (열세 번째 배포로 올라감, 확인한 것은 맨 위 ★)

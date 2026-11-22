@@ -13,11 +13,40 @@ function costStatusLabel(c) {
 // 고정한 축제 방문 한 칸. 장소 칸(article.stop)이 아니다: 장소 순번·지도 표시·장소 단추(maps.js·place-dialog.js 는 .stop 만 센다)에 끼지 않는다.
 // 요금은 주최 측 자유 글이라 비용에 넣지 않는다(festivals.js 와 같은 원칙).
 // 코스 끝에 둔 저녁 축제(position 'last')는 마지막 장소에서 행사장으로 돌아오는 구간(visit.leg)을 같이 적는다. 그 구간은 plan.legs 에 없다.
+// 마지막 장소 → 축제 행사장 한 줄과 [수단 바꾸기]. 이 구간은 plan.legs 밖이라 구간 번호 대신 요청의 festival 항목으로 바꾼다(app/leg_modes.festival_pair).
+function festivalLegLine(plan, visit) {
+  const from = plan.places.at(-1)?.name || '마지막 장소',
+    line = node('p', undefined, 'hint festival-visit-leg');
+  line.append(node('span', `${from} → 축제 행사장 · ${legModeLabel(plan, visit.leg)}`));
+  if (plan.can_edit === false || planHistoryExpired(plan)) return line;
+  const id = 'transport-chooser-festival',
+    toggle = button('수단 바꾸기', () => {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      if (open) {
+        document.getElementById(id)?.remove();
+        return;
+      }
+      const chooser = transportChooser(`${from} → 축제 행사장 이동 수단`, legMode(plan, visit.leg), mode => ({
+        festival: mode
+      }), 'festival');
+      chooser.id = id;
+      line.after(chooser);
+      chooser.querySelector('[aria-pressed="true"]')?.focus();
+    }, 'secondary route-mode-toggle');
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-controls', id);
+  toggle.setAttribute('aria-label', `${from} → 축제 행사장 이동 수단 바꾸기`);
+  toggle.dataset.transportToggle = 'festival';
+  line.append(toggle);
+  return line;
+}
+
 function festivalVisitBlock(plan, visit) {
   const last = visit.position === 'last';
   const block = node('section', undefined, 'festival-visit');
   block.setAttribute('aria-label', last ? '운영 시간에 맞춰 코스 끝에 둔 축제 방문' : '운영 시간에 맞춰 고정한 축제 방문');
-  if (last && visit.leg && Number.isFinite(visit.leg.minutes)) block.append(node('p', `${plan.places.at(-1)?.name || '마지막 장소'} → 축제 행사장 · ${legModeLabel(plan, visit.leg)}`, 'hint festival-visit-leg'));
+  if (last && visit.leg && Number.isFinite(visit.leg.minutes)) block.append(festivalLegLine(plan, visit));
   const wait = visit.wait ? ` · ${last ? '행사장에 닿은 뒤 ' : ''}시작까지 ${visit.wait}분 기다림` : '';
   const after = last ? '마지막 장소를 둘러본 뒤 행사장으로 돌아와 축제로 하루를 마무리해요.' : '축제가 끝나면 행사장에서 아래 첫 장소로 이동해요.';
   block.append(node('strong', `${visit.arrival}~${visit.departure} 축제 · ${visit.title}`, 'festival-visit-title'),

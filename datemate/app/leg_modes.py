@@ -38,18 +38,30 @@ def endpoints(plan):
     return pairs
 
 
+def festival_pair(plan):
+    """코스 끝에 둔 저녁 축제의 돌아오는 구간 키 (마지막 장소 id, 'festival'). 그 구간은 plan['legs'] 밖(festival_visit.leg)에 있다
+    (app/festival_time.py). 저녁 축제가 없으면 None."""
+    visit = plan.get('festival_visit')
+    if isinstance(visit, dict) and visit.get('position') == 'last' and plan.get('places'):
+        return plan['places'][-1]['id'], 'festival'
+    return None
+
+
 def leg_mode(plan, index):
     leg = plan['legs'][index]
     return leg.get('mode') or (plan.get('conditions') or {}).get('transport') or 'walk'
 
 
-def next_leg_modes(plan, default=None, legs=()):
+def next_leg_modes(plan, default=None, legs=(), festival=None):
     """요청을 적용한 뒤의 (기본 수단, leg_modes 목록).
 
     default가 있으면 기본 수단을 바꾸고 예외를 지운다. 기본 수단과 같은 수단으로 바꾼 구간은 예외에서 지운다.
-    지금 코스에 없는 구간(장소를 바꿔 끊긴 예외)은 남기지 않는다."""
+    지금 코스에 없는 구간(장소를 바꿔 끊긴 예외)은 남기지 않는다. festival 은 저녁 축제로 돌아오는 구간의 수단(festival_pair)."""
     c = Conditions.model_validate(plan['conditions'])
     pairs = endpoints(plan)
+    extra = festival_pair(plan)
+    if extra:
+        pairs = pairs + [extra]
     current = set(pairs)
     transport = default or c.transport
     overrides = {} if default else {(m.from_, m.to): m.mode for m in c.leg_modes if (m.from_, m.to) in current}
@@ -59,6 +71,11 @@ def next_leg_modes(plan, default=None, legs=()):
             overrides.pop(key, None)
         else:
             overrides[key] = mode
+    if festival and extra:
+        if festival == transport:
+            overrides.pop(extra, None)
+        else:
+            overrides[extra] = festival
     ordered = [dict(zip(('from', 'to'), key), mode=overrides[key]) for key in pairs if key in overrides]
     return transport, ordered
 
@@ -68,6 +85,9 @@ def place_names(plan):
     names = {'origin': (c.get('origin') or {}).get('name') or '출발지',
              'home': (c.get('home') or {}).get('name') or '귀가지'}
     names.update({p['id']: p['name'] for p in plan['places']})
+    visit = plan.get('festival_visit')
+    if isinstance(visit, dict) and visit.get('title'):
+        names['festival'] = visit['title'] + ' 행사장'
     return names
 
 
@@ -77,15 +97,22 @@ def car_position_notes(plan):
     자동차 구간의 출발지가 차가 있는 곳과 다르거나, 차를 둔 채 다른 수단으로 귀가하면 안내한다.
     돌아가는 시간·주차 시간·택시 요금은 만들지 않는다. 아무것도 막지 않는다."""
     legs = plan.get('legs') or []
-    if not legs or not any(leg_mode(plan, i) == 'car' for i in range(len(legs))):
+    # (출발, 도착, 수단) 순서. 코스 끝 저녁 축제면 마지막 장소 → 행사장(festival_visit.leg) 뒤에 행사장에서 귀가한다.
+    steps = [(start, end, leg_mode(plan, i)) for i, (start, end) in enumerate(endpoints(plan)[:len(legs)])]
+    extra = festival_pair(plan)
+    if extra:
+        mode = plan['festival_visit'].get('leg', {}).get('mode') or (plan.get('conditions') or {}).get('transport') or 'walk'
+        home = steps[len(plan['places'])] if len(steps) > len(plan['places']) else None
+        steps = steps[:len(plan['places'])] + [(extra[0], 'festival', mode)] + ([('festival', 'home', home[2])] if home else [])
+    if not any(mode == 'car' for _, _, mode in steps):
         return []
     names = place_names(plan)
-    pairs = endpoints(plan)
+    # 행사장 = 출발지 좌표(app/festival_time.py). 차 위치를 비교할 때는 같은 곳으로 본다.
+    same = lambda a, b: {a, b} <= {'origin', 'festival'} or a == b
     car_at, used, notes = 'origin', False, []
-    for i, (start, end) in enumerate(pairs[:len(legs)]):
-        mode = leg_mode(plan, i)
+    for start, end, mode in steps:
         if mode == 'car':
-            if car_at != start:
+            if not same(car_at, start):
                 place = names.get(car_at, '출발지')
                 target = names.get(end, '')
                 notes.append(
@@ -148,19 +175,27 @@ class Blocked(ValueError):
     pass
 
 
-def prepare_change(plan, default=None, legs=()):
-    """요청을 새 조건과 구간별 전후 수단으로 바꾼다. 아직 계산하지 않는다."""
+def prepare_change(plan, default=None, legs=(), festival=None):
+    """요청을 새 조건과 구간별 전후 수단으로 바꾼다. 아직 계산하지 않는다.
+    festival: 코스 끝 저녁 축제로 돌아오는 구간의 새 수단. 이 구간은 plan['legs'] 밖이라 pairs 끝에 따로 붙인다."""
     pairs = endpoints(plan)
     if len(pairs) != len(plan.get('legs') or []):
         raise ValueError('이 코스의 구간 정보를 확인하지 못했어요. 코스를 다시 열어 주세요.')
     if any(not 0 <= index < len(pairs) for index, _ in legs):
         raise ValueError('없는 구간이에요. 코스를 다시 열어 주세요.')
+    extra = festival_pair(plan)
+    if festival and not extra:
+        raise ValueError('코스 끝에 둔 축제가 없는 코스예요. 코스를 다시 열어 주세요.')
     c = Conditions.model_validate(plan['conditions'])
-    transport, modes = next_leg_modes(plan, default, legs)
+    transport, modes = next_leg_modes(plan, default, legs, festival)
     conditions = Conditions.model_validate(dict(plan['conditions'], transport=transport, leg_modes=modes))
     overrides = {(m['from'], m['to']): m['mode'] for m in modes}
     before = [leg_mode(plan, i) for i in range(len(pairs))]
     after = [overrides.get(key, transport) for key in pairs]
+    if extra:
+        pairs = pairs + [extra]
+        before.append(plan['festival_visit'].get('leg', {}).get('mode') or c.transport)
+        after.append(overrides.get(extra, transport))
     if before == after and transport == c.transport and len(modes) == len(c.leg_modes):
         raise NoChange('이미 그 이동 수단이에요.')
     return dict(conditions=conditions, pairs=pairs, before=before, after=after, default=default,
@@ -183,7 +218,13 @@ def apply_change(plan, prepared):
         checked, error = evaluate(plan['places'], c, soft=True, verify_routes=verify, route_fallback=True, failure=failure)
     if error:
         raise Blocked(blocked_message(failure))
+    # 코스 끝 저녁 축제가 새 수단으로는 운영 시간에 맞지 않으면(개막까지 너무 오래 기다리거나 종료를 넘김) planner 는 축제 없이 끝낸다.
+    # 그대로 저장하면 축제가 말없이 빠지므로 바꾸지 않는다.
+    if festival_pair(plan) and not checked.get('festival_visit'):
+        raise Blocked('이 수단으로는 코스 끝 축제 시간에 맞출 수 없어 바꾸지 않았어요. 축제 개막까지 너무 오래 기다리거나 운영 시간을 넘겨요.')
     updated = copy.deepcopy(plan)
+    # 축제 방문 기록은 다시 계산한 코스를 따른다(남은 옛 기록이 화면·지도·지각 확인에 쓰이지 않게).
+    updated.pop('festival_visit', None)
     reasons = updated.get('reasons')
     updated.update(checked)
     if reasons:

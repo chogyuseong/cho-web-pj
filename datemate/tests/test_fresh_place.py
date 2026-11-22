@@ -159,3 +159,44 @@ def test_off_recommendation_unchanged():
     assert [[p['id'] for p in plan['places']] for plan in first['plans']] == [[p['id'] for p in plan['places']] for plan in again['plans']]
     assert all('fresh_place' not in plan for plan in first['plans'])
     assert not [r for plan in first['plans'] for r in plan['condition_checks'] if r['condition'] == 'fresh_place']
+
+
+# --- 화면 ---
+from test_functional_audit import audit_page  # noqa: E402,F401  (브라우저 고정 장치)
+
+
+def test_form_sends_fresh_one(audit_page):  # noqa: F811
+    page, base, errors = audit_page
+    page.goto(base + '/')
+    page.wait_for_function('typeof updateExperienceValues==="function" && !!document.querySelector("[name=fresh_one]")')
+    # values()(app.js)가 조건을 모을 때 쓰는 부분. 지역을 고르지 않아도 이 칸의 값만 본다.
+    sent = '(()=>{const box=document.querySelector("[name=fresh_one]"),d={};updateExperienceValues(d,new FormData(box.form));return d.fresh_one;})()'
+    box = page.locator('[name=fresh_one]')
+    assert box.count() == 1 and not box.is_checked()
+    assert page.evaluate(sent) is False
+    label = box.locator('xpath=ancestor::label')
+    assert '한 곳은 평소와 다른 새로운 곳으로' in label.text_content()
+    # 세부 설정(선택) 접기 안, 피드백 반영 체크 바로 뒤.
+    assert page.evaluate('document.querySelector("[name=fresh_one]").closest("details.simple-extra-options") !== null')
+    page.evaluate('document.querySelector("[name=fresh_one]").checked=true')
+    assert page.evaluate(sent) is True
+    assert not errors
+
+
+def test_course_screen_tags_the_fresh_place(audit_page):  # noqa: F811
+    page, base, errors = audit_page
+    with TestClient(app) as client:
+        client.get('/api/places?mode=demo')
+        plan = audited(on(['카페', '하기']), '카페', '보기', '하기')
+        saved = store.save_plan(plan, store.owner_of(client.cookies['dm_session']))
+        owner = client.cookies['dm_session']
+    page.route('**/api/festivals?*', lambda route: route.fulfill(json=dict(status='available', festivals=[], message='')))
+    page.context.add_cookies([{'name': 'dm_session', 'value': owner, 'url': base}])
+    page.goto(base + '/?plan=' + saved['id'])
+    page.wait_for_function('(id)=>selected?.id===id', arg=saved['id'])
+    tag = page.locator('#plan-detail .fresh-place-tag')
+    assert tag.count() == 1 and tag.inner_text() == '새로운 곳 · 전시·관람'
+    stop = tag.locator('xpath=ancestor::article[contains(@class,"stop")]')
+    assert stop.locator('.stop-number').inner_text() == '2'
+    assert page.locator('.plan-card', has_text='새로운 곳: ' + plan['places'][1]['name'] + '(전시·관람)').count() >= 1
+    assert not errors

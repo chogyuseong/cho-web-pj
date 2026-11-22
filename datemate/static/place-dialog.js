@@ -19,14 +19,22 @@ function drawMap(p) {
     dx = Math.max(.002, Math.max(...lons) - minLon);
   const coords = points.map(x => located(x) ? [60 + (x.lon - minLon) / dx * 480, 180 - (x.lat - minLat) / dy * 130] : null);
   // 구간마다 수단에 맞는 점선(도보 짧은 점선, 그 밖 긴 점선)으로 잇는다. 개략도라 실제 도로는 그리지 않는다.
-  coords.slice(1).forEach((end, i) => {
-    if (!end || !coords[i]) return;
+  // 구간 목록은 지도와 같다(maps.js planSegments — 저녁 축제면 행사장을 거쳐 귀가).
+  const at = x => located(x) ? [60 + (x.lon - minLon) / dx * 480, 180 - (x.lat - minLat) / dy * 130] : null;
+  planSegments(p).forEach(({
+    from,
+    to,
+    leg
+  }) => {
+    const start = at(from),
+      end = at(to);
+    if (!start || !end) return;
     const path = document.createElementNS(ns, 'polyline');
-    path.setAttribute('points', [coords[i], end].map(x => x.join(',')).join(' '));
+    path.setAttribute('points', [start, end].map(x => x.join(',')).join(' '));
     path.setAttribute('fill', 'none');
     path.setAttribute('stroke', '#b5245e');
     path.setAttribute('stroke-width', '3');
-    path.setAttribute('stroke-dasharray', LINE_DASH.svg[legLineStyle(p, p.legs?.[i]) === 'short' ? 'short' : 'long']);
+    path.setAttribute('stroke-dasharray', LINE_DASH.svg[legLineStyle(p, leg) === 'short' ? 'short' : 'long']);
     svg.append(path);
   });
   coords.forEach((at, i) => {

@@ -92,10 +92,21 @@ function legLineStyle(plan,leg){
   if(plan.conditions.mode==='real'&&mode==='car'&&leg?.status==='api'&&leg.path?.length>1)return 'road';
   return mode==='walk'?'short':'long';
 }
+// 지도에 그릴 구간 {from,to,leg} 목록. 구간 i 는 출발지·장소 순서의 i 번째에서 i+1 번째로 간다.
+// 코스 끝에 둔 저녁 축제(app/festival_time.py)는 마지막 장소에서 행사장(= 출발지 좌표)으로 돌아오는 구간(festival_visit.leg — plan.legs 밖)을 거치고,
+// 귀가는 행사장에서 떠난다. 좌표 없는 점(보관 기간이 지난 장소)에 닿는 구간은 그리는 쪽에서 뺀다.
+function planSegments(plan){
+  const c=plan.conditions||{},places=plan.places||[],legs=plan.legs||[],stops=[c.origin,...places],segments=[];
+  for(let i=0;i<places.length;i++)segments.push({from:stops[i],to:stops[i+1],leg:legs[i]});
+  let last=places.at(-1)||c.origin;
+  if(plan.festival_visit?.position==='last'&&places.length){segments.push({from:last,to:c.origin,leg:plan.festival_visit.leg});last=c.origin;}
+  if(c.return_home&&c.home)segments.push({from:last,to:c.home,leg:legs[places.length]});
+  return segments;
+}
 const LINE_DASH={leaflet:{short:'4 6',long:'14 8'},svg:{short:'4 6',long:'14 8'},naver:{road:'solid',short:'shortdash',long:'longdash'}};
 function mapLegend(plan){
   const styles=new Map();
-  for(const leg of plan.legs||[]){const style=legLineStyle(plan,leg);if(!styles.has(style))styles.set(style,new Set());styles.get(style).add(TRANSPORT_NAMES[legMode(plan,leg)]||'이동');}
+  for(const {leg} of planSegments(plan)){if(!leg)continue;const style=legLineStyle(plan,leg);if(!styles.has(style))styles.set(style,new Set());styles.get(style).add(TRANSPORT_NAMES[legMode(plan,leg)]||'이동');}
   const parts=[];
   if(styles.has('road'))parts.push('실선은 자동차 실제 도로 경로');
   if(styles.has('short'))parts.push('짧은 점선은 '+[...styles.get('short')].join('·'));
@@ -367,12 +378,12 @@ function drawPlanMap(plan){
         });
       };
       let actual=0;
-      for(let i=0;i<points.length-1;i++){
-        const leg=plan.legs[i],style=legLineStyle(plan,leg);
+      for(const {from,to,leg} of planSegments(plan)){
+        const style=legLineStyle(plan,leg);
         // 한쪽 끝의 좌표가 없는 구간(보관 기간이 지난 장소)은 선을 그리지 않는다.
-        if(!located(points[i])||!located(points[i+1]))continue;
+        if(!located(from)||!located(to))continue;
         const isRoad=style==='road';
-        const path=isRoad?leg.path.map(([lon,lat])=>new naver.maps.LatLng(lat,lon)):[coord(points[i]),coord(points[i+1])];
+        const path=isRoad?leg.path.map(([lon,lat])=>new naver.maps.LatLng(lat,lon)):[coord(from),coord(to)];
         if(isRoad){actual++;path.forEach(p=>bounds.extend(p));}
         new naver.maps.Polyline({map,path,strokeColor:isRoad?'#b5245e':'#55606b',strokeWeight:isRoad?5:3,
           strokeOpacity:.9,strokeStyle:LINE_DASH.naver[style]});
@@ -526,10 +537,9 @@ function drawPlanMap(plan){
         map.on('zoomend',drawLeafletStops);
         // 구간마다 수단에 맞는 점선으로 잇는다(공개 지도에는 실제 도로 경로를 그리지 않는다).
         // 이동선은 장소 원 뒤에 그려져 원 가운데를 지나므로, 누름을 받지 않게 해(interactive:false) 원 가운데를 눌러도 장소로 가게 한다.
-        // 구간 i 는 (출발지·장소·귀가지 순서의) i 번째와 i+1 번째 점을 잇는다. 좌표 없는 점(보관 기간이 지난 장소)에 닿는 구간은 그리지 않는다.
-        const ordered=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])];
+        // 구간은 planSegments(저녁 축제면 행사장을 거침). 좌표 없는 점(보관 기간이 지난 장소)에 닿는 구간은 그리지 않는다.
         const hasPoint=point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon);
-        for(let i=0;i<ordered.length-1;i++){if(!hasPoint(ordered[i])||!hasPoint(ordered[i+1]))continue;const style=legLineStyle(plan,plan.legs[i]);L.polyline([[ordered[i].lat,ordered[i].lon],[ordered[i+1].lat,ordered[i+1].lon]],{color:'#55606b',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style,interactive:false}).addTo(map);}
+        for(const {from,to,leg} of planSegments(plan)){if(!hasPoint(from)||!hasPoint(to))continue;const style=legLineStyle(plan,leg);L.polyline([[from.lat,from.lon],[to.lat,to.lon]],{color:'#55606b',weight:3,dashArray:LINE_DASH.leaflet[style==='short'?'short':'long'],className:'route-leg route-leg-'+style,interactive:false}).addTo(map);}
         wrap.updateFestivals=()=>{
           if(disposed||!mapCanvas.isConnected)return;
           clearFestivals();const items=festivalMapItems();

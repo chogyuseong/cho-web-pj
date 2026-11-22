@@ -67,3 +67,33 @@ def test_same_mode_is_no_change():
     with TestClient(app) as client:
         response = change(client, saved(client), festival='walk')
         assert response.status_code == 422 and response.json()['detail'] == '이미 그 이동 수단이에요.'
+
+
+# --- 지도 구간 목록(static/maps.js planSegments) ---
+PLAN = """(extra)=>Object.assign({
+  conditions:{mode:'real',origin:{name:'O',lat:37.5,lon:127},return_home:true,home:{name:'H',lat:37.4,lon:127.1}},
+  places:[{name:'A',lat:37.51,lon:127.01},{name:'B',lat:37.52,lon:127.02}],
+  legs:[{tag:'l0'},{tag:'l1'},{tag:'l2'}]
+},extra)"""
+
+
+def segments(page, extra='{}'):
+    return page.evaluate(f"()=>planSegments(({PLAN})({extra})).map(s=>[s.from.name,s.to.name,s.leg?.tag])")
+
+
+def test_segments_for_plain_course_unchanged(audit_page):  # noqa: F811
+    page, _, _ = audit_page
+    assert segments(page) == [['O', 'A', 'l0'], ['A', 'B', 'l1'], ['B', 'H', 'l2']]
+    assert segments(page, "{conditions:{origin:{name:'O'},return_home:false},legs:[{tag:'l0'},{tag:'l1'}]}") == [['O', 'A', 'l0'], ['A', 'B', 'l1']]
+
+
+def test_segments_go_through_the_venue(audit_page):  # noqa: F811
+    page, _, _ = audit_page
+    got = segments(page, "{festival_visit:{position:'last',leg:{tag:'lf'}}}")
+    assert got == [['O', 'A', 'l0'], ['A', 'B', 'l1'], ['B', 'O', 'lf'], ['O', 'H', 'l2']]
+
+
+def test_segments_without_home(audit_page):  # noqa: F811
+    page, _, _ = audit_page
+    got = segments(page, "{conditions:{origin:{name:'O'},return_home:false},legs:[{tag:'l0'},{tag:'l1'}],festival_visit:{position:'last',leg:{tag:'lf'}}}")
+    assert got == [['O', 'A', 'l0'], ['A', 'B', 'l1'], ['B', 'O', 'lf']]

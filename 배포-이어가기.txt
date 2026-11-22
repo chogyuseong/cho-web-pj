@@ -5,9 +5,16 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
-★ 지금 상태 (2026-11-22 기준)
+★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
-운영에 올라간 것: 커밋 cd03e49(main, 병합 = fix/festival-leg-followup), Worker 버전 500c941b-10bd-433b-a387-b3766c21a425 (일흔다섯 번째 배포, 2026-11-22)
+운영에 올라간 것: 커밋 748c343(main, 병합 = feat/delay-recovery), Worker 버전 90c0a686-463d-4721-8793-d102b02589ab (일흔여섯 번째 배포, 2026-11-23)
+  · 사용자 '모든 권한, 최대한 완성도 있게'. 브랜치 head a88b08c CI Run 45032368633·45034354401 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push →
+    npm run test:security 25 통과 → wrangler deploy 는 Claude Code 자동 권한 검사가 막아 사용자가 ! npx wrangler deploy 로 직접 실행(Windows PC, Docker Desktop.
+    정적 파일 3개: delay-check.js·plan-detail.js·results.css).
+  · 운영 확인: /api/status 200(Server-Timing 있음), /static/delay-check.js 에 delayRecoveryBlock 있음, /api/explore?region=제주 ready 24곳.
+    대체 장소 목록·저장(서버)은 컨테이너가 바뀐 뒤 반영 — 운영 코스로 눌러 보지 않음. 내용은 아래 브랜치 feat/delay-recovery 기록.
+  · 되돌리는 법: git revert -m 1 748c343 후 재배포(DB 마이그레이션 없음. 저장된 delay_recovery 키는 무시되지만 복구한 코스의 시간표는 지연 반영된 채 남음).
+이전 운영(75차): 커밋 cd03e49(main, 병합 = fix/festival-leg-followup), Worker 버전 500c941b-10bd-433b-a387-b3766c21a425 (일흔다섯 번째 배포, 2026-11-22)
   · 사용자 '진행하고 바로 다음작업'. 브랜치 head b52f13f CI Run 45021599314 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push → npm run test:security 25 통과 →
     wrangler deploy(Windows PC. Docker Desktop 이 꺼져 있어 첫 시도 실패 → %LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe 실행 후 성공.
     정적 파일 14개 올라감 — 바뀐 것은 plan-actions.js 하나, 나머지는 이 PC 의 CRLF 로 해시가 달라진 것(68차와 같음, 동작 무해)).

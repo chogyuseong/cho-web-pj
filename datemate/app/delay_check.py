@@ -6,6 +6,8 @@
 - 그 도착 시각에 지연을 더하고, 남은 장소마다 기존 플래너 규칙(app.planner.visit_window: 개점 대기, 휴게 시간,
   마지막 입장, 영업 종료)을 차례로 적용한다. 모든 시각에 같은 지연을 더하지 않는다(개점 전 대기가 지연을 흡수할 수 있다).
 - 이동 시간은 코스에 저장된 구간 값을 그대로 쓴다(새로 조회하지 않는다). 추정 구간이면 근거와 함께 알린다.
+- 코스 끝에 둔 저녁 축제(plan['festival_visit'].position == 'last', app/festival_time.py)가 있으면 저장된 돌아오는 구간과
+  운영 시간으로 축제 줄을 더한다(개막 전이면 기다리고, 운영 종료를 넘기면 문제).
 - 귀가가 있으면 귀가 구간을 더하고, 끝으로 일정 종료 시각(conditions.end)과 비교한다.
 - 영업시간·휴무 자료가 없는 장소는 추천 계산(planner.evaluate, 실제 장소 + 추정 허용)과 같은 규칙으로 '하루 종일 연다'고 가정해
   계속 계산하고, 그 장소를 pending(먼저 확인할 것)과 그 줄의 state='unchecked' 로 알린다.
@@ -15,7 +17,7 @@
 원본 코스·공유본·방문 기록을 바꾸지 않는다(저장하지 않는다). 대체 장소 추천은 하지 않는다.
 """
 
-from .festival_time import places_start
+from .festival_time import hours_range, places_start
 from .models import Conditions
 from .planner import clock, minutes, visit_window
 
@@ -106,6 +108,56 @@ def delay_check(plan, index, delay):
             break
         rows.append(row)
         now = start + p["stay"]
+    visit = plan.get("festival_visit")
+    if (
+        not first_problem
+        and isinstance(visit, dict)
+        and visit.get("position") == "last"
+        and visit.get("leg")
+    ):
+        back = visit["leg"]
+        now += _leg_minutes(back, c)
+        if back.get("status") != "api":
+            estimated.append(
+                dict(
+                    leg=f"{places[-1]['name']} → {visit['title']} 행사장",
+                    minutes=back.get("minutes"),
+                    basis=back.get("source") or "거리 기반 추정",
+                )
+            )
+        _, window = hours_range(visit.get("hours"))
+        start = max(now, window[0]) if window else now
+        row = dict(
+            name=f"축제 · {visit['title']}",
+            arrival=clock(now),
+            start=clock(start),
+            departure=clock(start + visit["stay"]),
+            wait=start - now,
+            original_start=visit["arrival"],
+            shift=start - minutes(visit["arrival"]),
+            stay=visit["stay"],
+            stay_assumed=False,
+            state="ok",
+            missing=[],
+        )
+        if window and start + visit["stay"] > window[1]:
+            over = start + visit["stay"] - window[1]
+            row.update(
+                state="problem",
+                reason="축제 운영 시간 안에 마치지 못해요",
+                limit=clock(window[1]),
+                over=over,
+            )
+            first_problem = dict(
+                place=row["name"],
+                time=row["start"],
+                reason=row["reason"],
+                kind="festival",
+                limit=row["limit"],
+                over=over,
+            )
+        rows.append(row)
+        now = start + visit["stay"]
     finish = None
     if not first_problem:
         if c.return_home and len(legs) > len(places):

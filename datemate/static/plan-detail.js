@@ -12,11 +12,16 @@ function costStatusLabel(c) {
 
 // 고정한 축제 방문 한 칸. 장소 칸(article.stop)이 아니다: 장소 순번·지도 표시·장소 단추(maps.js·place-dialog.js 는 .stop 만 센다)에 끼지 않는다.
 // 요금은 주최 측 자유 글이라 비용에 넣지 않는다(festivals.js 와 같은 원칙).
-function festivalVisitBlock(visit) {
+// 코스 끝에 둔 저녁 축제(position 'last')는 마지막 장소에서 행사장으로 돌아오는 구간(visit.leg)을 같이 적는다. 그 구간은 plan.legs 에 없다.
+function festivalVisitBlock(plan, visit) {
+  const last = visit.position === 'last';
   const block = node('section', undefined, 'festival-visit');
-  block.setAttribute('aria-label', '운영 시간에 맞춰 고정한 축제 방문');
+  block.setAttribute('aria-label', last ? '운영 시간에 맞춰 코스 끝에 둔 축제 방문' : '운영 시간에 맞춰 고정한 축제 방문');
+  if (last && visit.leg && Number.isFinite(visit.leg.minutes)) block.append(node('p', `${plan.places.at(-1)?.name || '마지막 장소'} → 축제 행사장 · ${legModeLabel(plan, visit.leg)}`, 'hint festival-visit-leg'));
+  const wait = visit.wait ? ` · ${last ? '행사장에 닿은 뒤 ' : ''}시작까지 ${visit.wait}분 기다림` : '';
+  const after = last ? '마지막 장소를 둘러본 뒤 행사장으로 돌아와 축제로 하루를 마무리해요.' : '축제가 끝나면 행사장에서 아래 첫 장소로 이동해요.';
   block.append(node('strong', `${visit.arrival}~${visit.departure} 축제 · ${visit.title}`, 'festival-visit-title'),
-    node('p', `안내된 운영 시간 ${visit.hours} 기준으로 시각을 고정했어요${visit.wait ? ` · 시작까지 ${visit.wait}분 기다림` : ''}. 축제가 끝나면 행사장에서 아래 첫 장소로 이동해요. 개최·시간은 방문 전 주최 측에서 다시 확인해 주세요.`, 'hint'));
+    node('p', `안내된 운영 시간 ${visit.hours} 기준으로 시각을 고정했어요${wait}. ${after} 개최·시간은 방문 전 주최 측에서 다시 확인해 주세요.`, 'hint'));
   return block;
 }
 
@@ -75,7 +80,7 @@ function renderDetail() {
   // 약속 당일 도구(day-of.js): 마지막 출발 시각, 한 곳씩 크게 보기, 현장용 일정 복사. 서버에 묻지 않는다.
   if (typeof dayOfTools === 'function') box.append(dayOfTools(p));
   // 운영 시간에 맞춰 맨 앞에 고정한 축제 방문(app/festival_time.py). 첫 구간 줄(행사장 → 첫 장소) 바로 앞에 둔다.
-  if (p.festival_visit) box.append(festivalVisitBlock(p.festival_visit));
+  if (p.festival_visit && p.festival_visit.position !== 'last') box.append(festivalVisitBlock(p, p.festival_visit));
   p.places.forEach((place, i) => {
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
     const stop = node('article', undefined, 'stop');
@@ -126,6 +131,8 @@ function renderDetail() {
     // 자동차로 도착하는 장소는 바로 아래에 근처 주차장을 둔다(일정·비용에는 넣지 않음).
     box.append(stop, parkingPanel(p, i), mealSuggestionPanel(p, i));
   });
+  // 코스 끝에 둔 저녁 축제: 마지막 장소 뒤, 귀가 구간(행사장 → 귀가지) 앞.
+  if (p.festival_visit?.position === 'last') box.append(festivalVisitBlock(p, p.festival_visit));
   if (p.conditions.return_home && p.legs.length > p.places.length) {
     const r = p.legs.at(-1);
     box.append(routeLine(p, p.legs.length - 1, `귀가: ${r.origin} → ${r.destination}`));

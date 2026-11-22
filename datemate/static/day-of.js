@@ -12,17 +12,20 @@ function dayClock(minutes) {
 }
 
 function lastDepartureNote(plan) {
+  // 코스 끝에 둔 저녁 축제(app/festival_time.py)면 마지막 일정은 축제이고 귀가는 행사장에서 떠난다.
+  const festival = plan.festival_visit?.position === 'last' ? plan.festival_visit : null,
+    where = festival ? '축제' : '마지막 장소';
   const end = dayClockMinutes(plan.conditions?.end),
-    last = plan.timeline?.at(-1),
+    last = festival || plan.timeline?.at(-1),
     planned = dayClockMinutes(last?.departure);
   if (end === null || planned === null) return '';
   const home = plan.conditions.return_home && plan.legs?.length > plan.places.length ? plan.legs.at(-1) : null;
-  if (!home) return `종료 ${plan.conditions.end} 기준 · 귀가를 정하지 않아 마지막 장소를 ${plan.conditions.end}까지 마치면 돼요(지금 계획은 ${last.departure}에 마침).`;
+  if (!home) return `종료 ${plan.conditions.end} 기준 · 귀가를 정하지 않아 ${where}를 ${plan.conditions.end}까지 마치면 돼요(지금 계획은 ${last.departure}에 마침).`;
   if (!Number.isFinite(home.minutes)) return `종료 ${plan.conditions.end} 기준 · 귀가 시간을 몰라 마지막 출발 시각은 계산하지 않았어요.`;
   const latest = end - home.minutes - (home.buffer_minutes || 0);
   const slack = latest - planned;
   const basis = home.status === 'api' ? '길찾기 조회' : '추정';
-  return `종료 ${plan.conditions.end}에 맞추려면 마지막 장소에서 늦어도 ${dayClock(Math.max(0, latest))}에 출발해야 해요(귀가 ${home.minutes}분 · ${basis}). ` + (slack >= 0 ? `지금 계획은 ${last.departure} 출발 · 여유 ${slack}분.` : `지금 계획(${last.departure} 출발)은 ${-slack}분 늦어요.`);
+  return `종료 ${plan.conditions.end}에 맞추려면 ${festival ? '축제 행사장' : '마지막 장소'}에서 늦어도 ${dayClock(Math.max(0, latest))}에 출발해야 해요(귀가 ${home.minutes}분 · ${basis}). ` + (slack >= 0 ? `지금 계획은 ${last.departure} 출발 · 여유 ${slack}분.` : `지금 계획(${last.departure} 출발)은 ${-slack}분 늦어요.`);
 }
 
 // 구간 한 줄: legModeLabel(plan-evidence.js)이 이미 '도보 8분 · 추정'처럼 분과 근거를 붙인다. 여기서 다시 붙이지 않는다
@@ -38,15 +41,20 @@ function shortAddress(place) {
 
 function fieldItineraryText(plan) {
   const lines = [`${plan.conditions.visit_date} 데이트 일정 (${plan.conditions.start} 출발)`];
-  // 운영 시간에 맞춰 맨 앞에 고정한 축제(app/festival_time.py).
-  const festival = plan.festival_visit;
-  if (festival) lines.push(`${festival.arrival}~${festival.departure} 축제 · ${festival.title} (운영 시간에 맞춰 고정)`);
+  // 운영 시간에 맞춰 맨 앞(또는 저녁 축제면 코스 끝)에 고정한 축제(app/festival_time.py).
+  const festival = plan.festival_visit,
+    last = festival?.position === 'last';
+  if (festival && !last) lines.push(`${festival.arrival}~${festival.departure} 축제 · ${festival.title} (운영 시간에 맞춰 고정)`);
   plan.places.forEach((place, i) => {
     const leg = plan.legs?.[i],
       t = plan.timeline[i];
     if (leg && Number.isFinite(leg.minutes)) lines.push('  ↓ ' + dayLegText(plan, leg));
     lines.push(`${i + 1}. ${t.arrival}~${t.departure} ${place.name}` + (shortAddress(place) ? ` · ${shortAddress(place)}` : ''));
   });
+  if (last) {
+    if (Number.isFinite(festival.leg?.minutes)) lines.push('  ↓ 행사장으로 ' + dayLegText(plan, festival.leg));
+    lines.push(`${festival.arrival}~${festival.departure} 축제 · ${festival.title} (운영 시간에 맞춰 마무리)`);
+  }
   const home = plan.conditions.return_home && plan.legs?.length > plan.places.length ? plan.legs.at(-1) : null;
   if (home && Number.isFinite(home.minutes)) lines.push(`  ↓ 귀가 ${home.minutes}분${home.status === 'api' ? '' : '(추정)'} · ${plan.finish} 도착 예정`);
   lines.push('영업·예약·이동 시간은 방문 전 확인해 주세요.');

@@ -61,7 +61,7 @@ function delayCheckView(data) {
     parts.push(node('p', `${data.delay}분 늦어도 시간표로는 갈 수 있어요. ${finishText} 다만 ${wait} 자료가 없어 그곳은 문을 연다고 가정했어요. 출발 전에 먼저 확인할 것: ${wait}.`, 'warning delay-check-unchecked'));
   } else if (data.status === 'problem') {
     const p = data.first_problem;
-    const what = p.kind === 'last_entry' ? `마지막 입장 ${p.limit}보다 ${p.over}분 늦어요` : p.kind === 'closing' ? `영업 종료 ${p.limit}까지 마치지 못해요(${p.over}분 넘김)` : `정한 종료 시각 ${p.limit}보다 ${p.over}분 늦게 끝나요`;
+    const what = p.kind === 'last_entry' ? `마지막 입장 ${p.limit}보다 ${p.over}분 늦어요` : p.kind === 'closing' ? `영업 종료 ${p.limit}까지 마치지 못해요(${p.over}분 넘김)` : p.kind === 'festival' ? `축제 운영 종료 ${p.limit}까지 마치지 못해요(${p.over}분 넘김)` : `정한 종료 시각 ${p.limit}보다 ${p.over}분 늦게 끝나요`;
     parts.push(node('p', `처음 문제가 생기는 곳: ${p.place} · ${p.time} · ${what}. 이 장소에 먼저 연락하거나 순서를 다시 정해 보세요.`, 'warning delay-check-problem'));
     if (wait) parts.push(node('p', `그 앞에 자료가 없어 문을 연다고 가정한 곳: ${wait}.`, 'hint'));
   } else {

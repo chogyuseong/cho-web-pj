@@ -1,7 +1,7 @@
 from collections import Counter
 import re
 from .catalog import places
-from .festival_time import festival_slot,visit_record
+from .festival_time import evening_window,festival_slot,last_slot,visit_record
 from .models import Conditions
 from .routes import leg, distance
 from .taxonomy import classification_themes,concept_score
@@ -113,15 +113,41 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         # 주차비는 자동차로 도착한 장소에만 붙인다.
         if route['mode']=='car':unknown.append(p['name']+' 주차비')
         previous=p;previous_id=p['id']
-    if not partial and c.return_home:
+    def home_leg(point):
+        # 귀가 수단 예외는 어디서 출발하든 (마지막 장소 id, 'home') 이다(app/leg_modes.endpoints).
         mode=overrides.get((previous_id,'home'),c.transport)
-        route=route_leg(previous,c.home.model_dump(),route_conditions,mode,verify_routes,route_fallback)
+        route=route_leg(point,c.home.model_dump(),route_conditions,mode,verify_routes,route_fallback)
         if route['minutes'] is None:return None,'귀가 경로 계산 불가'
         if route['minutes']>c.max_leg and not soft:return None,'귀가 구간 이동 시간 초과'
         if c.max_walk is not None and route['walking'] is None:return None,'귀가 도보 시간 확인 불가'
         route['buffer_minutes']=c.transition_buffer_minutes
+        return route,None
+    # 저녁 축제(app/festival_time.py): 맨 앞에 두기엔 개막이 늦으면 마지막 장소에서 행사장(출발지)으로 돌아와 축제로 마무리하고,
+    # 귀가는 행사장에서 떠난다. 돌아오는 구간은 legs 에 넣지 않는다. 시간이 맞지 않는 조합은 축제 없이 아래처럼 끝낸다.
+    evening=None if partial or festival else evening_window(c)
+    last=None
+    if evening:
+        venue=c.origin.model_dump()
+        back=route_leg(previous,venue,route_conditions,overrides.get((previous_id,'festival'),c.transport),verify_routes,route_fallback)
+        usable=back['minutes'] is not None and (back['minutes']<=c.max_leg or soft) and not (c.max_walk is not None and back['walking'] is None)
+        slot=last_slot(evening,now+back['minutes']+c.transition_buffer_minutes,c.stay_minutes) if usable else None
+        if slot:
+            back['buffer_minutes']=c.transition_buffer_minutes
+            home,_=home_leg(venue) if c.return_home else (None,None)
+            done=slot['departure']+(home['minutes']+home['buffer_minutes'] if home else 0)
+            if (home or not c.return_home) and (done<=end or soft):last=(back,slot,home)
+    if last:
+        back,slot,home=last
+        # 비용 표 이름. 출발지 이름('… 행사장 주변')보다 무엇을 하러 가는 구간인지가 보이게 한다.
+        back['destination']=c.festival.title+' 행사장'
+        now=slot['departure'];walking+=back['walking'] or 0
+        if back['mode']=='car':unknown.append(c.festival.title+' 행사장 주차비')
+        if home:now+=home['minutes']+home['buffer_minutes'];walking+=home['walking'] or 0;legs.append(home)
+    elif not partial and c.return_home:
+        route,error=home_leg(previous)
+        if error:return None,error
         now+=route['minutes']+c.transition_buffer_minutes;walking+=route['walking'] or 0;legs.append(route)
-    for r in legs:
+    for r in legs+([last[0]] if last else []):
         amount=[r['cost'],r['cost']] if r['cost'] is not None else None
         costs.append(dict(category='교통',name=r['origin']+' → '+r['destination'],unit=amount,quantity=1,formula='구간 총액 (인원 반영)',
             amount=amount,status='estimated' if amount is not None else 'unknown',source=r['source'],checked_at=r['checked_at']))
@@ -141,7 +167,13 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         reasons=[f'{p["category"]} · 체류 {t["stay"]}분'+(' (사용자 설정)' if p['stay'] is None else '')+(' · 식사 방문 (시간·예산 포함)' if p.get('meal') else '')+(' · '+p['discovery_verification'] if p.get('discovery_verification') else '')+f' · 근거: {p["source"]}' for p,t in zip(selected,timeline)])
     # 축제를 고정하지 않은 코스에는 키를 두지 않는다(저장·비교되는 코스 모양이 예전과 같다).
     if festival:plan['festival_visit']=visit_record(c,festival)
+    if last:plan['festival_visit']=visit_record(c,last[1],last[0])
     return plan,None
+
+def prefer_festival(plans):
+    """고른 축제를 일정에 넣은 코스가 하나라도 있으면 그 코스들만(저녁 축제는 장소 조합마다 넣을 수 있는지가 다르다)."""
+    kept=[p for p in plans if p.get('festival_visit')]
+    return kept or plans
 
 def recommend_strict(c,stage='planner'):
     pool=candidates(c); reasons=Counter(); beam=[[]]
@@ -217,7 +249,7 @@ def recommend_strict(c,stage='planner'):
     # 모든 선택 모드에서 식사·요청 활동 미충족 안을 먼저 빼고 고른다. recommend()·조건 완화가 고른 뒤 이 안들을 버리므로,
     # 나중에 빼면 식사 장소가 적은 동네(예: 강릉 안목해변)에서 3안을 골라 놓고 1안만 남는다.
     from .condition_audit import audit_plan
-    final=[p for p in (audit_plan(p,c) for p in final) if not unmet_composition(p)]
+    final=prefer_festival([p for p in (audit_plan(p,c) for p in final) if not unmet_composition(p)])
     diagnostics={}
     pool_before_selection=list(final)
     final=select_options(final,c,diagnostics,stage=stage)

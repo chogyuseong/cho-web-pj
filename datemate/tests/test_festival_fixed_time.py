@@ -191,3 +191,107 @@ def test_course_screen_shows_the_fixed_festival_before_the_first_place(audit_pag
     assert '11:00~12:00 축제 · 점검 빛축제' in text
     assert text.index('축제 · 점검 빛축제') < text.index('1. ')
     assert not errors
+
+
+# 저녁 축제: 개막이 코스 시작보다 MAX_WAIT(60분) 넘게 늦으면, 장소를 먼저 돌고 행사장으로 돌아와 축제로 마무리한다.
+EVENING = '17:30~22:00'
+HOME = dict(name='점검 귀가지', lat=37.5700, lon=126.9800)
+
+
+def evening(hours=EVENING, start='16:00', end='22:00', **extra):
+    return conditions(hours, start=start, end=end, **extra)
+
+
+def test_evening_festival_closes_the_course_after_the_places():
+    plain = planned(evening(hours=None))
+    plan = planned(evening())
+    visit = plan['festival_visit']
+    assert visit['position'] == 'last' and visit['title'] == '점검 빛축제'
+    # 장소 일정은 그대로다. 마지막 장소를 떠나 행사장으로 돌아온 뒤, 개막(17:30)까지 기다렸다가 체류 60분.
+    assert plan['timeline'] == plain['timeline'] and plan['legs'] == plain['legs']
+    back = visit['leg']
+    reached = minutes(plain['finish']) + back['minutes'] + back['buffer_minutes']
+    assert minutes(visit['arrival']) == max(reached, 1050) and visit['wait'] == minutes(visit['arrival']) - reached
+    assert minutes(visit['departure']) == minutes(visit['arrival']) + 60 and visit['stay'] == 60
+    assert plan['finish'] == visit['departure'] and plan['minutes'] == minutes(visit['departure']) - 960
+    # 돌아오는 구간은 축제 방문 기록 안에만 있다(구간 목록 = 장소 도착 구간 + 귀가). 이름·링크·경로 모양은 싣지 않는다.
+    assert set(back) <= {'minutes', 'mode', 'walking', 'status', 'source', 'buffer_minutes', 'cost'}
+    assert any(row['category'] == '교통' and row['name'].endswith('행사장') for row in plan['costs'])
+    check = festival_check(plan)
+    assert check['state'] == 'met' and '마무리' in check['message'] and f"{visit['arrival']}~{visit['departure']}" in check['message']
+
+
+def test_evening_festival_sends_the_return_home_from_the_venue():
+    plan = planned(evening(return_home=True, home=HOME))
+    visit = plan['festival_visit']
+    assert visit['position'] == 'last'
+    assert len(plan['legs']) == len(plan['places']) + 1
+    home = plan['legs'][-1]
+    assert home['origin'] == '서울 종로구 · 점검 빛축제 행사장 주변' and home['destination'] == '점검 귀가지'
+    assert minutes(plan['finish']) == minutes(visit['departure']) + home['minutes'] + home['buffer_minutes']
+
+
+def test_evening_festival_that_does_not_fit_keeps_the_course_and_explains():
+    plain = planned(evening(hours=None, end='18:00'))
+    plan = planned(evening(end='18:00'))
+    assert 'festival_visit' not in plan
+    assert plan['timeline'] == plain['timeline'] and plan['finish'] == plain['finish'] and plan['legs'] == plain['legs']
+    check = festival_check(plan)
+    assert check['state'] == 'unknown' and '마무리하기에도 시간이 맞지 않았어요' in check['message']
+
+
+def test_evening_festival_is_kept_when_the_course_is_reopened():
+    plan = planned(evening(return_home=True, home=HOME))
+    again, error = evaluate(plan['places'], Conditions.model_validate(plan['conditions']))
+    assert not error and again['festival_visit'] == plan['festival_visit'] and again['finish'] == plan['finish']
+
+
+def test_plans_with_the_festival_come_before_plans_without_it():
+    from app.planner import prefer_festival
+    with_visit, without = dict(festival_visit={'position': 'last'}), dict()
+    assert prefer_festival([without, with_visit, without]) == [with_visit]
+    assert prefer_festival([without, without]) == [without, without]
+
+
+def test_delay_check_carries_on_to_the_evening_festival_and_home():
+    plan = planned(evening(return_home=True, home=HOME))
+    on_time = delay_check(plan, 0, 0)
+    assert on_time['finish'] == plan['finish'] and on_time['status'] != 'problem'
+    # 일찍 끝나는 축제(19:30)에 두 시간 늦으면 축제 줄에서 처음 문제가 난다.
+    short = planned(evening(hours='17:30~19:30', return_home=True, home=HOME))
+    assert short['festival_visit']['position'] == 'last'
+    late = delay_check(short, 0, 120)
+    assert late['status'] == 'problem' and late['first_problem']['kind'] == 'festival'
+    assert late['first_problem']['limit'] == '19:30' and late['rows'][-1]['name'] == '축제 · 점검 빛축제'
+
+
+def test_shared_link_says_where_the_festival_sits():
+    from app.sharing import festival_visit
+    assert festival_visit(planned(evening()))['position'] == 'last'
+    assert festival_visit(planned(conditions('10:00~18:00')))['position'] == 'first'
+
+
+def test_course_screen_shows_the_evening_festival_after_the_last_place(audit_page):  # noqa: F811
+    page, base, errors = audit_page
+    with TestClient(app) as client:
+        client.get('/api/places?mode=demo')
+        plan, error = evaluate(rows(), evening(return_home=True, home=HOME))
+        assert not error and plan['festival_visit']['position'] == 'last'
+        saved = store.save_plan(audit_plan(plan), store.owner_of(client.cookies['dm_session']))
+        owner = client.cookies['dm_session']
+    page.route('**/api/festivals?*', lambda route: route.fulfill(json=dict(status='available', festivals=[], message='')))
+    page.context.add_cookies([{'name': 'dm_session', 'value': owner, 'url': base}])
+    page.goto(base + '/?plan=' + saved['id'])
+    page.wait_for_function('(id)=>selected?.id===id', arg=saved['id'])
+    block = page.locator('#plan-detail .festival-visit')
+    visit = plan['festival_visit']
+    assert block.count() == 1 and f"{visit['arrival']}~{visit['departure']}" in block.inner_text()
+    assert page.locator('#plan-detail .stop').count() == 2
+    # 마지막 장소 뒤, 귀가 구간 앞.
+    assert page.evaluate("""()=>{const f=document.querySelector('#plan-detail .festival-visit'),s=[...document.querySelectorAll('#plan-detail .stop')].at(-1);
+        return !!(s.compareDocumentPosition(f)&Node.DOCUMENT_POSITION_FOLLOWING);}""")
+    assert page.evaluate("""()=>{const f=document.querySelector('#plan-detail .festival-visit'),h=[...document.querySelectorAll('#plan-detail .route-line-text')].find(n=>n.textContent.startsWith('귀가'));
+        return !!(f.compareDocumentPosition(h.closest('.route-line-block'))&Node.DOCUMENT_POSITION_FOLLOWING);}""")
+    text = page.evaluate('fieldItineraryText(selected)')
+    assert text.index('2. ') < text.index('축제 · 점검 빛축제') < text.index('귀가')
+    assert not errors

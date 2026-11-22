@@ -47,3 +47,44 @@ def with_familiar(conditions, owner):
         return conditions.model_copy(update={'fresh_familiar': [], 'fresh_basis': ''})
     groups, basis = familiar_groups(owner, conditions.mode)
     return conditions.model_copy(update={'fresh_familiar': groups, 'fresh_basis': basis})
+
+
+def fresh_indexes(plan, c):
+    """익숙한 종류가 아닌 장소 번호('기타' 제외). 켜지 않았으면 빈 목록."""
+    if not c.fresh_one:
+        return []
+    from .option_diversity import place_group
+
+    return [i for i, p in enumerate(plan['places']) if place_group(p) not in c.fresh_familiar and place_group(p) != '기타']
+
+
+def fresh_penalty(plan, c):
+    """정렬 키: 새로운 곳이 정확히 1곳이면 0, 2곳 이상 1, 없으면 2. 켜지 않았으면 항상 0(정렬이 예전과 같다)."""
+    if not c.fresh_one:
+        return 0
+    count = len(fresh_indexes(plan, c))
+    return 0 if count == 1 else 1 if count else 2
+
+
+def audit_row(plan, c):
+    """조건 확인 '새로운 곳 한 곳'의 (상태, 문장)과 plan['fresh_place']. 켜지 않았으면 None."""
+    if not c.fresh_one:
+        return None
+    from .option_diversity import GROUP_LABELS, place_group
+
+    found = fresh_indexes(plan, c)
+    plan.pop('fresh_place', None)
+    if found:
+        index = found[0]
+        group = place_group(plan['places'][index])
+        plan['fresh_place'] = dict(index=index, group=group, label=GROUP_LABELS[group])
+        state = 'met'
+        message = f"{plan['places'][index]['name']}({GROUP_LABELS[group]}) — 최근 코스에 드물던 종류예요."
+        if len(found) > 1:
+            message += f' 새로운 종류가 {len(found)}곳 들어갔어요.'
+    else:
+        state = 'unknown'
+        message = '이 동네 후보에서 최근 코스와 다른 종류를 찾지 못했어요. 테마나 동네를 바꿔 보세요.'
+    if c.fresh_basis == 'default':
+        message += ' 최근 코스 기록이 적어 식사·카페를 익숙한 종류로 봤어요.'
+    return state, message

@@ -149,7 +149,8 @@ def travel_basis(plan):
 def fit_key(plan,c):
     from .request_intent import plan_penalty
     from .quality import meal_penalty
-    return (plan_penalty(plan,c),meal_penalty(plan,c),plan.get('penalty',0))
+    from .fresh_place import fresh_penalty
+    return (plan_penalty(plan,c),meal_penalty(plan,c),fresh_penalty(plan,c),plan.get('penalty',0))
 
 
 def forbidden(plan,c):

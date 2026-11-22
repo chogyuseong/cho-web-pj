@@ -58,6 +58,10 @@ def audit_plan(plan,c=None):
         from .festival_time import explain
         _,message=explain(c.festival.title,c.festival.hours,c.start,c.end,c.stay_minutes,plan.get('finish'),plan.get('festival_visit'))
         add('festival','축제 참석 시간','met' if plan.get('festival_visit') else 'unknown',message)
+    # 한 곳만 새로운 곳으로(app/fresh_place.py). 켠 코스에만 행과 plan['fresh_place'] 가 붙는다.
+    from .fresh_place import audit_row
+    fresh=audit_row(plan,c)
+    if fresh:add('fresh_place','새로운 곳 한 곳',*fresh)
     excess=mins(c.start)+plan['minutes']-mins(c.end)
     test('end','종료 시간',excess<=0,'종료 '+plan['finish']+' — 요청한 '+c.end+' 이내예요.',f"종료 {plan['finish']} — 요청한 {c.end}보다 {excess}분 늦어요.")
     add('people','인원','unknown' if real and c.people>=10 else 'met',f'{c.people}명을 비용 계산에 반영했어요.'+(' 단체 방문이므로 장소별 단체 입장 가능 여부는 확인이 필요해요.' if real and c.people>=10 else ''))

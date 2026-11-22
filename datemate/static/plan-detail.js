@@ -146,7 +146,8 @@ function renderDetail() {
   slot.hidden = true;
   box.append(slot);
   // 확인: 네 가지 확인, 비용표(접힘), 합계와 미확인 비용 경고(접힘 밖)
-  box.append(executionSummary(p), node('h3', '비용은 투명하게'));
+  // 할 일 순서(action-card.js): 확인할 것을 시점 순서로 모은 체크리스트. '네 가지 확인' 바로 위.
+  box.append(actionCard(p), executionSummary(p), node('h3', '비용은 투명하게'));
   const scroll = node('div', undefined, 'table-scroll'),
     table = node('table', undefined, 'cost-table'),
     thead = node('thead'),

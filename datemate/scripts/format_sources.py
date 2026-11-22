@@ -62,6 +62,7 @@ JAVASCRIPT = [
     "review-facts.js",
     "delay-check.js",
     "day-of.js",
+    "action-card.js",
 ]
 
 

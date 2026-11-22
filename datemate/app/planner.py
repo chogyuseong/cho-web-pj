@@ -62,7 +62,9 @@ def route_leg(a,b,route_conditions,mode,verify_routes=False,route_fallback=False
         route.update(route_fallback=True,source='자동차 길찾기 조회 실패로 추정한 시간이에요 · '+route['source'],fallback_reason=failure)
     return route
 
-def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None):
+def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None):
+    """delays: {장소 번호: 분} — 그 장소에 원래 도착 예정보다 그만큼 늦게 닿는다고 보고 시간표를 짠다(지각 복구, app/delay_recovery.py).
+    그 앞 장소의 시간표는 그대로이고, 뒤는 같은 규칙(visit_window·저녁 축제·귀가·종료)으로 이어서 계산한다. 없으면 예전과 같다."""
     from .quality import same_place
     def fail(reason,**info):
         if failure is not None:failure.update(info,reason=reason)
@@ -77,7 +79,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
     # 구간별 수단 예외: (출발 id, 도착 id) → 수단. 없으면 모든 구간이 기본 수단(c.transport)이다.
     overrides={(m.from_,m.to):m.mode for m in c.leg_modes}
     previous_id='origin'
-    for original in selected:
+    for position,original in enumerate(selected):
         p=dict(original)
         if str(c.visit_date) in p.get('closed_dates',[]):return fail('방문일 휴무',place=p['name'])
         if c.mode=='real' and (c.allow_estimates or soft):
@@ -97,6 +99,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         if c.max_walk is not None and route['walking'] is None:return None,'전체 도보 시간 확인 불가'
         route['buffer_minutes']=c.transition_buffer_minutes
         now+=route['minutes']+c.transition_buffer_minutes
+        if delays:now+=delays.get(position,0)
         now,problem=visit_window(p,now)
         if problem:return fail(problem['reason'],place=p['name'],limit=clock(problem['limit']),arrival=clock(now))
         timeline.append(dict(place_id=p['id'],arrival=clock(now),departure=clock(now+p['stay']),stay=p['stay']))

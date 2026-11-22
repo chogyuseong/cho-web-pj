@@ -150,6 +150,7 @@ def test_expired_plan_opens_but_recalculation_is_refused():
             ('POST', 'replace', {'index': 1, 'replacement_id': 'x'}), ('POST', 'transport', {'default': 'car'}),
             ('POST', 'leisure-options', {'index': 1}), ('POST', 'leisure-select', {'index': 1, 'replacement_id': 'x'}),
             ('POST', 'meal-preview', {'restaurant_id': 'x'}), ('POST', 'agreement-preview', {}),
+            ('POST', 'delay-recovery', {'index': 0, 'minutes': 10, 'target': 1}),
         ]  # fmt: skip
         for method, path, body in refused:
             response = client.request(method, f'/api/plans/{pid}/{path}', **({} if body is None else {'json': body}))

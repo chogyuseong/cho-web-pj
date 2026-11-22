@@ -22,7 +22,10 @@ def change_delta(before, after):
     )
 
 
-def save_change(plan, original, owner):
+def save_change(plan, original, owner, recovery=None):
+    """recovery: 지각 복구 기록(app/delay_recovery.py). 주면 그 기록을 붙이고, 지연을 반영해 짠 시간표를
+    자동차 길찾기 재조회로 덮지 않는다(새 외부 호출 없음). 다른 변경은 시간표를 지연 없이 다시 계산하므로
+    바꾸기 전 코스의 지각 기록을 이어받지 않는다."""
     from .condition_audit import audit_plan
     from .preferences import hard_blocks
     from .experience import verification_summary
@@ -32,6 +35,9 @@ def save_change(plan, original, owner):
     from .leg_modes import endpoints, festival_pair, uses_car
 
     updated = copy.deepcopy(plan)
+    updated.pop("delay_recovery", None)
+    if recovery:
+        updated["delay_recovery"] = copy.deepcopy(recovery)
     conditions = Conditions.model_validate(updated["conditions"])
     moved = [p["id"] for p in updated["places"]] != [p["id"] for p in original["places"]]
     if moved and conditions.leg_modes:
@@ -40,7 +46,7 @@ def save_change(plan, original, owner):
         kept = [m for m in conditions.leg_modes if (m.from_, m.to) in current]
         conditions = conditions.model_copy(update={"leg_modes": kept})
         updated["conditions"]["leg_modes"] = [m.model_dump() for m in kept]
-    if moved and conditions.mode == "real" and uses_car(conditions):
+    if moved and conditions.mode == "real" and uses_car(conditions) and not recovery:
         checked, error = evaluate(
             updated["places"], conditions, soft=bool(updated.get("best_effort")), verify_routes=True
         )

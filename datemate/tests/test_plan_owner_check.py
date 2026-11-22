@@ -39,6 +39,7 @@ PLAN_ROUTES = {
     ('POST', '/api/plans/{pid}/agreement'): {'choices': {}},
     ('POST', '/api/plans/{pid}/agreement-preview'): {},
     ('GET', '/api/plans/{pid}/delay-check'): None,
+    ('POST', '/api/plans/{pid}/delay-recovery'): {'index': 0, 'minutes': 10, 'target': 0},
     ('GET', '/api/plans/{pid}/decision'): None,
     ('POST', '/api/plans/{pid}/decision'): {},
     ('POST', '/api/plans/{plan_id}/shares'): None,

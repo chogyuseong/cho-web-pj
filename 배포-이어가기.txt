@@ -103,7 +103,7 @@
     tests/test_delay_recovery_ui.py 3개(정적 파일 변경을 빼면 3개 실패 확인: 390·320px 넘침 없음, 단추 이름 '… 대신 …로 바꾸기'·'… 빼고 진행', Enter 키로 선택, 저장 뒤 안내에 포커스,
     실행 카드 장소 체크 이어받기), 소유자 검사·보관 기한 거절 목록에 새 경로 추가. 관련 테스트(지각·축제·수단·소유자·보관·실행 카드) 119 통과.
     이 Windows PC SQLite 전체: 검토 수정 전 1338 통과·1 건너뜀·실패 1·오류 1(test_release_browser·test_readability_stage6_ui — ERR_UNSAFE_PORT 5061, 단독 재실행 2 통과, 앱 문제 아님),
-    검토 수정 뒤 1343 통과·1 건너뜀·실패 0(17분 10초). format_sources --check 통과(app/delay_recovery.py 를 목록에 추가). PostgreSQL 은 CI 로(CI_RESULT).
+    검토 수정 뒤 1343 통과·1 건너뜀·실패 0(17분 10초). format_sources --check 통과(app/delay_recovery.py 를 목록에 추가). PostgreSQL 은 CI 로 — 브랜치 커밋 473d06b CI Run 45032368633 5개 성공(security·container·python-audit·test sqlite·test postgres).
   · 되돌리는 법: 병합 전이면 브랜치 버림, 병합·배포 뒤에는 git revert -m 1 후 재배포(DB 마이그레이션 없음. 저장된 plan['delay_recovery'] 키는 되돌린 코드가 무시하고,
     그 코스의 시간표는 지연이 반영된 채 남음 — 되돌린 코드의 지각 확인은 그 시간표의 앞 장소 출발 시각을 기준으로 계산).
 브랜치 fix/festival-leg-followup (2026-11-22, 75차로 병합·배포됨, CI Run 45021599314 5개 성공 —74차 feat/festival-leg 의 '남긴 것(작음)' 두 가지)

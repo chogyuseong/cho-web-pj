@@ -44,6 +44,10 @@ def generate(data: Conditions, owner: str):
             from .festivals import with_cached_hours
 
             data = with_cached_hours(data)
+            # 한 곳만 새로운 곳으로(app/fresh_place.py): 익숙한 종류는 이 브라우저의 최근 코스로 서버가 정한다.
+            from .fresh_place import with_familiar
+
+            data = with_familiar(data, owner)
             if data.planning_session_id:
                 from .planning_outcomes import session_for
 

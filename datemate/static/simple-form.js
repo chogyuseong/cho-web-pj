@@ -322,6 +322,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   extras.append(take('setting'));
   optional.append(extras,take('include_meal'));
   const feedback=take('use_feedback');if(feedback)optional.append(feedback);
+  const fresh=take('fresh_one');if(fresh)optional.append(fresh);
   const buffer=node('label','이동 구간별 여유시간'),bufferSelect=node('select');bufferSelect.name='transition_buffer_minutes';
   for(const [value,title] of [[0,'기본 · 추가 여유 없음'],[5,'구간마다 5분 여유'],[10,'느긋하게 · 구간마다 10분 여유']]){const option=node('option',title);option.value=value;bufferSelect.append(option);}buffer.append(bufferSelect);optional.append(buffer);
   const hard=retained.querySelector('.experience-controls details');

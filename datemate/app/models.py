@@ -57,6 +57,10 @@ class Conditions(BaseModel):
     trust_mode: Literal['balanced','operating_sources','discovery'] = 'balanced'
     hard_constraints: list[Literal['budget','end','max_leg','max_walk','setting','reservation','themes','meal','neighborhood','avoid']] = Field(default_factory=list,max_length=10)
     use_feedback: bool = False
+    # 한 곳만 새로운 곳으로(app/fresh_place.py). 익숙한 종류·근거는 서버가 추천을 시작할 때 채운다(화면 값은 버림).
+    fresh_one: bool = False
+    fresh_familiar: list[Literal['식사', '카페', '보기', '걷기', '하기', '쉬기']] = Field(default_factory=list, max_length=6)
+    fresh_basis: Literal['', 'history', 'default'] = ''
     excluded_place_ids: list[PlaceId] = Field(default_factory=list,max_length=100)
     include_meal: bool = False
     neighborhood_radius_km: float = Field(default=2.5,ge=0.5,le=10)
@@ -105,6 +109,10 @@ class Conditions(BaseModel):
         data = handler(self)
         if isinstance(data, dict) and not self.request_ignore:
             data.pop('request_ignore', None)
+        # '새로운 곳'을 켜지 않은 조건도 예전 모양 그대로(app/fresh_place.py).
+        if isinstance(data, dict) and not self.fresh_one:
+            for key in ('fresh_one', 'fresh_familiar', 'fresh_basis'):
+                data.pop(key, None)
         return data
 
     @field_validator('region')

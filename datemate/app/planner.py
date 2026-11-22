@@ -222,6 +222,11 @@ def recommend_strict(c,stage='planner'):
         from .preferences import fit_score
         next_beam.sort(key=lambda p:-fit_score(p,c))
         if meal_due(c) and position<c.count-1:next_beam.sort(key=lambda p:max(0,sum(is_meal(x) for x in p['places'])-1))
+        # 한 곳만 새로운 곳으로(app/fresh_place.py): 마지막 단계에서 새로운 종류가 정확히 1곳인 조합을 앞세운다(켜지 않으면 0).
+        # 식사 배치 정렬보다 먼저 해서 식사 배치가 더 강한 키로 남는다(tier 와 같은 순서).
+        from .fresh_place import fresh_penalty
+        final_step=position==c.count-1
+        if final_step:next_beam.sort(key=lambda p:fresh_penalty(p,c))
         if position==c.count-1:next_beam.sort(key=lambda p:meal_penalty(p,c))
         from .request_intent import plan_penalty
         next_beam.sort(key=lambda p:plan_penalty(p,c))
@@ -229,10 +234,9 @@ def recommend_strict(c,stage='planner'):
         # 구성 할당은 위 정렬의 앞쪽 키(요청 조건·식사 배치·선호·요청 낱말)가 같은 후보끼리만 자리를 옮긴다.
         # 한 종류에 집중(focus)하는 요청에서는 구성을 섞지 않는다.
         words=re.findall(r'[가-힣A-Za-z0-9]{2,}',c.request)
-        final_step=position==c.count-1
         def tier(p):
             meal=meal_penalty(p,c) if final_step else max(0,sum(is_meal(x) for x in p['places'])-1) if meal_due(c) else 0
-            return (plan_penalty(p,c),meal,-fit_score(p,c),
+            return (plan_penalty(p,c),meal,fresh_penalty(p,c) if final_step else 0,-fit_score(p,c),
                     -sum(w in (x['name']+' '+x['category']) for x in p['places'] for w in words))
         beam=[p['places'] for p in composition_beam(next_beam,60,tier=tier,final=final_step,enabled=c.theme_mode!='focus')]
         if not beam:break

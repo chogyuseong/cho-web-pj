@@ -96,6 +96,8 @@ function renderDetail() {
     else if (isNaverResult(place)) body.append(naverAttribution('지역 검색', place.place_source || place.source));
     const meta = node('p', undefined, 'stop-meta');
     meta.append(node('span', placeKind(place), 'step-category'));
+    // 한 곳만 새로운 곳으로(app/fresh_place.py): 최근 코스에 드물던 종류로 넣은 장소.
+    if (p.fresh_place?.index === i) meta.append(node('span', `새로운 곳 · ${p.fresh_place.label}`, 'fresh-place-tag'));
     const cost = p.costs.find(c => c.name === place.name);
     if (cost) meta.append(node('span', `${p.conditions.people}인 ${range(cost.amount)}`, 'stop-cost'));
     const stay = p.timeline[i]?.stay;

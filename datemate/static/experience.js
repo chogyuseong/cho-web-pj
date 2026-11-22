@@ -4,7 +4,8 @@ function updateExperienceValues(data, f) {
     priority: f.get('priority') || 'balanced',
     trust_mode: f.get('trust_mode') || 'balanced',
     hard_constraints: f.getAll('hard_constraints'),
-    use_feedback: f.has('use_feedback')
+    use_feedback: f.has('use_feedback'),
+    fresh_one: f.has('fresh_one')
   });
 }
 
@@ -95,7 +96,13 @@ function mountExperienceControls() {
   input.type = 'checkbox';
   input.name = 'use_feedback';
   consent.append(input, node('span', '이 브라우저의 방문·교체 피드백을 다음 추천에 반영'));
-  box.append(consent, node('p', '대기·소음·촬영 가능 여부는 확인된 자료가 없으면 충족으로 표시하지 않아요.', 'hint'));
+  // 한 곳만 새로운 곳으로(app/fresh_place.py): 익숙한 종류는 서버가 이 브라우저의 최근 코스로 정한다.
+  const fresh = node('label', undefined, 'check'),
+    freshInput = node('input');
+  freshInput.type = 'checkbox';
+  freshInput.name = 'fresh_one';
+  fresh.append(freshInput, node('span', '한 곳은 평소와 다른 새로운 곳으로 (최근 코스에 드물던 종류)'));
+  box.append(consent, fresh, node('p', '대기·소음·촬영 가능 여부는 확인된 자료가 없으면 충족으로 표시하지 않아요.', 'hint'));
   form.querySelector('[name=request]').closest('label').before(box);
 }
 

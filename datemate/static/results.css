@@ -193,6 +193,8 @@
 /* 한 줄 요약: 분류 · 비용 · 머무는 시간 */
 .detail .stop-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:0 0 10px; font-size:15px; line-height:1.6; color:var(--ink); }
 .detail .stop-meta .step-category { margin:0; font-size:14px; padding:3px 10px; }
+/* 한 곳만 새로운 곳으로(plan-detail.js, app/fresh_place.py): 분류 표시와 같은 크기, 청색 테두리로 구분 */
+.detail .stop-meta .fresh-place-tag { margin:0; font-size:14px; font-weight:700; padding:2px 10px; border:2px solid var(--cheong); border-radius:999px; color:var(--cheong); background:#fff; }
 /* 비용: 예전 알약 모양의 흔적(width·border-radius·float)은 테두리·바탕이 없어 보이지 않지만 계산값 보존용으로 둔다.
    !important 는 line.css 공통 규칙 정리(5-5) 전까지 유지. */
 .detail .stop-meta .stop-cost { display:inline; width:fit-content; margin:0; border-radius:999px; font-size:15px; font-weight:700; line-height:1.65;

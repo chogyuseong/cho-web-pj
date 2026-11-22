@@ -8,6 +8,7 @@ from app.main import app
 from app.planner import evaluate
 from test_festival_fixed_time import HOME, evening, rows
 from test_functional_audit import audit_page  # noqa: F401  (브라우저 고정 장치)
+from test_leg_modes import directions_api  # noqa: F401  (네이버 길찾기 가짜 응답 고정 장치)
 
 
 def saved(client, **extra):
@@ -153,6 +154,64 @@ def test_replacing_a_middle_place_keeps_the_festival_override():
         assert not error and moved['festival_visit']['leg']['mode'] == 'transit'
         stored = save_change(moved, original, store.owner_of(client.cookies['dm_session']))
         assert {'from': original['places'][1]['id'], 'to': 'festival', 'mode': 'transit'} in stored['conditions']['leg_modes']
+
+
+def test_festival_leg_over_max_leg_warns():
+    """돌아오는 구간도 다른 구간처럼 요청한 구간 이동 시간을 넘으면 경고한다(74차에서 남긴 것)."""
+    with TestClient(app) as client:
+        client.get('/api/places?mode=demo')
+        plan, error = evaluate(rows(), evening())
+        assert not error and [leg['minutes'] for leg in plan['legs']] == [9, 3]
+        plan['conditions']['max_leg'] = 9
+        stored = store.save_plan(audit_plan(plan), store.owner_of(client.cookies['dm_session']))
+        response = change(client, stored, festival='transit')
+        assert response.status_code == 200, response.text
+        data = response.json()
+        leg = data['festival_visit']['leg']
+        assert leg['mode'] == 'transit' and leg['minutes'] > 9
+        last = stored['places'][-1]['name']
+        assert f"{last} → 점검 빛축제 행사장 이동이 {leg['minutes']}분으로 요청한 9분보다 길어요. 그대로 저장했어요." in data['transport_change']['warnings']
+
+
+def test_festival_leg_route_failure_warns(directions_api):  # noqa: F811
+    """돌아오는 구간을 자동차로 바꿨는데 길찾기 조회가 실패하면 다른 구간처럼 추정 시간이라고 알린다(74차에서 남긴 것)."""
+    calls, state = directions_api
+    state['fail'] = True
+    with TestClient(app) as client:
+        plan = saved(client)
+        response = change(client, plan, festival='car')
+        assert response.status_code == 200, response.text
+        data = response.json()
+        leg = data['festival_visit']['leg']
+        assert calls and leg['mode'] == 'car' and leg['route_fallback'] and '자동차 길찾기 조회 실패' in leg['source']
+        last = plan['places'][-1]['name']
+        assert f"자동차 길찾기 조회에 실패해 이 구간은 추정 시간이에요. ({last} → 점검 빛축제 행사장)" in data['transport_change']['warnings']
+        assert data['route_verification'] == '자동차 길찾기 조회에 실패한 구간은 추정 시간이에요.'
+
+
+def test_festival_leg_without_failure_has_no_fallback_key():
+    """조회 실패가 없으면 저장되는 돌아오는 구간 모양은 예전과 같다(route_fallback 키 없음)."""
+    with TestClient(app) as client:
+        plan = saved(client)
+        assert 'route_fallback' not in plan['festival_visit']['leg']
+
+
+def test_bulk_chooser_counts_the_festival_leg(audit_page):  # noqa: F811
+    """'이동 수단 한 번에 바꾸기'의 지금 수단 표시가 돌아오는 구간도 센다(74차에서 남긴 것)."""
+    page, base, errors = audit_page
+    with TestClient(app) as client:
+        plan = change(client, saved(client), festival='transit').json()
+        owner = client.cookies['dm_session']
+    page.route('**/api/festivals?*', lambda route: route.fulfill(json=dict(status='available', festivals=[], message='')))
+    page.context.add_cookies([{'name': 'dm_session', 'value': owner, 'url': base}])
+    page.goto(base + '/?plan=' + plan['id'])
+    page.wait_for_function('(id)=>selected?.id===id', arg=plan['id'])
+    bulk = page.locator('#plan-detail .transport-bulk')
+    bulk.locator('summary').click()
+    # 장소 도착 2구간은 도보, 돌아오는 구간은 대중교통 — 섞인 경우의 기존 표시를 따른다.
+    assert '지금은 도보 2구간·대중교통 1구간이에요.' in bulk.locator('.hint').first.inner_text()
+    assert bulk.locator('button[aria-pressed="true"]').count() == 0
+    assert not errors
 
 
 def test_car_notes_follow_the_festival_leg():

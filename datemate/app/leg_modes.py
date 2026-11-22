@@ -47,6 +47,17 @@ def festival_pair(plan):
     return None
 
 
+def festival_leg(plan):
+    """돌아오는 구간(festival_visit.leg)에 경고 문장용 출발·도착 이름을 붙인 사본. 저녁 축제가 없으면 None.
+    저장된 구간에는 장소 이름을 싣지 않으므로(app/festival_time.LEG_FIELDS) 이름은 코스에서 찾는다."""
+    pair = festival_pair(plan)
+    leg = (plan.get('festival_visit') or {}).get('leg')
+    if not pair or not isinstance(leg, dict):
+        return None
+    names = place_names(plan)
+    return dict(leg, origin=names.get(pair[0], ''), destination=names.get('festival', ''))
+
+
 def leg_mode(plan, index):
     leg = plan['legs'][index]
     return leg.get('mode') or (plan.get('conditions') or {}).get('transport') or 'walk'
@@ -151,11 +162,13 @@ def describe(before, after, changed, default=None, cleared=False, conditions=Non
         moved = f'이후 도착이 {abs(shift)}분 당겨지고' if shift < 0 else f'이후 도착이 {shift}분 늦어지고' if shift > 0 else '이후 도착 시간은 그대로이고'
         messages.append(f"{subject} {name}{josa(name, '으로', '로')} 바꿨어요. {moved} {finish_text}")
     warnings = []
+    # 코스 끝 저녁 축제로 돌아오는 구간(festival_visit.leg)도 다른 구간과 같은 기준으로 경고한다.
+    extra = festival_leg(after)
     if c is not None:
         late = minutes(after['finish']) - minutes(c.end)
         if late > 0:
             warnings.append(f'종료가 요청한 {c.end}보다 {late}분 늦어져요. 그대로 저장했어요.')
-        for leg in after['legs']:
+        for leg in after['legs'] + ([extra] if extra else []):
             if leg.get('minutes') is not None and leg['minutes'] > c.max_leg:
                 warnings.append(f"{leg['origin']} → {leg['destination']} 이동이 {leg['minutes']}분으로 요청한 {c.max_leg}분보다 길어요. 그대로 저장했어요.")
         if c.max_walk is not None and (after.get('walking') or 0) > c.max_walk:
@@ -163,6 +176,8 @@ def describe(before, after, changed, default=None, cleared=False, conditions=Non
     for index in fallback:
         leg = after['legs'][index]
         warnings.append(f"자동차 길찾기 조회에 실패해 이 구간은 추정 시간이에요. ({leg['origin']} → {leg['destination']})")
+    if extra and extra.get('route_fallback'):
+        warnings.append(f"자동차 길찾기 조회에 실패해 이 구간은 추정 시간이에요. ({extra['origin']} → {extra['destination']})")
     return dict(changed=changed, arrivals=arrivals, finish=finish, messages=messages, warnings=warnings,
                 car_notes=car_position_notes(after))
 
@@ -233,9 +248,10 @@ def apply_change(plan, prepared):
         from .best_effort import annotate
         updated = annotate(updated, c)
     fallback = [i for i, leg in enumerate(updated['legs']) if leg.get('route_fallback')]
+    festival_fallback = bool(((updated.get('festival_visit') or {}).get('leg') or {}).get('route_fallback'))
     if verify:
         updated['route_verification'] = (
-            '바꾼 자동차 구간의 실제 경로를 다시 확인했어요. 조회 시점 기준입니다.' if not fallback
+            '바꾼 자동차 구간의 실제 경로를 다시 확인했어요. 조회 시점 기준입니다.' if not fallback and not festival_fallback
             else '자동차 길찾기 조회에 실패한 구간은 추정 시간이에요.')
     else:
         updated.pop('route_verification', None)

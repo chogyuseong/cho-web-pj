@@ -67,6 +67,18 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
+브랜치 fix/festival-leg-followup (2026-11-22, 병합·배포 전 — 74차 feat/festival-leg 의 '남긴 것(작음)' 두 가지)
+  · 축제 구간 경고: 저녁 축제(코스 끝)의 돌아오는 구간(festival_visit.leg)도 수단을 바꾼 뒤 다른 구간과 같은 기준으로
+    '… → (축제) 행사장 이동이 N분으로 요청한 M분보다 길어요'·'자동차 길찾기 조회에 실패해 이 구간은 추정 시간이에요. (마지막 장소 → … 행사장)'를 냄
+    (app/leg_modes.festival_leg·describe, route_verification 문장도 이 구간의 조회 실패를 셈). 조회 실패를 알 수 있게 app/festival_time.visit_record 가
+    추정으로 바꾼 구간에만 leg.route_fallback=True 를 남김(평소 저장 모양은 그대로).
+  · '이동 수단 한 번에 바꾸기'의 지금 수단 표시(static/plan-actions.js transportOverview)가 돌아오는 구간도 셈. 섞이면 기존처럼 '지금은 도보 2구간·대중교통 1구간이에요.'(travelMode countLabel).
+  · 검증: tests/test_festival_leg.py 새 4개(고치기 전 3개 실패 확인 — 시간 초과 경고·조회 실패 경고·지금 수단 표시, 나머지 1개는 저장 모양 지킴),
+    관련 leg_modes·축제 테스트 102 통과, 이 Windows PC SQLite 전체 1314 통과·1 건너뜀·오류 1(test_meal_photo_mobile_ui 브라우저 준비 단계 — 단독 재실행 2 통과, 앱 문제 아님),
+    format_sources --check 통과. PostgreSQL 은 CI 로.
+  · 참고(이 PC 환경): Windows 스마트 앱 컨트롤이 datemate/.venv 의 ormsgpack 1.13.1·grpcio 1.85.3 DLL 을 막아 app.main 을 못 불러옴 →
+    requirements.lock.txt 버전(ormsgpack 1.13.0·grpcio 1.84.0)으로 venv 만 맞춤(저장소 변경 없음). 이 venv 는 다른 패키지도 잠금 파일과 버전이 다름.
+  · 되돌리는 법: 병합 전이면 브랜치 버림, 병합·배포 뒤에는 git revert -m 1 후 재배포(DB 마이그레이션 없음. 저장된 leg.route_fallback 키는 되돌린 코드가 무시함).
 브랜치 feat/festival-leg (2026-11-22, 74차로 병합·배포됨 — 사용자 '진행해'(추천: 70차 저녁 축제의 빈 곳 채우기). 설계·계획: docs/superpowers/specs·plans/2026-11-22-festival-leg*)
   · 지도 버그 고침: 저녁 축제(코스 끝) 코스에서 귀가를 고르면 지도(네이버·공개 지도·장소 창 개략도)가 귀가 선을 마지막 장소에서 그었다(실제는 행사장에서 출발).
     구간 목록을 static/maps.js planSegments 하나로 만들어 '… → 마지막 장소 → 행사장(출발지 좌표) → 귀가지'로 그림. 돌아오는 구간은 경로 모양을 저장하지 않아 점선만. 범례도 이 목록을 씀.
@@ -78,6 +90,7 @@
     ② 장소 5곳 + 귀가 + 축제 = 구간 7개면 조건 검사(leg_modes 최대 6)가 영어 오류를 냄 → 최대 7 ③ 가운데 장소를 바꾸면 축제 구간 예외가 지워짐 → 남김(app/plan_changes.save_change)
     ④ 차 위치 안내(car_position_notes)가 축제 구간을 모름 → 행사장을 거쳐 따라감.
   · 남긴 것(작음): 축제 구간을 자동차로 바꿨을 때 길찾기 조회 실패·구간 이동 시간 초과 경고가 이 구간엔 안 나옴, 전체 수단 고르기 단추의 '지금 수단' 표시가 축제 구간을 안 봄.
+    → 두 가지 모두 브랜치 fix/festival-leg-followup 에서 처리(위 기록).
   · 검증: tests/test_festival_leg.py 13개(고치기 전 실패 확인), 관련 leg_modes·축제 테스트 64 통과, 이 Mac SQLite 전체(검토 수정 전 1307 통과·1 건너뜀, 수정 후 1311 통과·1 건너뜀·실패 0, Chrome),
     축제 칸 스크린샷 확인. PostgreSQL 은 브랜치 커밋 a9a0740 CI Run 45007089881 5개 성공. 작업은 git worktree(.superpowers/wt/festival-leg, git 무시)에서 했음.
   · 되돌리는 법: 병합 전이면 브랜치 버림, 병합·배포 뒤에는 git revert -m 1 후 재배포(DB 마이그레이션 없음. 저장된 코스의 (…, 'festival') 수단 예외는 되돌린 코드도 planner 가 읽음 — leg_modes 7개짜리 조건은 되돌린 모델(최대 6)이 거부하니 그런 코스는 다시 열 때 오류 가능 — 드묾).

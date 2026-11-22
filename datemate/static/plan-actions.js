@@ -171,12 +171,15 @@ function transportOverview(plan) {
   for (const check of plan.condition_checks || [])
     if (check.condition === 'car_position') box.append(node('p', check.message, 'hint car-position-note'));
   if (plan.can_edit !== false && plan.legs.length && !planHistoryExpired(plan)) {
-    const modes = new Set(plan.legs.map(leg => legMode(plan, leg))),
+    // 코스 끝 저녁 축제로 돌아오는 구간(festival_visit.leg — plan.legs 밖)도 지금 수단에 센다. 전체 수단을 바꾸면 이 구간도 바뀐다.
+    const visit = plan.festival_visit,
+      legs = visit?.position === 'last' && visit.leg ? [...plan.legs, visit.leg] : plan.legs;
+    const modes = new Set(legs.map(leg => legMode(plan, leg))),
       current = modes.size === 1 ? [...modes][0] : null;
     const bulk = node('details', undefined, 'transport-bulk'),
       summary = node('summary', '이동 수단 한 번에 바꾸기');
     summary.dataset.transportToggle = 'bulk';
-    bulk.append(summary, node('p', current ? `지금은 모든 구간이 ${transportIs(current)}.` : `지금은 ${travelMode(plan).countLabel}이에요. 하나를 고르면 따로 고른 구간 설정은 지워져요.`, 'hint'), transportChooser('모든 구간 이동 수단', current, mode => ({
+    bulk.append(summary, node('p', current ? `지금은 모든 구간이 ${transportIs(current)}.` : `지금은 ${travelMode({ ...plan, legs }).countLabel}이에요. 하나를 고르면 따로 고른 구간 설정은 지워져요.`, 'hint'), transportChooser('모든 구간 이동 수단', current, mode => ({
       default: mode
     }), 'bulk'));
     box.append(bulk);

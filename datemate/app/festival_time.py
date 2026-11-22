@@ -117,6 +117,9 @@ def visit_record(c, slot, back=None):
                   stay=slot['departure'] - slot['arrival'], wait=slot['wait'])
     if back:
         record['leg'] = {key: back.get(key) for key in LEG_FIELDS}
+        # 자동차 길찾기 조회가 실패해 추정으로 바꾼 구간만 표시한다(app/leg_modes.apply_change 경고). 평소 저장 모양은 그대로.
+        if back.get('route_fallback'):
+            record['leg']['route_fallback'] = True
     return record
 
 

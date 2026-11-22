@@ -7,7 +7,14 @@
 
 ★ 지금 상태 (2026-11-22 기준)
 ----------------------------------------------------------------------
-운영에 올라간 것: 커밋 f1300a9(main, 병합 = feat/fresh-place), Worker 버전 9160ad5f-67ca-4279-bfc3-c54fcfe83840 (일흔한 번째 배포, 2026-11-22)
+운영에 올라간 것: 커밋 309a8ac(main, 병합 = feat/action-card), Worker 버전 3f116ee0-327f-4a0d-9952-4665e9607a2d (일흔두 번째 배포, 2026-11-22)
+  · 사용자 '진행해'. 브랜치 head cbfb54e CI Run 45000168860 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push →
+    npm run test:security 25 통과 → wrangler deploy(이 Mac. 정적 파일 4개: action-card.js·plan-detail.js·results.css·index.html).
+  · 운영 확인: /api/status 200(Server-Timing 있음), 첫 화면에 action-card.js?v=e2efca42c30a, /static/action-card.js 에 actionCardItems 있음,
+    /api/explore?region=제주 ready 24곳, /api/festivals(서울, 11-22~12-06) available 18건. 카드는 화면 계산이라 컨테이너 교체와 무관하게 새 화면에서 바로 보임
+    (운영 코스로 직접 열어 보지는 않음). 내용은 아래 브랜치 feat/action-card 기록.
+  · 되돌리는 법: git revert -m 1 309a8ac 후 재배포(DB·저장 코스 변경 없음).
+이전 운영(71차): 커밋 f1300a9(main, 병합 = feat/fresh-place), Worker 버전 9160ad5f-67ca-4279-bfc3-c54fcfe83840 (일흔한 번째 배포, 2026-11-22)
   · 사용자 '배포해'. 브랜치 head d16375c CI Run 44995779135 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push →
     npm run test:security 25 통과 → wrangler deploy(이 Mac. 정적 파일 5개: experience.js·simple-form.js·plan-detail.js·plan-results.js·results.css).
   · 운영 확인: /api/status 200(Server-Timing 있음), 위 정적 파일 5개에 fresh 코드 있음, /api/explore?region=제주 ready 24곳, /api/festivals(서울, 11-22~12-06) available 18건.
@@ -47,7 +54,7 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
-브랜치 feat/action-card (2026-11-22, 병합·배포 전 — 7절 구조 분석 제안 '실행 카드'. 사용자 '추천대로'(전날 확인 중심 + 당일 항목에 시점, 근거는 실행 의도·체크리스트·계획 오류 연구 — 앱에서 직접 검증된 효과는 아님))
+브랜치 feat/action-card (2026-11-22, 72차로 병합·배포됨 — 7절 구조 분석 제안 '실행 카드'. 사용자 '추천대로'(전날 확인 중심 + 당일 항목에 시점, 근거는 실행 의도·체크리스트·계획 오류 연구 — 앱에서 직접 검증된 효과는 아님))
   · 무엇을: 코스 상세의 '네 가지 확인' 바로 위에 '할 일 순서' 체크리스트(static/action-card.js). 지금·전날(장소별 verification coverage.missing = 영업시간·휴무일·예약·가격,
     reservation true 면 '예약하기', 고른 축제 운영 시간) → 출발 전(코스 시작·첫 장소 도착, 맨 앞 축제면 축제 도착) → 도착 전(자동차로 도착하는 장소 주차, 저녁 축제에 차로 돌아가면 행사장 주차)
     → 마무리(day-of.js 와 같은 계산의 귀가 출발 시각, 귀가 없으면 종료까지 마치기). 저장된 코스만 읽음(서버 코드 변경 없음).
@@ -56,7 +63,7 @@
   · 최종 검토(새 검토자)에서 고친 것: ① 코스를 바꿀 때마다 체크가 모두 사라짐 → 장소 체크 이어받기 ② 저녁 축제에 차로 돌아갈 때 행사장 주차 줄 없음 → 추가.
   · 남긴 것(작음): 저장소가 막혀도 '이 브라우저에만 남아요' 문장 그대로, 한 장소에 '예약 확인'과 '예약하기'가 함께 나올 수 있음, 데모 코스는 가상 장소에도 확인 줄이 나옴.
   · 검증: tests/test_action_card_ui.py 7개(고치기 전 실패 확인), 이 Mac SQLite 전체 1293 통과·1 건너뜀·실패 0(Chrome), format_sources --check 통과, 휴대폰 폭 스크린샷 확인.
-    PostgreSQL 은 로컬에서 안 돌림 — CI 결과는 병합할 때 이 줄에 적을 것. 설계·계획: docs/superpowers/specs·plans/2026-11-22-action-card*.
+    PostgreSQL 은 로컬에서 안 돌림 — 브랜치 커밋 cbfb54e CI Run 45000168860 5개 성공. 설계·계획: docs/superpowers/specs·plans/2026-11-22-action-card*.
   · 되돌리는 법: 병합 전이면 브랜치 버림, 병합·배포 뒤에는 git revert -m 1 후 재배포(DB·저장 코스 변경 없음, 브라우저에 남은 체크 키는 무해).
 브랜치 feat/fresh-place (2026-11-22, 71차로 병합·배포됨 — 7절 구조 분석 제안 '한 곳만 낯설게'. 사용자: 매번 비슷한 데이트가 지겨운 사람을 위한 것 → 방법 (가) 조건 화면 선택 항목)
   · 무엇을: 세부 설정의 체크 '한 곳은 평소와 다른 새로운 곳으로'(fresh_one, 기본 꺼짐)를 켜면, 코스 장소 가운데 한 곳을 이 브라우저에 익숙하지 않은 종류로 채우고
@@ -1804,7 +1811,7 @@ Copy-Item .env.example .env
 ----------------------------------------------------------------------
 2026-11-21 대조: 아래 항목을 코드·git 기록과 맞춰 봤습니다. [완료]·[전제 바뀜] 은 처리한 커밋이나 까닭을 적었고, 표시 없는 항목은 아직 남은 것입니다.
   (64차 직후 이 목록만 보고 팝업 지도 '고칠 후보'를 다음 작업으로 골랐다가 11-15 에 모두 끝난 것을 알게 되어 정리함.)
-  지금 개발로 남은 것: (먼 동네의 요청 활동 0곳은 ② 안내로 처리 — feat/missing-kind-nearest-hint) 구조 분석 제안 가운데 지각 복구(대체 장소)(실행 카드는 feat/action-card 에 구현·병합 대기, 한 곳만 낯설게는 feat/fresh-place 로 71차 배포 — 맨 위 ★)
+  지금 개발로 남은 것: (먼 동네의 요청 활동 0곳은 ② 안내로 처리 — feat/missing-kind-nearest-hint) 구조 분석 제안 가운데 지각 복구(대체 장소)(실행 카드는 feat/action-card 로 72차 배포, 한 곳만 낯설게는 feat/fresh-place 로 71차 배포 — 맨 위 ★)
   (축제 참석 시간 고정은 feat/festival-fixed-time 로 68차 배포, 공유 링크의 축제 이름·방문 시각은 feat/share-festival-visit 로 69차 배포, 저녁 축제를 코스 끝에 두기는 feat/festival-at-end 로 70차 배포 — 맨 위 ★),
   운영 대시보드 Container logs 에서 recommendation_timing 이 실제로 보이는지 확인(65차에서 출력은 고침). 나머지는 휴대폰 실기기 확인과 '직접 해야 하는 일'.
 
@@ -1898,7 +1905,7 @@ Copy-Item .env.example .env
   그 뒤 일부가 들어갔습니다: 지연 시 남은 일정은 읽기 전용 '늦어지면 어디서 문제가 생길까?'(fabe50d, 52차, app/delay_check.py)까지 — 대체 장소로 고치는 복구는
   지각 확인 사용 결과를 본 뒤(53차 '하지 않은 것'). 두 사람의 결정은 공유 링크의 장소별 의견·합의 초안(app/experience.py, 52차 1decc85 에서 의견 변경 검사,
   53차 1add966 에서 '아직 안 정했어요' 기본값)이 있습니다 — 다만 추천 '조건'을 두 사람이 맞추는 단계는 아닙니다.
-  [구현함, 병합 대기] 확인할 것을 순서로 바꾸는 실행 카드: feat/action-card(맨 위 ★).
+  [완료, 72차 배포] 확인할 것을 순서로 바꾸는 실행 카드: feat/action-card(맨 위 ★).
   [완료, 71차 배포] 한 곳만 낯설게: feat/fresh-place(맨 위 ★).
   [완료, 68차 배포] 축제 참석 시간 고정: feat/festival-fixed-time(맨 위 ★). 운영 시간이 맞으면 축제를 일정 맨 앞에 고정, 아니면 조건 확인 안내.
     [완료, 70차 배포] 저녁 축제(개막이 코스 시작보다 60분 넘게 늦음)를 코스 끝에 두기: feat/festival-at-end(맨 위 ★).

@@ -45,3 +45,38 @@ def test_items_follow_the_festival(audit_page):
     last = items(page, "{conditions:{start:'16:00',end:'22:00',return_home:true,festival:{title:'빛축제'}},festival_visit:{position:'last',title:'빛축제',arrival:'17:30',departure:'18:30'}}")
     assert last[-1]['text'] == '늦어도 21:30에 빛축제 행사장에서 귀가 출발 (종료 22:00)'
     assert any(i['text'] == '16:00 출발 · 1. A 11:10 도착 예정' for i in last)
+
+
+def open_course(page, base):
+    generate(page)
+    wait_for_selected_detail(page)
+    return page.evaluate('selected.id')
+
+
+def test_course_screen_shows_the_card_and_remembers_checks(audit_page):
+    page, base, errors = audit_page
+    plan_id = open_course(page, base)
+    card = page.locator('#plan-detail .action-card')
+    assert card.count() == 1 and card.locator('h3').inner_text() == '할 일 순서'
+    # '네 가지 확인'(execution-summary) 바로 위.
+    assert page.evaluate("""()=>{const a=document.querySelector('#plan-detail .action-card'),e=document.querySelector('#plan-detail .execution-summary');
+        return a.nextElementSibling===e;}""")
+    boxes = card.locator('input[type=checkbox]')
+    assert boxes.count() == len(page.evaluate('actionCardItems(selected)')) >= 2
+    boxes.nth(0).check()
+    page.goto(base + '/?plan=' + plan_id)
+    wait_for_selected_detail(page)
+    again = page.locator('#plan-detail .action-card input[type=checkbox]')
+    assert again.nth(0).is_checked() and not again.nth(1).is_checked()
+    assert not errors
+
+
+def test_blocked_storage_still_works(audit_page):
+    page, base, errors = audit_page
+    page.add_init_script("Object.defineProperty(window,'localStorage',{configurable:true,get(){throw new Error('blocked')}})")
+    plan_id = open_course(page, base)
+    page.goto(base + '/?plan=' + plan_id)
+    wait_for_selected_detail(page)
+    box = page.locator('#plan-detail .action-card input[type=checkbox]').first
+    box.check()
+    assert box.is_checked() and not errors

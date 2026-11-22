@@ -70,3 +70,56 @@ function actionCardItems(plan) {
   }
   return items;
 }
+
+// 체크한 항목 id 목록. 사생활 보호 모드 등에서 저장소가 막혀도 카드는 그대로 동작한다(저장만 안 됨).
+function actionCardKey(plan) {
+  return plan.id ? 'datemate:action-card:' + plan.id : null;
+}
+
+function actionCardChecked(plan) {
+  const key = actionCardKey(plan);
+  if (!key) return new Set();
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || '[]');
+    return new Set(Array.isArray(saved) ? saved : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveActionCardChecked(plan, checked) {
+  const key = actionCardKey(plan);
+  if (!key) return;
+  try {
+    if (checked.size) localStorage.setItem(key, JSON.stringify([...checked]));
+    else localStorage.removeItem(key);
+  } catch {}
+}
+
+function actionCard(plan) {
+  const box = node('section', undefined, 'action-card'),
+    items = actionCardItems(plan),
+    checked = actionCardChecked(plan);
+  box.append(node('h3', '할 일 순서'), node('p', '확인할 것을 언제 할지 순서대로 모았어요. 체크 표시는 이 브라우저에만 남아요.', 'hint'));
+  for (const [when, title] of ACTION_CARD_WHEN) {
+    const rows = items.filter(item => item.when === when);
+    if (!rows.length) continue;
+    const group = node('div', undefined, 'action-card-group');
+    group.append(node('h4', title));
+    for (const item of rows) {
+      const label = node('label', undefined, 'check action-card-item'),
+        input = node('input');
+      input.type = 'checkbox';
+      input.checked = checked.has(item.id);
+      input.addEventListener('change', () => {
+        if (input.checked) checked.add(item.id);
+        else checked.delete(item.id);
+        saveActionCardChecked(plan, checked);
+      });
+      label.append(input, node('span', item.text));
+      group.append(label);
+    }
+    box.append(group);
+  }
+  return box;
+}

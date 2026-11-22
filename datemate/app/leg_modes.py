@@ -97,15 +97,22 @@ def car_position_notes(plan):
     자동차 구간의 출발지가 차가 있는 곳과 다르거나, 차를 둔 채 다른 수단으로 귀가하면 안내한다.
     돌아가는 시간·주차 시간·택시 요금은 만들지 않는다. 아무것도 막지 않는다."""
     legs = plan.get('legs') or []
-    if not legs or not any(leg_mode(plan, i) == 'car' for i in range(len(legs))):
+    # (출발, 도착, 수단) 순서. 코스 끝 저녁 축제면 마지막 장소 → 행사장(festival_visit.leg) 뒤에 행사장에서 귀가한다.
+    steps = [(start, end, leg_mode(plan, i)) for i, (start, end) in enumerate(endpoints(plan)[:len(legs)])]
+    extra = festival_pair(plan)
+    if extra:
+        mode = plan['festival_visit'].get('leg', {}).get('mode') or (plan.get('conditions') or {}).get('transport') or 'walk'
+        home = steps[len(plan['places'])] if len(steps) > len(plan['places']) else None
+        steps = steps[:len(plan['places'])] + [(extra[0], 'festival', mode)] + ([('festival', 'home', home[2])] if home else [])
+    if not any(mode == 'car' for _, _, mode in steps):
         return []
     names = place_names(plan)
-    pairs = endpoints(plan)
+    # 행사장 = 출발지 좌표(app/festival_time.py). 차 위치를 비교할 때는 같은 곳으로 본다.
+    same = lambda a, b: {a, b} <= {'origin', 'festival'} or a == b
     car_at, used, notes = 'origin', False, []
-    for i, (start, end) in enumerate(pairs[:len(legs)]):
-        mode = leg_mode(plan, i)
+    for start, end, mode in steps:
         if mode == 'car':
-            if car_at != start:
+            if not same(car_at, start):
                 place = names.get(car_at, '출발지')
                 target = names.get(end, '')
                 notes.append(
@@ -211,7 +218,13 @@ def apply_change(plan, prepared):
         checked, error = evaluate(plan['places'], c, soft=True, verify_routes=verify, route_fallback=True, failure=failure)
     if error:
         raise Blocked(blocked_message(failure))
+    # 코스 끝 저녁 축제가 새 수단으로는 운영 시간에 맞지 않으면(개막까지 너무 오래 기다리거나 종료를 넘김) planner 는 축제 없이 끝낸다.
+    # 그대로 저장하면 축제가 말없이 빠지므로 바꾸지 않는다.
+    if festival_pair(plan) and not checked.get('festival_visit'):
+        raise Blocked('이 수단으로는 코스 끝 축제 시간에 맞출 수 없어 바꾸지 않았어요. 축제 개막까지 너무 오래 기다리거나 운영 시간을 넘겨요.')
     updated = copy.deepcopy(plan)
+    # 축제 방문 기록은 다시 계산한 코스를 따른다(남은 옛 기록이 화면·지도·지각 확인에 쓰이지 않게).
+    updated.pop('festival_visit', None)
     reasons = updated.get('reasons')
     updated.update(checked)
     if reasons:

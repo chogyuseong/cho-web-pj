@@ -118,3 +118,48 @@ def test_course_screen_changes_the_festival_leg(audit_page):  # noqa: F811
     assert '대중교통' in page.locator('#plan-detail .festival-visit-leg').inner_text()
     page.wait_for_function("document.activeElement?.dataset?.transportToggle==='festival'")
     assert not errors
+
+
+# --- 최종 검토에서 고친 것 ---
+def test_change_that_loses_the_festival_is_refused():
+    """빠른 수단으로 바꿔 개막까지 60분 넘게 기다리게 되면 축제가 일정에서 빠진다. 예전에는 저장돼 화면에 옛 축제 시각이 남았다(검토 지적)."""
+    with TestClient(app) as client:
+        plan = saved(client, start='15:12', return_home=True, home=HOME)
+        assert plan['festival_visit']['wait'] >= 55
+        response = change(client, plan, festival='car')
+        assert response.status_code == 409, response.text
+        assert '축제' in response.json()['detail']
+
+
+def test_seven_leg_mode_pairs_are_allowed():
+    """장소 5곳 + 귀가 + 축제 돌아오는 구간 = 구간 7개. 예외가 7개여도 조건이 받아야 한다."""
+    from app.models import Conditions
+    data = evening().model_dump(mode='json')
+    data['leg_modes'] = [dict(zip(('from', 'to'), pair), mode='transit') for pair in
+                         [('origin', 'a'), ('a', 'b'), ('b', 'c'), ('c', 'd'), ('d', 'e'), ('e', 'home'), ('e', 'festival')]]
+    assert len(Conditions.model_validate(data).leg_modes) == 7
+
+
+def test_replacing_a_middle_place_keeps_the_festival_override():
+    import copy
+    from app.catalog import places
+    from app.models import Conditions
+    from app.plan_changes import save_change
+    with TestClient(app) as client:
+        original = change(client, saved(client), festival='transit').json()
+        other = copy.deepcopy(places('demo')[2])
+        other.update(demo=False, hours=[0, 1440], closed_days=[], last_entry=None, breaks=None, price=[1000, 1000], price_unit='person', stay=30)
+        moved, error = evaluate([other, original['places'][1]], Conditions.model_validate(original['conditions']))
+        assert not error and moved['festival_visit']['leg']['mode'] == 'transit'
+        stored = save_change(moved, original, store.owner_of(client.cookies['dm_session']))
+        assert {'from': original['places'][1]['id'], 'to': 'festival', 'mode': 'transit'} in stored['conditions']['leg_modes']
+
+
+def test_car_notes_follow_the_festival_leg():
+    from app.leg_modes import car_position_notes
+    with TestClient(app) as client:
+        plan = change(client, saved(client, return_home=True, home=HOME), festival='car').json()
+        notes = car_position_notes(plan)
+        # 차는 출발지(= 행사장)에 있는데 마지막 장소에서 행사장까지 자동차로 가고, 귀가는 도보라 차를 행사장에 두고 간다.
+        assert any('자동차로 가려면' in n for n in notes)
+        assert any('귀가를 도보로 하면' in n and '행사장' in n for n in notes)

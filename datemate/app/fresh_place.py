@@ -17,8 +17,10 @@ from . import store
 
 RECENT = 5
 MIN_HISTORY = 1
-# 같은 모드의 추천 RECENT 번을 찾으려고 읽는 최근 코스 수(추천 한 번에 3안이 저장된다).
+# 같은 모드의 추천 RECENT 번을 찾으려고 최근 코스를 SCAN 개씩 읽는다(추천 한 번에 3안이 저장된다). 다른 모드 코스가
+# 많이 쌓여 있어도 같은 모드 기록을 찾도록 SCAN_LIMIT 개까지 더 읽는다.
 SCAN = 60
+SCAN_LIMIT = 300
 DEFAULT_FAMILIAR = ['식사', '카페']
 
 
@@ -26,21 +28,25 @@ def familiar_groups(owner, mode):
     """(익숙한 묶음 목록 — GROUP_ORDER 순, 근거 'history' 또는 'default')."""
     from .option_diversity import GROUP_ORDER, place_group
 
-    with store.connect() as db:
-        rows = db.execute(
-            'SELECT payload FROM plans WHERE owner=? AND parent IS NULL ORDER BY created DESC LIMIT ?',
-            (owner, SCAN),
-        ).fetchall()
     # 최신순으로 읽으므로 같은 추천의 안은 마지막에 본 것이 먼저 저장된 첫 안이다.
     runs = {}
-    for row in rows:
-        plan = json.loads(row['payload'])
-        if (plan.get('conditions') or {}).get('mode') != mode:
-            continue
-        key = plan.get('recommendation_group_id') or plan.get('id')
-        if key not in runs and len(runs) == RECENT:
-            continue
-        runs[key] = {place_group(p) for p in plan.get('places') or []}
+    with store.connect() as db:
+        for offset in range(0, SCAN_LIMIT, SCAN):
+            rows = db.execute(
+                'SELECT payload FROM plans WHERE owner=? AND parent IS NULL ORDER BY created DESC LIMIT ? OFFSET ?',
+                (owner, SCAN, offset),
+            ).fetchall()
+            for row in rows:
+                plan = json.loads(row['payload'])
+                if (plan.get('conditions') or {}).get('mode') != mode:
+                    continue
+                key = plan.get('recommendation_group_id') or plan.get('id')
+                if key not in runs and len(runs) == RECENT:
+                    continue
+                runs[key] = {place_group(p) for p in plan.get('places') or []}
+            # RECENT 번을 다 찾았으면 다음 쪽은 같은 추천의 나머지 안뿐이라(첫 안 = 가장 먼저 저장) 한 쪽만 더 읽는다.
+            if len(rows) < SCAN or (len(runs) == RECENT and offset):
+                break
     seen = list(runs.values())
     if len(seen) < MIN_HISTORY:
         return list(DEFAULT_FAMILIAR), 'default'
@@ -91,7 +97,7 @@ def audit_row(plan, c):
             message += f' 새로운 종류가 {len(found)}곳 들어갔어요.'
     else:
         state = 'unknown'
-        message = '이 동네 후보에서 최근 코스와 다른 종류를 찾지 못했어요. 테마나 동네를 바꿔 보세요.'
+        message = '지금 코스에는 최근 코스에 드물던 종류가 없어요. 이 동네 후보에 없거나 장소를 바꿨을 수 있어요.'
     if c.fresh_basis == 'default':
         message += ' 최근 코스 기록이 적어 식사·카페를 익숙한 종류로 봤어요.'
     return state, message

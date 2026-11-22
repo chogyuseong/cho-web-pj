@@ -140,7 +140,7 @@ def test_audit_without_fresh_kind_is_unknown_and_course_kept():
     plan = audited(on(['카페', '보기', '하기']), '카페', '보기', '하기')
     assert 'fresh_place' not in plan
     check = fresh_check(plan)
-    assert check['state'] == 'unknown' and '다른 종류를 찾지 못했어요' in check['message']
+    assert check['state'] == 'unknown' and '드물던 종류가 없어요' in check['message']
 
 
 def test_default_basis_explains():
@@ -227,3 +227,19 @@ def test_course_screen_tags_the_fresh_place(audit_page):  # noqa: F811
     assert stop.locator('.stop-number').inner_text() == '2'
     assert page.locator('.plan-card', has_text='새로운 곳: ' + plan['places'][1]['name'] + '(전시·관람)').count() >= 1
     assert not errors
+
+
+def test_unknown_message_does_not_blame_the_neighbourhood():
+    """사용자가 새로운 곳을 직접 바꾼 뒤에도 '이 동네 후보에서 못 찾음'이라고 하면 사실과 다르다(검토 지적)."""
+    check = fresh_check(audited(on(['카페', '보기', '하기']), '카페', '보기', '하기'))
+    assert check['message'] == '지금 코스에는 최근 코스에 드물던 종류가 없어요. 이 동네 후보에 없거나 장소를 바꿨을 수 있어요.'
+
+
+def test_other_mode_history_does_not_hide_same_mode_runs():
+    """최근에 다른 모드 코스가 많이 쌓여도 같은 모드 추천 기록을 찾는다(예전에는 최근 60개만 읽어 기본값으로 떨어졌다)."""
+    with TestClient(app):
+        who = owner()
+        run(who, ('보기', '하기'), mode='real')
+        for _ in range(25):
+            run(who, ('카페', '카페'), ('카페', '카페'), ('카페', '카페'))
+        assert familiar_groups(who, 'real') == (['보기', '하기'], 'history')

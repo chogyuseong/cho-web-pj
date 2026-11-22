@@ -107,3 +107,25 @@ def test_evening_festival_venue_by_car_gets_a_parking_line(audit_page):
     assert len(parking) == 1 and parking[0]['when'] == 'arrive'
     assert parking[0]['text'] == '빛축제 행사장 도착(17:30) 전 주차장 확인 · 주차비는 계산에 없어요'
     assert [i['when'] for i in found].index('arrive') < [i['when'] for i in found].index('finish')
+
+
+def test_reserve_line_replaces_the_reserve_check(audit_page):
+    """예약이 필요한 곳은 '예약하기' 한 줄이면 된다. 같은 장소에 '예약 확인'을 또 쓰지 않는다."""
+    page, _, _ = audit_page
+    found = items(page, "{verification:{places:[{id:'a',coverage:{missing:[]}},{id:'b',coverage:{missing:['예약','가격']}}]}}")
+    texts = [i['text'] for i in found if i['when'] == 'before']
+    assert texts == ['2. B — 가격 확인', '2. B 예약하기 (12:30 도착 기준)']
+
+
+def test_demo_course_has_no_check_lines_for_fictional_places(audit_page):
+    page, _, _ = audit_page
+    found = items(page, "{conditions:{mode:'demo',start:'11:00',end:'21:00',return_home:false}}")
+    assert not [i for i in found if i['id'].startswith('check:')]
+
+
+def test_blocked_storage_says_checks_are_not_kept(audit_page):
+    page, _, _ = audit_page
+    hint = f"()=>actionCard(({BASE})({{}})).querySelector('.hint').textContent"
+    assert page.evaluate(hint).endswith('체크 표시는 이 브라우저에만 남아요.')
+    page.evaluate("Object.defineProperty(window,'localStorage',{configurable:true,get(){throw new Error('blocked')}})")
+    assert page.evaluate(hint) == '확인할 것을 언제 할지 순서대로 모았어요. 이 브라우저에선 체크 표시가 저장되지 않아요.'

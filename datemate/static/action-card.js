@@ -17,8 +17,10 @@ function actionCardItems(plan) {
     visit = plan.festival_visit;
   const label = i => `${i + 1}. ${places[i].name}`;
   // 지금·전날: 장소마다 최근 운영 자료로 확인하지 못한 것(verification, app/data_quality.place_coverage)과 예약이 필요한 곳.
+  // 가상 장소(데모)는 확인할 실제 운영 정보가 없어 이 줄을 만들지 않는다. 예약이 필요한 곳은 '예약하기' 줄이 대신한다.
   places.forEach((place, i) => {
-    const missing = plan.verification?.places?.find(row => row.id === place.id)?.coverage?.missing || [];
+    const missing = c.mode === 'demo' ? [] : (plan.verification?.places?.find(row => row.id === place.id)?.coverage?.missing || [])
+      .filter(field => !(field === '예약' && place.reservation === true));
     if (missing.length) items.push({
       id: `check:${place.id}`,
       when: 'before',
@@ -108,6 +110,18 @@ function actionCardChecked(plan) {
   }
 }
 
+// 사생활 보호 모드·사이트 데이터 차단이면 저장소 접근이 실패한다. 그때는 체크가 남지 않는다고 알린다.
+function actionCardStorable() {
+  try {
+    const probe = 'datemate:action-card:probe';
+    localStorage.setItem(probe, '1');
+    localStorage.removeItem(probe);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function saveActionCardChecked(plan, checked) {
   const key = actionCardKey(plan);
   if (!key) return;
@@ -121,7 +135,7 @@ function actionCard(plan) {
   const box = node('section', undefined, 'action-card'),
     items = actionCardItems(plan),
     checked = actionCardChecked(plan);
-  box.append(node('h3', '할 일 순서'), node('p', '확인할 것을 언제 할지 순서대로 모았어요. 체크 표시는 이 브라우저에만 남아요.', 'hint'));
+  box.append(node('h3', '할 일 순서'), node('p', '확인할 것을 언제 할지 순서대로 모았어요. ' + (actionCardStorable() ? '체크 표시는 이 브라우저에만 남아요.' : '이 브라우저에선 체크 표시가 저장되지 않아요.'), 'hint'));
   for (const [when, title] of ACTION_CARD_WHEN) {
     const rows = items.filter(item => item.when === when);
     if (!rows.length) continue;

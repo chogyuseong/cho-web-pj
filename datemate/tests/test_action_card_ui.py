@@ -80,3 +80,30 @@ def test_blocked_storage_still_works(audit_page):
     box = page.locator('#plan-detail .action-card input[type=checkbox]').first
     box.check()
     assert box.is_checked() and not errors
+
+
+def test_checks_carry_over_to_an_edited_course(audit_page):
+    """코스를 바꾸면(수단·장소 교체) 새 id 로 저장된다. 장소에 묶인 체크는 이어받고, 시각이 바뀔 수 있는 출발·마무리·축제 체크는 이어받지 않는다(검토 지적)."""
+    page, _, _ = audit_page
+    carried = page.evaluate(f"""()=>{{
+      localStorage.setItem('datemate:action-card:p1',JSON.stringify(['reserve:b','check:a','depart','finish','check:gone']));
+      const plan=({BASE})({{id:'p2',parent:'p1'}});
+      const seen=[...actionCardChecked(plan)].sort();
+      return [seen,JSON.parse(localStorage.getItem('datemate:action-card:p2')).sort()];
+    }}""")
+    assert carried == [['check:a', 'reserve:b'], ['check:a', 'reserve:b']]
+    # 새 코스에 이미 저장된 체크가 있으면 그것을 쓴다.
+    own = page.evaluate(f"""()=>{{
+      localStorage.setItem('datemate:action-card:p3',JSON.stringify(['depart']));
+      return [...actionCardChecked(({BASE})({{id:'p3',parent:'p1'}}))];
+    }}""")
+    assert own == ['depart']
+
+
+def test_evening_festival_venue_by_car_gets_a_parking_line(audit_page):
+    page, _, _ = audit_page
+    found = items(page, "{conditions:{start:'16:00',end:'22:00',return_home:true,festival:{title:'빛축제'}},festival_visit:{position:'last',title:'빛축제',arrival:'17:30',departure:'18:30',leg:{minutes:7,mode:'car'}}}")
+    parking = [i for i in found if i['id'] == 'parking:festival']
+    assert len(parking) == 1 and parking[0]['when'] == 'arrive'
+    assert parking[0]['text'] == '빛축제 행사장 도착(17:30) 전 주차장 확인 · 주차비는 계산에 없어요'
+    assert [i['when'] for i in found].index('arrive') < [i['when'] for i in found].index('finish')

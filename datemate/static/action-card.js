@@ -54,6 +54,12 @@ function actionCardItems(plan) {
       text: `${label(i)} 도착(${timeline[i]?.arrival}) 전 주차장 확인 · 주차비는 계산에 없어요`
     });
   });
+  // 코스 끝에 둔 저녁 축제로 자동차로 돌아오면 행사장 주차(planner.evaluate 가 '행사장 주차비'를 미확인 비용에 넣는다).
+  if (visit?.position === 'last' && visit.leg?.mode === 'car') items.push({
+    id: 'parking:festival',
+    when: 'arrive',
+    text: `${visit.title} 행사장 도착(${visit.arrival}) 전 주차장 확인 · 주차비는 계산에 없어요`
+  });
   // 마무리: 마지막 일정(코스 끝 축제면 축제 행사장)에서 언제 나서야 하는지. day-of.js lastDepartureNote 와 같은 계산.
   if (places.length) {
     const where = visit?.position === 'last' ? `${visit.title} 행사장` : label(places.length - 1);
@@ -76,12 +82,27 @@ function actionCardKey(plan) {
   return plan.id ? 'datemate:action-card:' + plan.id : null;
 }
 
+// 장소에 묶인 체크(확인·예약·주차)만 바뀐 코스로 이어받는다. 출발·마무리·축제는 바꾼 뒤 시각이 달라질 수 있어 새로 체크한다.
+const ACTION_CARD_CARRIED = /^(check|reserve|parking):/;
+
+function actionCardRead(key) {
+  const saved = JSON.parse(localStorage.getItem(key) || 'null');
+  return Array.isArray(saved) ? saved : null;
+}
+
 function actionCardChecked(plan) {
   const key = actionCardKey(plan);
   if (!key) return new Set();
   try {
-    const saved = JSON.parse(localStorage.getItem(key) || '[]');
-    return new Set(Array.isArray(saved) ? saved : []);
+    const saved = actionCardRead(key);
+    if (saved) return new Set(saved);
+    // 코스를 바꾸면(수단·장소 교체·되돌리기) 새 id 로 저장된다(store.save_plan). 바꾸기 전 코스(parent)의 체크를 이어받는다.
+    const parent = plan.parent ? actionCardRead('datemate:action-card:' + plan.parent) : null;
+    if (!parent) return new Set();
+    const current = new Set(actionCardItems(plan).map(item => item.id));
+    const carried = new Set(parent.filter(id => ACTION_CARD_CARRIED.test(id) && current.has(id)));
+    saveActionCardChecked(plan, carried);
+    return carried;
   } catch {
     return new Set();
   }

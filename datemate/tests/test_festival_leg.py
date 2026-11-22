@@ -97,3 +97,24 @@ def test_segments_without_home(audit_page):  # noqa: F811
     page, _, _ = audit_page
     got = segments(page, "{conditions:{origin:{name:'O'},return_home:false},legs:[{tag:'l0'},{tag:'l1'}],festival_visit:{position:'last',leg:{tag:'lf'}}}")
     assert got == [['O', 'A', 'l0'], ['A', 'B', 'l1'], ['B', 'O', 'lf']]
+
+
+def test_course_screen_changes_the_festival_leg(audit_page):  # noqa: F811
+    page, base, errors = audit_page
+    with TestClient(app) as client:
+        plan = saved(client, return_home=True, home=HOME)
+        owner = client.cookies['dm_session']
+    page.route('**/api/festivals?*', lambda route: route.fulfill(json=dict(status='available', festivals=[], message='')))
+    page.context.add_cookies([{'name': 'dm_session', 'value': owner, 'url': base}])
+    page.goto(base + '/?plan=' + plan['id'])
+    page.wait_for_function('(id)=>selected?.id===id', arg=plan['id'])
+    block = page.locator('#plan-detail .festival-visit')
+    toggle = block.locator('[data-transport-toggle="festival"]')
+    assert toggle.count() == 1 and toggle.get_attribute('aria-expanded') == 'false'
+    toggle.click()
+    block.locator('.transport-chooser button[data-mode="transit"]').click()
+    page.wait_for_function("selected?.festival_visit?.leg?.mode==='transit'")
+    # 새 코스(바꾼 버전)를 다시 그린 뒤에도 축제 구간 줄이 대중교통이고, 단추에 포커스가 돌아온다.
+    assert '대중교통' in page.locator('#plan-detail .festival-visit-leg').inner_text()
+    page.wait_for_function("document.activeElement?.dataset?.transportToggle==='festival'")
+    assert not errors

@@ -17,8 +17,9 @@ function optionTabContent(p,i,active){
   const mode=travelMode(p),basis=mode.basis==='네이버 길찾기'?'길찾기':mode.basis.startsWith('일부')?'일부 추정':'추정';
   const unknown=p.decision_summary?.unknown_prices??p.unknown?.length??0;
   const facts=node('span',undefined,'option-facts');
-  // 맨 앞에 고정한 축제가 있으면 그 시작이 코스의 첫 시각이다(app/festival_time.py). 코스 끝에 둔 축제는 첫 장소가 첫 시각이다.
-  const parts=[`${(p.festival_visit?.position!=='last'&&p.festival_visit?.arrival)||p.timeline?.[0]?.arrival||p.conditions.start}–${p.finish}`,`${mode.name} ${travelMinutes(p)}분(${basis})`];
+  // 맨 앞에 고정한 축제가 있으면 그 시작이 코스의 첫 시각이다(app/festival_time.py). 코스 끝·중간에 둔 축제는 첫 장소가 첫 시각이다.
+  const leading=p.festival_visit&&p.festival_visit.position!=='last'&&festivalMiddleAfter(p)===null;
+  const parts=[`${(leading&&p.festival_visit.arrival)||p.timeline?.[0]?.arrival||p.conditions.start}–${p.finish}`,`${mode.name} ${travelMinutes(p)}분(${basis})`];
   parts.forEach(text=>facts.append(node('span',text,'nowrap'),document.createTextNode(' · ')));
   facts.append(rangeLines(p.total));
   if(unknown)facts.append(document.createTextNode(' · '),node('span','가격 미확인 '+unknown,'nowrap'));
@@ -73,7 +74,7 @@ function renderResults(result={}){
     card.dataset.option=String(i+1);
     card.setAttribute('aria-label',`선택한 코스 ${i+1} 요약`);
     card.append(node('h3',p.decision_summary?.title||courseTitle(p)));
-    if(p.conditions.festival)card.append(node('p',p.festival_visit?`‘${p.conditions.festival.title}’ ${p.festival_visit.arrival}~${p.festival_visit.departure} 축제${p.festival_visit.position==='last'?'로 마무리하는':'부터 시작하는'} 코스`:`‘${p.conditions.festival.title}’ 축제 장소에서 출발하는 코스`,'festival-course-tag'));
+    if(p.conditions.festival)card.append(node('p',p.festival_visit?`‘${p.conditions.festival.title}’ ${p.festival_visit.arrival}~${p.festival_visit.departure} 축제${p.festival_visit.position==='last'?'로 마무리하는':festivalMiddleAfter(p)!==null?'를 장소 사이에 들르는':'부터 시작하는'} 코스`:`‘${p.conditions.festival.title}’ 축제 장소에서 출발하는 코스`,'festival-course-tag'));
     if(p.fresh_place)card.append(node('p',`새로운 곳: ${p.places[p.fresh_place.index]?.name}(${p.fresh_place.label}) · 최근 코스에 드물던 종류`,'hint fresh-place-note'));
     if(p.decision_summary){const summary=p.decision_summary;const fit=node('div',undefined,'fit-reasons');for(const reason of summary.fit_reasons||[summary.reason])fit.append(node('p',reason));card.append(fit);if(summary.unknown_prices||summary.assumed_prices)card.append(node('p',`가격 미확인 ${summary.unknown_prices}항목 · 계획용 가정 ${summary.assumed_prices}항목`,'hint'));}
     if(p.diversity_note)card.append(node('p',p.diversity_note,'hint'));

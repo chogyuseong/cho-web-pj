@@ -62,9 +62,41 @@ def route_leg(a,b,route_conditions,mode,verify_routes=False,route_fallback=False
         route.update(route_fallback=True,source='자동차 길찾기 조회 실패로 추정한 시간이에요 · '+route['source'],fallback_reason=failure)
     return route
 
-def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None):
+# 코스 중간 축제(festival_after)를 그 자리에 둘 수 없을 때 evaluate 가 돌려주는 까닭(수단 바꾸기·지각 복구가 알아본다).
+MIDDLE_MISS='축제 운영 시간 불일치'
+
+def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None,festival_after=None):
     """delays: {장소 번호: 분} — 그 장소에 원래 도착 예정보다 그만큼 늦게 닿는다고 보고 시간표를 짠다(지각 복구, app/delay_recovery.py).
-    그 앞 장소의 시간표는 그대로이고, 뒤는 같은 규칙(visit_window·저녁 축제·귀가·종료)으로 이어서 계산한다. 없으면 예전과 같다."""
+    그 앞 장소의 시간표는 그대로이고, 뒤는 같은 규칙(visit_window·저녁 축제·귀가·종료)으로 이어서 계산한다. 없으면 예전과 같다.
+
+    축제 배치(app/festival_time.py): 먼저 예전 규칙(맨 앞 고정 → 코스 끝)으로 짠다. 둘 다 아니고 축제 없이 짠 코스가 성공했으면
+    장소 i 와 i+1 사이(코스 중간)를 앞에서부터 보고 처음 맞는 자리를 쓴다. 못 찾으면 축제 없는 예전 결과 그대로다.
+    festival_after=i 를 주면 다른 자리는 보지 않고 그 자리에만 두며, 못 두면 MIDDLE_MISS 로 실패한다(수단 바꾸기·지각 복구가 자리를 지킬 때)."""
+    args=dict(partial=partial,soft=soft,verify_routes=verify_routes,route_fallback=route_fallback,delays=delays)
+    if festival_after is not None:
+        return _evaluate(selected,c,failure=failure,middle=festival_after,**args)
+    plan,error=_evaluate(selected,c,failure=failure,**args)
+    if error or partial or plan.get('festival_visit'):return plan,error
+    for after in _middle_gaps(plan,selected,c,soft):
+        found,_=_evaluate(selected,c,middle=after,**args)
+        if found:return found,None
+    return plan,None
+
+def _middle_gaps(plan,selected,c,soft):
+    """코스 중간 축제를 둘 만한 자리(앞 장소 번호)를 앞에서부터. 축제 없이 짠 시간표에서 장소 i 를 떠나는 시각에
+    행사장까지 거리 추정(외부 호출 없음)을 더해 축제 칸(last_slot — 개막까지 MAX_WAIT 분 이하, 운영 종료 안)이 생기는지만 미리 본다.
+    통과한 자리만 evaluate 가 실제 구간으로 다시 계산한다(뒤 장소 영업·종료·예산 등)."""
+    window=evening_window(c)
+    if not window or len(selected)<2 or festival_slot(c):return
+    venue=c.origin.model_dump()
+    probe=c.model_copy(update={'allow_estimates':True}) if c.mode=='real' else c
+    overrides={(m.from_,m.to):m.mode for m in c.leg_modes}
+    for after in range(len(selected)-1):
+        route=route_leg(selected[after],venue,probe,overrides.get((selected[after]['id'],'festival'),c.transport))
+        if route['minutes'] is None or (route['minutes']>c.max_leg and not soft):continue
+        if last_slot(window,minutes(plan['timeline'][after]['departure'])+route['minutes']+c.transition_buffer_minutes,c.stay_minutes):yield after
+
+def _evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None,middle=None):
     from .quality import same_place
     def fail(reason,**info):
         if failure is not None:failure.update(info,reason=reason)
@@ -72,6 +104,13 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
     if any(same_place(a,b) for i,a in enumerate(selected) for b in selected[i+1:]):return None,'같은 장소 중복'
     if not partial and len(selected)!=c.count and not soft:return None,'방문 장소 수 불일치'
     route_conditions=c.model_copy(update={'allow_estimates':True}) if soft and c.mode=='real' else c
+    # 코스 중간 축제 자리(middle): 맨 앞 고정이 맞는 조건이거나 축제 창이 없거나 자리가 장소 사이가 아니면 둘 수 없다.
+    window=None
+    if middle is not None:
+        window=evening_window(c)
+        if partial or festival_slot(c) or not window or not 0<=middle<len(selected)-1:
+            return fail(MIDDLE_MISS,place=c.festival.title if c.festival else '축제')
+    middle_visit=None
     # 축제 참석 시간 고정(app/festival_time.py): 고른 축제를 운영 시간에 맞춰 맨 앞에 두면, 첫 장소는 축제가 끝난 때 행사장(출발지)에서 떠난다.
     festival=festival_slot(c)
     now=festival['departure'] if festival else minutes(c.start); end=minutes(c.end); legs=[]; timeline=[]; costs=[]; unknown=[]; walking=0
@@ -93,6 +132,8 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         if c.visit_date.weekday() in p['closed_days']:return fail('방문일 휴무',place=p['name'])
         mode=overrides.get((previous_id,p['id']),c.transport)
         route=route_leg(previous,p,route_conditions,mode,verify_routes,route_fallback)
+        # 코스 중간 축제 뒤 구간은 행사장에서 떠난다(수단 예외 키 ('festival', 장소 id), app/leg_modes.endpoints).
+        if previous_id=='festival':route['origin']=c.festival.title+' 행사장'
         if route['minutes'] is None:return None,'실제 이동 시간 계산 불가 (경로 공급자 또는 키 필요)'
         if route['minutes']>c.max_leg and not soft:return None,'구간 이동 시간 초과'
         walking+=route['walking'] or 0
@@ -116,6 +157,19 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         # 주차비는 자동차로 도착한 장소에만 붙인다.
         if route['mode']=='car':unknown.append(p['name']+' 주차비')
         previous=p;previous_id=p['id']
+        if position==middle:
+            # 코스 중간 축제: 이 장소에서 행사장(출발지)으로 가서 운영 시간에 맞춰 축제를 보고, 다음 장소는 행사장에서 떠난다.
+            # 들어가는 구간은 legs 에 넣지 않는다(코스 끝 축제와 같은 festival_visit.leg). 시간이 맞지 않으면 이 자리는 실패.
+            venue=c.origin.model_dump()
+            back=route_leg(p,venue,route_conditions,overrides.get((p['id'],'festival'),c.transport),verify_routes,route_fallback)
+            usable=back['minutes'] is not None and (back['minutes']<=c.max_leg or soft) and not (c.max_walk is not None and back['walking'] is None)
+            slot=last_slot(window,now+back['minutes']+c.transition_buffer_minutes,c.stay_minutes) if usable else None
+            if not slot:return fail(MIDDLE_MISS,place=c.festival.title)
+            back['buffer_minutes']=c.transition_buffer_minutes
+            back['destination']=c.festival.title+' 행사장'
+            walking+=back['walking'] or 0
+            if back['mode']=='car':unknown.append(c.festival.title+' 행사장 주차비')
+            now=slot['departure'];previous=venue;previous_id='festival';middle_visit=(back,slot)
     def home_leg(point):
         # 귀가 수단 예외는 어디서 출발하든 (마지막 장소 id, 'home') 이다(app/leg_modes.endpoints).
         mode=overrides.get((previous_id,'home'),c.transport)
@@ -127,7 +181,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         return route,None
     # 저녁 축제(app/festival_time.py): 맨 앞에 두기엔 개막이 늦으면 마지막 장소에서 행사장(출발지)으로 돌아와 축제로 마무리하고,
     # 귀가는 행사장에서 떠난다. 돌아오는 구간은 legs 에 넣지 않는다. 시간이 맞지 않는 조합은 축제 없이 아래처럼 끝낸다.
-    evening=None if partial or festival else evening_window(c)
+    evening=None if partial or festival or middle is not None else evening_window(c)
     last=None
     if evening:
         venue=c.origin.model_dump()
@@ -150,7 +204,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
         route,error=home_leg(previous)
         if error:return None,error
         now+=route['minutes']+c.transition_buffer_minutes;walking+=route['walking'] or 0;legs.append(route)
-    for r in legs+([last[0]] if last else []):
+    for r in legs+([last[0]] if last else [])+([middle_visit[0]] if middle_visit else []):
         amount=[r['cost'],r['cost']] if r['cost'] is not None else None
         costs.append(dict(category='교통',name=r['origin']+' → '+r['destination'],unit=amount,quantity=1,formula='구간 총액 (인원 반영)',
             amount=amount,status='estimated' if amount is not None else 'unknown',source=r['source'],checked_at=r['checked_at']))
@@ -171,6 +225,7 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
     # 축제를 고정하지 않은 코스에는 키를 두지 않는다(저장·비교되는 코스 모양이 예전과 같다).
     if festival:plan['festival_visit']=visit_record(c,festival)
     if last:plan['festival_visit']=visit_record(c,last[1],last[0])
+    if middle_visit:plan['festival_visit']=visit_record(c,middle_visit[1],middle_visit[0],after=middle)
     return plan,None
 
 def prefer_festival(plans):

@@ -59,7 +59,7 @@ def make_draft(plan,original,owner,kind,summary,vote_snapshot=None):
         from .pricing import price_plans
         recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True)
         if recalculated:
-            plan.update(recalculated);plan=price_plans([plan])[0]
+            plan.pop('festival_visit',None);plan.update(recalculated);plan=price_plans([plan])[0]
             plan['route_verification']='연결된 경로 공급자로 변경 동선을 재조회했어요. 조회 시점 기준입니다.'
         else:plan['route_verification']='실제 경로 확인 실패 · 추정 동선이며 실제 이동은 길찾기로 확인해 주세요.'
     from .plan_changes import change_delta

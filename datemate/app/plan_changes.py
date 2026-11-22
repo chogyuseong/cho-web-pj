@@ -51,6 +51,8 @@ def save_change(plan, original, owner, recovery=None):
             updated["places"], conditions, soft=bool(updated.get("best_effort")), verify_routes=True
         )
         if checked:
+            # 축제 방문 기록은 다시 계산한 코스를 따른다(실제 길찾기로 축제 자리가 빠지거나 바뀌면 옛 기록이 남지 않게).
+            updated.pop("festival_visit", None)
             updated.update(checked)
             updated["route_verification"] = (
                 "변경한 동선의 실제 경로를 다시 확인했어요. 조회 시점 기준입니다."

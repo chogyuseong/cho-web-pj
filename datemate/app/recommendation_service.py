@@ -254,6 +254,8 @@ def _verify_car_routes(data, plans):
             plan["places"], data, soft=bool(plan.get("best_effort")), verify_routes=True
         )
         if verified:
+            # 축제 방문 기록은 다시 계산한 코스를 따른다(실제 길찾기로 축제 자리가 빠지면 옛 기록이 남지 않게).
+            plan.pop("festival_visit", None)
             plan.update(verified)
             plans[i] = audit_plan(plan, data)
             plan["route_verification"] = "네이버 자동차 길찾기 조회 반영 (조회 시점 기준)"

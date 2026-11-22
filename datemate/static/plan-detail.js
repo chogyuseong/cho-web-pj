@@ -14,8 +14,11 @@ function costStatusLabel(c) {
 // 요금은 주최 측 자유 글이라 비용에 넣지 않는다(festivals.js 와 같은 원칙).
 // 코스 끝에 둔 저녁 축제(position 'last')는 마지막 장소에서 행사장으로 돌아오는 구간(visit.leg)을 같이 적는다. 그 구간은 plan.legs 에 없다.
 // 마지막 장소 → 축제 행사장 한 줄과 [수단 바꾸기]. 이 구간은 plan.legs 밖이라 구간 번호 대신 요청의 festival 항목으로 바꾼다(app/leg_modes.festival_pair).
+// 코스 중간에 둔 낮 축제(position 'middle', after=i)는 장소 i 칸 뒤에 같은 칸을 두고, 장소 i → 축제 행사장 줄(visit.leg)을 같이 적는다.
+// 행사장 → 장소 i+1 구간은 plan.legs[i+1] 이라 그 장소 칸 앞의 보통 구간 줄(routeLine)로 그린다.
 function festivalLegLine(plan, visit) {
-  const from = plan.places.at(-1)?.name || '마지막 장소',
+  const middle = festivalMiddleAfter(plan),
+    from = (middle === null ? plan.places.at(-1)?.name : plan.places[middle]?.name) || '마지막 장소',
     line = node('p', undefined, 'hint festival-visit-leg');
   line.append(node('span', `${from} → 축제 행사장 · ${legModeLabel(plan, visit.leg)}`));
   if (plan.can_edit === false || planHistoryExpired(plan)) return line;
@@ -43,12 +46,14 @@ function festivalLegLine(plan, visit) {
 }
 
 function festivalVisitBlock(plan, visit) {
-  const last = visit.position === 'last';
-  const block = node('section', undefined, 'festival-visit');
-  block.setAttribute('aria-label', last ? '운영 시간에 맞춰 코스 끝에 둔 축제 방문' : '운영 시간에 맞춰 고정한 축제 방문');
-  if (last && visit.leg && Number.isFinite(visit.leg.minutes)) block.append(festivalLegLine(plan, visit));
-  const wait = visit.wait ? ` · ${last ? '행사장에 닿은 뒤 ' : ''}시작까지 ${visit.wait}분 기다림` : '';
-  const after = last ? '마지막 장소를 둘러본 뒤 행사장으로 돌아와 축제로 하루를 마무리해요.' : '축제가 끝나면 행사장에서 아래 첫 장소로 이동해요.';
+  const last = visit.position === 'last',
+    middle = festivalMiddleAfter(plan),
+    goes = last || middle !== null;
+  const block = node('section', undefined, 'festival-visit' + (middle !== null ? ' middle' : ''));
+  block.setAttribute('aria-label', last ? '운영 시간에 맞춰 코스 끝에 둔 축제 방문' : middle !== null ? '운영 시간에 맞춰 코스 중간에 둔 축제 방문' : '운영 시간에 맞춰 고정한 축제 방문');
+  if (goes && visit.leg && Number.isFinite(visit.leg.minutes)) block.append(festivalLegLine(plan, visit));
+  const wait = visit.wait ? ` · ${goes ? '행사장에 닿은 뒤 ' : ''}시작까지 ${visit.wait}분 기다림` : '';
+  const after = last ? '마지막 장소를 둘러본 뒤 행사장으로 돌아와 축제로 하루를 마무리해요.' : middle !== null ? `${middle + 1}번째 장소(${plan.places[middle].name}) 다음에 행사장에 들러 축제를 보고, 끝나면 행사장에서 다음 장소로 이동해요.` : '축제가 끝나면 행사장에서 아래 첫 장소로 이동해요.';
   block.append(node('strong', `${visit.arrival}~${visit.departure} 축제 · ${visit.title}`, 'festival-visit-title'),
     node('p', `안내된 운영 시간 ${visit.hours} 기준으로 시각을 고정했어요${wait}. ${after} 개최·시간은 방문 전 주최 측에서 다시 확인해 주세요.`, 'hint'));
   return block;
@@ -110,8 +115,11 @@ function renderDetail() {
   // 약속 당일 도구(day-of.js): 마지막 출발 시각, 한 곳씩 크게 보기, 현장용 일정 복사. 서버에 묻지 않는다.
   if (typeof dayOfTools === 'function') box.append(dayOfTools(p));
   // 운영 시간에 맞춰 맨 앞에 고정한 축제 방문(app/festival_time.py). 첫 구간 줄(행사장 → 첫 장소) 바로 앞에 둔다.
-  if (p.festival_visit && p.festival_visit.position !== 'last') box.append(festivalVisitBlock(p, p.festival_visit));
+  const middle = festivalMiddleAfter(p);
+  if (p.festival_visit && p.festival_visit.position !== 'last' && middle === null) box.append(festivalVisitBlock(p, p.festival_visit));
   p.places.forEach((place, i) => {
+    // 코스 중간에 둔 축제: 앞 장소 칸(과 주차·식사 칸) 뒤, 행사장 → 다음 장소 구간 줄 앞.
+    if (middle !== null && i === middle + 1) box.append(festivalVisitBlock(p, p.festival_visit));
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
     const stop = node('article', undefined, 'stop');
     const stamp = node('div', undefined, 'timeline-stamp');

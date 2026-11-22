@@ -84,8 +84,11 @@ function delayCheckView(data, plan) {
   }
   const list = node('ol', undefined, 'delay-check-rows');
   const recovery = delayRecoveryAllowed(plan) ? data.recovery : null;
-  for (const [i, row] of data.rows.entries()) {
+  // 장소 번호는 장소 줄만 센다(코스 중간·끝 축제 줄 festival=true 는 세지 않는다, app/delay_recovery._target).
+  let placeRow = -1;
+  for (const row of data.rows) {
     const item = node('li');
+    if (!row.festival) placeRow += 1;
     // state='unknown'(자료 없어 멈춤)은 2026-11-19 이전 응답 모양이다. 지금 서버는 보내지 않지만 화면이 깨지지 않게 남긴다.
     if (row.state === 'unknown') item.append(node('strong', row.name), document.createTextNode(` · 도착 ${row.arrival} · 자료 없음(${row.missing.join('·')})`));
     else {
@@ -93,8 +96,8 @@ function delayCheckView(data, plan) {
       item.append(node('strong', row.name), document.createTextNode(` · 도착 ${row.arrival} → 이용 ${row.start}~${row.departure} · ${shift}` + (row.stay_assumed ? ' · 체류 시간은 가정값' : '') + (row.state === 'unchecked' ? ` · ${row.missing.join('·')} 자료 없음(연다고 가정)` : '')));
       if (row.state === 'problem') item.classList.add('delay-check-bad');
     }
-    // 문제 장소 줄 = 남은 첫 장소부터 센 번호가 recovery.index 인 줄(서버가 그 줄에서 계산을 멈춘다).
-    if (recovery && row.state === 'problem' && data.index + i === recovery.index) item.append(delayRecoveryBlock(plan, data, recovery));
+    // 문제 장소 줄 = 남은 첫 장소부터 센 번호가 recovery.index 인 장소 줄(서버가 그 줄에서 계산을 멈춘다).
+    if (recovery && row.state === 'problem' && !row.festival && data.index + placeRow === recovery.index) item.append(delayRecoveryBlock(plan, data, recovery));
     list.append(item);
   }
   parts.push(list);

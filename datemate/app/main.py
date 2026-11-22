@@ -801,7 +801,8 @@ class TransportInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     default: TransportMode | None = None
     legs: list[LegModeInput] = Field(default_factory=list, max_length=6)
-    # 코스 끝에 둔 저녁 축제로 돌아오는 구간(festival_visit.leg — 구간 번호 밖, app/festival_time.py)의 수단.
+    # 코스 끝(저녁)·중간(낮)에 둔 축제로 가는 구간(festival_visit.leg — 구간 번호 밖, app/festival_time.py)의 수단.
+    # 중간 축제 뒤 '행사장 → 다음 장소'는 보통 구간이라 legs 의 index 로 바꾼다(app/leg_modes.endpoints).
     festival: TransportMode | None = None
 
 

@@ -27,21 +27,26 @@ function link(text,url){
   // 잠든 서버가 켜지는 동안에는 다시 물으며 안내를 보여 준다(server-wake.js).
   ServerWake.load(timeout=>request('/api/shared-plan',undefined,timeout)).then(data=>{
     status.textContent=data.notice;
-    // 운영 시간에 맞춰 고정한 축제(이름·시각·자리만 공유된다). 의견을 고르는 장소 칸(article)이 아니라 장소 앞(저녁 축제면 장소 뒤)의 section 이다.
-    const visit=data.festival_visit,last=visit?.position==='last';
+    // 운영 시간에 맞춰 고정한 축제(이름·시각·자리만 공유된다). 의견을 고르는 장소 칸(article)이 아니라 장소 앞(저녁 축제면 장소 뒤,
+    // 코스 중간 축제면 after 번째 장소 뒤)의 section 이다.
+    const visit=data.festival_visit,last=visit?.position==='last',places=data.places||[];
+    const middle=visit?.position==='middle'&&Number.isInteger(visit.after)&&visit.after>=0&&visit.after<places.length-1?visit.after:null;
     function festivalBlock(){
-      const block=node('section',undefined,'shared-festival-visit'+(last?' last':''));block.setAttribute('aria-label',last?'코스 끝에 둔 축제 방문':'코스 맨 앞에 고정한 축제 방문');
-      block.append(node('h2',`${visit.title} · ${visit.arrival}~${visit.departure}`),node('p',last?'장소를 둘러본 뒤 행사장으로 돌아와 축제로 마무리해요. 개최·운영 시간은 방문 전 주최 측 안내를 확인해 주세요.':'축제를 먼저 들른 뒤 아래 장소로 이동해요. 개최·운영 시간은 방문 전 주최 측 안내를 확인해 주세요.','hint'));
+      const block=node('section',undefined,'shared-festival-visit'+(last?' last':middle!==null?' middle':''));
+      block.setAttribute('aria-label',last?'코스 끝에 둔 축제 방문':middle!==null?'코스 중간에 둔 축제 방문':'코스 맨 앞에 고정한 축제 방문');
+      const text=last?'장소를 둘러본 뒤 행사장으로 돌아와 축제로 마무리해요.':middle!==null?`${places[middle].name}을(를) 둘러본 뒤 행사장에 들러 축제를 보고 다음 장소로 이동해요.`:'축제를 먼저 들른 뒤 아래 장소로 이동해요.';
+      block.append(node('h2',`${visit.title} · ${visit.arrival}~${visit.departure}`),node('p',text+' 개최·운영 시간은 방문 전 주최 측 안내를 확인해 주세요.','hint'));
       document.getElementById('shared-places').append(block);
     }
-    if(visit&&!last)festivalBlock();
-    for(const place of data.places){
+    if(visit&&!last&&middle===null)festivalBlock();
+    for(const [index,place] of places.entries()){
       const article=document.createElement('article'),title=document.createElement('h2'),text=document.createElement('p'),label=document.createElement('label'),select=document.createElement('select');
       title.textContent=place.name;text.textContent=`${place.arrival} ~ ${place.departure} · ${place.address}`;
       label.textContent=place.name+'에 대한 의견';select.name=place.id;
       for(const [value,title] of [['','아직 안 정했어요'],['neutral','상관없어요'],['yes','좋아요'],['must','꼭 가고 싶어요'],['no','빼주세요']])select.add(new Option(title,value));
       select.value=data.my_choices?.[place.id]||'';
       label.append(select);article.append(title,text);if(typeof isNaverResult==='function'&&isNaverResult(place))article.append(naverAttribution('지역 검색',place.source));article.append(label);document.getElementById('shared-places').append(article);
+      if(index===middle)festivalBlock();
     }
     if(visit&&last)festivalBlock();
     saved={...(data.my_choices||{})};form.querySelector('button').before(dirty);showDirty();

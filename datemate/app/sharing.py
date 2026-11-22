@@ -79,8 +79,14 @@ def festival_visit(plan):
     fields = {key: visit.get(key) for key in ('title', 'arrival', 'departure')}
     if not all(isinstance(value, str) and value for value in fields.values()):
         return None
-    # 코스 맨 앞('first')인지, 장소를 돈 뒤 행사장으로 돌아와 마무리하는지('last'). 돌아오는 구간(leg)은 싣지 않는다.
-    fields['position'] = 'last' if visit.get('position') == 'last' else 'first'
+    # 코스 맨 앞('first')인지, 장소를 돈 뒤 행사장으로 돌아와 마무리하는지('last'), 장소 사이에 들르는지('middle' + 앞 장소 번호 after).
+    # 행사장으로 가는 구간(leg)은 싣지 않는다. 자리가 장소 사이가 아닌 중간 기록은 예전처럼 맨 앞으로 본다.
+    from .leg_modes import middle_after
+    after = middle_after(plan)
+    if after is not None:
+        fields.update(position='middle', after=after)
+    else:
+        fields['position'] = 'last' if visit.get('position') == 'last' else 'first'
     return fields
 
 

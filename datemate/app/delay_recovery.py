@@ -12,6 +12,9 @@
 - 남은 일정 전체: 후보마다 planner.evaluate(delays=…)로 지연을 반영한 시간표를 다시 짠다. 뒤 장소가 또 늦거나, 축제(맨 앞 고정·코스 끝)
   시각이 달라지거나, 예산·총 도보가 새로 넘치면 그 후보는 내지 않는다(저장하려 하면 409). 일정 종료를 넘기는 것은 막지 않고 알린다
   (지각 자체로 늦어진 것이라 장소를 바꿔 풀 수 없다 — 종료가 필수 조건이면 저장 단계 hard_blocks 가 막는다).
+  코스 중간 축제(position 'middle', after=i)는 같은 자리(빼기는 번호를 당긴 자리)에만 다시 두고(evaluate festival_after),
+  그 자리에 못 두거나 자리가 장소 사이가 아니게 되면 그 후보·빼기는 내지 않는다('중간 축제 시간에 맞출 수 없어요'). 축제 시각이 늦어지는 것은 허용.
+  축제 바로 앞 장소를 바꾸면 다음 지점, 바로 뒤 장소를 바꾸면 앞 지점이 행사장(출발지 좌표)이다.
 - 빼고 진행: 같은 검사로 그 장소를 뺀 코스. 장소가 0곳이 되면 허용하지 않는다. 방문 장소 수 조건(count)은 사용자가 정한 값을 그대로 둔다.
 - 예약한 장소·고정한 장소는 바꾸지도 빼지도 않는다(예약처에 연락·고정 해제 안내).
 - 저장: plan_changes.save_change(recovery=…) — 장소 바꾸기처럼 새 코스 id(parent 연결)로 저장되어 되돌리기·이력이 그대로 동작한다.
@@ -67,19 +70,32 @@ def _evening(plan):
     return isinstance(visit, dict) and visit.get("position") == "last"
 
 
+def _middle(plan):
+    """코스 중간 축제의 앞 장소 번호(app/leg_modes.middle_after). 없으면 None."""
+    from .leg_modes import middle_after
+
+    return middle_after(plan)
+
+
 def _located(point):
     return point.get("lat") is not None and point.get("lon") is not None
 
 
 def _saved_legs(plan, c):
-    """바뀌지 않는 구간을 다시 조회·추정하지 않도록 저장된 구간을 (출발, 도착, 수단) 열쇠로 모은다."""
+    """바뀌지 않는 구간을 다시 조회·추정하지 않도록 저장된 구간을 (출발, 도착, 수단) 열쇠로 모은다.
+    코스 중간 축제 뒤 구간은 행사장(출발지 좌표)에서 출발한다. 행사장으로 가는 구간(festival_visit.leg)은 저장 모양이 줄어 있어
+    코스 끝 축제와 같이 다시 추정한다."""
     from .routes import leg_key
 
     places, legs = plan["places"], plan["legs"]
     points = [c.origin.model_dump(), *places]
+    after = _middle(plan)
     rows = {}
     for i, leg in enumerate(legs[: len(places)]):
-        a, b = points[i], points[i + 1]
+        a, b = (
+            (c.origin.model_dump() if after is not None and i == after + 1 else points[i]),
+            points[i + 1],
+        )
         if _located(a) and _located(b) and leg.get("minutes") is not None:
             rows[leg_key(a, b, leg.get("mode") or c.transport)] = leg
     if len(legs) > len(places) and c.home and legs[-1].get("minutes") is not None:
@@ -117,6 +133,8 @@ def _estimate(a, b, c):
 
 
 def _next_point(plan, c, j, places):
+    if _middle(plan) == j:
+        return c.origin.model_dump()
     if j + 1 < len(places):
         return places[j + 1]
     if _evening(plan):
@@ -126,9 +144,18 @@ def _next_point(plan, c, j, places):
     return None
 
 
+def _previous_point(plan, c, j, places):
+    """j 번 장소로 오는 구간의 출발 지점. 첫 장소·코스 중간 축제 바로 뒤 장소면 출발지(= 행사장)."""
+    if j == 0 or _middle(plan) == j - 1:
+        return c.origin.model_dump()
+    return places[j - 1]
+
+
 def _leaving_minutes(plan, j):
     """원래 코스에서 j 번 장소를 떠나는 구간의 이동(분). 다음이 없으면 0."""
     places, legs = plan["places"], plan["legs"]
+    if _middle(plan) == j:
+        return (plan["festival_visit"].get("leg") or {}).get("minutes") or 0
     if j + 1 < len(places):
         return legs[j + 1].get("minutes") or 0
     if _evening(plan):
@@ -138,19 +165,56 @@ def _leaving_minutes(plan, j):
     return 0
 
 
+def _place_rows(check):
+    """지각 확인 줄 가운데 장소 줄만(코스 중간·끝 축제 줄 festival=True 는 뺀다)."""
+    return [row for row in check["rows"] if not row.get("festival")]
+
+
 def _arrival_base(plan, check, c, j):
-    """j 번 장소로 떠나는 시각(분)과 그 도착에 더할 지연. 지연 반영 시간표(check rows)를 따른다."""
+    """j 번 장소로 떠나는 시각(분)과 그 도착에 더할 지연. 지연 반영 시간표(check rows)를 따른다.
+    코스 중간 축제 바로 뒤 장소면 축제 줄이 끝난 시각(행사장에서 출발)."""
     index = check["index"]
+    after = _middle(plan)
     if j == index:
-        departure = minutes(plan["timeline"][index - 1]["departure"]) if index else places_start(c)
+        if index and index - 1 == after:
+            departure = minutes(plan["festival_visit"]["departure"])
+        else:
+            departure = (
+                minutes(plan["timeline"][index - 1]["departure"]) if index else places_start(c)
+            )
         return departure, carried_delay(plan, index) + check["delay"]
-    return minutes(check["rows"][j - 1 - index]["departure"]), 0
+    if after is not None and j - 1 == after:
+        festival = next(row for row in check["rows"] if row.get("festival"))
+        return minutes(festival["departure"]), 0
+    return minutes(_place_rows(check)[j - 1 - index]["departure"]), 0
 
 
 def _changed_legs(updated, j, removed):
     """다시 짠 코스에서 바꾼 자리 앞뒤 구간(새로 생긴 구간)."""
     places, legs = updated["places"], updated["legs"]
     visit = updated.get("festival_visit")
+    after = _middle(updated)
+    if after is not None:
+        # 코스 중간 축제: j 번 장소를 떠나는 구간이 축제 바로 앞이면 행사장으로 가는 구간(festival_visit.leg).
+        leaving = (
+            lambda k: visit.get("leg")
+            if k == after
+            else legs[k + 1]
+            if k + 1 < len(places)
+            else (legs[-1] if len(legs) > len(places) else None)
+        )
+        if removed:
+            # 뺀 자리를 잇는 구간: 뺀 장소가 축제 바로 앞이었으면(이제 축제 앞은 j-1) 행사장으로 가는 구간, 아니면 j 번에 닿는 구간.
+            rows = (
+                [visit.get("leg")]
+                if j - 1 == after
+                else [legs[j]]
+                if j < len(places)
+                else [leaving(j - 1)]
+            )
+        else:
+            rows = [legs[j], leaving(j)]
+        return [r for r in rows if r]
     festival_leg = (
         visit.get("leg") if isinstance(visit, dict) and visit.get("position") == "last" else None
     )
@@ -164,9 +228,30 @@ def _changed_legs(updated, j, removed):
     return [r for r in rows if r]
 
 
+MIDDLE_REJECTED = "중간 축제 시간에 맞출 수 없어요"
+
+
+def _middle_target(plan, j, removed, count):
+    """코스 중간 축제를 다시 짠 코스에서 둘 자리(앞 장소 번호). 중간 축제가 없으면 None, 둘 자리가 없으면 -1.
+    바꾸기는 같은 자리, 빼기는 뺀 장소가 축제 앞이면 한 칸 당긴다. 장소 사이가 아니게 되면(맨 앞·끝) 자리가 바뀌므로 둘 수 없다."""
+    after = _middle(plan)
+    if after is None:
+        return None
+    if removed and j <= after:
+        after -= 1
+    return after if 0 <= after < count - 1 else -1
+
+
 def _rejection(plan, c, updated, j, removed):
     """다시 짠 코스를 저장하면 안 되는 까닭. 없으면 None."""
     before, after = plan.get("festival_visit"), updated.get("festival_visit")
+    expected = _middle_target(plan, j, removed, len(updated["places"]))
+    if expected is not None and (
+        not isinstance(after, dict)
+        or after.get("position") != "middle"
+        or after.get("after") != expected
+    ):
+        return MIDDLE_REJECTED
     if isinstance(before, dict) or isinstance(after, dict):
         if (
             not isinstance(before, dict)
@@ -176,7 +261,10 @@ def _rejection(plan, c, updated, j, removed):
             if isinstance(before, dict) and before.get("position") == "last":
                 return "코스 끝 축제 시간에 맞출 수 없어요"
             return "축제 방문 시간이 달라져요"
-        if before.get("position") != "last" and (before["arrival"], before["departure"]) != (
+        if before.get("position") not in ("last", "middle") and (
+            before["arrival"],
+            before["departure"],
+        ) != (
             after["arrival"],
             after["departure"],
         ):
@@ -196,8 +284,12 @@ def _rejection(plan, c, updated, j, removed):
 
 
 def _failure_text(failure, error):
+    from .planner import MIDDLE_MISS
+
     place = failure.get("place")
     reason = failure.get("reason") or error
+    if reason == MIDDLE_MISS:
+        return MIDDLE_REJECTED
     if place and reason == "영업시간 밖 방문":
         return f"뒤 {place}에서 영업 종료({failure.get('limit')}) 전에 마치지 못해요"
     if place and reason == "마지막 입장 시간 초과":
@@ -214,8 +306,14 @@ def _rebuild(plan, c, places, delays, j, removed):
     from .routes import saved_routes
 
     failure = {}
+    # 코스 중간 축제는 같은 자리에만 다시 둔다(_middle_target). 둘 자리가 없으면 계산하지 않고 거절한다.
+    target = _middle_target(plan, j, removed, len(places))
+    if target == -1:
+        return None, MIDDLE_REJECTED
     with saved_routes(_saved_legs(plan, c)):
-        updated, error = evaluate(places, c, soft=True, failure=failure, delays=delays)
+        updated, error = evaluate(
+            places, c, soft=True, failure=failure, delays=delays, festival_after=target
+        )
     if error:
         return None, _failure_text(failure, error)
     if plan.get("course_search"):
@@ -247,7 +345,8 @@ def _target(check):
     problem = check.get("first_problem")
     if not problem or problem.get("kind") not in PLACE_PROBLEMS:
         return None
-    return check["index"] + len(check["rows"]) - 1
+    # 문제 장소 = 남은 첫 장소부터 센 장소 줄의 마지막(코스 중간 축제 줄은 세지 않는다).
+    return check["index"] + len(_place_rows(check)) - 1
 
 
 def _options(plan, check, c, j, delays):
@@ -258,7 +357,7 @@ def _options(plan, check, c, j, delays):
     from .quality import same_place
     from .routes import distance
 
-    previous = c.origin.model_dump() if j == 0 else places[j - 1]
+    previous = _previous_point(plan, c, j, places)
     following = _next_point(plan, c, j, places)
     before = (plan["legs"][j].get("minutes") or 0) + _leaving_minutes(plan, j)
     departure, extra = _arrival_base(plan, check, c, j)

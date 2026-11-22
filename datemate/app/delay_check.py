@@ -7,7 +7,8 @@
   마지막 입장, 영업 종료)을 차례로 적용한다. 모든 시각에 같은 지연을 더하지 않는다(개점 전 대기가 지연을 흡수할 수 있다).
 - 이동 시간은 코스에 저장된 구간 값을 그대로 쓴다(새로 조회하지 않는다). 추정 구간이면 근거와 함께 알린다.
 - 코스 끝에 둔 저녁 축제(plan['festival_visit'].position == 'last', app/festival_time.py)가 있으면 저장된 돌아오는 구간과
-  운영 시간으로 축제 줄을 더한다(개막 전이면 기다리고, 운영 종료를 넘기면 문제).
+  운영 시간으로 축제 줄을 더한다(개막 전이면 기다리고, 운영 종료를 넘기면 문제). 코스 중간 축제(position 'middle', after=i)면
+  장소 i 줄 바로 뒤에 같은 축제 줄(festival=True)을 넣고, 장소 i+1 은 축제가 끝난 때 행사장에서 출발한다.
 - 귀가가 있으면 귀가 구간을 더하고, 끝으로 일정 종료 시각(conditions.end)과 비교한다.
 - 영업시간·휴무 자료가 없는 장소는 추천 계산(planner.evaluate, 실제 장소 + 추정 허용)과 같은 규칙으로 '하루 종일 연다'고 가정해
   계속 계산하고, 그 장소를 pending(먼저 확인할 것)과 그 줄의 state='unchecked' 로 알린다.
@@ -20,6 +21,7 @@
 """
 
 from .festival_time import hours_range, places_start
+from .leg_modes import middle_after
 from .models import Conditions
 from .planner import clock, minutes, visit_window
 
@@ -52,12 +54,65 @@ def delay_check(plan, index, delay):
     ):
         raise ValueError("이 코스는 구간 이동 시간이 저장돼 있지 않아 다시 계산할 수 없어요.")
     # 첫 장소의 출발 시각: 축제를 맨 앞에 고정한 코스는 축제가 끝난 때(app/festival_time.py), 아니면 코스 시작.
-    previous_departure = minutes(timeline[index - 1]["departure"]) if index else places_start(c)
+    # 코스 중간 축제 바로 뒤 장소면 축제가 끝난 때 행사장에서 떠난다.
+    visit = plan.get("festival_visit")
+    after = middle_after(plan)
+    if index and index - 1 == after:
+        previous_departure = minutes(visit["departure"])
+    else:
+        previous_departure = minutes(timeline[index - 1]["departure"]) if index else places_start(c)
     carried = carried_delay(plan, index)
     planned_arrival = previous_departure + _leg_minutes(legs[index], c) + carried
     now = planned_arrival + delay
     rows, pending, estimated, no_last_entry = [], [], [], []
     first_problem = None
+
+    def festival_row(back, origin_name):
+        """행사장으로 가는 구간(back)을 지나 축제 줄을 더한다. (줄, 끝난 시각, 문제 또는 None)."""
+        arrival = now + _leg_minutes(back, c)
+        if back.get("status") != "api":
+            estimated.append(
+                dict(
+                    leg=f"{origin_name} → {visit['title']} 행사장",
+                    minutes=back.get("minutes"),
+                    basis=back.get("source") or "거리 기반 추정",
+                )
+            )
+        _, window = hours_range(visit.get("hours"))
+        start = max(arrival, window[0]) if window else arrival
+        row = dict(
+            name=f"축제 · {visit['title']}",
+            arrival=clock(arrival),
+            start=clock(start),
+            departure=clock(start + visit["stay"]),
+            wait=start - arrival,
+            original_start=visit["arrival"],
+            shift=start - minutes(visit["arrival"]),
+            stay=visit["stay"],
+            stay_assumed=False,
+            state="ok",
+            missing=[],
+            festival=True,
+        )
+        problem = None
+        if window and start + visit["stay"] > window[1]:
+            over = start + visit["stay"] - window[1]
+            row.update(
+                state="problem",
+                reason="축제 운영 시간 안에 마치지 못해요",
+                limit=clock(window[1]),
+                over=over,
+            )
+            problem = dict(
+                place=row["name"],
+                time=row["start"],
+                reason=row["reason"],
+                kind="festival",
+                limit=row["limit"],
+                over=over,
+            )
+        return row, start + visit["stay"], problem
+
     for j in range(index, len(places)):
         p = dict(places[j])
         leg = legs[j]
@@ -121,56 +176,20 @@ def delay_check(plan, index, delay):
             break
         rows.append(row)
         now = start + p["stay"]
-    visit = plan.get("festival_visit")
+        # 코스 중간 축제: 이 장소 뒤에 행사장으로 가서 축제를 본다(festival_visit.leg). 다음 장소 구간(legs[j+1])은 행사장에서 출발.
+        if j == after and isinstance(visit.get("leg"), dict):
+            row, now, first_problem = festival_row(visit["leg"], p["name"])
+            rows.append(row)
+            if first_problem:
+                break
     if (
         not first_problem
         and isinstance(visit, dict)
         and visit.get("position") == "last"
         and visit.get("leg")
     ):
-        back = visit["leg"]
-        now += _leg_minutes(back, c)
-        if back.get("status") != "api":
-            estimated.append(
-                dict(
-                    leg=f"{places[-1]['name']} → {visit['title']} 행사장",
-                    minutes=back.get("minutes"),
-                    basis=back.get("source") or "거리 기반 추정",
-                )
-            )
-        _, window = hours_range(visit.get("hours"))
-        start = max(now, window[0]) if window else now
-        row = dict(
-            name=f"축제 · {visit['title']}",
-            arrival=clock(now),
-            start=clock(start),
-            departure=clock(start + visit["stay"]),
-            wait=start - now,
-            original_start=visit["arrival"],
-            shift=start - minutes(visit["arrival"]),
-            stay=visit["stay"],
-            stay_assumed=False,
-            state="ok",
-            missing=[],
-        )
-        if window and start + visit["stay"] > window[1]:
-            over = start + visit["stay"] - window[1]
-            row.update(
-                state="problem",
-                reason="축제 운영 시간 안에 마치지 못해요",
-                limit=clock(window[1]),
-                over=over,
-            )
-            first_problem = dict(
-                place=row["name"],
-                time=row["start"],
-                reason=row["reason"],
-                kind="festival",
-                limit=row["limit"],
-                over=over,
-            )
+        row, now, first_problem = festival_row(visit["leg"], places[-1]["name"])
         rows.append(row)
-        now = start + visit["stay"]
     finish = None
     if not first_problem:
         if c.return_home and len(legs) > len(places):

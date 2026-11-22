@@ -83,7 +83,8 @@ class Conditions(BaseModel):
     budget_unlimited: bool = False
     transport: TransportMode = 'walk'
     # 코스를 만든 뒤 구간마다 바꾼 수단. 새 추천에서는 항상 비운다(recommendation_service.generate).
-    # 장소 5곳 + 귀가 + 코스 끝 저녁 축제로 돌아오는 구간(app/leg_modes.festival_pair) = 최대 7구간.
+    # 장소 5곳 + 귀가 + 행사장으로 가는 축제 구간(코스 끝 또는 중간, app/leg_modes.festival_pair) = 최대 7구간.
+    # 중간 축제 뒤 구간('festival' → 다음 장소)은 장소 도착 구간 하나를 대신하므로 늘지 않는다.
     leg_modes: list[LegMode] = Field(default_factory=list, max_length=7)
     count: int = Field(default=3, ge=2, le=5)
     themes: list[ThemeName] = Field(default_factory=list, max_length=7)

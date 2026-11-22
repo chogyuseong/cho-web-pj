@@ -14,7 +14,9 @@
   예전(2026-11-19 오전 배포)에는 그 장소에서 계산을 멈췄는데, 실제 장소는 대부분 영업시간 자료가 없어 첫 장소에서 바로
   '판단 보류'만 나와 기능이 쓸모없었다(사용자 신고 스크린샷). status: 문제가 있으면 'problem', 문제는 없지만 가정한 곳이 있으면
   'unknown'(끝나는 시각은 계산함), 모두 자료가 있고 문제가 없으면 'ok'.
-원본 코스·공유본·방문 기록을 바꾸지 않는다(저장하지 않는다). 대체 장소 추천은 하지 않는다.
+- 지각 복구(app/delay_recovery.py)로 저장한 코스는 그때 반영한 지연을 plan['delay_recovery'].delays({장소 번호: 분})에 남긴다.
+  그 장소를 남은 첫 장소로 고르면 원래 도착 예정에 그 지연을 더한 '지금 시간표의 도착 예정'을 기준으로 삼는다(carried_delay).
+원본 코스·공유본·방문 기록을 바꾸지 않는다(저장하지 않는다). 대신 갈 곳·빼고 진행은 app/delay_recovery.py 가 따로 계산한다.
 """
 
 from .festival_time import hours_range, places_start
@@ -26,6 +28,16 @@ MAX_DELAY = 180
 
 def _leg_minutes(leg, c):
     return (leg.get("minutes") or 0) + leg.get("buffer_minutes", c.transition_buffer_minutes)
+
+
+def carried_delay(plan, index):
+    """지각 복구로 저장한 코스에서 index 번 장소 도착에 이미 반영한 지연(분). 없으면 0."""
+    record = plan.get("delay_recovery")
+    delays = record.get("delays") if isinstance(record, dict) else None
+    try:
+        return max(0, int((delays or {}).get(str(index), 0)))
+    except (TypeError, ValueError):
+        return 0
 
 
 def delay_check(plan, index, delay):
@@ -41,7 +53,8 @@ def delay_check(plan, index, delay):
         raise ValueError("이 코스는 구간 이동 시간이 저장돼 있지 않아 다시 계산할 수 없어요.")
     # 첫 장소의 출발 시각: 축제를 맨 앞에 고정한 코스는 축제가 끝난 때(app/festival_time.py), 아니면 코스 시작.
     previous_departure = minutes(timeline[index - 1]["departure"]) if index else places_start(c)
-    planned_arrival = previous_departure + _leg_minutes(legs[index], c)
+    carried = carried_delay(plan, index)
+    planned_arrival = previous_departure + _leg_minutes(legs[index], c) + carried
     now = planned_arrival + delay
     rows, pending, estimated, no_last_entry = [], [], [], []
     first_problem = None
@@ -181,14 +194,20 @@ def delay_check(plan, index, delay):
                 over=now - minutes(c.end),
             )
     status = "problem" if first_problem else "unknown" if pending else "ok"
+    planned = (
+        f"도착 예정 시각 {clock(planned_arrival)}(앞서 {carried}분 늦음을 반영해 저장한 시각)"
+        if carried
+        else f"원래 도착 예정 시각 {clock(planned_arrival)}"
+    )
     return dict(
         status=status,
         index=index,
         delay=delay,
+        carried=carried,
         start_place=places[index]["name"],
         planned_arrival=clock(planned_arrival),
         delayed_arrival=clock(planned_arrival + delay),
-        basis=f"{places[index]['name']}의 원래 도착 예정 시각 {clock(planned_arrival)}에 {delay}분을 더해, 방문 순서를 그대로 두고 다시 계산했어요.",
+        basis=f"{places[index]['name']}의 {planned}에 {delay}분을 더해, 방문 순서를 그대로 두고 다시 계산했어요.",
         rows=rows,
         first_problem=first_problem,
         pending=pending,

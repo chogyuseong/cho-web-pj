@@ -84,7 +84,8 @@ function renderDetail() {
   if (expired) box.append(planHistoryExpiredNote());
   if (p.parent && p.can_edit !== false) {
     const undo = node('div', undefined, 'actions undo-actions');
-    undo.append(button(p.transport_change ? '수단 변경 되돌리기' : '교체 되돌리기', async () => {
+    // 지각 복구(delay-check.js)로 만든 코스는 그 기록(delay_recovery)이 있다. 다른 변경을 하면 서버가 기록을 지운다.
+    undo.append(button(p.transport_change ? '수단 변경 되돌리기' : p.delay_recovery ? '지각 반영 되돌리기' : '교체 되돌리기', async () => {
       const restored = await api('/plans/' + p.id + '/undo', {});
       if (commitPlanChange(p.id, restored)) restoreUndoLocks(p, restored);
     }));

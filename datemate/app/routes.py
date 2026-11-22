@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 from . import store
 
 _candidate_search=ContextVar('candidate_route_search',default=False)
+_saved_legs=ContextVar('saved_route_legs',default=None)
 
 
 @contextmanager
@@ -13,6 +14,19 @@ def candidate_routes():
     token=_candidate_search.set(True)
     try:yield
     finally:_candidate_search.reset(token)
+
+
+def leg_key(a,b,mode):
+    return (round(a['lat'],7),round(a['lon'],7),round(b['lat'],7),round(b['lon'],7),mode)
+
+
+@contextmanager
+def saved_routes(rows):
+    """rows: {leg_key: 저장된 구간}. 이 안에서는 같은 출발·도착·수단의 구간을 다시 조회·추정하지 않고 저장값을 그대로 쓴다
+    (지각 복구가 바뀌지 않은 구간의 실제 길찾기 값을 지키고 새 외부 호출을 하지 않게, app/delay_recovery.py)."""
+    token=_saved_legs.set(rows)
+    try:yield
+    finally:_saved_legs.reset(token)
 
 def distance(a,b):
     lat1,lat2=map(math.radians,[a['lat'],b['lat']])
@@ -39,6 +53,12 @@ TRANSIT_BASIS=(f'지하철·버스를 구분하지 않은 추정이에요. 평�
 
 
 def leg(a,b,conditions,force_api=False):
+    saved=_saved_legs.get()
+    if saved and not force_api:
+        hit=saved.get(leg_key(a,b,conditions.transport))
+        if hit is not None:
+            import copy
+            return copy.deepcopy(hit)
     # Candidate combinations use cheap estimates; verify only the selected plans.
     if _candidate_search.get() and conditions.mode=='real' and not force_api:conditions=conditions.model_copy(update={'allow_estimates':True})
     base=dict(origin=a['name'],destination=b['name'],mode=conditions.transport,link=app_link(a,b,conditions.transport),

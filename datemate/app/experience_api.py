@@ -1,10 +1,11 @@
 """사용자가 확인한 변경만 적용하며, 공유 방문자는 원본을 수정하지 않는다."""
 import json
+import logging
 import time
 import uuid
 from typing import Literal
 from fastapi import APIRouter,Request,HTTPException
-from pydantic import BaseModel,Field
+from pydantic import BaseModel,ConfigDict,Field
 from . import store
 from . import experience as service
 from .models import PlaceId
@@ -149,4 +150,32 @@ def delay_check(pid:str,request:Request,index:int=0,minutes:int=10):
     만든 브라우저만 볼 수 있다(공유 범위는 그대로). 아무것도 저장하지 않는다."""
     _,plan=load(pid,request.state.owner)
     from .delay_check import delay_check as check
-    return run(lambda:check(plan,index,minutes))
+    from .delay_recovery import recovery_for
+    def action():
+        result=check(plan,index,minutes)
+        # 늦어서 맞출 수 없게 된 장소가 있으면 대신 갈 곳·빼고 진행 안(app/delay_recovery.py). 계산만 하고 저장하지 않는다.
+        # 복구 안 계산이 예상 못 한 코스 모양에서 실패해도 지각 확인 자체는 그대로 답한다(복구 안만 빠진다).
+        try:result['recovery']=recovery_for(plan,result)
+        except Exception:
+            logging.getLogger(__name__).exception('delay_recovery_options_failed')
+            result['recovery']=None
+        return result
+    return run(action)
+
+class DelayRecovery(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    index:int=Field(ge=0,le=4)
+    minutes:int=Field(ge=0,le=180)
+    target:int=Field(ge=0,le=4)
+    # 없으면(None) 그 장소를 빼고 진행한다.
+    replacement_id:str|None=Field(default=None,min_length=1,max_length=150)
+
+@router.post('/plans/{pid}/delay-recovery')
+def delay_recovery(pid:str,data:DelayRecovery,request:Request):
+    """지각 확인에서 맞출 수 없게 된 장소(target)를 대신 갈 곳으로 바꾸거나 빼고, 지연을 반영해 새 코스로 저장한다(되돌리기는 /undo).
+    화면이 본 결과와 지금 계산이 다르거나 축제 시각을 못 맞추면 409."""
+    _,plan=load(pid,request.state.owner)
+    from .naver_terms import ensure_changeable
+    ensure_changeable(plan)
+    from .delay_recovery import apply
+    return run(lambda:apply(plan,data.index,data.minutes,data.target,data.replacement_id,request.state.owner))

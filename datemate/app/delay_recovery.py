@@ -1,0 +1,485 @@
+"""지각 복구: 늦어서 맞출 수 없게 된 장소를 같은 종류의 다른 곳으로 바꾸거나 빼고, 남은 시간표를 지연을 반영해 다시 짜 저장한다.
+
+- 무엇을 고치나: 지각 확인(app/delay_check.py)의 첫 문제가 장소의 마지막 입장·영업 종료일 때 그 장소 하나.
+  축제 운영 시간·일정 종료를 넘기는 문제는 장소를 바꿔 풀 일이 아니라 대상이 아니다.
+- 후보: 이 코스를 만들 때 쓰던 동네 후보(replacements 와 같은 출처 — catalog·이 사용자가 찾아 둔 공공 자료·식당 자료) 안에서만.
+  새 장소 검색·길찾기 같은 외부 호출은 하지 않는다. 바뀌는 구간은 거리 기반 추정, 바뀌지 않는 구간은 저장된 값을 그대로 쓴다
+  (routes.saved_routes). 같은 종류 = 3안 선택과 같은 묶음(option_diversity.place_group — 식사·카페·보기·걷기·하기·쉬기,
+  '기타'면 같은 분류). 코스에 이미 있는 곳, 예약이 필요한 곳(reservation true), 방문일 휴무인 곳은 뺀다.
+- 열림: 지연을 반영한 도착 시각부터 머무는 시간 동안 영업 중(planner.visit_window). 영업시간·휴무 자료가 없는 후보는 추정을 허용한
+  코스에서만 '연다'고 가정해 맨 뒤에 두고 '영업시간 미확인'으로 알린다.
+- 거리: 앞뒤 구간이 코스 조건 max_leg 이하. 원래보다 이동이 덜 늘어나는 순으로 최대 3곳.
+- 남은 일정 전체: 후보마다 planner.evaluate(delays=…)로 지연을 반영한 시간표를 다시 짠다. 뒤 장소가 또 늦거나, 축제(맨 앞 고정·코스 끝)
+  시각이 달라지거나, 예산·총 도보가 새로 넘치면 그 후보는 내지 않는다(저장하려 하면 409). 일정 종료를 넘기는 것은 막지 않고 알린다
+  (지각 자체로 늦어진 것이라 장소를 바꿔 풀 수 없다 — 종료가 필수 조건이면 저장 단계 hard_blocks 가 막는다).
+- 빼고 진행: 같은 검사로 그 장소를 뺀 코스. 장소가 0곳이 되면 허용하지 않는다. 방문 장소 수 조건(count)은 사용자가 정한 값을 그대로 둔다.
+- 예약한 장소·고정한 장소는 바꾸지도 빼지도 않는다(예약처에 연락·고정 해제 안내).
+- 저장: plan_changes.save_change(recovery=…) — 장소 바꾸기처럼 새 코스 id(parent 연결)로 저장되어 되돌리기·이력이 그대로 동작한다.
+  반영한 지연은 plan['delay_recovery'].delays({장소 번호: 분})에 남겨, 지각 확인을 다시 열면 지금 시간표 기준으로 이어서 본다.
+"""
+
+import copy
+
+from .delay_check import carried_delay, delay_check
+from .festival_time import places_start
+from .models import Conditions
+from .planner import clock, minutes, visit_window
+
+MAX_OPTIONS = 3
+# 거리·영업으로 거른 뒤 남은 일정 전체를 다시 짜 볼 후보 수(앞에서부터). 많아도 이만큼만 계산한다.
+MAX_TRIES = 12
+PLACE_PROBLEMS = ("last_entry", "closing")
+
+
+class Refused(ValueError):
+    pass
+
+
+def candidate_pool(plan, c):
+    """장소 바꾸기(planner.replacements)와 같은 동네 후보. 외부 호출 없음."""
+    from .planner import candidates
+    from .quality import pool
+
+    return pool(c) if plan.get("best_effort") else candidates(c)
+
+
+def _group(place):
+    from .option_diversity import place_group
+
+    group = place_group(place)
+    return group if group != "기타" else ("기타", place.get("category"))
+
+
+def kind_label(place):
+    from .option_diversity import GROUP_LABELS, place_group
+
+    return GROUP_LABELS.get(place_group(place)) or place.get("category") or "장소"
+
+
+def _josa(word, a, b):
+    from .leg_modes import josa
+
+    return josa(word, a, b)
+
+
+def _evening(plan):
+    visit = plan.get("festival_visit")
+    return isinstance(visit, dict) and visit.get("position") == "last"
+
+
+def _located(point):
+    return point.get("lat") is not None and point.get("lon") is not None
+
+
+def _saved_legs(plan, c):
+    """바뀌지 않는 구간을 다시 조회·추정하지 않도록 저장된 구간을 (출발, 도착, 수단) 열쇠로 모은다."""
+    from .routes import leg_key
+
+    places, legs = plan["places"], plan["legs"]
+    points = [c.origin.model_dump(), *places]
+    rows = {}
+    for i, leg in enumerate(legs[: len(places)]):
+        a, b = points[i], points[i + 1]
+        if _located(a) and _located(b) and leg.get("minutes") is not None:
+            rows[leg_key(a, b, leg.get("mode") or c.transport)] = leg
+    if len(legs) > len(places) and c.home and legs[-1].get("minutes") is not None:
+        start = c.origin.model_dump() if _evening(plan) else places[-1]
+        if _located(start):
+            rows[leg_key(start, c.home.model_dump(), legs[-1].get("mode") or c.transport)] = legs[
+                -1
+            ]
+    return rows
+
+
+def _delays(plan, index, delay):
+    """새 코스에 반영할 지연 {장소 번호: 분}. index 앞에서 이미 반영한 지연은 시간표에 들어 있어 그대로 두고, index 에 더한다."""
+    record = plan.get("delay_recovery")
+    saved = record.get("delays") if isinstance(record, dict) else None
+    old = {}
+    for key, value in (saved if isinstance(saved, dict) else {}).items():
+        try:
+            old[int(key)] = int(value)
+        except (TypeError, ValueError):
+            continue
+    new = {k: v for k, v in old.items() if k < index and v}
+    total = carried_delay(plan, index) + delay
+    if total:
+        new[index] = total
+    return new
+
+
+def _estimate(a, b, c):
+    """새로 생기는 구간 하나. 거리 기반 추정만 쓴다(길찾기를 부르지 않는다)."""
+    from .planner import route_leg
+
+    conditions = c.model_copy(update={"allow_estimates": True}) if c.mode == "real" else c
+    return route_leg(a, b, conditions, c.transport)
+
+
+def _next_point(plan, c, j, places):
+    if j + 1 < len(places):
+        return places[j + 1]
+    if _evening(plan):
+        return c.origin.model_dump()
+    if c.return_home and c.home:
+        return c.home.model_dump()
+    return None
+
+
+def _leaving_minutes(plan, j):
+    """원래 코스에서 j 번 장소를 떠나는 구간의 이동(분). 다음이 없으면 0."""
+    places, legs = plan["places"], plan["legs"]
+    if j + 1 < len(places):
+        return legs[j + 1].get("minutes") or 0
+    if _evening(plan):
+        return (plan["festival_visit"].get("leg") or {}).get("minutes") or 0
+    if len(legs) > len(places):
+        return legs[-1].get("minutes") or 0
+    return 0
+
+
+def _arrival_base(plan, check, c, j):
+    """j 번 장소로 떠나는 시각(분)과 그 도착에 더할 지연. 지연 반영 시간표(check rows)를 따른다."""
+    index = check["index"]
+    if j == index:
+        departure = minutes(plan["timeline"][index - 1]["departure"]) if index else places_start(c)
+        return departure, carried_delay(plan, index) + check["delay"]
+    return minutes(check["rows"][j - 1 - index]["departure"]), 0
+
+
+def _changed_legs(updated, j, removed):
+    """다시 짠 코스에서 바꾼 자리 앞뒤 구간(새로 생긴 구간)."""
+    places, legs = updated["places"], updated["legs"]
+    visit = updated.get("festival_visit")
+    festival_leg = (
+        visit.get("leg") if isinstance(visit, dict) and visit.get("position") == "last" else None
+    )
+    home = legs[-1] if len(legs) > len(places) else None
+
+    def arriving(k):
+        # k 번 장소에 닿는 구간. 장소가 끝났으면 코스 끝 축제로 돌아오는 구간, 없으면 귀가 구간.
+        return legs[k] if k < len(places) else festival_leg or home
+
+    rows = [arriving(j)] if removed else [legs[j], arriving(j + 1)]
+    return [r for r in rows if r]
+
+
+def _rejection(plan, c, updated, j, removed):
+    """다시 짠 코스를 저장하면 안 되는 까닭. 없으면 None."""
+    before, after = plan.get("festival_visit"), updated.get("festival_visit")
+    if isinstance(before, dict) or isinstance(after, dict):
+        if (
+            not isinstance(before, dict)
+            or not isinstance(after, dict)
+            or before.get("position") != after.get("position")
+        ):
+            if isinstance(before, dict) and before.get("position") == "last":
+                return "코스 끝 축제 시간에 맞출 수 없어요"
+            return "축제 방문 시간이 달라져요"
+        if before.get("position") != "last" and (before["arrival"], before["departure"]) != (
+            after["arrival"],
+            after["departure"],
+        ):
+            return "맨 앞 축제 시간이 달라져요"
+    for leg in _changed_legs(updated, j, removed):
+        if leg.get("minutes") is None:
+            return "이동 시간을 계산하지 못해요"
+        if leg["minutes"] > c.max_leg:
+            return f"이동이 {leg['minutes']}분으로 정한 {c.max_leg}분보다 길어요"
+    if not c.budget_unlimited and updated["total"][1] > c.budget >= plan["total"][1]:
+        return f"비용 상한이 예산 {c.budget:,}원을 넘어요"
+    if c.max_walk is not None and (updated.get("walking") or 0) > c.max_walk >= (
+        plan.get("walking") or 0
+    ):
+        return f"총 도보가 정한 {c.max_walk}분보다 길어져요"
+    return None
+
+
+def _failure_text(failure, error):
+    place = failure.get("place")
+    reason = failure.get("reason") or error
+    if place and reason == "영업시간 밖 방문":
+        return f"뒤 {place}에서 영업 종료({failure.get('limit')}) 전에 마치지 못해요"
+    if place and reason == "마지막 입장 시간 초과":
+        return f"뒤 {place}의 마지막 입장({failure.get('limit')})에 늦어요"
+    if place and reason == "방문일 휴무":
+        return f"{place}{_josa(place, '은', '는')} 방문일에 쉬어요"
+    return f"일정을 다시 짤 수 없어요({reason or '확인 필요'})"
+
+
+def _rebuild(plan, c, places, delays, j, removed):
+    """(다시 짠 코스, 거절 까닭). evaluate 는 soft — 종료·구간·예산 초과로 실패하지 않고, 위 _rejection 이 바뀐 것만 본다."""
+    from .planner import evaluate
+    from .pricing import price_plans
+    from .routes import saved_routes
+
+    failure = {}
+    with saved_routes(_saved_legs(plan, c)):
+        updated, error = evaluate(places, c, soft=True, failure=failure, delays=delays)
+    if error:
+        return None, _failure_text(failure, error)
+    if plan.get("course_search"):
+        updated["course_search"] = plan["course_search"]
+    if plan.get("best_effort"):
+        from .best_effort import annotate
+
+        updated = annotate(updated, c)
+    from .condition_audit import audit_plan
+    from .preferences import hard_blocks
+
+    # 데모 코스는 price_plans 가 조건 확인을 다시 하지 않아 여기서 한 번 더 한다. 저장 단계(save_change)와 같은 기준이다.
+    updated = audit_plan(price_plans([updated])[0])
+    reason = _rejection(plan, c, updated, j, removed)
+    if not reason:
+        already = {b["condition"] for b in hard_blocks(plan)}
+        new = [b for b in hard_blocks(updated) if b["condition"] not in already]
+        if new:
+            labels = ", ".join(dict.fromkeys(b["label"] for b in new))
+            reason = f"꼭 지킬 조건으로 고른 {labels}{_josa(labels, '을', '를')} 지키지 못해요"
+    return (None, reason) if reason else (updated, None)
+
+
+def _over_end(updated, c):
+    return max(0, minutes(updated["finish"]) - minutes(c.end))
+
+
+def _target(check):
+    problem = check.get("first_problem")
+    if not problem or problem.get("kind") not in PLACE_PROBLEMS:
+        return None
+    return check["index"] + len(check["rows"]) - 1
+
+
+def _options(plan, check, c, j, delays):
+    places = plan["places"]
+    target = places[j]
+    group = _group(target)
+    ids = {p["id"] for p in places}
+    from .quality import same_place
+    from .routes import distance
+
+    previous = c.origin.model_dump() if j == 0 else places[j - 1]
+    following = _next_point(plan, c, j, places)
+    before = (plan["legs"][j].get("minutes") or 0) + _leaving_minutes(plan, j)
+    departure, extra = _arrival_base(plan, check, c, j)
+    weekday = c.visit_date.weekday()
+    same_kind, fits = 0, []
+    for p in candidate_pool(plan, c):
+        if _group(p) != group or p["id"] in ids or any(same_place(p, q) for q in places):
+            continue
+        if not _located(p):
+            continue
+        same_kind += 1
+        if p.get("reservation") is True:
+            continue
+        words = (
+            p["name"] + " " + str(p.get("category", "")) + " " + " ".join(p.get("tags") or [])
+        ).lower()
+        if any(w and w.lower() in words for w in c.avoid):
+            continue
+        closed_days = p.get("closed_days")
+        if str(c.visit_date) in (p.get("closed_dates") or []) or (
+            closed_days is not None and weekday in closed_days
+        ):
+            continue
+        unknown = p.get("hours") is None or closed_days is None
+        # 추정을 허용하지 않은 실제 장소 코스는 운영 자료가 있는 곳만 쓴다(evaluate 의 엄격 규칙과 같다).
+        if unknown and c.mode == "real" and not c.allow_estimates:
+            continue
+        come = _estimate(previous, p, c)
+        go = _estimate(p, following, c) if following else None
+        if come["minutes"] is None or come["minutes"] > c.max_leg:
+            continue
+        if go is not None and (go["minutes"] is None or go["minutes"] > c.max_leg):
+            continue
+        arrival = departure + come["minutes"] + c.transition_buffer_minutes + extra
+        visit = dict(p, hours=p.get("hours") or [0, 1440], stay=p.get("stay") or c.stay_minutes)
+        visit.setdefault("last_entry", None)
+        _, problem = visit_window(visit, arrival)
+        if problem:
+            continue
+        increase = come["minutes"] + (go["minutes"] if go else 0) - before
+        fits.append((unknown, increase, distance(target, p), p, come, go))
+    fits.sort(key=lambda row: row[:3])
+    options, rejected, later = [], {}, None
+    for unknown, increase, km, p, come, go in fits[:MAX_TRIES]:
+        if len(options) == MAX_OPTIONS:
+            break
+        chosen = list(places)
+        chosen[j] = p
+        updated, reason = _rebuild(plan, c, chosen, delays, j, removed=False)
+        if not updated:
+            rejected[p["id"]] = reason
+            later = later or reason
+            continue
+        hours = p.get("hours")
+        options.append(
+            dict(
+                id=p["id"],
+                name=p["name"],
+                kind=kind_label(p),
+                distance_m=round(km * 1000),
+                extra_minutes=increase,
+                legs=[come["minutes"], go["minutes"] if go else None],
+                start=updated["timeline"][j]["arrival"],
+                departure=updated["timeline"][j]["departure"],
+                hours_known=not unknown,
+                closes=clock(hours[1]) if hours else None,
+                finish=updated["finish"],
+                over_end=_over_end(updated, c),
+                plan=updated,
+            )
+        )
+    if options:
+        note = None
+    elif not same_kind:
+        note = f"이 동네 후보에 같은 종류({kind_label(target)})의 다른 곳이 없어요."
+    elif later:
+        note = f"같은 종류로 바꿔도 {later}."
+    else:
+        note = f"같은 종류({kind_label(target)}) 후보 {same_kind}곳 가운데 그 시각에 열려 있고 가까운 곳이 없어요."
+    return options, rejected, note
+
+
+def _skip(plan, check, c, j, delays):
+    places = plan["places"]
+    target = places[j]
+    if len(places) <= 1:
+        return dict(allowed=False, reason="이 장소를 빼면 남는 장소가 없어요."), None
+    chosen = places[:j] + places[j + 1 :]
+    locked = {int(i): pid for i, pid in c.locked.items()}
+    remapped = {i - (i > j): pid for i, pid in locked.items() if i != j}
+    skip_c = c.model_copy(update={"locked": remapped})
+    updated, reason = _rebuild(plan, skip_c, chosen, delays, j, removed=True)
+    name = target["name"]
+    if not updated:
+        return dict(allowed=False, reason=f"{name}{_josa(name, '을', '를')} 빼도 {reason}."), None
+    if j < len(chosen):
+        nxt = chosen[j]["name"]
+        text = f"{name}{_josa(name, '을', '를')} 빼면 {nxt}에 {updated['timeline'][j]['arrival']}부터 머물고, 끝나는 시각은 {updated['finish']}예요."
+    else:
+        text = f"{name}{_josa(name, '을', '를')} 빼면 끝나는 시각은 {updated['finish']}예요."
+    return dict(
+        allowed=True, reason=text, finish=updated["finish"], over_end=_over_end(updated, skip_c)
+    ), updated
+
+
+def _recover(plan, check):
+    """(화면에 보낼 복구 안, 내부용 {후보 id 또는 None: 다시 짠 코스}, 거절 까닭). 대상이 없으면 (None, {}, {})."""
+    j = _target(check)
+    if j is None:
+        return None, {}, {}
+    from .naver_terms import EXPIRED_CHANGE_MESSAGE, has_expired_places
+
+    c = Conditions.model_validate(plan["conditions"])
+    target = plan["places"][j]
+    result = dict(
+        index=j,
+        place=target["name"],
+        kind=kind_label(target),
+        options=[],
+        skip=None,
+        note=None,
+        blocked=None,
+    )
+    if has_expired_places(plan):
+        result["blocked"] = EXPIRED_CHANGE_MESSAGE
+        return result, {}, {}
+    if target.get("reservation") is True:
+        result["blocked"] = (
+            "예약한 곳이라 대신 갈 곳을 고르지 않았어요. 예약처에 연락해 도착 시간을 바꿀 수 있는지 먼저 물어보세요."
+        )
+        return result, {}, {}
+    if j in {int(i) for i in c.locked}:
+        result["blocked"] = (
+            "고정한 장소라 바꾸거나 빼지 않았어요. 고정을 풀면 대신 갈 곳을 고를 수 있어요."
+        )
+        return result, {}, {}
+    delays = _delays(plan, check["index"], check["delay"])
+    options, rejected, note = _options(plan, check, c, j, delays)
+    skip, skipped = _skip(plan, check, c, j, delays)
+    plans = {o["id"]: o.pop("plan") for o in options}
+    if skipped:
+        plans[None] = skipped
+    result.update(
+        options=options, skip=skip, note=note, delays={str(k): v for k, v in delays.items()}
+    )
+    return result, plans, rejected
+
+
+def recovery_for(plan, check):
+    """지각 확인 응답에 붙일 복구 안(읽기 전용, 저장하지 않음). 고칠 장소가 없으면 None."""
+    return _recover(plan, check)[0]
+
+
+def apply(plan, index, delay, target, replacement_id, owner):
+    """고른 복구를 적용해 새 코스로 저장한다. 화면이 본 결과와 지금 계산이 다르면 저장하지 않는다(Refused → 409)."""
+    from .plan_changes import save_change
+
+    check = delay_check(plan, index, delay)
+    result, plans, rejected = _recover(plan, check)
+    if not result:
+        raise Refused(
+            "지금 계산으로는 늦어서 맞출 수 없는 장소가 없어요. 지각 확인을 다시 눌러 주세요."
+        )
+    if result["index"] != target:
+        raise Refused("지각 확인 결과가 바뀌었어요. 지각 확인을 다시 눌러 주세요.")
+    if result["blocked"]:
+        raise Refused(result["blocked"])
+    name = result["place"]
+    if replacement_id is not None:
+        option = next((o for o in result["options"] if o["id"] == replacement_id), None)
+        if not option:
+            reason = rejected.get(replacement_id)
+            raise Refused(
+                f"고른 곳으로 바꾸면 {reason}. 바꾸지 않았어요."
+                if reason
+                else "고른 곳은 지금 조건으로는 대신 갈 곳이 아니에요. 지각 확인을 다시 눌러 주세요."
+            )
+        updated = plans[replacement_id]
+        action = f"{name}{_josa(name, '을', '를')} {option['name']}{_josa(option['name'], '으로', '로')} 바꾸고"
+    else:
+        if not result["skip"]["allowed"]:
+            raise Refused(result["skip"]["reason"])
+        updated = plans[None]
+        option = None
+        action = f"{name}{_josa(name, '을', '를')} 빼고"
+    total = int(result["delays"].get(str(index), 0))
+    updated = copy.deepcopy(updated)
+    updated["change_reason"] = (
+        f"{total}분 늦어진 것을 반영해 {action} 남은 시간표를 다시 계산했어요."
+    )
+    record = dict(
+        delays=result["delays"],
+        index=index,
+        target=result["index"],
+        action="replace" if option else "skip",
+        place=name,
+        replacement=option["name"] if option else None,
+    )
+    try:
+        saved = save_change(updated, plan, owner, recovery=record)
+    except ValueError as exc:
+        raise Refused(str(exc)) from exc
+    c = Conditions.model_validate(saved["conditions"])
+    warnings = []
+    over = _over_end(saved, c)
+    if over:
+        warnings.append(
+            f"끝나는 시각 {saved['finish']} — 정한 종료 {c.end}보다 {over}분 늦어요. 그대로 저장했어요."
+        )
+    # 실제 길찾기 값이 있던 코스(자동차)에서만: 새로 생긴 구간은 길찾기를 새로 부르지 않고 추정했다.
+    if any(leg.get("status") == "api" for leg in plan.get("legs") or []):
+        warnings.append(
+            "바꾼 자리 앞뒤 이동 시간은 길찾기를 새로 부르지 않고 직선거리로 추정했어요. 출발 전에 길찾기로 확인해 주세요."
+        )
+    if option:
+        if not option["hours_known"]:
+            warnings.append(
+                f"{option['name']}의 영업시간 자료가 없어 연다고 가정했어요. 가기 전에 확인해 주세요."
+            )
+    saved["delay_recovery_result"] = dict(
+        message=f"{updated['change_reason']} 끝나는 시각 {plan.get('finish')} → {saved['finish']}.",
+        warnings=warnings,
+    )
+    return saved

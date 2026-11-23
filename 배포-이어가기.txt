@@ -7,7 +7,25 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
-배포 대기(아래 fix/plan-save-order 와 함께 한 번에): 브랜치 feat/delay-recovery-bundle — 지각 복구 묶음 후보·장소를 바꿔도 지연 유지·식사 추가 때 축제 자리.
+운영에 올라간 것: 커밋 ee2f31e(main, 병합 = feat/order-suggestion. 그 앞 병합 d245a93 = feat/delay-recovery-bundle 도 이 배포에 처음 올라감), Worker 버전 7fa8997e-358a-47ee-8b72-1ad1c1cc41f3 (여든한 번째 배포, 2026-11-23)
+  · 사용자 '모든 권한 줄테니까 혼자 진행 … 배포진행, 배포-이어하기, README 수정한 후 커밋 푸쉬 … 이후 컴퓨터 종료'. 이 배포부터 wrangler deploy 를 Claude Code 가 직접 실행(그 턴의 지시).
+  · 이 배포에 든 것: ① 방문 순서 제안(아래) ② 지각 복구 묶음 후보 ③ 장소를 바꿔도 지연 유지 ④ 식사 추가 때 중간 축제 자리 ⑤ 코스 저장 시각이 항상 늘어남(②~⑤는 바로 아래 두 묶음 기록).
+  · ① 방문 순서 제안(7절 '순서 바꾸기', 설계: docs/superpowers/specs/2026-11-23-order-suggestion-design.md): 일정 위 「순서를 바꾸면 이동이 줄어들까?」 접힌 상자.
+    펼치면 같은 장소의 가능한 순서(최대 120가지)를 추정 구간으로 다시 계산해(외부 호출 없음, 지금 순서도 같은 방식) 이동이 5분 이상 줄어드는 순서 가운데 가장 많이 줄어드는 하나를 제안.
+    고정·예약한 장소는 제자리, 후보는 추천과 같은 규칙(영업시간·종료·구간 상한·예산·총 도보) 통과 + 조건 확인에 새 '지키지 못함' 없음 + 축제가 같은 자리 종류로 남음.
+    app/order_suggestion.py, GET /api/plans/{id}/order-suggestion(읽기 전용)·POST /api/plans/{id}/reorder(다시 계산한 제안과 같을 때만 새 코스로 저장, 다르면 409 — 자동차 구간은 저장 때 실제 길찾기 재확인),
+    static/order-suggestion.js. 견주지 않는 코스(까닭 표시): 장소 1곳·기한 지난 코스·지각을 반영한 코스·구간마다 수단을 바꾼 코스.
+    고른 것: '사용자가 직접 끌어 옮기기' 대신 '서버가 순서 하나 제안'(어떤 순서가 영업시간을 지키는지 시행착오로 찾지 않게, 개선 프롬프트 14번 완료 기준과 맞음).
+  · 검증: tests/test_order_suggestion.py 8개·test_order_suggestion_ui.py 2개(320px), 소유자 검사 목록(test_plan_owner_check)에 새 경로 2개 등록.
+    이 Windows PC SQLite 전체 1403 통과·1 건너뜀·실패 0(26분), 브랜치 CI Run 45146193429 5개 성공(sqlite·postgres 포함), main 병합 뒤 npm run test:security 25 통과, format_sources --check 통과.
+  · 배포: 정적 파일 5개(order-suggestion.js·delay-check.js·plan-detail.js·results.css·index.html). 요청 없이 14분 기다린 뒤 확인(79차 ★).
+  · 운영 확인: /api/status 200, /static/order-suggestion.js 200·첫 화면이 그 파일을 ?v= 로 참조. 코스 140efb099ff24cd4b42eca9e104d148d 에서 순서 제안 상자를 펼침 →
+    '지금 순서가 이동이 가장 짧거나, 다른 순서로는 5분 넘게 줄지 않아요.'(같은 추천의 다른 두 코스도 같음 — 추천이 이미 순서를 골라서), 지각을 반영한 코스는 '지각을 반영해 고친 코스는 순서를 견주지 않아요…',
+    지각 확인(2번 장소부터 180분)은 예전처럼 대신 갈 곳 3곳(묶음 아님), 화면 오류·가로 넘침 없음.
+    보지 못한 것(테스트로만 확인): 순서 제안이 실제로 나와 [이 순서로 바꾸기]를 누르는 경우, 묶음 후보가 뜨는 경우(뒤 장소가 또 늦는 코스가 운영에 없음), 장소 바꾸기 뒤 지연 유지, 식사 추가 때 축제 자리.
+  · 되돌리는 법: 순서 제안만 — git revert -m 1 ee2f31e / 묶음·지연 유지·식사·저장 시각까지 — 이어서 git revert -m 1 d245a93, 그 뒤 재배포(DB 마이그레이션 없음.
+    저장된 also·kept 키와 순서를 바꿔 저장한 코스는 되돌린 코드에서도 보통 코스로 열림).
+81차에 함께 배포(병합 d245a93): 브랜치 feat/delay-recovery-bundle — 지각 복구 묶음 후보·장소를 바꿔도 지연 유지·식사 추가 때 축제 자리.
   설계: docs/superpowers/specs/2026-11-23-delay-recovery-bundle-design.md (사용자 '완성도 높은 방향으로 진행해'). 브랜치에 커밋 3개 + fix/plan-save-order 커밋 포함.
   · ① 장소를 바꿔도 지연 유지: 지각을 반영한 코스에서 장소 바꾸기·레저 교체 후보가 '늦지 않은' 시간표로 돌아가던 것. planner.replacements·leisure.options 가
     저장된 지연을 evaluate(delays=…)에 다시 넣고, app/main.py replace·leisure-select 가 기록을 kept='place' 로 이어 붙임(delay_check.kept_record).
@@ -21,7 +39,7 @@
   · 남긴 것: 세 곳 이상·'빼고 진행'의 묶음·순서 바꾸기, 식사 추가·합의 코스에서 지연 이어 가기(장소 번호의 뜻이 달라짐 — 기록을 지움).
   · 검증: tests/test_delay_recovery.py(묶음 8·지연 유지 4·조사 1 — 옛 '뒤 장소도 늦으면 후보 없음' 테스트는 묶음으로 대체), test_delay_recovery_ui.py(묶음 320px 1),
     test_festival_middle_followup.py(식사 3). 각각 고치기 전 실패 확인. 관련 테스트 통과, format_sources --check 통과. 이 Windows PC SQLite 전체: 1393 통과·1 건너뜀·실패 0(26분). 브랜치 CI Run 45141659849 5개 성공(sqlite·postgres 포함).
-배포 대기: 브랜치 fix/plan-save-order — 같은 시각에 저장된 코스의 순서가 흔들리던 것(전체 테스트에서 test_fresh_place::test_familiar_groups_count_recent_runs 가 가끔 실패하던 원인).
+81차에 함께 배포(병합 d245a93 에 포함): 브랜치 fix/plan-save-order — 같은 시각에 저장된 코스의 순서가 흔들리던 것(전체 테스트에서 test_fresh_place::test_familiar_groups_count_recent_runs 가 가끔 실패하던 원인).
   · 원인: 코스 저장 시각(plans.created)이 time.time() 그대로라, 시계 눈금이 굵은 Windows 에서는 연달아 저장한 코스가 같은 값이 됨. '최근 5번 추천'과 '한 번 추천의 첫 안'을
     created 순서로 가리는 app/fresh_place.familiar_groups(ORDER BY created DESC)가 같은 값끼리의 순서에 따라 다른 답을 냈음. 테스트만의 문제가 아니라 코드의 약점.
   · 무엇을: app/store.next_created — 이 프로세스 안에서 코스 저장 시각이 반드시 늘어남(직전 값보다 크지 않으면 1e-6 초를 더함). save_plan 만 씀.
@@ -29,7 +47,7 @@
   · 검증: tests/test_fresh_place.py 에 시계를 멈추고 코스 11개를 저장하는 테스트(고치기 전 11개가 모두 같은 시각으로 저장돼 실패 확인). 그 파일 20개 3번 반복 통과.
     이 Windows PC SQLite 전체: 1379 통과·1 건너뜀·실패 0(27분) — 77·78차 때 있던 실패 1이 없어짐. format_sources --check 통과.
   · 브랜치 CI Run 45138531690 5개 성공. feat/delay-recovery-bundle 에 포함돼 함께 main 에 병합(따로 병합하지 않음).
-운영에 올라간 것: 커밋 1ba2bf2(main, 병합 = fix/delay-kept-on-transport-change), Worker 버전 3a4e8047-5230-4fa5-9a62-211d62bcac06 (여든 번째 배포, 2026-11-23) — 지각을 반영해 고친 코스에서 수단을 바꿔도 지연 유지(7절 '복구한 코스에서 수단을 바꿔도 지연 유지').
+이전 운영(80차): 커밋 1ba2bf2(main, 병합 = fix/delay-kept-on-transport-change), Worker 버전 3a4e8047-5230-4fa5-9a62-211d62bcac06 (여든 번째 배포, 2026-11-23) — 지각을 반영해 고친 코스에서 수단을 바꿔도 지연 유지(7절 '복구한 코스에서 수단을 바꿔도 지연 유지').
   · 왜: 지각 복구로 저장한 코스에서 수단을 바꾸면 시간표가 말없이 '늦지 않은 것'으로 돌아가고 기록(delay_recovery)도 지워졌음 → 틀린 시각을 믿게 됨.
   · 무엇을: 수단 바꾸기(leg_modes.apply_change)가 저장된 지연(delay_check.carried_delays — {장소 번호: 분})을 planner.evaluate(delays=…)에 다시 넣어 계산하고,
     저장(app/main.py transport → save_change(recovery=…))이 기록을 이어 붙임. 안내 문장에 '앞서 반영한 N분 지연은 그대로 뒀어요.' 추가.
@@ -2028,7 +2046,7 @@ Copy-Item .env.example .env
 2026-11-21 대조: 아래 항목을 코드·git 기록과 맞춰 봤습니다. [완료]·[전제 바뀜] 은 처리한 커밋이나 까닭을 적었고, 표시 없는 항목은 아직 남은 것입니다.
   (64차 직후 이 목록만 보고 팝업 지도 '고칠 후보'를 다음 작업으로 골랐다가 11-15 에 모두 끝난 것을 알게 되어 정리함.)
   지금 개발로 남은 것: (먼 동네의 요청 활동 0곳은 ② 안내로 처리 — feat/missing-kind-nearest-hint) 구조 분석 제안 가운데 지각 복구(대체 장소)는 feat/delay-recovery 로 구현(병합·배포 전 — 맨 위 브랜치 기록).
-    그 뒤에 남는 것: 여러 장소 한꺼번에 바꾸기·순서 바꾸기(복구한 코스에서 수단을 바꿔도 지연 유지는 fix/delay-kept-on-transport-change 로 80차 배포 — 맨 위 ★. 장소를 바꾸는 변경은 여전히 지연을 지움)(실행 카드는 feat/action-card 로 72차 배포, 한 곳만 낯설게는 feat/fresh-place 로 71차 배포 — 맨 위 ★)
+    그 뒤에 남는 것: 없음 — 여러 장소 한꺼번에 바꾸기는 지각 복구 묶음 후보로, 순서 바꾸기는 방문 순서 제안으로, 장소를 바꿔도 지연 유지까지 81차 배포(맨 위 ★. 복구한 코스에서 수단을 바꿔도 지연 유지는 80차). 그 기능들이 남긴 것: 세 곳 이상 한 번에·'빼고 진행'의 묶음·순서를 직접 정하기·식사 추가에서 지연 이어 가기(실행 카드는 feat/action-card 로 72차 배포, 한 곳만 낯설게는 feat/fresh-place 로 71차 배포 — 맨 위 ★)
   (축제 참석 시간 고정은 feat/festival-fixed-time 로 68차 배포, 공유 링크의 축제 이름·방문 시각은 feat/share-festival-visit 로 69차 배포, 저녁 축제를 코스 끝에 두기는 feat/festival-at-end 로 70차 배포, 그 돌아오는 구간의 지도 선·수단 바꾸기는 feat/festival-leg 로 74차 배포, 그 구간 경고·지금 수단 표시는 fix/festival-leg-followup 로 75차 배포 — 맨 위 ★. 축제를 코스 중간에 두기는 feat/festival-middle 로 77차 배포 — 맨 위 ★),
   운영 대시보드 Container logs 에서 recommendation_timing 이 실제로 보이는지 확인(65차에서 출력은 고침). 나머지는 휴대폰 실기기 확인과 '직접 해야 하는 일'.
 

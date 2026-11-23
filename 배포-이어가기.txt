@@ -12,6 +12,7 @@
     (Windows PC. Docker Desktop 이 꺼져 있어 첫 시도 실패 → %LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe 실행 후 성공. 정적 파일 1개: plan-detail.js).
   · 운영 확인(요청 없이 14분 기다린 뒤 한 번): /api/status 200, /static/plan-detail.js 가 새 내용(moved_record 주석, 16,864자).
     보지 못한 것(테스트로만 확인): 지각을 반영한 코스에서 실제로 식사 추가·합의 코스를 만들어 지연이 이어지는 화면.
+  · main 병합 뒤 CI Run 45186493452 5개 성공(sqlite·postgres 포함).
   · 되돌리는 법: git revert -m 1 daac908 후 재배포.
   설계: docs/superpowers/specs/2026-11-23-delay-kept-meal-consensus-design.md. 커밋 7c9c383(코드·테스트·설계) + 2618d16(기록).
   · 왜: 지각을 반영해 고친 코스(delay_recovery)에서 식사를 넣거나 합의 코스를 만들면 시간표가 말없이 '늦지 않은 것'으로 돌아가고 기록도 사라졌음

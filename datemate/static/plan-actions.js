@@ -1,12 +1,46 @@
 /* Late responses update their own option without taking over another course. */
 function commitPlanChange(oldId, updated) {
   if (!replaceInList(oldId, updated)) return false;
-  if (selected?.id !== oldId) return false;
+  if (selected?.id !== oldId) {
+    // 그 사이 다른 코스 탭을 보고 있으면 화면은 그대로 두고, 탭만 새 코스를 가리키게 다시 그린다(탭 단추가 옛 코스를 쥐고 있지 않게).
+    renderResults();
+    return false;
+  }
   selected = updated;
   locks = new Set(Object.keys(updated.conditions.locked || {}).map(Number));
   renderResults();
   renderDetail();
   return true;
+}
+
+/* 코스를 새 버전으로 바꾸는 동작(수단·장소 교체·레저·지각 복구·순서·식사/합의 초안 확정·되돌리기)은 이 잠금 하나를 같이 쓴다
+   (2026-11-24 점검 F3). 예전에는 기능마다 잠금이 따로였고 되돌리기에는 잠금이 없어, 수단 변경을 기다리는 사이 되돌리면
+   늦게 온 새 코스가 목록에 없는 채로 말없이 버려졌다. 바쁠 때 누른 동작은 보내지 않고 알린다(undefined 를 돌려준다).
+   같은 코스 id 를 다시 받는 고정 토글·제보 새로고침은 코스를 새로 만들지 않아 이 잠금 밖에 둔다(togglePlanLock 은 자체 순서 큐). */
+const PLAN_CHANGE_BUSY = '코스를 바꾸는 중이에요. 끝난 뒤 다시 눌러 주세요.';
+let planChangeRunning = false;
+
+async function runPlanChange(task) {
+  if (planChangeRunning) {
+    toast(PLAN_CHANGE_BUSY);
+    return undefined;
+  }
+  planChangeRunning = true;
+  try {
+    return await task();
+  } finally {
+    planChangeRunning = false;
+  }
+}
+
+// 바뀐 코스를 화면에 올린다. 못 올리면(그 사이 다른 코스 탭을 보고 있거나 코스 목록이 새로 바뀜) 알리고 false.
+// done: 서버에서 끝난 일(되돌리기는 '되돌렸어요').
+function commitNewPlan(oldId, updated, done = '새 코스를 저장했어요') {
+  if (commitPlanChange(oldId, updated)) return true;
+  toast(plans.some(p => p.id === updated.id) ?
+    `${done}. 그 사이 다른 코스를 보고 있어 바로 열지 않았어요. 위 코스 탭에서 확인해 주세요.` :
+    `${done}. 그 사이 코스 목록이 바뀌어 화면에는 넣지 못했어요.`);
+  return false;
 }
 
 /* 이동 수단 바꾸기: 구간마다 또는 한 번에. 누를 때만 요청하고(라디오·select 없음) 결과는 aria-live로 알린다. */
@@ -54,30 +88,31 @@ function transportChooser(legend, current, request, focusKey) {
 
 async function changePlanTransport(body, focusKey, box, status) {
   const plan = selected;
-  if (!plan || plan.can_edit === false || changePlanTransport.busy) return;
-  changePlanTransport.busy = true;
-  const choices = [...box.querySelectorAll('button')];
-  choices.forEach(choice => choice.disabled = true);
-  const live = transportLive();
-  status.textContent = live.textContent = '이동 시간을 다시 계산하고 있어요.';
-  try {
-    const updated = await api('/plans/' + plan.id + '/transport', body);
-    const change = updated.transport_change || {};
-    transportNotice = {
-      planId: updated.id,
-      messages: change.messages || [],
-      warnings: change.warnings || []
-    };
-    if (commitPlanChange(plan.id, updated)) {
-      live.textContent = [...transportNotice.messages, ...transportNotice.warnings].join(' ');
-      requestAnimationFrame(() => document.querySelector(`[data-transport-toggle="${focusKey}"]`)?.focus());
+  if (!plan || plan.can_edit === false) return;
+  return runPlanChange(async () => {
+    const choices = [...box.querySelectorAll('button')];
+    choices.forEach(choice => choice.disabled = true);
+    const live = transportLive();
+    status.textContent = live.textContent = '이동 시간을 다시 계산하고 있어요.';
+    try {
+      const updated = await api('/plans/' + plan.id + '/transport', body);
+      const change = updated.transport_change || {};
+      transportNotice = {
+        planId: updated.id,
+        messages: change.messages || [],
+        warnings: change.warnings || []
+      };
+      if (commitNewPlan(plan.id, updated)) {
+        live.textContent = [...transportNotice.messages, ...transportNotice.warnings].join(' ');
+        requestAnimationFrame(() => document.querySelector(`[data-transport-toggle="${focusKey}"]`)?.focus());
+      } else live.textContent = '';
+    } catch (error) {
+      status.textContent = live.textContent = error.message;
+      choices.forEach(choice => choice.disabled = false);
+      // 그 사이 상세를 다시 그렸으면 상태 줄이 화면에 없다. 그때는 토스트로 알린다.
+      if (!status.isConnected) toast(error.message);
     }
-  } catch (error) {
-    status.textContent = live.textContent = error.message;
-    choices.forEach(choice => choice.disabled = false);
-  } finally {
-    changePlanTransport.busy = false;
-  }
+  });
 }
 
 // 일정의 구간 줄: "A → B · 도보 18분 · 추정" + [수단 바꾸기]. 누르면 바로 아래에 수단 4개가 펼쳐진다.

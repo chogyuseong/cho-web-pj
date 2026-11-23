@@ -18,7 +18,11 @@ async function copyPlanShare(plan){
   if(typeof refreshShareStatus==='function')refreshShareStatus(plan);
 }
 
-// 개선안 31: 이 코스와 이전 버전 코스의 열린 공유 링크를 일정 화면 공유 구역에 한 줄로 알린다.
+// 개선안 31: 같은 변경 계열 코스의 열린 공유 링크를 일정 화면 공유 구역에 알린다(app/sharing.share_status).
+// 이 코스 → 바뀌기 전 코스(earlier) → 되돌리기 전·따로 바꾼 코스(other, 2026-11-24 점검 F1). 링크와 상대 의견은 코스마다 따로라,
+// 다른 버전의 링크를 받은 사람은 그 코스를 보고 의견도 그 코스에 남는다(지금 코스의 합의에는 잡히지 않는다).
+const shareOpinionText=rows=>{const n=rows.reduce((sum,row)=>sum+(row.opinions||0),0);return n?` 그 코스에 남은 상대 의견 ${n}건은 이 코스의 합의에 들어오지 않아요.`:'';};
+async function revokeShareRows(plan,rows,message){for(const row of rows)await api('/plans/'+row.plan_id+'/shares',null,'DELETE');toast(message);refreshShareStatus(plan);}
 async function refreshShareStatus(plan){
   const line=document.querySelector('#plan-detail .share-status');if(!line||line.dataset.plan!==plan.id)return;
   let data;try{data=await api('/plans/'+plan.id+'/shares');}catch{line.textContent='';return;}
@@ -28,8 +32,17 @@ async function refreshShareStatus(plan){
   line.append(node('span',now));
   if(data.earlier.length){
     const count=data.earlier.reduce((n,row)=>n+row.active,0);
-    line.append(node('strong',` 바뀌기 전 코스의 공유 링크 ${count}개가 아직 열려 있어요. 그 링크를 받은 사람은 바뀌기 전 코스를 봐요.`),
-      button('이전 링크 취소',async()=>{for(const row of data.earlier)await api('/plans/'+row.plan_id+'/shares',null,'DELETE');toast('바뀌기 전 코스의 공유 링크를 취소했어요.');refreshShareStatus(plan);}));
+    line.append(node('strong',` 바뀌기 전 코스의 공유 링크 ${count}개가 아직 열려 있어요. 그 링크를 받은 사람은 바뀌기 전 코스를 봐요.${shareOpinionText(data.earlier)}`),
+      button('이전 링크 취소',()=>revokeShareRows(plan,data.earlier,'바뀌기 전 코스의 공유 링크를 취소했어요.')));
+  }
+  const other=data.other||[];
+  if(other.length){
+    const count=other.reduce((n,row)=>n+row.active,0),later=other.every(row=>row.relation==='later');
+    const where=later?'되돌리기 전 코스':'되돌리기 전이나 따로 바꾼 코스';
+    // 어느 코스인지 장소 순서로 적는다(공유 구역은 문단 하나라 목록 대신 줄 안의 span 으로 둔다).
+    const courses=other.map(row=>`‘${row.places.join(' → ')||'장소 정보 없음'}’ 링크 ${row.active}개${row.opinions?` · 상대 의견 ${row.opinions}건`:''}`).join(' / ');
+    line.append(node('strong',` ${where}의 공유 링크 ${count}개가 아직 열려 있어요. 그 링크를 받은 사람은 그 코스를 보고, 의견도 그 코스에 남아 이 코스의 합의에는 들어오지 않아요.`),
+      node('span',' '+courses+' ','share-other-courses'),button('그 링크 취소',()=>revokeShareRows(plan,other,where+'의 공유 링크를 취소했어요.')));
   }
 }
 async function revokePlanShares(plan){

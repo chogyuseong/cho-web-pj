@@ -111,7 +111,10 @@ function actionCardChecked(plan) {
   try {
     const saved = actionCardRead(key);
     if (saved) return new Set(saved);
-    // 코스를 바꾸면(수단·장소 교체·되돌리기) 새 id 로 저장된다(store.save_plan). 바꾸기 전 코스(parent)의 체크를 이어받는다.
+    // 코스를 바꾸면(수단·장소 교체·순서·지각 복구·식사 추가 등) 새 id 로 저장된다(store.save_plan). 그 코스에 저장된 체크가 아직 없으면
+    // 바꾸기 전 코스(parent)의 체크를 한 번 이어받고 곧바로 저장한다. 그 뒤로는 빈 목록([])도 저장된 상태라 다시 이어받지 않는다.
+    // 되돌리기는 새 id 를 만들지 않고 바꾸기 전 코스 자체로 돌아간다(app/main.undo). 그래서 그 코스에 저장해 둔 체크를 그대로 쓰고,
+    // 바꾼 코스에서 새로 한 체크는 따라오지 않는다.
     const parent = plan.parent ? actionCardRead('datemate:action-card:' + plan.parent) : null;
     if (!parent) return new Set();
     const current = new Set(actionCardItems(plan).map(item => item.id));
@@ -135,12 +138,13 @@ function actionCardStorable() {
   }
 }
 
+// 체크를 모두 풀어도 빈 목록([])으로 남긴다. 키를 지우면 다음에 그릴 때 바꾸기 전 코스의 체크를 다시 이어받아,
+// 푼 체크가 되살아났다(2026-11-24 점검 F2).
 function saveActionCardChecked(plan, checked) {
   const key = actionCardKey(plan);
   if (!key) return;
   try {
-    if (checked.size) localStorage.setItem(key, JSON.stringify([...checked]));
-    else localStorage.removeItem(key);
+    localStorage.setItem(key, JSON.stringify([...checked]));
   } catch {}
 }
 

@@ -146,21 +146,58 @@ def shared_page():
                                                                'X-Robots-Tag':'noindex, nofollow'})
 
 
+SHARE_FAMILY_DEPTH = 20
+
+
+def owned_ancestors(db, plan_id, owner):
+    """plan_id 부터 부모를 따라 올라간 코스 id 목록(자기 자신 포함). 다른 브라우저의 코스를 만나면 거기서 멈춘다."""
+    path, current = [], plan_id
+    while current and current not in path and len(path) < SHARE_FAMILY_DEPTH:
+        row = db.execute('SELECT owner,parent FROM plans WHERE id=?', (current,)).fetchone()
+        if not row or row['owner'] != owner:
+            break
+        path.append(current)
+        current = row['parent']
+    return path
+
+
+def partner_opinions(db, plan_id, owner):
+    """그 코스에 남은 상대 의견 수(만든 브라우저 자신의 의견은 빼고). 의견은 코스 id 마다 따로 저장된다(experience.save_votes)."""
+    return db.execute('SELECT COUNT(*) FROM partner_votes WHERE plan_id=? AND owner!=?', (plan_id, owner)).fetchone()[0]
+
+
 @router.get('/api/plans/{plan_id}/shares')
 def share_status(plan_id: str, request: Request):
-    """만든 브라우저만: 이 코스와 이전 버전(부모 코스)들의 열려 있는 공유 링크 수와 가장 늦은 만료 시각(개선안 31·32).
-    링크는 코스 하나에 묶여 있어, 장소를 바꿔 새 버전(자식 코스)이 생겨도 예전 링크를 받은 사람은 바뀌기 전 코스를 본다.
-    토큰 값은 돌려주지 않는다(저장소에도 해시만 있다)."""
-    owned(plan_id, request.state.owner)
+    """만든 브라우저만: 같은 변경 계열의 열려 있는 공유 링크 수와 가장 늦은 만료 시각(개선안 31·32, 2026-11-24 점검 F1).
+    링크는 코스 하나에 묶여 있어, 장소를 바꿔 새 버전(자식 코스)이 생겨도 예전 링크를 받은 사람은 바뀌기 전 코스를 보고
+    의견도 그 코스 id 에 남는다(지금 코스의 합의에는 잡히지 않는다).
+    - current: 이 코스. earlier: 이 코스의 이전 버전(부모 코스)들.
+    - other: 같은 처음 코스(부모를 끝까지 따라간 코스)에서 나온 나머지 버전 — 되돌리기 전 코스(relation='later', 이 코스의 자손)와
+      되돌린 뒤 따로 바꾼 코스(relation='branch'). 되돌리기는 부모 코스 자체로 돌아가므로(main.undo) 자식 쪽 링크를 여기서 알린다.
+      자손만 보지 않고 형제까지 보는 까닭: '바꿔 공유 → 되돌림 → 다른 것으로 바꿈'은 흔한 흐름인데, 자손만 보면 그 링크가 다시 안 보인다.
+    범위는 이 브라우저(소유자)의 코스만이고 토큰 값은 돌려주지 않는다(저장소에도 해시만 있다). 처음 코스를 찾는 깊이는 20단계까지."""
+    owner = request.state.owner
+    owned(plan_id, owner)
     now = time.time()
-    chain, current, seen = [], plan_id, set()
     with store.connect() as db:
-        while current and current not in seen and len(chain) < 20:
-            seen.add(current)
-            row = db.execute('SELECT owner,parent FROM plans WHERE id=?', (current,)).fetchone()
-            if not row or row['owner'] != request.state.owner:
-                break
-            shares = db.execute('SELECT COUNT(*) AS n, MAX(expires) AS until FROM plan_shares WHERE plan_id=? AND expires>?', (current, now)).fetchone()
-            chain.append(dict(plan_id=current, active=shares['n'], expires=shares['until']))
-            current = row['parent']
-    return {'current': chain[0], 'earlier': [c for c in chain[1:] if c['active']]}
+        def active(pid):
+            shares = db.execute('SELECT COUNT(*) AS n, MAX(expires) AS until FROM plan_shares WHERE plan_id=? AND expires>?', (pid, now)).fetchone()
+            return dict(plan_id=pid, active=shares['n'], expires=shares['until'])
+        chain = owned_ancestors(db, plan_id, owner)
+        current = active(plan_id)
+        earlier = [dict(row, opinions=partner_opinions(db, row['plan_id'], owner)) for row in map(active, chain[1:]) if row['active']]
+        root, other = chain[-1], []
+        # 이 브라우저의 열린 링크가 걸린 코스 가운데 같은 처음 코스로 올라가는 것. 열린 링크는 24시간이면 닫혀 몇 개 되지 않는다.
+        rows = db.execute('SELECT s.plan_id, COUNT(*) AS n, MAX(s.expires) AS until, p.payload FROM plan_shares s JOIN plans p ON p.id=s.plan_id '
+                          'WHERE p.owner=? AND s.expires>? GROUP BY s.plan_id ORDER BY until DESC', (owner, now)).fetchall()
+        for row in rows:
+            if row['plan_id'] in chain:
+                continue
+            path = owned_ancestors(db, row['plan_id'], owner)
+            if root not in path:
+                continue
+            places = [str(p.get('name') or '') for p in (json.loads(row['payload']).get('places') or [])]
+            other.append(dict(plan_id=row['plan_id'], active=row['n'], expires=row['until'],
+                              relation='later' if plan_id in path else 'branch', places=places,
+                              opinions=partner_opinions(db, row['plan_id'], owner)))
+    return {'current': current, 'earlier': earlier, 'other': other}

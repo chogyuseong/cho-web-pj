@@ -25,8 +25,9 @@ def change_delta(before, after):
 def save_change(plan, original, owner, recovery=None):
     """recovery: 지각 복구 기록(app/delay_recovery.py). 주면 그 기록을 붙이고, 지연을 반영해 짠 시간표를
     자동차 길찾기 재조회로 덮지 않는다(새 외부 호출 없음). 수단 바꾸기·장소 바꾸기·레저 교체(app/main.py)는 지연을 넣어 다시 계산한 뒤
-    kept 표시를 붙인 같은 기록을 넘긴다(delay_check.kept_record). recovery 없이 부르는 변경(식사 추가·합의 코스 등 장소 번호가
-    달라질 수 있는 것)은 시간표를 지연 없이 다시 계산하므로 바꾸기 전 코스의 지각 기록을 이어받지 않는다."""
+    kept 표시를 붙인 같은 기록을 넘긴다(delay_check.kept_record). recovery 없이 부르는 변경(순서 바꾸기 — 지각을 반영한 코스는 견주지 않음)은
+    바꾸기 전 코스의 지각 기록을 이어받지 않는다. 식사 추가·합의 코스는 이 함수를 거치지 않고 초안(experience.make_draft/apply_draft)에
+    번호를 옮긴 기록(delay_check.moved_record)을 실어 저장한다."""
     from .condition_audit import audit_plan
     from .preferences import hard_blocks
     from .experience import verification_summary

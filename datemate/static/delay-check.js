@@ -179,32 +179,33 @@ function delayRecoveryBlock(plan, data, recovery) {
   return block;
 }
 
+// 코스 변경 잠금은 다른 변경·되돌리기와 같이 쓴다(plan-actions.js runPlanChange). 못 연 새 코스는 commitNewPlan 이 토스트로 알린다.
 async function applyDelayRecovery(plan, data, replacementId, block, status) {
-  if (applyDelayRecovery.busy || selected?.id !== plan.id) return;
-  applyDelayRecovery.busy = true;
-  const choices = [...block.querySelectorAll('button')];
-  choices.forEach(choice => choice.disabled = true);
-  status.textContent = '새 코스를 저장하고 있어요…';
-  try {
-    const updated = await api(`/plans/${encodeURIComponent(plan.id)}/delay-recovery`, {
-      index: data.index,
-      minutes: data.delay,
-      target: data.recovery.index,
-      replacement_id: replacementId
-    });
-    const result = updated.delay_recovery_result || {};
-    delayRecoveryNotice = {
-      planId: updated.id,
-      index: data.index,
-      messages: result.message ? [result.message] : [],
-      warnings: result.warnings || []
-    };
-    if (commitPlanChange(plan.id, updated)) requestAnimationFrame(() => document.querySelector('#plan-detail .delay-recovery-notice')?.focus());
-    else status.textContent = '새 코스를 저장했어요. 코스 목록에서 확인해 주세요.';
-  } catch (error) {
-    status.textContent = error.message;
-    choices.forEach(choice => choice.disabled = false);
-  } finally {
-    applyDelayRecovery.busy = false;
-  }
+  if (selected?.id !== plan.id) return;
+  return runPlanChange(async () => {
+    const choices = [...block.querySelectorAll('button')];
+    choices.forEach(choice => choice.disabled = true);
+    status.textContent = '새 코스를 저장하고 있어요…';
+    try {
+      const updated = await api(`/plans/${encodeURIComponent(plan.id)}/delay-recovery`, {
+        index: data.index,
+        minutes: data.delay,
+        target: data.recovery.index,
+        replacement_id: replacementId
+      });
+      const result = updated.delay_recovery_result || {};
+      delayRecoveryNotice = {
+        planId: updated.id,
+        index: data.index,
+        messages: result.message ? [result.message] : [],
+        warnings: result.warnings || []
+      };
+      if (commitNewPlan(plan.id, updated)) requestAnimationFrame(() => document.querySelector('#plan-detail .delay-recovery-notice')?.focus());
+      else status.textContent = '';
+    } catch (error) {
+      status.textContent = error.message;
+      choices.forEach(choice => choice.disabled = false);
+      if (!status.isConnected) toast(error.message);
+    }
+  });
 }

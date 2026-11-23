@@ -96,10 +96,17 @@ function renderDetail() {
     // (app/delay_check.kept_record — 'transport' 또는 'place', 80차에 저장된 true 는 'transport'; moved_record — 식사 추가 'meal'·합의 코스 'agreement').
     // 그런 코스의 되돌리기는 지각 반영이 아니라 그 변경을 되돌린다('meal'·'agreement' 는 지연 기록이 없는 식사·합의 코스와 같은 '교체 되돌리기').
     const kept = p.delay_recovery?.kept;
-    undo.append(button(p.transport_change || kept === true || kept === 'transport' ? '수단 변경 되돌리기' : p.delay_recovery && !kept ? '지각 반영 되돌리기' : '교체 되돌리기', async () => {
-      const restored = await api('/plans/' + p.id + '/undo', {});
-      if (commitPlanChange(p.id, restored)) restoreUndoLocks(p, restored);
+    // 되돌리기도 코스 변경 잠금을 같이 쓴다(plan-actions.js runPlanChange, 2026-11-24 점검 F3): 다른 변경을 기다리는 동안에는 보내지 않고 알린다.
+    const undoButton = button(p.transport_change || kept === true || kept === 'transport' ? '수단 변경 되돌리기' : p.delay_recovery && !kept ? '지각 반영 되돌리기' : '교체 되돌리기', () => runPlanChange(async () => {
+      undoButton.disabled = true;
+      try {
+        const restored = await api('/plans/' + p.id + '/undo', {});
+        if (commitNewPlan(p.id, restored, '되돌렸어요')) restoreUndoLocks(p, restored);
+      } finally {
+        undoButton.disabled = false;
+      }
     }));
+    undo.append(undoButton);
     box.append(undo);
   }
   box.append(transportOverview(p));

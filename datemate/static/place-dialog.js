@@ -118,27 +118,30 @@ async function showAlternatives(index) {
         return;
       }
       if (replacing || !reason.querySelector('select').reportValidity()) return;
-      replacing = true;
-      const controls = [...root.querySelectorAll('button,select')];
-      controls.forEach(control => control.disabled = true);
-      try {
-        const updated = await api('/plans/' + planId + '/replace', {
-          index,
-          locked: [...locks],
-          replacement_id: option.places[index].id
-        });
-        const displayed = commitPlanChange(planId, updated);
-        api('/plans/' + planId + '/feedback', {
-          kind: 'replace_reason',
-          place_id: oldPlaceId,
-          reason: reason.querySelector('select').value
-        }).catch(() => toast('일정은 변경됐지만 변경 이유 저장에 실패했어요.'));
-        if (generation === dialogGeneration) $('#dialog').close();
-        if (!displayed) return;
-      } finally {
-        replacing = false;
-        controls.forEach(control => control.disabled = false);
-      }
+      // 코스 변경 잠금은 다른 변경·되돌리기와 같이 쓴다(plan-actions.js runPlanChange). 못 연 새 코스는 commitNewPlan 이 알린다.
+      await runPlanChange(async () => {
+        replacing = true;
+        const controls = [...root.querySelectorAll('button,select')];
+        controls.forEach(control => control.disabled = true);
+        try {
+          const updated = await api('/plans/' + planId + '/replace', {
+            index,
+            locked: [...locks],
+            replacement_id: option.places[index].id
+          });
+          // 못 연 새 코스의 토스트는 열린 대화상자 안에 뜨고, 닫히면 바깥으로 옮겨진다(app.js toast).
+          commitNewPlan(planId, updated);
+          api('/plans/' + planId + '/feedback', {
+            kind: 'replace_reason',
+            place_id: oldPlaceId,
+            reason: reason.querySelector('select').value
+          }).catch(() => toast('일정은 변경됐지만 변경 이유 저장에 실패했어요.'));
+          if (generation === dialogGeneration) $('#dialog').close();
+        } finally {
+          replacing = false;
+          controls.forEach(control => control.disabled = false);
+        }
+      });
     }));
     // 이 장소로 바꾸면 축제 방문이 달라지는 후보는 고르기 전에 알린다(app/festival_time.change_note — 문구는 서버가 만든다).
     // [이 장소로 교체] 단추(방금 붙인 마지막 요소) 바로 앞에 둔다. 달라지는 게 없으면 키가 없어 아무것도 그리지 않는다.

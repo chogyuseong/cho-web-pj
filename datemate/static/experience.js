@@ -232,7 +232,8 @@ function showDraft(original, draft, recompute) {
   const differences = draft.plan.deviations?.filter(d => d.state === 'unmet') || [];
   if (differences.length) root.append(node('p', '변경 후 조건 차이: ' + differences.map(d => d.message).join(' / '), 'warning'));
   if (draft.blocking.length) root.append(node('p', '필수 조건 때문에 적용할 수 없어요: ' + draft.blocking.map(c => c.label).join(' · '), 'warning'));
-  const apply = button('이 변경안으로 확정', async () => {
+  // 코스 변경 잠금은 다른 변경·되돌리기와 같이 쓴다(plan-actions.js runPlanChange). 못 연 새 코스는 commitNewPlan 이 알린다.
+  const apply = button('이 변경안으로 확정', () => runPlanChange(async () => {
     apply.disabled = true;
     try {
       if (selected?.id !== original.id) {
@@ -254,7 +255,7 @@ function showDraft(original, draft, recompute) {
         again.focus();
         return;
       }
-      if (!commitPlanChange(original.id, next) || generation !== dialogGeneration) return;
+      if (!commitNewPlan(original.id, next) || generation !== dialogGeneration) return;
       form.elements.count.value = next.conditions.count;
       $('#dialog').close();
       $('#plan-detail').scrollIntoView();
@@ -262,7 +263,7 @@ function showDraft(original, draft, recompute) {
     } finally {
       apply.disabled = false;
     }
-  }, 'primary');
+  }), 'primary');
   apply.disabled = !draft.can_apply;
   const stale = node('p', undefined, 'warning draft-stale');
   stale.hidden = true;

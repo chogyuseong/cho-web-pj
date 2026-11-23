@@ -46,22 +46,25 @@ function leisureSuggestionPanel(plan, index) {
         return;
       }
       if (selecting) return;
-      selecting = true;
-      const controls = [...content.querySelectorAll('button')];
-      controls.forEach(b => b.disabled = true);
-      try {
-        const updated = await api('/plans/' + plan.id + '/leisure-select', {
-          index,
-          locked: [...locks],
-          replacement_id: place.id
-        });
-        if (commitPlanChange(plan.id, updated)) toast('선택한 레저로 교체하고 시간·비용·지도를 다시 계산했어요.');
-      } catch (error) {
-        toast(error.message);
-      } finally {
-        selecting = false;
-        controls.forEach(b => b.disabled = false);
-      }
+      // 코스 변경 잠금은 다른 변경·되돌리기와 같이 쓴다(plan-actions.js runPlanChange). 못 연 새 코스는 commitNewPlan 이 알린다.
+      await runPlanChange(async () => {
+        selecting = true;
+        const controls = [...content.querySelectorAll('button')];
+        controls.forEach(b => b.disabled = true);
+        try {
+          const updated = await api('/plans/' + plan.id + '/leisure-select', {
+            index,
+            locked: [...locks],
+            replacement_id: place.id
+          });
+          if (commitNewPlan(plan.id, updated)) toast('선택한 레저로 교체하고 시간·비용·지도를 다시 계산했어요.');
+        } catch (error) {
+          toast(error.message);
+        } finally {
+          selecting = false;
+          controls.forEach(b => b.disabled = false);
+        }
+      });
     }, 'primary');
     select.disabled = plan.can_edit === false || locks.has(index);
     actions.append(select, placeMapLink('지도에서 확인 ↗', place));

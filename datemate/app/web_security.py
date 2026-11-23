@@ -82,7 +82,7 @@ EXPENSIVE = [re.compile(pattern) for pattern in (
     r'^POST /api/locations/(?:search|region)$',
     r'^GET /api/explore(?:/naver)?$', r'^GET /api/festivals(?:/[^/]+/detail)?$', r'^GET /api/popups$',
     r'^GET /api/places/[^/]+/(?:media|blogs|menu|review-facts|identity)$',
-    r'^POST /api/plans/[^/]+/(?:leisure-options|alternatives|replace|transport)$',
+    r'^POST /api/plans/[^/]+/(?:leisure-options|alternatives|replace|transport|reorder)$',
     r'^GET /api/plans/[^/]+/(?:restaurants|restaurant-matches|meal-rescue|parking)$',
     r'^POST /api/chat/[^/]+/[^/]+$',
 )]

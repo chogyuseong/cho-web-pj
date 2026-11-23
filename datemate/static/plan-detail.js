@@ -118,6 +118,9 @@ function renderDetail() {
   if (transitNote) box.append(transitNote);
   // 지금 늦으면 어디서 처음 문제가 생기는지(읽기 전용, delay-check.js). 저장된 코스(id)가 있을 때만.
   if (p.id && typeof delayCheckPanel === 'function') box.append(delayCheckPanel(p));
+  // 같은 장소를 다른 순서로 돌면 이동이 줄어드는지(order-suggestion.js). 바꿀 수 없는 코스·장소 한 곳짜리는 상자가 없다(null).
+  const orderPanel = typeof orderSuggestionPanel === 'function' ? orderSuggestionPanel(p) : null;
+  if (orderPanel) box.append(orderPanel);
   // 약속 당일 도구(day-of.js): 마지막 출발 시각, 한 곳씩 크게 보기, 현장용 일정 복사. 서버에 묻지 않는다.
   if (typeof dayOfTools === 'function') box.append(dayOfTools(p));
   // 운영 시간에 맞춰 맨 앞에 고정한 축제 방문(app/festival_time.py). 첫 구간 줄(행사장 → 첫 장소) 바로 앞에 둔다.

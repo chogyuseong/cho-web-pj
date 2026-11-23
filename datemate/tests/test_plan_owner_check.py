@@ -23,6 +23,8 @@ PLAN_ROUTES = {
     ('POST', '/api/plans/{id}/alternatives'): {'index': 0},
     ('POST', '/api/plans/{id}/replace'): {'index': 0, 'replacement_id': 'x'},
     ('POST', '/api/plans/{id}/transport'): {'default': 'walk'},
+    ('GET', '/api/plans/{id}/order-suggestion'): None,
+    ('POST', '/api/plans/{id}/reorder'): {'order': ['x', 'y']},
     ('POST', '/api/plans/{id}/undo'): None,
     ('GET', '/api/plans/{id}/reviews'): None,
     ('PUT', '/api/plans/{id}/review'): REVIEW,

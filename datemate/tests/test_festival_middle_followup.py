@@ -164,3 +164,45 @@ def test_mode_change_that_brings_the_festival_in_says_so(monkeypatch):
     prepared = leg_modes.prepare_change(with_festival, festival='transit')
     kept, _ = leg_modes.apply_change(with_festival, prepared)
     assert 'festival_change' not in kept
+
+
+# --- 식사 추가·교체(app/experience.meal_draft): 장소 번호가 밀려도 축제는 같은 장소 뒤에 먼저 둔다 ---
+def meal_hint(monkeypatch, **where):
+    """식당을 넣거나 바꿀 때 evaluate 에 넘어간 festival_hint 와, 그 결과 코스."""
+    from app import experience, planner
+    from test_experience import food_fixture
+    real, seen = planner.evaluate, []
+
+    def spy(places, c, **kwargs):
+        seen.append(kwargs.get('festival_hint'))
+        return real(places, c, **kwargs)
+
+    with TestClient(app) as client:
+        # 장소 3곳·각 60분, 축제 12:30~13:45 → 둘째 장소(번호 1) 뒤에 있는 중간 축제.
+        stored = save(client, planned(stops(3, stay=60), cond('12:30~13:45', count=3, end='22:00')))
+        assert after_of(stored) == ('middle', 1)
+        food = food_fixture(monkeypatch, stored)
+        monkeypatch.setattr(planner, 'evaluate', spy)
+        owner = store.owner_of(client.cookies['dm_session'])
+        args = dict(after_index=0, replace_index=None)
+        args.update(where)
+        draft = experience.meal_draft(stored, owner, food['id'], args['after_index'], args['replace_index'], [], 0)
+    return seen, draft
+
+
+def test_meal_added_before_the_festival_shifts_the_gap(monkeypatch):
+    # 첫 장소 뒤(번호 1 자리)에 식당을 넣으면 축제 앞 장소가 번호 2 가 된다.
+    seen, _ = meal_hint(monkeypatch, after_index=0)
+    assert seen[0] == 2
+
+
+def test_meal_added_after_the_festival_keeps_the_gap(monkeypatch):
+    # 마지막 장소 뒤에 넣으면 축제 앞 장소 번호는 그대로 1.
+    seen, _ = meal_hint(monkeypatch, after_index=2)
+    assert seen[0] == 1
+
+
+def test_meal_replacing_a_place_keeps_the_gap(monkeypatch):
+    # 같은 자리의 장소를 식당으로 바꾸면 번호가 밀리지 않는다.
+    seen, _ = meal_hint(monkeypatch, replace_index=2)
+    assert seen[0] == 1

@@ -63,6 +63,11 @@ OWNER_RATE_PREFIXES = (
     # price-refresh: 는 없앤 '단가 다시 검색' 요청의 제한 키다(5초 수명). 남아 있던 행을 지우려고 목록에 둔다.
     "price-refresh:",
     "local-rate:",
+    # 주차 조회·자동차 길찾기 재확인(교체·수단·순서) 재요청 간격 키(app/main.py, 2026-11-24 검토 S5).
+    "parking-rate:",
+    "replace-refresh:",
+    "transport-refresh:",
+    "reorder-refresh:",
 )
 
 

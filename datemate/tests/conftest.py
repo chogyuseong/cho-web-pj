@@ -27,6 +27,8 @@ for _name in ('SESSIONS','EXPENSIVE_REQUESTS','RECOMMENDATIONS','CHATS','GEOCODE
               'LOCAL_SEARCHES','REFRESHES','REVIEWS','EXPLORE_SEARCHES','POPUP_SEARCHES','PHOTO_THUMBS'):
     os.environ[f'DATEMATE_IP_{_name}_PER_MINUTE']='100000'
 os.environ['DATEMATE_IP_POPUP_SEARCHES_PER_HOUR']='100000'
+# IP 범위당 진행 중 추천 작업 수(app/plan_jobs.start). 화면 테스트는 모두 같은 주소에서 여러 작업을 띄운다.
+os.environ['DATEMATE_IP_CONCURRENT_PLAN_JOBS']='100000'
 # 로컬 단위 테스트가 사용자 실제 검색 키로 외부 API를 호출하지 않게 한다.
 os.environ['NAVER_SEARCH_CLIENT_ID']=''
 os.environ['NAVER_SEARCH_CLIENT_SECRET']=''

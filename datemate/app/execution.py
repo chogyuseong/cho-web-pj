@@ -15,6 +15,33 @@ _owners = set()
 _lock = Lock()
 
 
+RECOMMENDATION_LIMIT_MESSAGE = "분당 검색 한도에 도달했어요. 잠시 후 다시 시도해 주세요."
+
+
+def reserve_recommendation(owner):
+    """분당 추천 한도(전체·사용자·IP 범위)에서 1회를 쓴다. 남은 한도가 없으면 False.
+
+    새 추천(recommendation_slot)과 추천을 통째로 다시 돌리는 합의 코스 미리보기(web_security.RECOMMENDING)가 함께 쓴다.
+    """
+    limits = [
+        ("recommendations", int(os.getenv("DATEMATE_RECOMMENDATIONS_PER_MINUTE", "30"))),
+        (
+            "recommendations:" + owner,
+            int(os.getenv("DATEMATE_USER_RECOMMENDATIONS_PER_MINUTE", "6")),
+        ),
+    ]
+    client = client_range()
+    if client:
+        # A fresh cookie per request must not reset the per-user allowance.
+        limits.append(
+            (
+                "ip:recommendations:" + client,
+                limit("DATEMATE_IP_RECOMMENDATIONS_PER_MINUTE", 12),
+            )
+        )
+    return store.reserve_budget(limits, int(time.time() // 60))
+
+
 @contextmanager
 def recommendation_slot(owner):
     with _lock:
@@ -24,24 +51,8 @@ def recommendation_slot(owner):
     try:
         if store.revoked(owner):
             raise HTTPException(410, "삭제된 세션입니다.")
-        limits = [
-            ("recommendations", int(os.getenv("DATEMATE_RECOMMENDATIONS_PER_MINUTE", "30"))),
-            (
-                "recommendations:" + owner,
-                int(os.getenv("DATEMATE_USER_RECOMMENDATIONS_PER_MINUTE", "6")),
-            ),
-        ]
-        client = client_range()
-        if client:
-            # A fresh cookie per request must not reset the per-user allowance.
-            limits.append(
-                (
-                    "ip:recommendations:" + client,
-                    limit("DATEMATE_IP_RECOMMENDATIONS_PER_MINUTE", 12),
-                )
-            )
-        if not store.reserve_budget(limits, int(time.time() // 60)):
-            raise HTTPException(429, "분당 검색 한도에 도달했어요. 잠시 후 다시 시도해 주세요.")
+        if not reserve_recommendation(owner):
+            raise HTTPException(429, RECOMMENDATION_LIMIT_MESSAGE)
         yield
     finally:
         with _lock:

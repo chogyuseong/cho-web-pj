@@ -7,10 +7,16 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
-검토 대기 브랜치: feat/festival-middle (낮 축제를 코스 중간 두 장소 사이에 두기, 커밋 2cbdf75·2a95897, CI Run 45044996194 5개 성공). main 병합·배포 전 —
-  자세한 기록·남은 위험·되돌리기 영향은 그 브랜치의 이 문서 맨 앞 브랜치 기록. 다음 세션에서 검토 → main 에 --no-ff 병합 → test:security → 사용자가 ! npx wrangler deploy
-  (wrangler deploy 는 Claude Code 자동 권한 검사가 막음. Docker Desktop 먼저 실행: %LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe).
-운영에 올라간 것: 커밋 748c343(main, 병합 = feat/delay-recovery), Worker 버전 90c0a686-463d-4721-8793-d102b02589ab (일흔여섯 번째 배포, 2026-11-23)
+운영에 올라간 것: 커밋 be5db9e(main, 병합 = feat/festival-middle), Worker 버전 f4cbfd89-076a-497c-b70c-db778b9a5233 (일흔일곱 번째 배포, 2026-11-23)
+  · 사용자 '다음 작업' → 검토 뒤 '진행해'. 브랜치 head 2a95897 CI Run 45047545434(앞 커밋 2cbdf75 는 45044996194) 성공 → 서버·화면 diff 전체 검토(막을 문제 없음, 로컬 테스트는 돌리지 않음) →
+    main 에 --no-ff 병합·push → npm run test:security 25 통과 → 사용자가 ! npx wrangler deploy(Windows PC. Docker Desktop 이 꺼져 있어 첫 시도 실패 → 실행 후 성공.
+    node_modules 가 비어 있어 npx 가 wrangler 4.166.0 을 내려받아 씀. 정적 파일 8개: shared.js·plan-actions.js·plan-detail.js·day-of.js·plan-results.js·maps.js·action-card.js·delay-check.js).
+  · 운영 확인: /api/status 200(Server-Timing 있음), /static/maps.js·plan-detail.js 에 festivalMiddleAfter, delay-check.js 에 row.festival, shared.js 에 position==='middle' 있음,
+    /api/explore?region=제주 ready 24곳. 중간 축제 코스(서버)는 운영에서 실제 코스로 눌러 보지 않음. 내용은 아래 브랜치 feat/festival-middle 기록.
+  · 검토에서 남긴 것(막지 않음): 장소 바꾸기·자동차 실제 길찾기 재확인은 축제 자리를 고정하지 않고 앞에서부터 다시 찾아 자리가 옮겨지거나 빠질 수 있음(옛 기록은 남지 않음).
+    그 재확인은 축제 없는 코스를 먼저 실제 길찾기로 계산한 뒤 중간 자리로 다시 계산하므로 대체되는 '장소 i → i+1' 구간 조회 1건이 낭비될 수 있음(캐시·상한이 막는지는 확인하지 않음).
+  · 되돌리는 법: git revert -m 1 be5db9e 후 재배포(DB 마이그레이션 없음. 저장된 'middle' 코스를 되돌린 코드가 열 때의 모습은 아래 브랜치 기록 '되돌리는 법').
+이전 운영(76차): 커밋 748c343(main, 병합 = feat/delay-recovery), Worker 버전 90c0a686-463d-4721-8793-d102b02589ab (일흔여섯 번째 배포, 2026-11-23)
   · 사용자 '모든 권한, 최대한 완성도 있게'. 브랜치 head a88b08c CI Run 45032368633·45034354401 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push →
     npm run test:security 25 통과 → wrangler deploy 는 Claude Code 자동 권한 검사가 막아 사용자가 ! npx wrangler deploy 로 직접 실행(Windows PC, Docker Desktop.
     정적 파일 3개: delay-check.js·plan-detail.js·results.css).
@@ -84,7 +90,7 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
-브랜치 feat/festival-middle (2026-11-23, 브랜치에 push, main 병합·배포 전 — 사용자가 다음 세션에서 검토 후 병합·배포. 커밋 2cbdf75 CI Run 45044996194 5개 성공(sqlite·postgres 포함). 7절 '축제를 코스 중간에 두기'. 설계·계획: docs/superpowers/specs·plans/2026-11-23-festival-middle*)
+브랜치 feat/festival-middle (2026-11-23, 77차로 병합·배포됨. 커밋 2cbdf75 CI Run 45044996194 5개 성공(sqlite·postgres 포함). 7절 '축제를 코스 중간에 두기'. 설계·계획: docs/superpowers/specs·plans/2026-11-23-festival-middle*)
   · 무엇을: 맨 앞(68차)도 코스 끝(70차)도 맞지 않는 낮 축제(예: 11:30~13:00, 코스 10:00~19:00)를 두 장소 사이에 둠 — 장소 i → 행사장 → 축제 → 행사장 → 장소 i+1.
     배치(app/planner.evaluate): 예전 규칙(맨 앞 → 끝)을 먼저 그대로 돌고, 둘 다 아니며 축제 없이 짠 코스가 성공했을 때만 장소 사이를 앞에서부터 봄.
     자리마다 '장소 i 를 떠난 시각 + 행사장까지 거리 추정(외부 호출 없음)'으로 축제 칸(개막까지 60분 이하 기다림·운영 종료 안, last_slot)을 먼저 거르고,
@@ -1939,7 +1945,7 @@ Copy-Item .env.example .env
   (64차 직후 이 목록만 보고 팝업 지도 '고칠 후보'를 다음 작업으로 골랐다가 11-15 에 모두 끝난 것을 알게 되어 정리함.)
   지금 개발로 남은 것: (먼 동네의 요청 활동 0곳은 ② 안내로 처리 — feat/missing-kind-nearest-hint) 구조 분석 제안 가운데 지각 복구(대체 장소)는 feat/delay-recovery 로 구현(병합·배포 전 — 맨 위 브랜치 기록).
     그 뒤에 남는 것: 여러 장소 한꺼번에 바꾸기·순서 바꾸기, 복구한 코스에서 수단을 바꿔도 지연 유지(실행 카드는 feat/action-card 로 72차 배포, 한 곳만 낯설게는 feat/fresh-place 로 71차 배포 — 맨 위 ★)
-  (축제 참석 시간 고정은 feat/festival-fixed-time 로 68차 배포, 공유 링크의 축제 이름·방문 시각은 feat/share-festival-visit 로 69차 배포, 저녁 축제를 코스 끝에 두기는 feat/festival-at-end 로 70차 배포, 그 돌아오는 구간의 지도 선·수단 바꾸기는 feat/festival-leg 로 74차 배포, 그 구간 경고·지금 수단 표시는 fix/festival-leg-followup 로 75차 배포 — 맨 위 ★. 축제를 코스 중간에 두기는 feat/festival-middle 로 구현(병합·배포 전 — 맨 위 브랜치 기록)),
+  (축제 참석 시간 고정은 feat/festival-fixed-time 로 68차 배포, 공유 링크의 축제 이름·방문 시각은 feat/share-festival-visit 로 69차 배포, 저녁 축제를 코스 끝에 두기는 feat/festival-at-end 로 70차 배포, 그 돌아오는 구간의 지도 선·수단 바꾸기는 feat/festival-leg 로 74차 배포, 그 구간 경고·지금 수단 표시는 fix/festival-leg-followup 로 75차 배포 — 맨 위 ★. 축제를 코스 중간에 두기는 feat/festival-middle 로 77차 배포 — 맨 위 ★),
   운영 대시보드 Container logs 에서 recommendation_timing 이 실제로 보이는지 확인(65차에서 출력은 고침). 나머지는 휴대폰 실기기 확인과 '직접 해야 하는 일'.
 
 팝업스토어 글 탐색 (열세 번째 배포로 올라감, 확인한 것은 맨 위 ★)

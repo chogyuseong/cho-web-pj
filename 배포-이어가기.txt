@@ -7,6 +7,10 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
+배포 대기: 커밋 abd0cf7(main, 병합 = fix/shared-missing-address) — 공유 화면에서 주소 없는 장소가 '14:26 ~ 15:26 · null' 로 보이던 것 고침(2026-11-23 운영 확인에서 찾음).
+  서버(app/sharing.py)는 주소를 빈 글로 보내고 화면(static/shared.js)은 주소가 없으면 ' · 주소' 를 적지 않음. tests/test_shared_missing_address.py 2개(고치기 전 실패 확인),
+  공유 관련 테스트 39 통과, format_sources --check 통과, 브랜치 CI Run 45124412972 5개 성공(sqlite·postgres 포함), main 병합 뒤 npm run test:security 25 통과.
+  남은 것: 사용자가 main 에서 ! npx wrangler deploy(Docker Desktop 먼저 실행) → 운영 확인 → 이 줄을 79차 기록으로 바꿈. 되돌리기: git revert -m 1 abd0cf7(DB 마이그레이션 없음).
 운영에 올라간 것: 커밋 effc78b(main, 병합 = fix/festival-middle-followup. 코드는 브랜치 커밋 bb3364e 와 같음), Worker 버전 c4da0cdb-529d-44d7-bd3e-89e55e68e3e7 (일흔여덟 번째 배포, 2026-11-23)
   · 순서가 평소와 달랐음: 사용자가 브랜치 fix/festival-middle-followup(bb3364e, push·병합 전) 작업 폴더에서 ! npx wrangler deploy 를 먼저 실행 → 그 뒤 브랜치 push →
     CI Run 45116486107 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push(병합 커밋과 bb3364e 의 파일 차이 없음 — 다시 배포하지 않음) → npm run test:security 25 통과.
@@ -19,7 +23,7 @@
     ② 장소 바꾸기(78차): 1·2번 장소 후보 8곳씩 모두 축제 자리 middle:0 유지(festival_change 없음) → 2번 장소를 바꿔 저장해도 자리·시각(11:05~12:05) 그대로.
     ③ 공유 화면(77차): 장소 1 칸 → 축제 칸(중간) → 장소 2 순서, 390px 폭 넘침 없음. 확인 뒤 공유 링크는 지움.
     보지 못한 것: festival_change 안내가 실제로 뜨는 경우(축제가 빠지거나 옮겨지는 후보가 이 코스에는 없었음 — 테스트로만 확인), 레저 후보.
-    찾은 것(이번 변경과 무관, 고치지 않음): 공유 화면에서 주소 없는 장소가 '14:26 ~ 15:26 · null' 로 보임(static/shared.js 의 place.address).
+    찾은 것(이번 변경과 무관 — fix/shared-missing-address 로 고침, 맨 위 ★): 공유 화면에서 주소 없는 장소가 '14:26 ~ 15:26 · null' 로 보임(static/shared.js 의 place.address).
     이 확인으로 운영 DB 에 코스 2개가 더 생김(지각 복구 1 + 장소 바꾸기 1).
   · 되돌리는 법: git revert -m 1 effc78b 후 재배포(DB 마이그레이션 없음. 저장된 festival_change 키는 되돌린 화면이 읽지 않음).
 이전 운영(77차): 커밋 be5db9e(main, 병합 = feat/festival-middle), Worker 버전 f4cbfd89-076a-497c-b70c-db778b9a5233 (일흔일곱 번째 배포, 2026-11-23)

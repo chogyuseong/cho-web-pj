@@ -25,6 +25,15 @@
     A4: 1곳 코스의 식사로 교체가 동작, ValidationError 는 사람이 읽는 문장(experience_api.run). 테스트 tests/test_delay_and_place_count.py 22개(고치기 전 20개 중 18 실패).
     fix/abuse-limits 와 experience.py 자동 병합 — 병합 뒤 main 에서 abuse·delay·식사합의·experience·지각 테스트 92 통과.
     남긴 것: kept_record·moved_record 이어 붙이기는 경로마다 그대로, 저장 경로 둘(save_change·apply_draft)은 정리 함수만 공유, A5(자정 넘김 표기).
+  [병합됨] fix/share-and-action-card → main 26b0f50 (커밋 dd91957 + PostgreSQL GroupingError 수정, CI Run 45216750596 5개 성공 — 첫 Run 은 postgres 실패).
+    F1: GET /api/plans/{id}/shares 에 other(같은 처음 코스에서 나온 다른 버전의 열린 링크: relation later/branch, 장소 이름, 상대 의견 수). sharing.owned_ancestors(다른 소유자 만나면 멈춤, 20단계)·partner_opinions.
+      화면(static/api-client.js) 공유 줄에 '되돌리기 전(이나 따로 바꾼) 코스의 공유 링크 N개가 아직 열려 있어요 … 의견도 그 코스에 남아 이 코스의 합의에는 들어오지 않아요' + [그 링크 취소]. 토큰 값은 안 돌려줌.
+    F2: action-card.js 가 체크 0개도 [] 로 저장(다시 이어받지 않음), 114줄 주석을 실제(되돌리기는 부모 id 그대로)에 맞춤.
+    F3: plan-actions.js runPlanChange(코스 변경 잠금 하나 — 수단·지각 복구·순서·레저·장소·식사/합의 확정·되돌리기), commitNewPlan(화면에 못 올리면 토스트). 각 파일의 따로 있던 잠금 없앰.
+    테스트 tests/test_share_family_and_change_lock.py 6개(고치기 전 6 실패). 세 브랜치 병합 뒤 main 에서 새·핵심 테스트 118 통과, format_sources --check, npm run test:security 25 통과.
+    남긴 것: 새 검색은 잠금 밖(늦은 코스는 토스트로만), 상단 「공유 취소」는 이 코스 링크만, S4·A5·F4~F10(점검 보고서).
+  배포: 여든세 번째 배포(2026-11-24), main 26b0f50, Worker 버전 3d91c9ae-ca29-40bb-bddc-fd7b53ef5dcb. Claude Code 가 실행(사용자 '모든 권한'). 정적 파일 9개.
+    되돌리는 법: 세 병합을 역순으로 git revert -m 1 26b0f50 / a90cc9f / 133f9cd 후 재배포(DB 마이그레이션 없음).
 브랜치 정리(2026-11-24): main 에 모두 들어간 브랜치를 지움 — 로컬 9개, 원격 46개(커밋은 main 에 남음). 남긴 것: 원격 css/stage-0-snapshot ~ css/stage-3e-summary 8개
   (2026-11-18, 병합 안 된 한 줄 체인, 끝 = css/stage-3e-summary. 같은 CSS 정리는 뒤에 refactor/css-5-* 로 다시 해 50차 배포 — 대체된 것으로 보이나 css_snapshot 도구 등이 있어 남겨 둠).
 운영에 올라간 것: 커밋 daac908(main, 병합 = feat/delay-kept-on-meal-consensus), Worker 버전 5e71900e-48e3-4bab-b023-c7f71e1d66cc (여든두 번째 배포, 2026-11-23) — 식사 추가·합의 코스에서도 지연 유지.

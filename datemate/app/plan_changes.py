@@ -24,8 +24,8 @@ def change_delta(before, after):
 
 def save_change(plan, original, owner, recovery=None):
     """recovery: 지각 복구 기록(app/delay_recovery.py). 주면 그 기록을 붙이고, 지연을 반영해 짠 시간표를
-    자동차 길찾기 재조회로 덮지 않는다(새 외부 호출 없음). 다른 변경은 시간표를 지연 없이 다시 계산하므로
-    바꾸기 전 코스의 지각 기록을 이어받지 않는다."""
+    자동차 길찾기 재조회로 덮지 않는다(새 외부 호출 없음). 수단 바꾸기(app/main.py transport)도 지연을 넣어 다시 계산한 뒤
+    같은 기록을 넘긴다. 장소를 바꾸는 변경은 시간표를 지연 없이 다시 계산하므로 바꾸기 전 코스의 지각 기록을 이어받지 않는다."""
     from .condition_audit import audit_plan
     from .preferences import hard_blocks
     from .experience import verification_summary

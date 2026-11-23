@@ -244,13 +244,46 @@ def test_other_browser_cannot_recover(pool):
         assert recover(other, stored, replacement_id=NEAR['id']).status_code == 404
 
 
-def test_later_change_drops_the_delay_record(pool):
+def test_transport_change_keeps_the_delay(pool):
+    # 지각을 반영해 고친 코스에서 수단을 바꿔도 지연은 그대로다(예전에는 시간표가 말없이 지연 없는 것으로 돌아갔다).
     with TestClient(app) as client:
         stored = saved(client, course())
         new = recover(client, stored, replacement_id=NEAR['id']).json()
-        changed = client.post(f"/api/plans/{new['id']}/transport", json={'default': 'transit'})
-        assert changed.status_code == 200, changed.text
-        assert 'delay_recovery' not in changed.json()
+        response = client.post(f"/api/plans/{new['id']}/transport", json={'default': 'transit'})
+        assert response.status_code == 200, response.text
+        changed = response.json()
+        # 기록은 그대로 이어지고, 이 코스가 수단 변경으로 만들어졌다는 표시(kept)만 붙는다(되돌리기 단추 문구용).
+        assert changed['delay_recovery'] == dict(new['delay_recovery'], kept=True) and changed['delay_recovery']['delays'] == {'0': 40}
+        assert 'kept' not in new['delay_recovery']
+        # 첫 장소 도착 = 새 수단으로 지연 없이 계산한 도착 + 40분.
+        plain, error = evaluate(changed['places'], Conditions.model_validate(changed['conditions']), soft=True)
+        assert not error
+        assert minutes(changed['timeline'][0]['arrival']) == minutes(plain['timeline'][0]['arrival']) + 40
+        assert changed['legs'][0]['mode'] == 'transit'
+        assert '앞서 반영한 40분 지연은 그대로 뒀어요' in changed['change_reason']
+        # 지각 확인도 계속 '지금 시간표' 기준이다.
+        again = client.get(f"/api/plans/{changed['id']}/delay-check", params=dict(index=0, minutes=0)).json()
+        assert again['status'] == 'ok' and again['carried'] == 40
+        assert again['planned_arrival'] == changed['timeline'][0]['arrival']
+        # 되돌리기는 수단을 바꾸기 전(지각을 반영한 코스).
+        assert client.post(f"/api/plans/{changed['id']}/undo").json()['id'] == new['id']
+
+
+def test_transport_change_without_a_delay_record_is_unchanged(pool):
+    with TestClient(app) as client:
+        stored = saved(client, course())
+        changed = client.post(f"/api/plans/{stored['id']}/transport", json={'default': 'transit'}).json()
+        assert 'delay_recovery' not in changed and '지연' not in changed['change_reason']
+
+
+def test_place_change_still_drops_the_delay_record(pool):
+    # 장소를 바꾸는 변경은 시간표를 지연 없이 다시 계산하므로 기록을 이어받지 않는다(장소 번호도 달라질 수 있다).
+    from app.plan_changes import save_change
+    with TestClient(app) as client:
+        stored = saved(client, course())
+        new = recover(client, stored, replacement_id=NEAR['id']).json()
+        owner = store.owner_of(client.cookies['dm_session'])
+        assert 'delay_recovery' not in save_change(copy.deepcopy(new), new, owner)
 
 
 def test_second_recovery_on_a_recovered_course_adds_to_the_saved_delay(pool):

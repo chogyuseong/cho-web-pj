@@ -843,8 +843,15 @@ def change_transport(id: str, data: TransportInput, request: Request):
         raise HTTPException(409, f"필수로 고른 조건({labels})을 지키지 못해 바꾸지 않았어요.")
     from .plan_changes import save_change
 
+    # 지각 복구 기록이 있는 코스는 기록을 이어 붙인다 — apply_change 가 그 지연을 넣어 시간표를 다시 짰으므로
+    # 기록을 지우면 지각 확인(delay_check.carried_delay)이 '지연 없는 시각'으로 잘못 본다. 기록이 없으면 예전과 같다(None).
+    from .delay_check import carried_delays
+
+    # kept=True: 이 코스는 '지각 반영'이 아니라 '수단 변경'으로 만들어졌다는 표시. 화면(static/plan-detail.js)의 되돌리기 단추가
+    # 다시 열었을 때도 '수단 변경 되돌리기'로 보이게 한다(되돌리면 지각을 반영한 바로 앞 코스로 간다 — 지연은 남는다).
+    record = dict(plan["delay_recovery"], kept=True) if carried_delays(plan) else None
     try:
-        saved = save_change(updated, plan, request.state.owner)
+        saved = save_change(updated, plan, request.state.owner, recovery=record)
     except ValueError as exc:
         raise HTTPException(409, str(exc))
     saved["transport_change"] = summary

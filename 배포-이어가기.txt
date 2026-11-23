@@ -7,7 +7,7 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
-배포 대기: 브랜치 fix/delay-kept-on-transport-change — 지각을 반영해 고친 코스에서 수단을 바꿔도 지연 유지(7절 '복구한 코스에서 수단을 바꿔도 지연 유지').
+배포 대기: 커밋 1ba2bf2(main, 병합 = fix/delay-kept-on-transport-change) — 지각을 반영해 고친 코스에서 수단을 바꿔도 지연 유지(7절 '복구한 코스에서 수단을 바꿔도 지연 유지').
   · 왜: 지각 복구로 저장한 코스에서 수단을 바꾸면 시간표가 말없이 '늦지 않은 것'으로 돌아가고 기록(delay_recovery)도 지워졌음 → 틀린 시각을 믿게 됨.
   · 무엇을: 수단 바꾸기(leg_modes.apply_change)가 저장된 지연(delay_check.carried_delays — {장소 번호: 분})을 planner.evaluate(delays=…)에 다시 넣어 계산하고,
     저장(app/main.py transport → save_change(recovery=…))이 기록을 이어 붙임. 안내 문장에 '앞서 반영한 N분 지연은 그대로 뒀어요.' 추가.
@@ -16,7 +16,8 @@
   · 검증: tests/test_delay_recovery.py 에 3개(수단 변경 뒤 지연 유지 — 고치기 전 실패 확인 / 기록 없는 코스는 그대로 / 장소 변경은 기록 지움).
     옛 테스트 test_later_change_drops_the_delay_record(수단 변경이 기록을 지운다)는 이 동작이 바뀌어 위 테스트로 대체. 지각·수단·축제 관련 테스트 통과, format_sources --check 통과.
     이 PC 에서 SQLite 전체는 다시 돌리지 않음 — CI 로 확인.
-  · 남은 것: CI → main 병합 → test:security → 사용자가 main 에서 ! npx wrangler deploy → (컨테이너가 바뀐 뒤) 운영 확인 → 80차 기록.
+  · 브랜치 CI Run 45131087206 5개 성공(sqlite·postgres 포함) → main 에 --no-ff 병합·push → npm run test:security 25 통과.
+    남은 것: 사용자가 main 에서 ! npx wrangler deploy → (컨테이너가 바뀐 뒤 — 79차 ★) 운영 확인 → 80차 기록. 되돌리기: git revert -m 1 1ba2bf2(DB 마이그레이션 없음, kept 표시는 옛 화면이 읽지 않음).
 운영에 올라간 것: 커밋 abd0cf7(main, 병합 = fix/shared-missing-address), Worker 버전 92eabc0b-cf87-4c89-9d4d-ae8f2bea53d4 (일흔아홉 번째 배포, 2026-11-23)
   · 무엇을: 공유 화면에서 주소 없는 장소가 '14:26 ~ 15:26 · null' 로 보이던 것(78차 뒤 운영 확인에서 찾음). 서버(app/sharing.py)는 주소를 빈 글로 보내고,
     화면(static/shared.js)은 주소가 없으면 ' · 주소' 를 적지 않음. tests/test_shared_missing_address.py 2개(고치기 전 실패 확인), 공유 관련 테스트 39 통과, format_sources --check 통과.

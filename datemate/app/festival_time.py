@@ -134,6 +134,47 @@ def places_start(c):
     return slot['departure'] if slot else _minutes(c.start)
 
 
+def _where(visit):
+    """축제 자리를 사람이 읽는 말로. 맨 앞·코스 끝·'N번째 장소 뒤'."""
+    position = visit.get('position')
+    if position == 'middle' and isinstance(visit.get('after'), int):
+        return f'{visit["after"] + 1}번째 장소 뒤'
+    return '코스 끝' if position == 'last' else '코스 맨 앞'
+
+
+def change_note(before, after):
+    """코스를 바꾼 탓에 축제 방문이 달라졌으면 그 안내 한 줄, 같으면 None (2026-11-23 후속).
+    before·after 는 바꾸기 전·후 코스의 plan.get('festival_visit') 이다.
+    - 왜: 수단·장소를 바꾸면 planner.evaluate 가 축제 자리를 다시 정해, 축제가 새로 들어가거나 빠지거나 다른 칸으로 옮겨질 수 있다.
+      바꾸는 것 자체는 막지 않고(사용자에게 이득일 수 있다) 말없이 달라지지 않게 알려 준다.
+    - 어디서 쓰나: plan['festival_change'] 에 싣는다 — 장소 바꾸기 후보(planner.replacements), 레저 후보(app/leisure.py),
+      저장(plan_changes.save_change), 수단 바꾸기(leg_modes.apply_change). 화면은 plan-detail.js·place-dialog.js·leisure.js 가 그대로 적는다.
+    - 자리만 본다(맨 앞·끝·중간의 몇 번째). 같은 자리에서 시각만 달라진 것은 알리지 않는다(이동 시간 변화는 delta 가 이미 보여 준다).
+    - 문구를 바꾸려면 여기만 고치면 된다(테스트 tests/test_festival_middle_followup.py 의 문구도 함께)."""
+    had, has = isinstance(before, dict), isinstance(after, dict)
+    if not had and not has:
+        return None
+    if not had:
+        return (f'‘{after["title"]}’ 축제를 일정에 넣을 수 있게 됐어요'
+                f'({_where(after)}, {after["arrival"]}~{after["departure"]}).')
+    if not has:
+        return f'‘{before["title"]}’ 축제가 일정에서 빠져요(바꾼 코스로는 운영 시간에 맞지 않아요).'
+    old, new = _where(before), _where(after)
+    if old == new:
+        return None
+    return f'‘{after["title"]}’ 축제 자리가 바뀌어요: {old} → {new}({after["arrival"]}~{after["departure"]}).'
+
+
+def set_change_note(updated, original):
+    """updated['festival_change'] 를 original 과 견줘 새로 쓴다(달라진 게 없으면 키를 지운다 — 앞선 변경의 안내가 남지 않게)."""
+    note = change_note(original.get('festival_visit'), updated.get('festival_visit'))
+    if note:
+        updated['festival_change'] = note
+    else:
+        updated.pop('festival_change', None)
+    return updated
+
+
 def explain(title, hours, start, end, stay, finish=None, visit=None):
     """(고정 여부, 안내 문장). 조건 확인(condition_audit)과 축제 안내(recommendation_summary.festival_context)가 같이 쓴다.
     finish 는 코스가 끝나는 시각('HH:MM'). 알면 '코스가 끝난 뒤 들르기'를 그 시각으로 적는다.

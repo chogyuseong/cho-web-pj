@@ -57,7 +57,9 @@ def make_draft(plan,original,owner,kind,summary,vote_snapshot=None):
     if c.mode=='real' and uses_car(c) and not all(r['status']=='api' for r in plan['legs'] if r.get('mode',c.transport)=='car'):
         from .planner import evaluate
         from .pricing import price_plans
-        recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True)
+        from .leg_modes import middle_after
+        # 중간 축제는 원래 자리를 먼저 둔다(planner.evaluate festival_hint).
+        recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True,festival_hint=middle_after(plan))
         if recalculated:
             plan.pop('festival_visit',None);plan.update(recalculated);plan=price_plans([plan])[0]
             plan['route_verification']='연결된 경로 공급자로 변경 동선을 재조회했어요. 조회 시점 기준입니다.'

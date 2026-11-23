@@ -140,6 +140,9 @@ async function showAlternatives(index) {
         controls.forEach(control => control.disabled = false);
       }
     }));
+    // 이 장소로 바꾸면 축제 방문이 달라지는 후보는 고르기 전에 알린다(app/festival_time.change_note — 문구는 서버가 만든다).
+    // [이 장소로 교체] 단추(방금 붙인 마지막 요소) 바로 앞에 둔다. 달라지는 게 없으면 키가 없어 아무것도 그리지 않는다.
+    if (option.festival_change) card.lastElementChild.before(node('p', option.festival_change, 'warning festival-change-note'));
     root.append(card);
   }
 }

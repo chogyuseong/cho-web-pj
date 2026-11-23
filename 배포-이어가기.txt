@@ -7,6 +7,8 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
+검토 대기 브랜치: fix/festival-middle-followup (77차 검토에서 남긴 것 줄이기 — 중간 축제 자리 먼저 두기·길찾기 조회 줄이기·축제 변화 알리기). main 병합·배포 전 —
+  자세한 기록은 아래 브랜치 fix/festival-middle-followup 기록. 병합 → test:security → 사용자가 ! npx wrangler deploy(Docker Desktop 먼저 실행).
 운영에 올라간 것: 커밋 be5db9e(main, 병합 = feat/festival-middle), Worker 버전 f4cbfd89-076a-497c-b70c-db778b9a5233 (일흔일곱 번째 배포, 2026-11-23)
   · 사용자 '다음 작업' → 검토 뒤 '진행해'. 브랜치 head 2a95897 CI Run 45047545434(앞 커밋 2cbdf75 는 45044996194) 성공 → 서버·화면 diff 전체 검토(막을 문제 없음, 로컬 테스트는 돌리지 않음) →
     main 에 --no-ff 병합·push → npm run test:security 25 통과 → 사용자가 ! npx wrangler deploy(Windows PC. Docker Desktop 이 꺼져 있어 첫 시도 실패 → 실행 후 성공.
@@ -90,6 +92,27 @@
     새 안내 문장은 운영에서 보지 않음(운영 코스를 만들지 않음 — 로컬에서 실제 키로 강릉 '공방 체험' 3안 모두 확인). 내용은 바로 아래 브랜치 기록.
   · 되돌리는 법: git revert -m 1 4c4a2c1 후 재배포(DB 마이그레이션 없음).
 이전 운영(66차): 커밋 5072a66(main, 병합 = fix/macos-browser-tests), Worker 버전 60c10fcf-c3f8-4105-aab2-2f5d4731015d
+브랜치 fix/festival-middle-followup (2026-11-23, main 병합·배포 전. 77차 검토에서 남긴 네 가지 줄이기. 설계: docs/superpowers/specs/2026-11-23-festival-middle-followup-design.md)
+  · 운영 확인(77차, 코드 수정 전): 서울 '남산봉수의식 등 전통문화행사'(11:00~15:40), 2026-11-25 09:00~20:00 4곳 도보로 운영에서 추천 → 첫 코스가 중간 축제
+    (1번 장소 10:00~11:00 → 축제 11:05~12:05 → 2번 장소 12:13). 코스 상세(장소 1 칸 → 축제 칸 → 장소 2, 태그 '…장소 사이에 들르는 코스', [수단 바꾸기], 가로 넘침 없음),
+    지각 확인(0번부터 20분: 축제 줄이 1번 장소 뒤 / 1번부터 15분: 축제가 끝난 시각에서 출발), 수단 바꾸기(들어가는 구간 대중교통·나오는 구간 자전거 — 둘 다 자리 유지,
+    예외 키 (장소 id,'festival')·('festival',장소 id) 저장) 정상. 보지 않은 것: 공유 화면, 지각 복구(문제 상황이 만들어지지 않음).
+    이 확인으로 운영 DB 에 코스 5개가 생김(추천 3 + 수단 변경 2. 첫 코스 id 140efb099ff24cd4b42eca9e104d148d).
+  · 무엇을 1(자리 먼저): planner.evaluate(festival_hint=i) — 그 자리에 먼저 두어 보고 맞으면 그대로, 못 두면 실패하지 않고 예전 순서(맨 앞 → 끝 → 중간 앞에서부터).
+    쓰는 곳: 장소 바꾸기 후보(planner.replacements), 레저 후보(leisure.options), 장소 변경 저장의 자동차 재확인(plan_changes.save_change),
+    추천 직후 자동차 재확인(recommendation_service._verify_car_routes), 합의 코스 재계산(experience.make_draft). hint 는 모두 leg_modes.middle_after(plan)(없으면 None = 예전과 같음).
+  · 무엇을 2(길찾기 조회): 예전 순서는 축제 없는 코스·코스 끝을 먼저 실제 길찾기로 계산해 쓰지 않는 구간(장소 i → i+1, 마지막 장소 → 행사장)을 조회했음(코스당 최대 2건,
+    캐시는 같은 구간 300초뿐·추천 직후 재확인엔 호출 상한 없음). 자리를 먼저 두면 그 조회가 없음(테스트가 강제 조회 구간 목록으로 확인).
+  · 무엇을 3(알리기): festival_time.change_note — 바꾼 탓에 축제가 새로 들어감/빠짐/자리 바뀜이면 plan['festival_change'] 한 줄(같은 자리에서 시각만 달라지면 없음).
+    싣는 곳: 장소 바꾸기 후보, 레저 후보 응답, 저장(save_change — 재확인 뒤 최종 모양), 수단 바꾸기(apply_change). 보이는 곳: 후보 카드(place-dialog.js·leisure.js), 변경 뒤 코스 상세(plan-detail.js).
+    수단을 바꿔 축제가 들어가는 것은 막지 않고 알림(빠지거나 옮겨지는 수단 변경은 77차부터 409).
+  · 남긴 것: 식사 추가(식당 끼워 넣기)는 장소 번호가 밀려 hint 를 주지 않음(앞에서부터 다시 찾음). hint 자리에 못 둘 때 그 시도의 조회는 버려짐(드묾). 화면 테스트는 넣지 않음.
+  · 검증: tests/test_festival_middle_followup.py 9개, 관련 테스트(축제·수단·지각·레저·장소 변경·실행 카드, 브라우저 포함) 347 통과, format_sources --check 통과.
+    이 Windows PC SQLite 전체: 1373 통과·1 건너뜀·실패 1(23분) — tests/test_fresh_place.py::test_familiar_groups_count_recent_runs. 그 파일만(19개)·그 테스트만 다시 돌리면 통과하고,
+    feat/festival-middle 기록에 적힌 것과 같은 흔들림(같은 시각에 저장된 코스 순서)이라 이번 변경과 무관. PostgreSQL 은 CI 로.
+    이 Windows PC 에는 가상환경이 없어 datemate/.venv 를 새로 만듦(.gitignore 대상). requirements.lock.txt 에 BOM 이 있고 requirements-dev.txt 의 pypdf 핀과 충돌해
+    운영 패키지는 BOM 을 뺀 잠금 사본으로, 테스트 도구(pytest·playwright·ruff·jsbeautifier·pypdf)는 제약 없이 따로 설치(저장소 변경 없음). 스마트 앱 컨트롤 차단은 없었음.
+  · 되돌리는 법: 병합 전이면 브랜치 버림, 병합·배포 뒤에는 git revert -m 1 후 재배포(DB 마이그레이션 없음. 저장된 festival_change 키는 되돌린 화면이 읽지 않음).
 브랜치 feat/festival-middle (2026-11-23, 77차로 병합·배포됨. 커밋 2cbdf75 CI Run 45044996194 5개 성공(sqlite·postgres 포함). 7절 '축제를 코스 중간에 두기'. 설계·계획: docs/superpowers/specs·plans/2026-11-23-festival-middle*)
   · 무엇을: 맨 앞(68차)도 코스 끝(70차)도 맞지 않는 낮 축제(예: 11:30~13:00, 코스 10:00~19:00)를 두 장소 사이에 둠 — 장소 i → 행사장 → 축제 → 행사장 → 장소 i+1.
     배치(app/planner.evaluate): 예전 규칙(맨 앞 → 끝)을 먼저 그대로 돌고, 둘 다 아니며 축제 없이 짠 코스가 성공했을 때만 장소 사이를 앞에서부터 봄.

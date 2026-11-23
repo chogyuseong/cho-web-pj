@@ -82,6 +82,9 @@ function renderDetail() {
   head.append(node('h2', '우리 하루, 자세히 보기'));
   box.append(head, node('p', `${p.conditions.visit_date} · ${p.conditions.start} ~ ${p.finish} · ${p.conditions.people}명`, 'hint'));
   if (p.delta) box.append(node('p', `${p.change_reason} 시간 ${p.delta.minutes>=0?'+':''}${p.delta.minutes}분 · ${costChangeText(totalBefore(p), p.total)}`, 'warning'));
+  // 수단·장소를 바꾼 탓에 축제 방문이 새로 들어가거나 빠지거나 자리가 바뀌었으면 서버가 적어 준 한 줄(app/festival_time.change_note).
+  // 문구는 서버에서만 만든다 — 여기서는 그대로 적는다. 달라진 게 없으면 키가 없다.
+  if (p.festival_change) box.append(node('p', p.festival_change, 'warning festival-change-note'));
   if (p.conditions.mode === 'demo') box.append(node('p', '모든 장소와 운영·가격 조건은 가상입니다. 이동선은 직선거리로 만든 개략도이며 실제 경로가 아닙니다.', 'warning'));
   if (p.conditions.mode === 'real' && p.conditions.allow_estimates) box.append(estimatedPlanNotice());
   // 보관 기한(21일)이 지나 좌표까지 지운 네이버 검색 장소가 있으면 다시 계산하는 기능(바꾸기·주변 찾기)을 그리지 않는다.

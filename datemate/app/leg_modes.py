@@ -289,6 +289,9 @@ def apply_change(plan, prepared):
                             cost=[updated['total'][i] - plan['total'][i] for i in (0, 1)],
                             total_before=list(plan['total']))
     updated['change_reason'] = '이동 수단을 바꿔 이동·시간·비용을 다시 계산했어요.'
+    # 수단을 바꿔 축제가 새로 들어갔으면(예: 빨라져 운영 시간에 맞음) 말없이 넣지 않고 알린다. 빠지거나 옮겨지는 변경은 위에서 이미 거절했다.
+    from .festival_time import set_change_note
+    set_change_note(updated, plan)
     names = place_names(plan)
     changed = [dict(index=i, **{'from': start}, to=end, origin=names.get(start, ''), destination=names.get(end, ''),
                     before=prepared['before'][i], after=prepared['after'][i])

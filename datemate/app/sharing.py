@@ -188,15 +188,17 @@ def share_status(plan_id: str, request: Request):
         earlier = [dict(row, opinions=partner_opinions(db, row['plan_id'], owner)) for row in map(active, chain[1:]) if row['active']]
         root, other = chain[-1], []
         # 이 브라우저의 열린 링크가 걸린 코스 가운데 같은 처음 코스로 올라가는 것. 열린 링크는 24시간이면 닫혀 몇 개 되지 않는다.
-        rows = db.execute('SELECT s.plan_id, COUNT(*) AS n, MAX(s.expires) AS until, p.payload FROM plan_shares s JOIN plans p ON p.id=s.plan_id '
-                          'WHERE p.owner=? AND s.expires>? GROUP BY s.plan_id ORDER BY until DESC', (owner, now)).fetchall()
+        # payload 는 GROUP BY 에 넣지 않고(PostgreSQL 은 묶지 않은 열을 받지 않는다) 계열에 든 코스만 따로 읽는다.
+        rows = db.execute('SELECT s.plan_id AS plan_id, COUNT(*) AS n, MAX(s.expires) AS until FROM plan_shares s JOIN plans p ON p.id=s.plan_id '
+                          'WHERE p.owner=? AND s.expires>? GROUP BY s.plan_id ORDER BY MAX(s.expires) DESC', (owner, now)).fetchall()
         for row in rows:
             if row['plan_id'] in chain:
                 continue
             path = owned_ancestors(db, row['plan_id'], owner)
             if root not in path:
                 continue
-            places = [str(p.get('name') or '') for p in (json.loads(row['payload']).get('places') or [])]
+            payload = db.execute('SELECT payload FROM plans WHERE id=?', (row['plan_id'],)).fetchone()['payload']
+            places = [str(p.get('name') or '') for p in (json.loads(payload).get('places') or [])]
             other.append(dict(plan_id=row['plan_id'], active=row['n'], expires=row['until'],
                               relation='later' if plan_id in path else 'branch', places=places,
                               opinions=partner_opinions(db, row['plan_id'], owner)))

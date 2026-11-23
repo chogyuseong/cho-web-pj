@@ -56,7 +56,9 @@ def public_plan(plan):
         source=next((u for u in (p.get('place_source'),p.get('source')) if str(u or '').startswith('https://')),None)
         return dict(naver_result=True,source=source,naver_expired=bool(p.get('naver_expired')))
     shared = {'places': [dict(id=p['id'], name=p['name'], category=p.get('category',''),
-                              address=p.get('address',''),
+                              # 주소 키가 있어도 값이 None 인 장소가 있다(주소 없는 공공데이터 장소). null 대신 빈 글로 보낸다 —
+                              # 화면(static/shared.js)은 빈 주소면 ' · 주소' 를 적지 않는다. 2026-11-23 운영 확인에서 '… · null' 로 보이던 것.
+                              address=p.get('address') or '',
                               arrival=plan['timeline'][i]['arrival'],
                               departure=plan['timeline'][i]['departure'],
                               **naver_fields(p))

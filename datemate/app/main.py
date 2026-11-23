@@ -20,7 +20,15 @@ from . import naver_cache, store
 from .catalog import places, get_place
 from .config import ROOT, REGION, production, public_origin, validate_runtime
 from . import web_security
-from .models import Conditions, ReviewInput, ChatInput, THEMES, TransportMode, RequestItemId
+from .models import (
+    Conditions,
+    ReviewInput,
+    ChatInput,
+    THEMES,
+    TransportMode,
+    RequestItemId,
+    PlaceId,
+)
 from .planner import replacements
 from .indexing import collections, embedding_mode, search_places
 from .rag import ask
@@ -860,6 +868,39 @@ def change_transport(id: str, data: TransportInput, request: Request):
         raise HTTPException(409, str(exc))
     saved["transport_change"] = summary
     return saved
+
+
+class ReorderInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    # 제안받은 순서 그대로의 장소 id 목록(app/order_suggestion.suggest 의 order). 서버가 다시 계산한 제안과 같을 때만 저장한다.
+    order: list[PlaceId] = Field(min_length=2, max_length=5)
+
+
+@app.get("/api/plans/{id}/order-suggestion")
+def order_suggestion(id: str, request: Request):
+    """읽기 전용: 같은 장소를 다른 순서로 돌면 이동이 줄어드는지(app/order_suggestion.py). 외부 호출·저장 없음. 만든 브라우저만."""
+    _, plan = plan_row(id, request.state.owner)
+    from .order_suggestion import suggest
+
+    return suggest(plan)
+
+
+@app.post("/api/plans/{id}/reorder")
+def reorder(id: str, data: ReorderInput, request: Request):
+    """제안한 순서로 바꿔 새 버전으로 저장한다(되돌리기는 /undo). 자동차 구간은 저장할 때 실제 길찾기로 다시 확인한다."""
+    _, plan = changeable_plan_row(id, request.state.owner)
+    route_refresh_allowed(
+        plan,
+        "reorder",
+        request.state.owner,
+        "자동차 길찾기를 다시 확인하는 중이에요. 잠시 후 다시 바꿔 주세요.",
+    )
+    from .order_suggestion import Refused, apply
+
+    try:
+        return apply(plan, data.order, request.state.owner)
+    except Refused as exc:
+        raise HTTPException(409, str(exc))
 
 
 @app.post("/api/plans/{id}/undo")

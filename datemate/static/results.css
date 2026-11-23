@@ -891,8 +891,11 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .draft-stale .stale-change { display:block; margin-top:4px; }
 
 /* '늦어지면 어디서 문제가 생길까?' 읽기 전용 확인(delay-check.js). 일정 위 접힌 상자. */
-.delay-check { margin:0 0 16px; padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; }
-.delay-check>summary { cursor:pointer; font-weight:700; color:var(--ink); min-height:44px; display:flex; align-items:center; }
+.delay-check, .order-suggestion { margin:0 0 16px; padding:12px 16px; background:#fff; border:1px solid var(--line); border-radius:10px; }
+.delay-check>summary, .order-suggestion>summary { cursor:pointer; font-weight:700; color:var(--ink); min-height:44px; display:flex; align-items:center; }
+/* 방문 순서 제안(order-suggestion.js). 상자 모양은 지각 확인과 같게(위 .delay-check 규칙에 .order-suggestion 을 함께 적음), 제안한 순서 한 줄만 굵게 둔다. */
+.order-suggestion-order { font-weight:700; overflow-wrap:anywhere; }
+.order-suggestion-result button { margin-top:6px; }
 .delay-check-form { display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px 14px; margin:8px 0; }
 .delay-check-form label { display:grid; gap:4px; font-size:14px; min-width:0; }
 .delay-check-form select { max-width:100%; }

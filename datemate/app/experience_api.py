@@ -5,7 +5,7 @@ import time
 import uuid
 from typing import Literal
 from fastapi import APIRouter,Request,HTTPException
-from pydantic import BaseModel,ConfigDict,Field
+from pydantic import BaseModel,ConfigDict,Field,ValidationError
 from . import store
 from . import experience as service
 from .models import PlaceId
@@ -24,6 +24,11 @@ def run(action):
     try:return action()
     except PermissionError as e:raise HTTPException(403,str(e))
     except service.VotesChanged as e:raise HTTPException(409,dict(code='votes_changed',message=str(e),changed=e.changed))
+    except ValidationError:
+        # pydantic 검증 오류도 ValueError 다. 그 글은 내부 필드 이름·오류 주소가 든 원문이라 화면에 내지 않는다(2026-11-24 점검 A4:
+        # 'count Input should be greater than or equal to 2 … errors.pydantic.dev'). 원인은 서버 기록에 남긴다.
+        logging.getLogger(__name__).exception('plan_change_validation_failed')
+        raise HTTPException(409,'이 코스의 조건으로는 변경을 계산하지 못했어요. 코스를 다시 열어 다시 시도해 주세요.')
     except ValueError as e:raise HTTPException(409,str(e))
 
 class MealChange(BaseModel):

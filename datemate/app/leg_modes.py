@@ -246,7 +246,6 @@ def apply_change(plan, prepared):
     종료 시각·구간 이동·총 도보 초과는 경고로 남긴다(필수 조건이면 저장 단계의 hard_blocks가 막는다)."""
     import copy
     from contextlib import nullcontext
-    from .planner import evaluate
     from .request_usage import measure
     c = prepared['conditions']
     car_legs = sum(mode == 'car' for mode in prepared['after'])
@@ -258,11 +257,11 @@ def apply_change(plan, prepared):
     # 지각 복구로 저장한 코스(plan['delay_recovery'])는 그때 반영한 지연을 다시 넣어 계산한다. 넣지 않으면 수단만 바꿨는데
     # 시간표가 '늦지 않은 것'으로 돌아가 틀린 시각을 믿게 된다. 지연은 '그 장소에 원래보다 N분 늦게 닿음'이라 수단과 무관하게 유효하다.
     # 기록 자체는 저장할 때 이어 붙인다(app/main.py transport → plan_changes.save_change(recovery=…)). 장소를 바꾸는 변경도 이제 각자 이어 간다(장소 바꾸기·레저·식사 추가·합의 코스).
-    from .delay_check import carried_delays
-    delays = carried_delays(plan)
+    # 지연을 넣는 것은 plan_rules.reevaluate 가 한다(2026-11-24 — 변경 경로가 모두 같은 함수로 다시 계산한다).
+    from .plan_rules import reevaluate
     with measure(limit=min(MAX_ROUTE_CALLS, car_legs)) if verify else nullcontext():
-        checked, error = evaluate(plan['places'], c, soft=True, verify_routes=verify, route_fallback=True, failure=failure,
-                                  festival_after=after, delays=delays or None)
+        checked, error = reevaluate(plan, plan['places'], c, soft=True, verify_routes=verify, route_fallback=True, failure=failure,
+                                    festival_after=after)
     if error:
         raise Blocked(blocked_message(failure))
     # 코스 끝 저녁 축제가 새 수단으로는 운영 시간에 맞지 않으면(개막까지 너무 오래 기다리거나 종료를 넘김) planner 는 축제 없이 끝내거나

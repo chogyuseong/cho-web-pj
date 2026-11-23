@@ -18,6 +18,7 @@ PYTHON = [
     "app/blog_photos.py",
     "app/photo_relevance.py",
     "app/plan_changes.py",
+    "app/plan_rules.py",
     "app/recommendation_service.py",
     "app/planning_outcomes.py",
     "app/operating_evidence.py",

@@ -82,10 +82,14 @@ def _find(plan):
     from .condition_audit import audit_plan
     from .festival_time import change_note
     from .leg_modes import middle_after
-    from .planner import evaluate
+    from .plan_rules import reevaluate
     from .routes import candidate_routes
 
-    c = Conditions.model_validate(plan["conditions"])
+    # 지금 코스에 실제로 있는 구간의 수단 예외만 본다(plan_rules.settle_leg_modes). 2026-11-24 전에 식사를 끼워 저장한 코스에는
+    # 끊긴 구간의 예외가 조건에 남아 있을 수 있다 — 그런 코스를 '구간마다 수단을 따로 정한 코스'로 거절하지 않는다. plan 은 바꾸지 않는다.
+    from .plan_rules import settle_leg_modes
+
+    c = settle_leg_modes(dict(plan, conditions=dict(plan["conditions"])))
     reason = _blocked(plan, c)
     if reason:
         return None, reason
@@ -95,7 +99,11 @@ def _find(plan):
     movable = [i for i in range(len(places)) if i not in fixed]
     with candidate_routes():
         # 지금 순서도 같은 방식(추정 구간)으로 다시 계산한 값을 기준으로 삼는다.
-        base, error = evaluate(places, c, soft=soft, festival_hint=middle_after(plan))
+        # 다시 계산은 plan_rules.reevaluate 로(장소 수를 검사하지 않는다 — 장소를 뺀 코스도 같은 장소끼리 순서를 견줄 수 있다).
+        # 지각을 반영한 코스는 위 _blocked 가 이미 걸렀으므로 넣을 지연이 없다(delays={}).
+        base, error = reevaluate(
+            plan, places, c, delays={}, soft=soft, festival_hint=middle_after(plan)
+        )
         if error:
             return None, "지금 순서를 같은 방식으로 다시 계산하지 못해 견주지 않았어요."
         base = audit_plan(base, c)
@@ -108,7 +116,7 @@ def _find(plan):
             order = list(range(len(places)))
             for slot, source in zip(movable, arrangement):
                 order[slot] = source
-            candidate, error = evaluate([places[i] for i in order], c, soft=soft)
+            candidate, error = reevaluate(plan, [places[i] for i in order], c, delays={}, soft=soft)
             if error:
                 continue
             saved = before - travel_minutes(candidate)

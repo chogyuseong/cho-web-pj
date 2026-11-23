@@ -5,7 +5,6 @@ import json
 import time
 import uuid
 from . import store
-from .models import Conditions
 
 
 def cost_delta(before, after):
@@ -33,21 +32,17 @@ def save_change(plan, original, owner, recovery=None):
     from .experience import verification_summary
     from .recommendation_summary import enrich
     from .pricing import price_plans
-    from .planner import evaluate
-    from .leg_modes import endpoints, festival_pair, uses_car
+    from .leg_modes import uses_car
+    from .plan_rules import reevaluate, settle_leg_modes
 
     updated = copy.deepcopy(plan)
     updated.pop("delay_recovery", None)
     if recovery:
         updated["delay_recovery"] = copy.deepcopy(recovery)
-    conditions = Conditions.model_validate(updated["conditions"])
     moved = [p["id"] for p in updated["places"]] != [p["id"] for p in original["places"]]
-    if moved and conditions.leg_modes:
-        # 장소를 바꿔 끊긴 구간의 수단 예외는 남기지 않는다(그 구간은 이미 기본 수단으로 계산됐다).
-        current = set(endpoints(updated)) | ({festival_pair(updated)} - {None})
-        kept = [m for m in conditions.leg_modes if (m.from_, m.to) in current]
-        conditions = conditions.model_copy(update={"leg_modes": kept})
-        updated["conditions"]["leg_modes"] = [m.model_dump() for m in kept]
+    # 장소를 바꿔 끊긴 구간의 수단 예외는 남기지 않는다(그 구간은 이미 기본 수단으로 계산됐다).
+    # 식사·합의 초안(experience.make_draft)도 같은 함수를 쓴다(2026-11-24 — 예전에는 이 경로만 정리했다).
+    conditions = settle_leg_modes(updated)
     # 자동차 실제 길찾기 재확인: 지각 복구 자체(recovery 에 kept 없음)는 새 외부 호출을 하지 않으므로 건너뛴다.
     # 지연을 이어 가는 장소 변경(kept='place')은 재확인하되, 같은 지연과 같은 종료 허용(delayed_conditions)을 넣어 다시 계산한다
     # — 넣지 않으면 재확인이 지연을 지운 시간표로 덮는다.
@@ -55,20 +50,20 @@ def save_change(plan, original, owner, recovery=None):
     if moved and conditions.mode == "real" and uses_car(conditions) and (not recovery or kept):
         # 후보를 만들 때 정한 중간 축제 자리를 먼저 둔다(planner.evaluate festival_hint): 자리가 옮겨지지 않고,
         # 쓰지 않을 구간(장소 i → i+1, 마지막 장소 → 행사장)의 실제 길찾기 조회가 생기지 않는다.
-        from .delay_check import carried_delays, delayed_conditions
+        # 지연·종료 허용·되돌리기는 plan_rules.reevaluate 가 한다. 지연을 이어 가지 않는 변경(순서 바꾸기)은 넣지 않는다(delays={}).
+        from .delay_check import carried_delays
         from .leg_modes import middle_after
 
-        check_conditions = delayed_conditions(original, conditions) if kept else conditions
-        checked, error = evaluate(
+        checked, error = reevaluate(
+            original,
             updated["places"],
-            check_conditions,
+            conditions,
+            delays=carried_delays(original) if kept else {},
+            late_end=kept,
             soft=bool(updated.get("best_effort")),
             verify_routes=True,
             festival_hint=middle_after(updated),
-            delays=(carried_delays(original) or None) if kept else None,
         )
-        if checked and check_conditions is not conditions:
-            checked["conditions"]["end"] = conditions.end  # 계산에만 늦춘 종료 시각을 원래 값으로
         if checked:
             # 축제 방문 기록은 다시 계산한 코스를 따른다(실제 길찾기로 축제 자리가 빠지거나 바뀌면 옛 기록이 남지 않게).
             updated.pop("festival_visit", None)

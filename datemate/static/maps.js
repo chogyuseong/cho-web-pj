@@ -95,9 +95,17 @@ function legLineStyle(plan,leg){
 // 지도에 그릴 구간 {from,to,leg} 목록. 구간 i 는 출발지·장소 순서의 i 번째에서 i+1 번째로 간다.
 // 코스 끝에 둔 저녁 축제(app/festival_time.py)는 마지막 장소에서 행사장(= 출발지 좌표)으로 돌아오는 구간(festival_visit.leg — plan.legs 밖)을 거치고,
 // 귀가는 행사장에서 떠난다. 좌표 없는 점(보관 기간이 지난 장소)에 닿는 구간은 그리는 쪽에서 뺀다.
+// 코스 중간에 둔 낮 축제(position 'middle', after=i)는 장소 i → 행사장(festival_visit.leg) → 장소 i+1(plan.legs[i+1], 행사장에서 출발)로 잇는다.
+function festivalMiddleAfter(plan){
+  const visit=plan.festival_visit,after=visit?.after,count=(plan.places||[]).length;
+  return visit?.position==='middle'&&Number.isInteger(after)&&after>=0&&after<count-1?after:null;
+}
 function planSegments(plan){
-  const c=plan.conditions||{},places=plan.places||[],legs=plan.legs||[],stops=[c.origin,...places],segments=[];
-  for(let i=0;i<places.length;i++)segments.push({from:stops[i],to:stops[i+1],leg:legs[i]});
+  const c=plan.conditions||{},places=plan.places||[],legs=plan.legs||[],stops=[c.origin,...places],segments=[],middle=festivalMiddleAfter(plan);
+  for(let i=0;i<places.length;i++){
+    if(middle!==null&&i===middle+1){segments.push({from:places[middle],to:c.origin,leg:plan.festival_visit.leg},{from:c.origin,to:places[i],leg:legs[i]});continue;}
+    segments.push({from:stops[i],to:stops[i+1],leg:legs[i]});
+  }
   let last=places.at(-1)||c.origin;
   if(plan.festival_visit?.position==='last'&&places.length){segments.push({from:last,to:c.origin,leg:plan.festival_visit.leg});last=c.origin;}
   if(c.return_home&&c.home)segments.push({from:last,to:c.home,leg:legs[places.length]});

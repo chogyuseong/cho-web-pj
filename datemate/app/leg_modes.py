@@ -29,21 +29,40 @@ def uses_car(c):
     return c.transport == 'car' or any(m.mode == 'car' for m in c.leg_modes)
 
 
+def middle_after(plan):
+    """코스 중간에 둔 축제(festival_visit.position 'middle')의 앞 장소 번호. 없거나 자리가 장소 사이가 아니면 None."""
+    visit = plan.get('festival_visit')
+    if not isinstance(visit, dict) or visit.get('position') != 'middle':
+        return None
+    after = visit.get('after')
+    places = plan.get('places') or []
+    if isinstance(after, int) and not isinstance(after, bool) and 0 <= after < len(places) - 1:
+        return after
+    return None
+
+
 def endpoints(plan):
-    """구간마다 (출발 id, 도착 id). 귀가 구간이 있으면 마지막이 (마지막 장소 id, 'home')."""
+    """구간마다 (출발 id, 도착 id). 귀가 구간이 있으면 마지막이 (마지막 장소 id, 'home').
+    코스 중간 축제 뒤 구간(행사장 → 다음 장소)은 ('festival', 다음 장소 id)."""
     ids = ['origin', *[p['id'] for p in plan['places']]]
     pairs = list(zip(ids, ids[1:]))
+    after = middle_after(plan)
+    if after is not None:
+        pairs[after + 1] = ('festival', ids[after + 2])
     if len(plan.get('legs') or []) > len(plan['places']):
         pairs.append((ids[-1], 'home'))
     return pairs
 
 
 def festival_pair(plan):
-    """코스 끝에 둔 저녁 축제의 돌아오는 구간 키 (마지막 장소 id, 'festival'). 그 구간은 plan['legs'] 밖(festival_visit.leg)에 있다
-    (app/festival_time.py). 저녁 축제가 없으면 None."""
+    """행사장으로 가는 축제 구간 키 (장소 id, 'festival'). 그 구간은 plan['legs'] 밖(festival_visit.leg)에 있다(app/festival_time.py).
+    코스 끝 저녁 축제면 마지막 장소, 코스 중간 축제면 축제 바로 앞 장소에서 간다. 둘 다 아니면 None."""
     visit = plan.get('festival_visit')
     if isinstance(visit, dict) and visit.get('position') == 'last' and plan.get('places'):
         return plan['places'][-1]['id'], 'festival'
+    after = middle_after(plan)
+    if after is not None:
+        return plan['places'][after]['id'], 'festival'
     return None
 
 
@@ -111,10 +130,15 @@ def car_position_notes(plan):
     # (출발, 도착, 수단) 순서. 코스 끝 저녁 축제면 마지막 장소 → 행사장(festival_visit.leg) 뒤에 행사장에서 귀가한다.
     steps = [(start, end, leg_mode(plan, i)) for i, (start, end) in enumerate(endpoints(plan)[:len(legs)])]
     extra = festival_pair(plan)
+    after = middle_after(plan)
     if extra:
         mode = plan['festival_visit'].get('leg', {}).get('mode') or (plan.get('conditions') or {}).get('transport') or 'walk'
-        home = steps[len(plan['places'])] if len(steps) > len(plan['places']) else None
-        steps = steps[:len(plan['places'])] + [(extra[0], 'festival', mode)] + ([('festival', 'home', home[2])] if home else [])
+        if after is not None:
+            # 코스 중간 축제: 앞 장소 → 행사장 뒤에 행사장 → 다음 장소(endpoints 가 이미 ('festival', 다음 장소)).
+            steps = steps[:after + 1] + [(extra[0], 'festival', mode)] + steps[after + 1:]
+        else:
+            home = steps[len(plan['places'])] if len(steps) > len(plan['places']) else None
+            steps = steps[:len(plan['places'])] + [(extra[0], 'festival', mode)] + ([('festival', 'home', home[2])] if home else [])
     if not any(mode == 'car' for _, _, mode in steps):
         return []
     names = place_names(plan)
@@ -200,7 +224,7 @@ def prepare_change(plan, default=None, legs=(), festival=None):
         raise ValueError('없는 구간이에요. 코스를 다시 열어 주세요.')
     extra = festival_pair(plan)
     if festival and not extra:
-        raise ValueError('코스 끝에 둔 축제가 없는 코스예요. 코스를 다시 열어 주세요.')
+        raise ValueError('코스 끝이나 중간에 둔 축제가 없는 코스예요. 코스를 다시 열어 주세요.')
     c = Conditions.model_validate(plan['conditions'])
     transport, modes = next_leg_modes(plan, default, legs, festival)
     conditions = Conditions.model_validate(dict(plan['conditions'], transport=transport, leg_modes=modes))
@@ -229,14 +253,20 @@ def apply_change(plan, prepared):
     verify = c.mode == 'real' and car_legs > 0
     failure = {}
     # 실제 길찾기는 자동차 구간에만, 캐시를 먼저 보고, 이번 변경에서 자동차 구간 수(최대 6)까지만 부른다.
+    # 코스 중간 축제는 같은 자리(앞 장소 번호)에만 두고 다시 계산한다. 그 자리에 못 두면 evaluate 가 실패한다(아래 blocked_message).
+    after = middle_after(plan)
     with measure(limit=min(MAX_ROUTE_CALLS, car_legs)) if verify else nullcontext():
-        checked, error = evaluate(plan['places'], c, soft=True, verify_routes=verify, route_fallback=True, failure=failure)
+        checked, error = evaluate(plan['places'], c, soft=True, verify_routes=verify, route_fallback=True, failure=failure,
+                                  festival_after=after)
     if error:
         raise Blocked(blocked_message(failure))
-    # 코스 끝 저녁 축제가 새 수단으로는 운영 시간에 맞지 않으면(개막까지 너무 오래 기다리거나 종료를 넘김) planner 는 축제 없이 끝낸다.
-    # 그대로 저장하면 축제가 말없이 빠지므로 바꾸지 않는다.
-    if festival_pair(plan) and not checked.get('festival_visit'):
+    # 코스 끝 저녁 축제가 새 수단으로는 운영 시간에 맞지 않으면(개막까지 너무 오래 기다리거나 종료를 넘김) planner 는 축제 없이 끝내거나
+    # 코스 중간으로 옮긴다. 그대로 저장하면 축제가 말없이 빠지거나 자리가 바뀌므로 바꾸지 않는다.
+    visit = checked.get('festival_visit') or {}
+    if festival_pair(plan) and after is None and visit.get('position') != 'last':
         raise Blocked('이 수단으로는 코스 끝 축제 시간에 맞출 수 없어 바꾸지 않았어요. 축제 개막까지 너무 오래 기다리거나 운영 시간을 넘겨요.')
+    if after is not None and (visit.get('position') != 'middle' or visit.get('after') != after):
+        raise Blocked(MIDDLE_BLOCKED)
     updated = copy.deepcopy(plan)
     # 축제 방문 기록은 다시 계산한 코스를 따른다(남은 옛 기록이 화면·지도·지각 확인에 쓰이지 않게).
     updated.pop('festival_visit', None)
@@ -268,11 +298,17 @@ def apply_change(plan, prepared):
     return updated, summary
 
 
+MIDDLE_BLOCKED = '이 수단으로는 코스 중간 축제 시간에 맞출 수 없어 바꾸지 않았어요. 축제 개막까지 너무 오래 기다리거나 운영 시간을 넘겨요.'
+
+
 def blocked_message(failure, mode=None):
     """바꾸지 못한 이유. evaluate()가 채운 failure(장소·제한 시각)만 쓴다."""
+    from .planner import MIDDLE_MISS
     name = failure.get('place') or '방문 장소'
     lead = f"이 수단으로는 {name}" if mode is None else f"{NAMES.get(mode, '이 수단')}{josa(NAMES.get(mode, ''), '으로', '로')}는 {name}"
     reason = failure.get('reason')
+    if reason == MIDDLE_MISS:
+        return MIDDLE_BLOCKED
     if reason == '마지막 입장 시간 초과':
         return f"{lead} 마지막 입장({failure.get('limit')}) 전에 도착하지 못해 바꾸지 않았어요."
     if reason == '영업시간 밖 방문':

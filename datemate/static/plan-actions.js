@@ -171,9 +171,9 @@ function transportOverview(plan) {
   for (const check of plan.condition_checks || [])
     if (check.condition === 'car_position') box.append(node('p', check.message, 'hint car-position-note'));
   if (plan.can_edit !== false && plan.legs.length && !planHistoryExpired(plan)) {
-    // 코스 끝 저녁 축제로 돌아오는 구간(festival_visit.leg — plan.legs 밖)도 지금 수단에 센다. 전체 수단을 바꾸면 이 구간도 바뀐다.
+    // 코스 끝·중간 축제로 가는 구간(festival_visit.leg — plan.legs 밖)도 지금 수단에 센다. 전체 수단을 바꾸면 이 구간도 바뀐다.
     const visit = plan.festival_visit,
-      legs = visit?.position === 'last' && visit.leg ? [...plan.legs, visit.leg] : plan.legs;
+      legs = (visit?.position === 'last' || festivalMiddleAfter(plan) !== null) && visit.leg ? [...plan.legs, visit.leg] : plan.legs;
     const modes = new Set(legs.map(leg => legMode(plan, leg))),
       current = modes.size === 1 ? [...modes][0] : null;
     const bulk = node('details', undefined, 'transport-bulk'),

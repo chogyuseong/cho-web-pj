@@ -42,14 +42,20 @@ function shortAddress(place) {
 function fieldItineraryText(plan) {
   const lines = [`${plan.conditions.visit_date} 데이트 일정 (${plan.conditions.start} 출발)`];
   // 운영 시간에 맞춰 맨 앞(또는 저녁 축제면 코스 끝)에 고정한 축제(app/festival_time.py).
+  // 코스 중간 축제(position 'middle', after=i)는 장소 i 뒤에 '행사장으로' 구간과 축제 줄을 넣는다(다음 장소 구간은 행사장에서 출발).
   const festival = plan.festival_visit,
-    last = festival?.position === 'last';
-  if (festival && !last) lines.push(`${festival.arrival}~${festival.departure} 축제 · ${festival.title} (운영 시간에 맞춰 고정)`);
+    last = festival?.position === 'last',
+    middle = typeof festivalMiddleAfter === 'function' ? festivalMiddleAfter(plan) : null;
+  if (festival && !last && middle === null) lines.push(`${festival.arrival}~${festival.departure} 축제 · ${festival.title} (운영 시간에 맞춰 고정)`);
   plan.places.forEach((place, i) => {
     const leg = plan.legs?.[i],
       t = plan.timeline[i];
     if (leg && Number.isFinite(leg.minutes)) lines.push('  ↓ ' + dayLegText(plan, leg));
     lines.push(`${i + 1}. ${t.arrival}~${t.departure} ${place.name}` + (shortAddress(place) ? ` · ${shortAddress(place)}` : ''));
+    if (i === middle) {
+      if (Number.isFinite(festival.leg?.minutes)) lines.push('  ↓ 행사장으로 ' + dayLegText(plan, festival.leg));
+      lines.push(`${festival.arrival}~${festival.departure} 축제 · ${festival.title} (운영 시간에 맞춰 중간에 들름)`);
+    }
   });
   if (last) {
     if (Number.isFinite(festival.leg?.minutes)) lines.push('  ↓ 행사장으로 ' + dayLegText(plan, festival.leg));

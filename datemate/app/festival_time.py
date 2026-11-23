@@ -13,8 +13,10 @@
   구간 목록은 '구간 i 는 장소 i 에 도착, 그 뒤는 귀가'라는 약속을 주차·구간별 수단·지각 확인·지도·현장 일정이 함께 쓴다.
   귀가는 행사장에서 출발한다. 행사장에 닿은 뒤 개막까지 MAX_WAIT 분 넘게 기다리거나 운영 종료·코스 종료를 넘기는 장소 조합은
   축제 없이 예전처럼 끝내고, 고르는 쪽(planner.prefer_festival)이 축제를 넣은 조합이 있으면 그것만 남긴다.
-- 하지 않는 것: 축제를 코스 중간에 두기, 돌아오는 구간의 지도 선·수단 바꾸기(기본 수단으로만 계산),
-  요금을 비용에 넣기(주최 측 자유 글이라 계산하지 않는다, festivals.py).
+- 낮 축제(코스 중간, 2026-11-23): 맨 앞도 코스 끝도 맞지 않을 때만, 같은 축제 창(late_opening)으로 장소 i 와 i+1 사이를 앞에서부터 찾는다
+  (planner.evaluate). 장소 i → 행사장(festival_visit.leg, legs 밖) → 축제 → 행사장 → 장소 i+1(legs[i+1], 출발 이름 '<축제> 행사장').
+  저장: position='middle', after=i. 맨 앞·끝이 맞는 코스는 예전과 똑같다.
+- 하지 않는 것: 요금을 비용에 넣기(주최 측 자유 글이라 계산하지 않는다, festivals.py).
 """
 
 import re
@@ -109,12 +111,15 @@ def last_slot(window, reached, stay):
 LEG_FIELDS = ('minutes', 'mode', 'walking', 'status', 'source', 'buffer_minutes', 'cost')
 
 
-def visit_record(c, slot, back=None):
+def visit_record(c, slot, back=None, after=None):
     """코스에 저장하는 축제 방문(plan['festival_visit']). 화면·현장 일정·조건 확인이 읽는다.
-    back(마지막 장소 → 행사장 구간)이 있으면 코스 끝에 둔 축제(position='last')다."""
-    record = dict(id=c.festival.id, title=c.festival.title, hours=c.festival.hours, position='last' if back else 'first',
+    back(장소 → 행사장 구간)이 있으면 코스 끝(position='last'), after(앞 장소 번호)도 있으면 코스 중간(position='middle')이다."""
+    position = 'middle' if after is not None else 'last' if back else 'first'
+    record = dict(id=c.festival.id, title=c.festival.title, hours=c.festival.hours, position=position,
                   arrival=_clock(slot['arrival']), departure=_clock(slot['departure']),
                   stay=slot['departure'] - slot['arrival'], wait=slot['wait'])
+    if after is not None:
+        record['after'] = after
     if back:
         record['leg'] = {key: back.get(key) for key in LEG_FIELDS}
         # 자동차 길찾기 조회가 실패해 추정으로 바꾼 구간만 표시한다(app/leg_modes.apply_change 경고). 평소 저장 모양은 그대로.
@@ -136,6 +141,12 @@ def explain(title, hours, start, end, stay, finish=None, visit=None):
     if isinstance(visit, dict) and visit.get('position') == 'last':
         text = (f'‘{title}’ 축제는 안내된 운영 시간({hours})에 맞춰, 장소를 먼저 돌고 행사장으로 돌아와 '
                 f'{visit["arrival"]}~{visit["departure"]}({visit["stay"]}분) 축제로 코스를 마무리하도록 배치했어요.')
+        if visit.get('wait'):
+            text += f' 행사장에 닿은 뒤 축제 시작까지 {visit["wait"]}분 기다려요.'
+        return True, text
+    if isinstance(visit, dict) and visit.get('position') == 'middle' and isinstance(visit.get('after'), int):
+        text = (f'‘{title}’ 축제는 안내된 운영 시간({hours})에 맞춰, {visit["after"] + 1}번째 장소를 둘러본 뒤 행사장에 들러 '
+                f'{visit["arrival"]}~{visit["departure"]}({visit["stay"]}분) 축제를 보고 다음 장소로 가도록 코스 중간에 배치했어요.')
         if visit.get('wait'):
             text += f' 행사장에 닿은 뒤 축제 시작까지 {visit["wait"]}분 기다려요.'
         return True, text
@@ -162,6 +173,6 @@ def explain(title, hours, start, end, stay, finish=None, visit=None):
     if reason == 'late_opening':
         after = f' 코스가 끝난 {finish} 뒤에 들르거나,' if finish and _minutes(finish) <= opening else ''
         return False, (f'축제는 안내된 운영 시간({hours})상 {_clock(opening)}부터라, 코스 시작 {start}에 맞춰 축제 방문 시간을 고정하지 않았어요.'
-                       ' 장소를 다 돈 뒤 행사장으로 돌아와 축제로 마무리하기에도 시간이 맞지 않았어요.'
+                       ' 장소 사이에 행사장을 중간에 들르거나 장소를 다 돈 뒤 행사장으로 돌아와 축제로 마무리하기에도 시간이 맞지 않았어요.'
                        f'{after} 시작 시간을 {_clock(opening)} 무렵으로 늦추면(종료 시간도 함께) 축제부터 일정에 넣을 수 있어요.')
     return False, f'안내된 운영 시간({hours})과 코스 시간({start}~{end})이 {stay}분 넘게 겹치지 않아 축제 방문 시간을 고정하지 않았어요. 시작·종료 시간을 조정해 보세요.'

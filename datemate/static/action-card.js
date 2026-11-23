@@ -37,8 +37,9 @@ function actionCardItems(plan) {
     when: 'before',
     text: `‘${c.festival.title}’ 개최·운영 시간 확인 (주최 측 안내)`
   });
-  // 출발 전: 맨 앞에 고정한 축제가 있으면 그 시각이 코스의 시작이다(app/festival_time.py).
-  if (visit && visit.position !== 'last') items.push({
+  // 출발 전: 맨 앞에 고정한 축제가 있으면 그 시각이 코스의 시작이다(app/festival_time.py). 코스 중간 축제는 아래 '도착 전'에 둔다.
+  const middle = typeof festivalMiddleAfter === 'function' ? festivalMiddleAfter(plan) : null;
+  if (visit && visit.position !== 'last' && middle === null) items.push({
     id: 'depart',
     when: 'depart',
     text: `${visit.arrival}까지 ${visit.title} 행사장 도착 (코스 시작)`
@@ -49,11 +50,23 @@ function actionCardItems(plan) {
     text: `${c.start} 출발 · ${label(0)} ${timeline[0]?.arrival} 도착 예정`
   });
   // 도착 전: 자동차로 도착하는 장소(구간 i 는 장소 i 에 도착). 주차비는 계산에 넣지 않는다(planner.evaluate).
+  // 코스 중간 축제(after=i)는 장소 i 다음 시점: 행사장 주차(자동차로 가면) → 행사장 도착 시각 순서.
   places.forEach((place, i) => {
     if (legs[i]?.mode === 'car') items.push({
       id: `parking:${place.id}`,
       when: 'arrive',
       text: `${label(i)} 도착(${timeline[i]?.arrival}) 전 주차장 확인 · 주차비는 계산에 없어요`
+    });
+    if (i !== middle) return;
+    if (visit.leg?.mode === 'car') items.push({
+      id: 'parking:festival',
+      when: 'arrive',
+      text: `${visit.title} 행사장 도착(${visit.arrival}) 전 주차장 확인 · 주차비는 계산에 없어요`
+    });
+    items.push({
+      id: 'festival-arrive',
+      when: 'arrive',
+      text: `${visit.arrival}까지 ${visit.title} 행사장 도착 (${label(i)} 다음 · 축제 ${visit.arrival}~${visit.departure})`
     });
   });
   // 코스 끝에 둔 저녁 축제로 자동차로 돌아오면 행사장 주차(planner.evaluate 가 '행사장 주차비'를 미확인 비용에 넣는다).

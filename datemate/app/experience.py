@@ -53,15 +53,16 @@ def ensure_votes_unchanged(original,owner,used):
 
 def make_draft(plan,original,owner,kind,summary,vote_snapshot=None):
     if original.get('recommendation_group_id'):plan['recommendation_group_id']=original['recommendation_group_id']
-    c=Conditions.model_validate(plan['conditions'])
+    # 초안도 저장 경로다: plan_changes.save_change 와 같은 함수로 끊긴 구간의 수단 예외를 지운다(2026-11-24 점검 A3 —
+    # 식당을 끼우거나 합의 코스로 순서가 바뀌어 없어진 구간의 예외가 조건에 남았다). 초안은 apply_draft 가 그대로 저장한다.
+    from .plan_rules import reevaluate,settle_leg_modes
+    c=settle_leg_modes(plan)
     if c.mode=='real' and uses_car(c) and not all(r['status']=='api' for r in plan['legs'] if r.get('mode',c.transport)=='car'):
-        from .planner import evaluate
         from .pricing import price_plans
         from .leg_modes import middle_after
-        from .delay_check import carried_delays
         # 중간 축제는 원래 자리를 먼저 둔다(planner.evaluate festival_hint).
-        # 지연을 이어 가는 초안(plan['delay_recovery'] — 식사 추가·합의 코스)은 같은 지연을 넣는다. 안 넣으면 재조회가 지연을 지운 시간표로 덮는다.
-        recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True,festival_hint=middle_after(plan),delays=carried_delays(plan) or None)
+        # 지연을 이어 가는 초안(plan['delay_recovery'] — 식사 추가·합의 코스)은 같은 지연을 넣는다(reevaluate 가 이 초안의 기록에서 읽는다). 안 넣으면 재조회가 지연을 지운 시간표로 덮는다.
+        recalculated,error=reevaluate(plan,plan['places'],c,soft=True,verify_routes=True,festival_hint=middle_after(plan))
         if recalculated:
             plan.pop('festival_visit',None);plan.update(recalculated);plan=price_plans([plan])[0]
             plan['route_verification']='연결된 경로 공급자로 변경 동선을 재조회했어요. 조회 시점 기준입니다.'
@@ -120,7 +121,7 @@ def apply_draft(parent,token,owner):
 def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_index):
     from .catalog import get_place
     from .quality import is_meal,in_area,same_place
-    from .planner import evaluate
+    from .plan_rules import count_for,reevaluate,settle_leg_modes
     from .pricing import price_plans
     from .condition_audit import audit_plan
     from .menus import restaurant_menu,cost_menu_options
@@ -152,7 +153,9 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
         food['menu_pricing']=dict(price_kind=menu_kind,price_basis=selected_menu['name']+' 1개/인 가정 · '+menu.get('source_label','공개 메뉴')+' 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
     chosen.insert(target,food)
     mapping={i+(i>=target):pid for i,pid in mapping.items()}
-    c=c.model_copy(update={'count':len(chosen),'locked':mapping,'include_meal':True})
+    # 요청 장소 수(count)는 사용자가 정한 장소 수에 맞춘다. 다만 모델 범위(2~5) 안에서 — 1곳 남은 코스의 식사 교체는 count 2·장소 1곳이 되고
+    # 조건 확인이 차이를 알린다(plan_rules.count_for. 예전에는 count=1 이 검증에 걸려 pydantic 오류 원문이 화면에 나갔다 — 2026-11-24 점검 A4).
+    c=c.model_copy(update={'count':count_for(chosen),'locked':mapping,'include_meal':True})
     # 코스 중간 축제(festival_visit.after = 축제 바로 앞 장소 번호)는 되도록 같은 장소 뒤에 둔다(planner.evaluate festival_hint).
     # 식당을 끼워 넣으면 그 자리(target)부터 장소 번호가 하나씩 밀리므로, 축제 앞 장소가 target 이상이면 번호도 하나 민다.
     # 같은 자리의 장소를 식당으로 바꾸는 경우(replace_index)는 번호가 그대로다. 그 자리에 못 두면 evaluate 가 예전 순서로 다시 찾는다.
@@ -161,15 +164,18 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     # 같은 자리 교체는 그대로(81차 장소 바꾸기와 같다). 기록은 kept='meal'(docs/superpowers/specs/2026-11-23-delay-kept-meal-consensus-design.md).
     from .leg_modes import middle_after
     from .festival_time import set_change_note
-    from .delay_check import carried_delays,kept_note,moved_record
+    from .delay_check import carried_delays,delays_after_insert,kept_note,moved_record
     hint=middle_after(original)
     if hint is not None and replace_index is None and target<=hint:hint+=1
-    delays={k+(replace_index is None and target<=k):v for k,v in carried_delays(original).items()}
-    plan,error=evaluate(chosen,c,soft=True,verify_routes=c.mode=='real' and uses_car(c),festival_hint=hint,delays=delays or None)
+    delays=delays_after_insert(carried_delays(original),None if replace_index is not None else target)
+    plan,error=reevaluate(original,chosen,c,delays=delays,soft=True,verify_routes=c.mode=='real' and uses_car(c),festival_hint=hint)
     route_note=None
     if error and c.mode=='real' and uses_car(c) and c.allow_estimates:
-        plan,error=evaluate(chosen,c,soft=True,festival_hint=hint,delays=delays or None);route_note='자동차 경로 조회 실패로 추정 동선을 유지했어요.'
+        plan,error=reevaluate(original,chosen,c,delays=delays,soft=True,festival_hint=hint);route_note='자동차 경로 조회 실패로 추정 동선을 유지했어요.'
     if error:raise ValueError(error)
+    # 식당을 끼워 끊긴 구간의 수단 예외를 지운다(plan_rules.settle_leg_modes). 아래 조건 확인과 길찾기 안내는 정리한 조건을 본다
+    # — 남은 예외가 자동차였으면 자동차 구간이 없는데도 '자동차 길찾기 재조회 반영'을 적었다.
+    c=settle_leg_modes(plan)
     if delays:plan['delay_recovery']=moved_record(original,delays,'meal')
     set_change_note(plan,original)
     if original.get('course_search'):plan['course_search']=original['course_search']
@@ -219,12 +225,12 @@ def _with_carried_delay(plan,candidates):
     - 지연을 넣으면 맞지 않는 후보(영업 종료·축제 등)는 건너뛴다. 모두 안 맞으면 거절한다 — 늦지 않은 시간표를 대신 내지 않는다.
     - 지연 기록이 없는 코스는 예전과 같다(첫 후보, 덧붙일 글 없음).
     설계: docs/superpowers/specs/2026-11-23-delay-kept-meal-consensus-design.md"""
-    from .delay_check import carried_delays,delayed_conditions,kept_note,moved_record
+    from .delay_check import carried_delays,kept_note,moved_record
     carried=carried_delays(plan)
     if not carried:return candidates[0],''
     from .condition_audit import audit_plan
     from .leg_modes import josa,middle_after
-    from .planner import evaluate
+    from .plan_rules import reevaluate
     from .pricing import price_plans
     from .preferences import filter_required
     for candidate in candidates:
@@ -234,10 +240,10 @@ def _with_carried_delay(plan,candidates):
                         for k,v in carried.items() if plan['places'][k]['id'] not in ids for name in [plan['places'][k]['name']])
         if dropped:dropped+=' 늦어지면 새 코스에서 지각 확인을 다시 해 주세요.'
         if not moved:return candidate,dropped
-        c=Conditions.model_validate(candidate['conditions']);ec=delayed_conditions(plan,c)
-        result,_=evaluate(candidate['places'],ec,soft=bool(candidate.get('best_effort')),delays=moved,festival_hint=middle_after(candidate))
+        c=Conditions.model_validate(candidate['conditions'])
+        # 종료는 지금 끝나는 시각까지 허용하고 되돌린다(late_end — 81차 delayed_conditions 와 같다. plan_rules.reevaluate 가 함께 한다).
+        result,_=reevaluate(plan,candidate['places'],c,delays=moved,late_end=True,soft=bool(candidate.get('best_effort')),festival_hint=middle_after(candidate))
         if not result:continue
-        if ec is not c:result['conditions']['end']=c.end  # 계산에만 늦춘 종료 시각을 원래 값으로(81차 delayed_conditions 와 같다)
         updated=copy.deepcopy(candidate);updated.pop('festival_visit',None);updated.update(result)
         updated['delay_recovery']=moved_record(plan,moved,'agreement')
         updated=audit_plan(price_plans([updated])[0])

@@ -208,7 +208,6 @@ def options(plan, index, locked, discover=False, diagnostics=None):
         searched = discover_leisure(c, plan["places"][index])
         if diagnostics is not None:
             diagnostics.update(searched)
-    from .planner import evaluate
     from .condition_audit import audit_plan
     from .best_effort import annotate
     from .preferences import hard_blocks
@@ -248,19 +247,18 @@ def options(plan, index, locked, discover=False, diagnostics=None):
         from .festival_time import set_change_note
         from .leg_modes import middle_after
 
-        # 지각을 반영한 코스는 그 지연을 다시 넣는다(planner.replacements 와 같은 규칙, app/delay_check.py 도우미).
-        from .delay_check import carried_delays, delayed_conditions, kept_note
+        # 지각을 반영한 코스는 그 지연을 다시 넣는다(planner.replacements 와 같은 규칙 — app/plan_rules.reevaluate).
+        from .delay_check import kept_note
+        from .plan_rules import reevaluate
 
-        ec = delayed_conditions(plan, c)
-        updated, error = evaluate(
+        updated, error = reevaluate(
+            plan,
             chosen,
-            ec,
+            c,
+            late_end=True,
             soft=bool(plan.get("best_effort")),
             festival_hint=middle_after(plan),
-            delays=carried_delays(plan) or None,
         )
-        if not error and ec is not c:
-            updated["conditions"]["end"] = c.end
         if error:
             reject(info, [error])
             continue

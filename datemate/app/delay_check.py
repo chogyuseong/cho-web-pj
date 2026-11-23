@@ -17,6 +17,8 @@
   'unknown'(끝나는 시각은 계산함), 모두 자료가 있고 문제가 없으면 'ok'.
 - 지각 복구(app/delay_recovery.py)로 저장한 코스는 그때 반영한 지연을 plan['delay_recovery'].delays({장소 번호: 분})에 남긴다.
   그 장소를 남은 첫 장소로 고르면 원래 도착 예정에 그 지연을 더한 '지금 시간표의 도착 예정'을 기준으로 삼는다(carried_delay).
+  남은 첫 장소보다 뒤 번호에 적힌 지연도 그 장소에 닿을 때 더한다(planner._evaluate 의 delays 와 같은 규칙, 2026-11-24).
+  더하지 않으면 '더 늦었는데 더 일찍 끝난다'고 답한다 — 0분으로 확인하면 어느 번호에서 시작하든 지금 시간표가 그대로 나와야 한다.
 원본 코스·공유본·방문 기록을 바꾸지 않는다(저장하지 않는다). 대신 갈 곳·빼고 진행은 app/delay_recovery.py 가 따로 계산한다.
 """
 
@@ -81,16 +83,55 @@ def moved_record(plan, delays, how):
 
 def kept_note(plan):
     """지연을 그대로 둔 변경의 안내 문장 끝에 붙이는 글(앞에 빈칸 포함). 지연 기록이 없으면 빈 글.
-    가장 큰 지연 하나만 적는다(기록은 보통 한 장소뿐이고, 여러 번 복구하면 같은 장소에 더해진다)."""
-    delays = carried_delays(plan)
-    return f" 앞서 반영한 {max(delays.values())}분 지연은 그대로 뒀어요." if delays else ""
+    기록은 보통 한 장소뿐이다. 다른 번호에서 다시 복구해 여러 장소에 적혀 있으면(2026-11-24 부터 남는다) 장소 순서대로 모두 적는다."""
+    return _kept_text("앞서 반영한", list(carried_delays(plan).values()))
+
+
+def _kept_text(lead, values):
+    """'{lead} N분 지연은 그대로 뒀어요.'(앞에 빈칸 포함). 여럿이면 건수와 분을 모두 적는다. 없으면 빈 글."""
+    if not values:
+        return ""
+    if len(values) == 1:
+        return f" {lead} {values[0]}분 지연은 그대로 뒀어요."
+    return f" {lead} 지연 {len(values)}건({'·'.join(f'{v}분' for v in values)})은 그대로 뒀어요."
+
+
+def other_kept_note(values):
+    """지각 복구가 지금 다루는 장소 말고 다른 장소에 남겨 둔 지연의 안내(app/delay_recovery.apply)."""
+    return _kept_text("다른 장소에 앞서 반영한", list(values))
+
+
+def delays_after_insert(delays, at):
+    """장소 하나를 번호 at 자리에 끼운 뒤의 지연 {장소 번호: 분}. 그 자리부터 번호가 하나씩 밀리므로 at 이상인 번호를 +1 한다
+    (지연은 그 장소를 따라간다 — 식사 추가, 82차). at 이 None 이면(같은 자리 교체) 그대로."""
+    return {k + (at is not None and at <= k): v for k, v in delays.items()}
+
+
+def delays_after_removal(delays, removed, current=None):
+    """장소를 뺀 뒤의 지연. (새 번호 기준 {장소 번호: 분}, 버린 지연 {원래 번호: 분}). 2026-11-24
+    removed: 뺀 장소의 원래 번호들. current: 지각 복구가 지금 다루는 '남은 첫 장소' 번호(없으면 None).
+    - 뺀 장소보다 뒤 번호의 지연은 번호를 하나 당긴다(지연은 그 장소를 따라간다 — 식사 추가와 같은 규칙).
+    - 뺀 장소에 앞서 적어 둔 지연은 버린다. 분은 '그 장소의 도착 예정'에 붙은 상대값이라 장소가 빠지면 기준이 없다
+      (82차 합의 코스와 같은 판단 — 다른 장소에 붙이면 지연을 지어내는 셈). 버린 것은 호출한 쪽이 문장으로 알린다.
+    - 다만 지금 다루는 지연(current)은 그 장소를 빼도 번호에 남긴다: 사용자는 지금 그만큼 늦었고, 그 자리로 당겨진 다음 장소에
+      그만큼 늦게 닿는다(지각 복구가 처음부터 써 온 규칙). 다음 장소에도 지연이 있으면 더한다."""
+    moved, lost = dict(delays), {}
+    for gone in sorted(removed, reverse=True):
+        if gone != current and gone in moved:
+            lost[gone] = moved.pop(gone)
+        shifted = {}
+        for k, v in moved.items():
+            shifted[k - (k > gone)] = shifted.get(k - (k > gone), 0) + v
+        moved = shifted
+    return dict(sorted(moved.items())), lost
 
 
 def delayed_conditions(plan, c):
     """지연이 든 코스를 다시 계산할 때 쓰는 조건. 지각 탓에 이미 종료 시각(c.end)을 넘긴 코스면 종료를 지금 끝나는 시각으로 본다.
     - 왜: 지연을 넣으면 어떤 후보든 '전체 일정 시간 초과'로 떨어져 장소 바꾸기 후보가 0곳이 된다. 지각 복구도 종료 초과는 막지 않고 알린다.
     - 그래서: '지금보다 더 늦게 끝나지 않는' 후보까지만 낸다. 넘기지 않은 코스·지연 기록이 없는 코스는 c 그대로.
-    - 주의: 이 조건으로 계산한 코스의 conditions.end 는 호출한 쪽이 원래 값으로 되돌려야 한다(저장되는 조건을 바꾸지 않는다).
+    - 주의: 이 조건으로 계산한 코스의 conditions.end 는 원래 값으로 되돌려야 한다(저장되는 조건을 바꾸지 않는다).
+      직접 부르지 말고 app/plan_rules.reevaluate(late_end=True) 를 쓸 것 — 넣기와 되돌리기를 거기서 함께 한다(2026-11-24).
       끝나는 시각이 자정을 넘겨 'HH:MM' 으로 못 적는 코스는 그대로 둔다(그런 코스는 예전처럼 후보가 안 나올 수 있다)."""
     if not carried_delays(plan):
         return c
@@ -126,6 +167,8 @@ def delay_check(plan, index, delay):
     now = planned_arrival + delay
     rows, pending, estimated, no_last_entry = [], [], [], []
     first_problem = None
+    # 남은 첫 장소보다 뒤 번호에 앞서 반영한 지연(계산에 넣은 것만). 근거 문장에 적는다.
+    carried_later = []
 
     def festival_row(back, origin_name):
         """행사장으로 가는 구간(back)을 지나 축제 줄을 더한다. (줄, 끝난 시각, 문제 또는 None)."""
@@ -177,7 +220,11 @@ def delay_check(plan, index, delay):
         p = dict(places[j])
         leg = legs[j]
         if j > index:
-            now += _leg_minutes(leg, c)
+            # 이 장소에 앞서 반영한 지연이 있으면 여기서 더한다(planner._evaluate 가 delays.get(position) 을 더하는 자리와 같다).
+            later = carried_delay(plan, j)
+            now += _leg_minutes(leg, c) + later
+            if later:
+                carried_later.append(dict(index=j, place=p["name"], minutes=later))
         if leg.get("status") != "api":
             estimated.append(
                 dict(
@@ -278,15 +325,24 @@ def delay_check(plan, index, delay):
         if carried
         else f"원래 도착 예정 시각 {clock(planned_arrival)}"
     )
+    later_note = (
+        " 뒤 장소에 앞서 반영한 지연("
+        + ", ".join(f"{row['place']} {row['minutes']}분" for row in carried_later)
+        + ")도 그대로 넣었어요."
+        if carried_later
+        else ""
+    )
     return dict(
         status=status,
         index=index,
         delay=delay,
         carried=carried,
+        carried_later=carried_later,
         start_place=places[index]["name"],
         planned_arrival=clock(planned_arrival),
         delayed_arrival=clock(planned_arrival + delay),
-        basis=f"{places[index]['name']}의 {planned}에 {delay}분을 더해, 방문 순서를 그대로 두고 다시 계산했어요.",
+        basis=f"{places[index]['name']}의 {planned}에 {delay}분을 더해, 방문 순서를 그대로 두고 다시 계산했어요."
+        + later_note,
         rows=rows,
         first_problem=first_problem,
         pending=pending,

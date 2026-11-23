@@ -15,7 +15,12 @@
   코스 중간 축제(position 'middle', after=i)는 같은 자리(빼기는 번호를 당긴 자리)에만 다시 두고(evaluate festival_after),
   그 자리에 못 두거나 자리가 장소 사이가 아니게 되면 그 후보·빼기는 내지 않는다('중간 축제 시간에 맞출 수 없어요'). 축제 시각이 늦어지는 것은 허용.
   축제 바로 앞 장소를 바꾸면 다음 지점, 바로 뒤 장소를 바꾸면 앞 지점이 행사장(출발지 좌표)이다.
-- 빼고 진행: 같은 검사로 그 장소를 뺀 코스. 장소가 0곳이 되면 허용하지 않는다. 방문 장소 수 조건(count)은 사용자가 정한 값을 그대로 둔다.
+- 빼고 진행: 같은 검사로 그 장소를 뺀 코스. 장소가 0곳이 되면 허용하지 않는다. 방문 장소 수 조건(count)은 사용자가 정한 값을 그대로 둔다
+  (요청 수보다 적은 코스가 된다 — 그 코스의 장소 바꾸기·레저 후보는 장소 수를 검사하지 않고 계산한다, app/plan_rules.py).
+- 앞서 반영한 다른 장소의 지연(2026-11-24): 지각 확인을 다른 번호에서 다시 해도 남긴다(안내 문장에 '다른 장소에 앞서 반영한 N분 지연은
+  그대로 뒀어요'). 장소를 빼면 그 뒤 번호의 지연은 번호를 당기고, 뺀 장소에 앞서 적어 둔 지연은 버리고 안내 문장에 적는다
+  ('… 그 장소를 빼서 넣지 않았어요' — 82차 합의 코스와 같은 판단). 지금 다루는 지연은 그 장소를 빼도 다음 장소가 이어받는다
+  (delay_check.delays_after_removal).
 - 예약한 장소·고정한 장소는 바꾸지도 빼지도 않는다(예약처에 연락·고정 해제 안내).
 - 저장: plan_changes.save_change(recovery=…) — 장소 바꾸기처럼 새 코스 id(parent 연결)로 저장되어 되돌리기·이력이 그대로 동작한다.
   반영한 지연은 plan['delay_recovery'].delays({장소 번호: 분})에 남겨, 지각 확인을 다시 열면 지금 시간표 기준으로 이어서 본다.
@@ -125,20 +130,16 @@ def _saved_legs(plan, c):
 
 
 def _delays(plan, index, delay):
-    """새 코스에 반영할 지연 {장소 번호: 분}. index 앞에서 이미 반영한 지연은 시간표에 들어 있어 그대로 두고, index 에 더한다."""
-    record = plan.get("delay_recovery")
-    saved = record.get("delays") if isinstance(record, dict) else None
-    old = {}
-    for key, value in (saved if isinstance(saved, dict) else {}).items():
-        try:
-            old[int(key)] = int(value)
-        except (TypeError, ValueError):
-            continue
-    new = {k: v for k, v in old.items() if k < index and v}
+    """새 코스에 반영할 지연 {장소 번호: 분}(지금 코스의 번호 기준). 앞서 반영한 다른 장소의 지연은 그대로 두고, index 에 더한다.
+    index 보다 뒤 번호의 지연도 남긴다(2026-11-24 — 예전에는 버려서 다른 번호에서 다시 복구하면 그 지연이 말없이 사라졌다).
+    장소를 빼서 번호가 달라지는 것은 _rebuild 가 옮긴다(delay_check.delays_after_removal)."""
+    from .delay_check import carried_delays
+
+    new = {k: v for k, v in carried_delays(plan).items() if k != index}
     total = carried_delay(plan, index) + delay
     if total:
         new[index] = total
-    return new
+    return dict(sorted(new.items()))
 
 
 def _estimate(a, b, c):
@@ -200,10 +201,11 @@ def _arrival_base(plan, check, c, j):
                 minutes(plan["timeline"][index - 1]["departure"]) if index else places_start(c)
             )
         return departure, carried_delay(plan, index) + check["delay"]
+    # 남은 첫 장소보다 뒤 장소: 앞 줄을 떠난 시각에, 그 장소에 앞서 반영한 지연을 더한다(지각 확인·evaluate 와 같은 규칙).
     if after is not None and j - 1 == after:
         festival = next(row for row in check["rows"] if row.get("festival"))
-        return minutes(festival["departure"]), 0
-    return minutes(_place_rows(check)[j - 1 - index]["departure"]), 0
+        return minutes(festival["departure"]), carried_delay(plan, j)
+    return minutes(_place_rows(check)[j - 1 - index]["departure"]), carried_delay(plan, j)
 
 
 def _changed_legs(updated, j, removed):
@@ -323,11 +325,15 @@ def _failure_text(failure, error):
     return f"일정을 다시 짤 수 없어요({reason or '확인 필요'})"
 
 
-def _rebuild(plan, c, places, delays, j, removed, extra=None, failure=None):
+def _rebuild(plan, c, places, delays, j, removed, extra=None, failure=None, current=None):
     """(다시 짠 코스, 거절 까닭). evaluate 는 soft — 종료·구간·예산 초과로 실패하지 않고, 위 _rejection 이 바뀐 것만 본다.
     extra=(k, 뺐는지): 묶음 후보가 함께 처리한 뒤 장소(_rejection 참고). failure(dict)를 주면 evaluate 가 실패한 장소·까닭을 거기에 남긴다
-    (묶음 후보가 '어느 뒤 장소가 또 늦는지' 알아내는 데 쓴다)."""
-    from .planner import evaluate
+    (묶음 후보가 '어느 뒤 장소가 또 늦는지' 알아내는 데 쓴다).
+    delays 는 지금 코스(plan)의 번호 기준이다. 장소를 빼면(j 또는 extra) 여기서 새 번호로 옮겨 계산하고, 계산에 쓴 지연과 버린 지연을
+    다시 짠 코스의 'delay_recovery'(임시: delays·lost)에 실어 준다 — apply 가 그것으로 기록을 만든다(후보마다 번호가 다를 수 있다).
+    current: 지금 다루는 '남은 첫 장소' 번호. 그 장소 자체를 빼는 경우(_skip)에만 준다 — 그 지연은 버리지 않고 다음 장소가 이어받는다."""
+    from .delay_check import delays_after_removal
+    from .plan_rules import reevaluate
     from .pricing import price_plans
     from .routes import saved_routes
 
@@ -336,9 +342,11 @@ def _rebuild(plan, c, places, delays, j, removed, extra=None, failure=None):
     target = _middle_target(plan, j, removed, len(places), extra)
     if target == -1:
         return None, MIDDLE_REJECTED
+    gone = [index for index, was_removed in ((j, removed), extra or (None, False)) if was_removed]
+    moved, lost = delays_after_removal(delays, gone, current)
     with saved_routes(_saved_legs(plan, c)):
-        updated, error = evaluate(
-            places, c, soft=True, failure=failure, delays=delays, festival_after=target
+        updated, error = reevaluate(
+            plan, places, c, delays=moved, soft=True, failure=failure, festival_after=target
         )
     if error:
         return None, _failure_text(failure, error)
@@ -360,7 +368,13 @@ def _rebuild(plan, c, places, delays, j, removed, extra=None, failure=None):
         if new:
             labels = ", ".join(dict.fromkeys(b["label"] for b in new))
             reason = f"꼭 지킬 조건으로 고른 {labels}{_josa(labels, '을', '를')} 지키지 못해요"
-    return (None, reason) if reason else (updated, None)
+    if reason:
+        return None, reason
+    updated["delay_recovery"] = dict(
+        delays={str(k): v for k, v in moved.items()},
+        lost=[[k, v] for k, v in sorted(lost.items())],
+    )
+    return updated, None
 
 
 def _over_end(updated, c):
@@ -566,7 +580,9 @@ def _skip(plan, check, c, j, delays):
     locked = {int(i): pid for i, pid in c.locked.items()}
     remapped = {i - (i > j): pid for i, pid in locked.items() if i != j}
     skip_c = c.model_copy(update={"locked": remapped})
-    updated, reason = _rebuild(plan, skip_c, chosen, delays, j, removed=True)
+    updated, reason = _rebuild(
+        plan, skip_c, chosen, delays, j, removed=True, current=check["index"]
+    )
     name = target["name"]
     if not updated:
         return dict(allowed=False, reason=f"{name}{_josa(name, '을', '를')} 빼도 {reason}."), None
@@ -630,6 +646,7 @@ def recovery_for(plan, check):
 
 def apply(plan, index, delay, target, replacement_id, owner):
     """고른 복구를 적용해 새 코스로 저장한다. 화면이 본 결과와 지금 계산이 다르면 저장하지 않는다(Refused → 409)."""
+    from .delay_check import other_kept_note
     from .plan_changes import save_change
 
     check = delay_check(plan, index, delay)
@@ -671,11 +688,21 @@ def apply(plan, index, delay, target, replacement_id, owner):
         action = f"{name}{_josa(name, '을', '를')} 빼고"
     total = int(result["delays"].get(str(index), 0))
     updated = copy.deepcopy(updated)
+    # _rebuild 가 실어 둔 임시 기록: 이 코스 계산에 쓴 지연(장소를 뺐으면 새 번호)과, 기준이 된 장소가 빠져 버린 지연.
+    used = updated.pop("delay_recovery")
+    lost = dict(used["lost"])
+    # 지금 다루는 장소(index) 말고 다른 장소에 앞서 반영해 둔 지연은 그대로 둔다 — 남긴 것도, 버린 것도 문장으로 알린다.
+    others = [v for k, v in result["delays"].items() if int(k) != index and int(k) not in lost]
     updated["change_reason"] = (
         f"{total}분 늦어진 것을 반영해 {action} 남은 시간표를 다시 계산했어요."
+        + other_kept_note(others)
+        + "".join(
+            f" {plan['places'][k]['name']}에 앞서 반영한 {v}분 지연은 그 장소를 빼서 넣지 않았어요."
+            for k, v in lost.items()
+        )
     )
     record = dict(
-        delays=result["delays"],
+        delays=used["delays"],
         index=index,
         target=result["index"],
         action="replace" if option else "skip",

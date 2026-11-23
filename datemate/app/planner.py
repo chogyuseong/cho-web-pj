@@ -65,7 +65,7 @@ def route_leg(a,b,route_conditions,mode,verify_routes=False,route_fallback=False
 # 코스 중간 축제(festival_after)를 그 자리에 둘 수 없을 때 evaluate 가 돌려주는 까닭(수단 바꾸기·지각 복구가 알아본다).
 MIDDLE_MISS='축제 운영 시간 불일치'
 
-def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None,festival_after=None,festival_hint=None):
+def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None,festival_after=None,festival_hint=None,count_free=False):
     """delays: {장소 번호: 분} — 그 장소에 원래 도착 예정보다 그만큼 늦게 닿는다고 보고 시간표를 짠다(지각 복구, app/delay_recovery.py).
     그 앞 장소의 시간표는 그대로이고, 뒤는 같은 규칙(visit_window·저녁 축제·귀가·종료)으로 이어서 계산한다. 없으면 예전과 같다.
 
@@ -77,8 +77,12 @@ def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallb
     까닭 1: 자리가 맞는 한 축제가 다른 칸으로 옮겨지지 않는다. 까닭 2: 예전 순서는 축제 없는 코스·코스 끝을 먼저 실제 길찾기로 계산해
     결국 쓰지 않는 구간(장소 i → i+1, 마지막 장소 → 행사장)을 조회한다 — 자리를 먼저 두면 그 조회가 생기지 않는다.
     hint 가 장소 사이가 아니거나(None 포함) 맨 앞 고정 조건이면 _evaluate 가 바로 MIDDLE_MISS 를 돌려줘 외부 호출 없이 예전 순서로 넘어간다.
-    festival_after 와 함께 주면 festival_after 가 이긴다."""
-    args=dict(partial=partial,soft=soft,verify_routes=verify_routes,route_fallback=route_fallback,delays=delays)
+    festival_after 와 함께 주면 festival_after 가 이긴다.
+
+    count_free=True 면 장소 수(c.count)를 검사하지 않는다(2026-11-24). 이미 있는 코스의 장소 목록을 다시 계산할 때 쓴다 — 그 목록은 사용자가 고른 것이고,
+    지각 복구의 '빼고 진행'처럼 요청 수보다 적은 코스도 있다(c.count 는 '요청한 수'로 남아 조건 확인이 차이를 알린다).
+    변경 경로는 이 함수를 직접 부르지 않고 app/plan_rules.reevaluate 를 쓴다(저장된 지연·종료 허용·장소 수 규칙이 거기 모여 있다)."""
+    args=dict(partial=partial,soft=soft,verify_routes=verify_routes,route_fallback=route_fallback,delays=delays,count_free=count_free)
     if festival_after is not None:
         return _evaluate(selected,c,failure=failure,middle=festival_after,**args)
     if festival_hint is not None and not partial:
@@ -105,13 +109,13 @@ def _middle_gaps(plan,selected,c,soft):
         if route['minutes'] is None or (route['minutes']>c.max_leg and not soft):continue
         if last_slot(window,minutes(plan['timeline'][after]['departure'])+route['minutes']+c.transition_buffer_minutes,c.stay_minutes):yield after
 
-def _evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None,middle=None):
+def _evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None,middle=None,count_free=False):
     from .quality import same_place
     def fail(reason,**info):
         if failure is not None:failure.update(info,reason=reason)
         return None,reason
     if any(same_place(a,b) for i,a in enumerate(selected) for b in selected[i+1:]):return None,'같은 장소 중복'
-    if not partial and len(selected)!=c.count and not soft:return None,'방문 장소 수 불일치'
+    if not partial and len(selected)!=c.count and not soft and not count_free:return None,'방문 장소 수 불일치'
     route_conditions=c.model_copy(update={'allow_estimates':True}) if soft and c.mode=='real' else c
     # 코스 중간 축제 자리(middle): 맨 앞 고정이 맞는 조건이거나 축제 창이 없거나 자리가 장소 사이가 아니면 둘 수 없다.
     window=None
@@ -392,8 +396,9 @@ def replacements(plan,index,locked):
     # 지각을 반영해 저장한 코스(plan['delay_recovery'])는 그 지연을 다시 넣어 후보를 계산한다 — 넣지 않으면 후보의 시간표가 '늦지 않은 것'으로 돌아간다.
     # 같은 자리의 장소만 바뀌므로 장소 번호로 적힌 지연이 그대로 맞는다. 이미 종료 시각을 넘긴 코스는 지금 끝나는 시각까지 허용(delayed_conditions).
     # 지연 기록이 없는 코스는 delays=None·ec=c 라 예전과 똑같다. 저장할 때 기록을 이어 붙이는 것은 app/main.py replace.
-    from .delay_check import carried_delays,delayed_conditions,kept_note
-    delays=carried_delays(plan) or None;ec=delayed_conditions(plan,c)
+    # 2026-11-24: 그 지연·종료 허용·장소 수 규칙은 plan_rules.reevaluate 한 곳에 있다('빼고 진행'으로 장소 수가 요청 수보다 적은 코스도 후보가 나온다).
+    from .delay_check import kept_note
+    from .plan_rules import reevaluate
     pool=quality_pool(c) if plan.get('best_effort') else candidates(c)
     for p in pool:
         if any(w.lower() in (p['name']+' '+p['category']+' '+' '.join(p['tags'])).lower() for w in c.avoid if w):continue
@@ -401,9 +406,8 @@ def replacements(plan,index,locked):
         chosen=list(plan['places']);chosen[index]=p
         if not plan.get('best_effort') and c.theme_mode=='focus' and len({x['category'] for x in chosen})>1:continue
         # 중간 축제는 되도록 원래 자리에 둔다(evaluate festival_hint). 그래도 자리가 바뀌거나 빠지는 후보는 고르기 전에 알린다(festival_change).
-        updated,error=evaluate(chosen,ec,soft=bool(plan.get('best_effort')),festival_hint=middle_after(plan),delays=delays)
+        updated,error=reevaluate(plan,chosen,c,late_end=True,soft=bool(plan.get('best_effort')),festival_hint=middle_after(plan))
         if not error:
-            if ec is not c:updated['conditions']['end']=c.end  # 계산에만 늦춘 종료 시각을 원래 값으로
             set_change_note(updated,plan)
             if plan.get('course_search'):updated['course_search']=plan['course_search']
             if plan.get('best_effort'):

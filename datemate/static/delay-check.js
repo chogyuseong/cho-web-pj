@@ -148,8 +148,16 @@ function delayRecoveryBlock(plan, data, recovery) {
       if (option.over_end) details.push(`종료 ${option.over_end}분 넘김`);
       info.append(node('strong', option.name), node('span', details.join(' · '), 'delay-recovery-meta'));
       if (!option.hours_known) info.append(node('span', '영업시간 미확인', 'delay-recovery-unchecked'));
-      const choose = button('이곳으로 바꾸기', () => applyDelayRecovery(plan, data, option.id, block, status), 'secondary');
-      choose.setAttribute('aria-label', `${recovery.place} 대신 ${option.name}${delayRecoveryJosa(option.name, '으로', '로')} 바꾸기`);
+      // 묶음 후보(app/delay_recovery._bundle): 이곳으로 바꿔도 뒤 장소 한 곳이 또 늦어, 그 장소까지 함께 바꾸거나 뺀 안이다.
+      // 무엇을 왜 함께 처리하는지는 서버가 적은 글(also.text)을 그대로 보여 준다. 단추 문구로 한 번에 두 곳이 달라진다는 것을 알린다.
+      // 한 곳짜리 후보는 also 가 없어 예전과 똑같이 보인다. 보내는 값도 같다(option.id — 서버가 같은 묶음을 다시 계산해 저장).
+      const also = option.also;
+      if (also) {
+        info.append(node('span', also.text, 'delay-recovery-also'));
+        if (also.action === 'replace' && !also.hours_known) info.append(node('span', `${also.name} 영업시간 미확인`, 'delay-recovery-unchecked'));
+      }
+      const choose = button(!also ? '이곳으로 바꾸기' : also.action === 'replace' ? '두 곳 함께 바꾸기' : '바꾸고 뒤 장소 빼기', () => applyDelayRecovery(plan, data, option.id, block, status), 'secondary');
+      choose.setAttribute('aria-label', `${recovery.place} 대신 ${option.name}${delayRecoveryJosa(option.name, '으로', '로')} 바꾸기` + (!also ? '' : also.action === 'replace' ? `, ${also.place}${delayRecoveryJosa(also.place, '은', '는')} ${also.name}${delayRecoveryJosa(also.name, '으로', '로')} 함께 바꾸기` : `, ${also.place}${delayRecoveryJosa(also.place, '은', '는')} 함께 빼기`));
       item.append(info, choose);
       list.append(item);
     }

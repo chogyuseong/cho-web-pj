@@ -92,9 +92,11 @@ function renderDetail() {
   if (expired) box.append(planHistoryExpiredNote());
   if (p.parent && p.can_edit !== false) {
     const undo = node('div', undefined, 'actions undo-actions');
-    // 지각 복구(delay-check.js)로 만든 코스는 그 기록(delay_recovery)이 있다. 장소를 바꾸면 서버가 기록을 지운다.
-    // 수단만 바꾸면 기록이 kept=true 로 이어진다(app/main.py transport) — 그 코스의 되돌리기는 지각 반영이 아니라 수단 변경을 되돌린다.
-    undo.append(button(p.transport_change || p.delay_recovery?.kept ? '수단 변경 되돌리기' : p.delay_recovery ? '지각 반영 되돌리기' : '교체 되돌리기', async () => {
+    // 지각 복구(delay-check.js)로 만든 코스는 그 기록(delay_recovery)이 있다. 그 뒤 수단·장소를 바꾸면 기록이 kept 표시와 함께 이어진다
+    // (app/delay_check.kept_record — 'transport' 또는 'place', 80차에 저장된 true 는 'transport'). 그런 코스의 되돌리기는 지각 반영이 아니라
+    // 그 변경을 되돌린다. 식사 추가처럼 지연을 이어 가지 않는 변경은 서버가 기록을 지운다.
+    const kept = p.delay_recovery?.kept;
+    undo.append(button(p.transport_change || kept === true || kept === 'transport' ? '수단 변경 되돌리기' : p.delay_recovery && !kept ? '지각 반영 되돌리기' : '교체 되돌리기', async () => {
       const restored = await api('/plans/' + p.id + '/undo', {});
       if (commitPlanChange(p.id, restored)) restoreUndoLocks(p, restored);
     }));

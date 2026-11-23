@@ -151,11 +151,21 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     chosen.insert(target,food)
     mapping={i+(i>=target):pid for i,pid in mapping.items()}
     c=c.model_copy(update={'count':len(chosen),'locked':mapping,'include_meal':True})
-    plan,error=evaluate(chosen,c,soft=True,verify_routes=c.mode=='real' and uses_car(c))
+    # 코스 중간 축제(festival_visit.after = 축제 바로 앞 장소 번호)는 되도록 같은 장소 뒤에 둔다(planner.evaluate festival_hint).
+    # 식당을 끼워 넣으면 그 자리(target)부터 장소 번호가 하나씩 밀리므로, 축제 앞 장소가 target 이상이면 번호도 하나 민다.
+    # 같은 자리의 장소를 식당으로 바꾸는 경우(replace_index)는 번호가 그대로다. 그 자리에 못 두면 evaluate 가 예전 순서로 다시 찾는다.
+    # 달라진 축제 자리는 plan['festival_change'] 로 알린다(festival_time.set_change_note). 지각 기록(delay_recovery)은 이어 가지 않는다
+    # — 식사가 끼면 지연을 적어 둔 장소 번호의 뜻이 달라져서다(plan_changes.save_change 가 지운다).
+    from .leg_modes import middle_after
+    from .festival_time import set_change_note
+    hint=middle_after(original)
+    if hint is not None and replace_index is None and target<=hint:hint+=1
+    plan,error=evaluate(chosen,c,soft=True,verify_routes=c.mode=='real' and uses_car(c),festival_hint=hint)
     route_note=None
     if error and c.mode=='real' and uses_car(c) and c.allow_estimates:
-        plan,error=evaluate(chosen,c,soft=True);route_note='자동차 경로 조회 실패로 추정 동선을 유지했어요.'
+        plan,error=evaluate(chosen,c,soft=True,festival_hint=hint);route_note='자동차 경로 조회 실패로 추정 동선을 유지했어요.'
     if error:raise ValueError(error)
+    set_change_note(plan,original)
     if original.get('course_search'):plan['course_search']=original['course_search']
     plan=price_plans([plan])[0];plan=audit_plan(plan,c)
     plan['undo_locks']=undo_locks

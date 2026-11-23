@@ -59,6 +59,37 @@ def carried_delays(plan):
     return out
 
 
+def kept_record(plan, how):
+    """지연을 넣어 다시 계산한 코스에 이어 붙일 기록. 지연 기록이 없는 코스면 None(= 예전과 같은 동작).
+    how: 'transport'(수단 바꾸기) 또는 'place'(같은 자리의 장소를 다른 곳으로 바꾸기 — 장소 번호가 그대로인 변경만).
+    kept 는 '이 코스는 지각 반영이 아니라 그 뒤의 다른 변경으로 만들어졌다'는 표시다 — 화면(static/plan-detail.js)의 되돌리기 단추 문구와
+    저장(plan_changes.save_change)의 자동차 재확인 여부가 이 값을 본다. 80차에 저장된 값 True 는 'transport' 와 같게 읽는다."""
+    return dict(plan["delay_recovery"], kept=how) if carried_delays(plan) else None
+
+
+def kept_note(plan):
+    """지연을 그대로 둔 변경의 안내 문장 끝에 붙이는 글(앞에 빈칸 포함). 지연 기록이 없으면 빈 글.
+    가장 큰 지연 하나만 적는다(기록은 보통 한 장소뿐이고, 여러 번 복구하면 같은 장소에 더해진다)."""
+    delays = carried_delays(plan)
+    return f" 앞서 반영한 {max(delays.values())}분 지연은 그대로 뒀어요." if delays else ""
+
+
+def delayed_conditions(plan, c):
+    """지연이 든 코스를 다시 계산할 때 쓰는 조건. 지각 탓에 이미 종료 시각(c.end)을 넘긴 코스면 종료를 지금 끝나는 시각으로 본다.
+    - 왜: 지연을 넣으면 어떤 후보든 '전체 일정 시간 초과'로 떨어져 장소 바꾸기 후보가 0곳이 된다. 지각 복구도 종료 초과는 막지 않고 알린다.
+    - 그래서: '지금보다 더 늦게 끝나지 않는' 후보까지만 낸다. 넘기지 않은 코스·지연 기록이 없는 코스는 c 그대로.
+    - 주의: 이 조건으로 계산한 코스의 conditions.end 는 호출한 쪽이 원래 값으로 되돌려야 한다(저장되는 조건을 바꾸지 않는다).
+      끝나는 시각이 자정을 넘겨 'HH:MM' 으로 못 적는 코스는 그대로 둔다(그런 코스는 예전처럼 후보가 안 나올 수 있다)."""
+    if not carried_delays(plan):
+        return c
+    try:
+        if minutes(plan["finish"]) > minutes(c.end):
+            return c.model_copy(update={"end": plan["finish"]})
+    except (KeyError, TypeError, ValueError):
+        pass
+    return c
+
+
 def delay_check(plan, index, delay):
     c = Conditions.model_validate(plan["conditions"])
     places, legs, timeline = plan["places"], plan["legs"], plan["timeline"]

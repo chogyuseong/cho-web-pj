@@ -137,13 +137,99 @@ def test_no_candidates_explains_and_still_offers_skip(monkeypatch):
     assert rec['options'] == [] and '같은 종류(카페)의 다른 곳이 없어요' in rec['note'] and rec['skip']['allowed']
 
 
-def test_later_place_also_late_blocks_candidates_but_skip_fits(pool):
-    """문제 장소가 여럿: B 를 바꿔도 뒤 C 가 영업 종료를 넘기면 그 후보는 내지 않는다. B 를 빼면 C 에 일찍 닿아 맞는다."""
-    plan = course(rows=stops(c_hours=[0, hm('17:50')]))
+# --- 묶음 후보: 바꿔도 뒤 장소 한 곳이 또 늦으면 그 장소까지 함께 처리한 안 ---
+LATE_WALK = place('w1', '늦게까지 여는 산책길', '산책·풍경', [0, 1440], 45, dlat=0.0031)
+LATE_C = dict(c_hours=[0, hm('17:50')])  # B 를 바꿔도 C 산책이 영업 종료(17:50)를 넘긴다
+
+
+def test_later_place_also_late_is_bundled_with_a_same_kind_replacement(pool):
+    """문제 장소가 여럿: B 를 바꿔도 뒤 C 가 영업 종료를 넘기면, C 도 같은 종류의 다른 곳으로 함께 바꾼 안을 낸다."""
+    pool.append(LATE_WALK)
+    plan = course(rows=stops(**LATE_C))
     rec = delay_recovery.recovery_for(plan, delay_check(plan, 0, 40))
-    assert rec['index'] == 1 and rec['options'] == []
-    assert 'C 산책에서 영업 종료(17:50)' in rec['note']
+    assert rec['index'] == 1 and rec['options']
+    first = rec['options'][0]
+    assert first['id'] == NEAR['id']
+    also = first['also']
+    assert (also['index'], also['place'], also['action'], also['id'], also['name']) == (2, 'C 산책', 'replace', LATE_WALK['id'], LATE_WALK['name'])
+    assert 'C 산책에서 영업 종료(17:50)' in also['text'] and '늦게까지 여는 산책길' in also['text'] and '함께 바꿔요' in also['text']
+    # 한 곳만 바꿔서 되는 후보가 없을 때만 묶음을 낸다 — 모든 후보에 also 가 있다.
+    assert all(o.get('also') for o in rec['options'])
     assert rec['skip']['allowed']
+
+
+def test_bundle_skips_the_later_place_when_no_same_kind_place_fits(pool):
+    """뒤 장소와 같은 종류의 다른 곳이 없으면 그 장소를 함께 뺀 안."""
+    plan = course(rows=stops(**LATE_C))
+    rec = delay_recovery.recovery_for(plan, delay_check(plan, 0, 40))
+    also = rec['options'][0]['also']
+    assert (also['index'], also['action'], also['id'], also['name']) == (2, 'skip', None, None)
+    assert 'C 산책에서 영업 종료(17:50)' in also['text'] and '함께 빼요' in also['text']
+    assert rec['options'][0]['finish'] == rec['options'][0]['departure']  # B 대신 간 곳이 마지막 장소가 된다
+
+
+def test_plain_candidates_are_not_bundled(pool):
+    """한 곳만 바꿔서 맞는 후보가 있으면 예전과 같다(also 없음)."""
+    pool.append(LATE_WALK)
+    rec = delay_recovery.recovery_for(course(), delay_check(course(), 0, 40))
+    assert rec['options'] and not any(o.get('also') for o in rec['options'])
+
+
+def test_no_bundle_when_the_later_place_is_locked_or_reserved(pool):
+    pool.append(LATE_WALK)
+    locked = course(conditions(locked={2: 'fixture:c'}), stops(**LATE_C))
+    rec = delay_recovery.recovery_for(locked, delay_check(locked, 0, 40))
+    assert rec['options'] == [] and 'C 산책에서 영업 종료(17:50)' in rec['note']
+    rows = stops(**LATE_C)
+    rows[2]['reservation'] = True
+    reserved = course(rows=rows)
+    rec = delay_recovery.recovery_for(reserved, delay_check(reserved, 0, 40))
+    assert rec['options'] == [] and 'C 산책에서 영업 종료(17:50)' in rec['note']
+
+
+def test_bundle_handles_only_one_later_place(pool):
+    """함께 처리하는 뒤 장소는 한 곳까지. C 를 다른 곳으로 바꾸면 그 뒤 D 전시가 또 늦으므로(D 까지 바꾸지는 않는다) 그 안은 버리고,
+    C 를 빼서 D 에 일찍 닿는 안을 낸다."""
+    pool.append(LATE_WALK)
+    rows = stops(**LATE_C) + [place('d', 'D 전시', '문화·예술', [hm('10:00'), hm('19:00')], 60, dlat=0.004)]
+    plan = course(conditions(count=4), rows)
+    rec = delay_recovery.recovery_for(plan, delay_check(plan, 0, 40))
+    also = rec['options'][0]['also']
+    assert (also['index'], also['place'], also['action']) == (2, 'C 산책', 'skip')
+    _, plans, _ = delay_recovery._recover(plan, delay_check(plan, 0, 40))
+    assert [p['name'] for p in plans[NEAR['id']]['places']] == ['A 전시', '가까운 늦은 카페', 'D 전시']
+
+
+def test_ro_particle_follows_the_final_consonant():
+    assert [delay_recovery._ro(w) for w in ('산책길', '카페', '박물관', 'Cafe 7')] == ['로', '로', '으로', '(으)로']
+
+
+def test_bundle_saves_both_changes_in_one_course(pool):
+    pool.append(LATE_WALK)
+    with TestClient(app) as client:
+        stored = saved(client, course(rows=stops(**LATE_C)))
+        response = recover(client, stored, replacement_id=NEAR['id'])
+        assert response.status_code == 200, response.text
+        new = response.json()
+        assert [p['id'] for p in new['places']] == [stored['places'][0]['id'], NEAR['id'], LATE_WALK['id']]
+        record = new['delay_recovery']
+        assert record['delays'] == {'0': 40} and record['action'] == 'replace'
+        assert record['also'] == dict(place='C 산책', action='replace', replacement=LATE_WALK['name'])
+        assert 'B 카페를 가까운 늦은 카페로 바꾸고 C 산책을 늦게까지 여는 산책길로 바꾸고' in new['change_reason']
+        # 저장한 코스는 지연을 넣고도 문제가 없다.
+        again = client.get(f"/api/plans/{new['id']}/delay-check", params=dict(index=0, minutes=0)).json()
+        assert again['status'] == 'ok' and again['carried'] == 40
+        # 되돌리기 한 번으로 두 곳 모두 원래대로.
+        assert client.post(f"/api/plans/{new['id']}/undo").json()['id'] == stored['id']
+
+
+def test_bundle_with_a_skip_saves_two_places(pool):
+    with TestClient(app) as client:
+        stored = saved(client, course(rows=stops(**LATE_C)))
+        new = recover(client, stored, replacement_id=NEAR['id']).json()
+        assert [p['id'] for p in new['places']] == [stored['places'][0]['id'], NEAR['id']]
+        assert new['delay_recovery']['also'] == dict(place='C 산책', action='skip', replacement=None)
+        assert 'B 카페를 가까운 늦은 카페로 바꾸고 C 산책을 빼고' in new['change_reason']
 
 
 def test_first_place_is_the_problem(pool):
@@ -253,7 +339,7 @@ def test_transport_change_keeps_the_delay(pool):
         assert response.status_code == 200, response.text
         changed = response.json()
         # 기록은 그대로 이어지고, 이 코스가 수단 변경으로 만들어졌다는 표시(kept)만 붙는다(되돌리기 단추 문구용).
-        assert changed['delay_recovery'] == dict(new['delay_recovery'], kept=True) and changed['delay_recovery']['delays'] == {'0': 40}
+        assert changed['delay_recovery'] == dict(new['delay_recovery'], kept='transport') and changed['delay_recovery']['delays'] == {'0': 40}
         assert 'kept' not in new['delay_recovery']
         # 첫 장소 도착 = 새 수단으로 지연 없이 계산한 도착 + 40분.
         plain, error = evaluate(changed['places'], Conditions.model_validate(changed['conditions']), soft=True)
@@ -276,14 +362,67 @@ def test_transport_change_without_a_delay_record_is_unchanged(pool):
         assert 'delay_recovery' not in changed and '지연' not in changed['change_reason']
 
 
-def test_place_change_still_drops_the_delay_record(pool):
-    # 장소를 바꾸는 변경은 시간표를 지연 없이 다시 계산하므로 기록을 이어받지 않는다(장소 번호도 달라질 수 있다).
+def test_change_that_does_not_carry_the_delay_drops_the_record(pool):
+    # 지연을 넣어 다시 계산했다고 알려 주지 않은 변경(recovery 없음 — 예: 식사 추가·합의 코스)은 기록을 이어받지 않는다.
     from app.plan_changes import save_change
     with TestClient(app) as client:
         stored = saved(client, course())
         new = recover(client, stored, replacement_id=NEAR['id']).json()
         owner = store.owner_of(client.cookies['dm_session'])
         assert 'delay_recovery' not in save_change(copy.deepcopy(new), new, owner)
+
+
+# C 산책과 같은 자리의 다른 장소(이동 시간이 같아 끝나는 시각도 같다).
+OTHER_WALK = place('w2', '다른 산책길', '산책·풍경', [0, 1440], 45, dlat=0.003)
+
+
+def test_place_replacement_keeps_the_delay(pool, monkeypatch):
+    # 지각을 반영해 고친 코스에서 다른 장소를 바꿔도 지연은 그대로다(예전에는 후보·저장 모두 '늦지 않은' 시간표로 돌아갔다).
+    from app import planner
+    monkeypatch.setattr(planner, 'candidates', lambda c: copy.deepcopy([OTHER_WALK]))
+    with TestClient(app) as client:
+        stored = saved(client, course())
+        new = recover(client, stored, replacement_id=NEAR['id']).json()
+        listed = client.post(f"/api/plans/{new['id']}/alternatives", json={'index': 2, 'locked': []})
+        assert listed.status_code == 200, listed.text
+        option = listed.json()['alternatives'][0]
+        # 후보의 시간표부터 지연이 들어 있다(첫 장소 도착이 복구한 코스와 같다).
+        assert option['timeline'][0] == new['timeline'][0] and option['timeline'][1] == new['timeline'][1]
+        assert '앞서 반영한 40분 지연은 그대로 뒀어요' in option['change_reason']
+        response = client.post(f"/api/plans/{new['id']}/replace", json={'index': 2, 'locked': [], 'replacement_id': OTHER_WALK['id']})
+        assert response.status_code == 200, response.text
+        changed = response.json()
+        assert changed['places'][2]['id'] == OTHER_WALK['id'] and changed['timeline'][:2] == new['timeline'][:2]
+        assert changed['delay_recovery'] == dict(new['delay_recovery'], kept='place')
+        again = client.get(f"/api/plans/{changed['id']}/delay-check", params=dict(index=0, minutes=0)).json()
+        assert again['status'] == 'ok' and again['carried'] == 40
+        assert client.post(f"/api/plans/{changed['id']}/undo").json()['id'] == new['id']
+
+
+def test_replacement_is_offered_when_the_delay_already_passed_the_end_time(pool, monkeypatch):
+    # 지각 탓에 이미 정한 종료 시각을 넘긴 코스: 지금보다 늦게 끝나지 않는 후보는 낸다(종료 시각 때문에 후보가 0곳이 되지 않게).
+    from app import planner
+    monkeypatch.setattr(planner, 'candidates', lambda c: copy.deepcopy([OTHER_WALK]))
+    with TestClient(app) as client:
+        stored = saved(client, course(conditions(end='18:20')))
+        new = recover(client, stored, replacement_id=NEAR['id']).json()
+        assert minutes(new['finish']) > minutes('18:20')
+        options = client.post(f"/api/plans/{new['id']}/alternatives", json={'index': 2, 'locked': []}).json()['alternatives']
+        assert [o['places'][2]['id'] for o in options] == [OTHER_WALK['id']]
+        assert options[0]['finish'] == new['finish'] and options[0]['conditions']['end'] == '18:20'
+        changed = client.post(f"/api/plans/{new['id']}/replace", json={'index': 2, 'locked': [], 'replacement_id': OTHER_WALK['id']}).json()
+        assert changed['conditions']['end'] == '18:20' and changed['finish'] == new['finish']
+
+
+def test_replacement_without_a_delay_record_is_unchanged(monkeypatch):
+    from app import planner
+    monkeypatch.setattr(planner, 'candidates', lambda c: copy.deepcopy([OTHER_WALK]))
+    with TestClient(app) as client:
+        stored = saved(client, course())
+        option = client.post(f"/api/plans/{stored['id']}/alternatives", json={'index': 2, 'locked': []}).json()['alternatives'][0]
+        assert option['timeline'][:2] == stored['timeline'][:2] and '지연' not in option['change_reason']
+        changed = client.post(f"/api/plans/{stored['id']}/replace", json={'index': 2, 'locked': [], 'replacement_id': OTHER_WALK['id']}).json()
+        assert 'delay_recovery' not in changed
 
 
 def test_second_recovery_on_a_recovered_course_adds_to_the_saved_delay(pool):

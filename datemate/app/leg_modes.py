@@ -294,9 +294,8 @@ def apply_change(plan, prepared):
                             cost=[updated['total'][i] - plan['total'][i] for i in (0, 1)],
                             total_before=list(plan['total']))
     updated['change_reason'] = '이동 수단을 바꿔 이동·시간·비용을 다시 계산했어요.'
-    if delays:
-        # 가장 큰 지연 하나만 적는다(기록은 보통 한 장소뿐이고, 여러 번 복구하면 같은 장소에 더해진다).
-        updated['change_reason'] += f' 앞서 반영한 {max(delays.values())}분 지연은 그대로 뒀어요.'
+    from .delay_check import kept_note
+    updated['change_reason'] += kept_note(plan)  # 지연 기록이 없으면 빈 글
     # 수단을 바꿔 축제가 새로 들어갔으면(예: 빨라져 운영 시간에 맞음) 말없이 넣지 않고 알린다. 빠지거나 옮겨지는 변경은 위에서 이미 거절했다.
     from .festival_time import set_change_note
     set_change_note(updated, plan)

@@ -1,6 +1,7 @@
 import hashlib
 import json
 import sqlite3
+import threading
 import time
 import uuid
 from .config import RUNTIME
@@ -193,6 +194,27 @@ def plan_payload(plan):
     return payload
 
 
+# 코스 저장 시각은 이 프로세스 안에서 반드시 늘어난다(같은 값이 두 번 나오지 않는다).
+# - 왜: 'created 순서'로 최근 추천과 한 번 추천의 첫 안을 가리는 코드가 있다(app/fresh_place.familiar_groups 의 ORDER BY created DESC).
+#   추천 한 번은 코스 여러 개를 곧바로 이어서 저장하는데, 시계 눈금이 굵은 환경(Windows)에서는 time.time() 이 같은 값을 돌려줘
+#   정렬 순서가 실행마다 달라졌다(2026-11-23, test_familiar_groups_count_recent_runs 가 전체 실행에서 가끔 실패).
+# - 어떻게: 직전 값보다 크지 않으면 100만분의 1초를 더한다. 지금 시각(약 1.8e9 초)의 배정밀도 눈금은 약 2.4e-7 초라 1e-6 은 구별된다.
+#   이 값을 줄이려면 그 눈금보다 크게 둘 것.
+# - 하지 않은 것: 여러 프로세스·여러 컨테이너 사이의 순서 보장(운영은 컨테이너 하나, 프로세스 하나). 다른 테이블의 created 는 그대로 time.time().
+_created_lock = threading.Lock()
+_last_created = 0.0
+
+
+def next_created():
+    global _last_created
+    with _created_lock:
+        now = time.time()
+        if now <= _last_created:
+            now = _last_created + 1e-6
+        _last_created = now
+        return now
+
+
 def save_plan(plan, owner, parent=None):
     plan = dict(plan, id=uuid.uuid4().hex, parent=parent)
     plan["aggregate_key"] = aggregate_key([p["id"] for p in plan["places"]])
@@ -206,7 +228,7 @@ def save_plan(plan, owner, parent=None):
                 parent,
                 plan["aggregate_key"],
                 payload,
-                time.time(),
+                next_created(),
             ),
         )
     return plan

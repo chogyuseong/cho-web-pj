@@ -248,9 +248,19 @@ def options(plan, index, locked, discover=False, diagnostics=None):
         from .festival_time import set_change_note
         from .leg_modes import middle_after
 
+        # 지각을 반영한 코스는 그 지연을 다시 넣는다(planner.replacements 와 같은 규칙, app/delay_check.py 도우미).
+        from .delay_check import carried_delays, delayed_conditions, kept_note
+
+        ec = delayed_conditions(plan, c)
         updated, error = evaluate(
-            chosen, c, soft=bool(plan.get("best_effort")), festival_hint=middle_after(plan)
+            chosen,
+            ec,
+            soft=bool(plan.get("best_effort")),
+            festival_hint=middle_after(plan),
+            delays=carried_delays(plan) or None,
         )
+        if not error and ec is not c:
+            updated["conditions"]["end"] = c.end
         if error:
             reject(info, [error])
             continue
@@ -269,7 +279,7 @@ def options(plan, index, locked, discover=False, diagnostics=None):
         updated["delta"] = change_delta(plan, updated)
         set_change_note(updated, plan)
         updated["change_reason"] = (
-            "선택한 레저로 이 장소만 교체하고 이동·시간·비용을 다시 계산했어요."
+            "선택한 레저로 이 장소만 교체하고 이동·시간·비용을 다시 계산했어요." + kept_note(plan)
         )
         if plan.get("course_search"):
             updated["course_search"] = plan["course_search"]

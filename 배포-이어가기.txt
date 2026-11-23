@@ -7,7 +7,12 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
-진행 중(2026-11-24, 이 줄이 남아 있으면 아래 작업이 끝나지 않은 것): 전체 점검 docs/reviews/2026-11-24-full-review.md 의 수정을 세 브랜치로 동시 진행.
+여든세 번째 배포(2026-11-24) 완료: 전체 점검 docs/reviews/2026-11-24-full-review.md 의 수정을 세 브랜치로 동시 진행해 모두 병합·배포·운영 확인.
+  · 운영 확인(요청 없이 14분 뒤 한 번): /api/status 200, /static/plan-actions.js 에 runPlanChange, /static/action-card.js 가 빈 체크도 저장(removeItem 없음).
+    main 병합 뒤 CI Run 45222147820 5개 성공(sqlite·postgres 포함). 보지 못한 것(테스트로만): 실제 화면에서 지각 재확인·빼고 진행 뒤 교체·되돌린 뒤 공유 줄·제보 3곳 기준·IP 동시 2개.
+  · 정리: 작업 worktree 3개와 브랜치 fix/abuse-limits·fix/delay-and-place-count·fix/share-and-action-card(로컬·원격) 삭제.
+  · 다음 후보: 점검 보고서의 남은 것 — S4(공유 의견 자리 점유), A5(자정 넘김 표기), F4(식사·합의 미리보기 축제 변화 안내), F5(한 곳씩 크게 보기가 축제 건너뜀), F6~F10.
+  아래는 진행 당시 기록:
   fix/delay-and-place-count(A1~A4, 지연 이어 가기 한 곳으로), fix/share-and-action-card(F1~F3), fix/abuse-limits(S1 서로 다른 3명·30일 만료·본인은 바로,
   S2 IP당 추천 동시 2개, S3 미리보기·적용 5경로를 EXPENSIVE 에). 사용자 '모든 권한 … 배포-이어하기·README 수정 후 커밋 푸쉬 … 컴퓨터 종료'.
   이어서 할 일: 각 브랜치 CI 확인 → main 병합 → npm run test:security → wrangler deploy → 14분 뒤 운영 확인 → 이 기록 정리.

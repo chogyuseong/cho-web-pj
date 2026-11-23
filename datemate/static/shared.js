@@ -41,7 +41,8 @@ function link(text,url){
     if(visit&&!last&&middle===null)festivalBlock();
     for(const [index,place] of places.entries()){
       const article=document.createElement('article'),title=document.createElement('h2'),text=document.createElement('p'),label=document.createElement('label'),select=document.createElement('select');
-      title.textContent=place.name;text.textContent=`${place.arrival} ~ ${place.departure} · ${place.address}`;
+      title.textContent=place.name;// 주소가 없는 장소는 시각만 적는다(예전에는 '14:26 ~ 15:26 · null' 로 보였다). 서버도 빈 글로 보내지만(app/sharing.py) 옛 응답·캐시에 대비해 여기서도 거른다.
+      text.textContent=`${place.arrival} ~ ${place.departure}`+(place.address?` · ${place.address}`:'');
       label.textContent=place.name+'에 대한 의견';select.name=place.id;
       for(const [value,title] of [['','아직 안 정했어요'],['neutral','상관없어요'],['yes','좋아요'],['must','꼭 가고 싶어요'],['no','빼주세요']])select.add(new Option(title,value));
       select.value=data.my_choices?.[place.id]||'';

@@ -83,9 +83,21 @@ EXPENSIVE = [re.compile(pattern) for pattern in (
     r'^GET /api/explore(?:/naver)?$', r'^GET /api/festivals(?:/[^/]+/detail)?$', r'^GET /api/popups$',
     r'^GET /api/places/[^/]+/(?:media|blogs|menu|review-facts|identity)$',
     r'^POST /api/plans/[^/]+/(?:leisure-options|alternatives|replace|transport|reorder)$',
+    # 코스를 다시 계산하는 미리보기·적용(길찾기를 다시 부를 수 있음, 2026-11-24 검토 S3).
+    r'^POST /api/plans/[^/]+/(?:agreement-preview|meal-preview|delay-recovery|leisure-select|draft-apply)$',
     r'^GET /api/plans/[^/]+/(?:restaurants|restaurant-matches|meal-rescue|parking)$',
     r'^POST /api/chat/[^/]+/[^/]+$',
 )]
+
+
+# 추천(planner.recommend)을 통째로 다시 돌리는 경로. 새 추천과 같은 분당 추천 한도(app/execution.reserve_recommendation)를 쓴다.
+# 소유자를 알아야 하므로 미들웨어가 코스 주인을 확인한 뒤 센다(app/main.py).
+RECOMMENDING = [re.compile(r'^POST /api/plans/[^/]+/agreement-preview$')]
+
+
+def recommending(request):
+    route = f'{request.method} {request.url.path}'
+    return any(pattern.match(route) for pattern in RECOMMENDING)
 
 
 def expensive_budget(request, key):

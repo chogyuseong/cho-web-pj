@@ -17,7 +17,8 @@ def feedback_exclusions(owner):
 
 def verification_summary(plan):
     from .data_quality import place_coverage,plan_coverage
-    with store.connect() as db:pending={r[0] for r in db.execute('SELECT DISTINCT place_id FROM place_reports WHERE resolved=0')}
+    from .place_reports import pending_place_ids
+    pending=pending_place_ids()
     rows=[]
     for p in plan['places']:
         source=operating_source_current(p)

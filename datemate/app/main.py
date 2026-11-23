@@ -37,6 +37,7 @@ from .taxonomy import DATE_CATEGORIES
 from .media import media_info
 from .blog_search import place_blogs
 from .request_usage import bind_client, unbind_client
+from .execution import RECOMMENDATION_LIMIT_MESSAGE, reserve_recommendation
 from .static_pages import versioned_page
 
 # Provider keys (e.g. the tourism API key) travel in URL queries; httpx logs request
@@ -273,6 +274,15 @@ async def safety(request: Request, call_next):
                 response = JSONResponse(
                     {"detail": "일정을 찾을 수 없습니다. 공유 링크로 접속해 주세요."},
                     status_code=404,
+                )
+            elif web_security.recommending(request) and not await run_in_threadpool(
+                reserve_recommendation, owner
+            ):
+                # 추천을 통째로 다시 돌리는 경로(합의 코스 미리보기)는 새 추천과 같은 분당 한도를 쓴다.
+                response = JSONResponse(
+                    {"detail": RECOMMENDATION_LIMIT_MESSAGE},
+                    status_code=429,
+                    headers={"Retry-After": "60"},
                 )
             else:
                 response = await call_next(request)

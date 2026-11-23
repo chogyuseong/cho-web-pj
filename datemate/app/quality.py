@@ -64,8 +64,9 @@ def pool(c):
     from .preferences import operating_source_current
     from .request_intent import intent,matches
     denied=intent(c)['excluded']
-    from . import store
-    with store.connect() as db:pending={r[0] for r in db.execute('SELECT DISTINCT place_id FROM place_reports WHERE resolved=0')}
+    # 제보 확인 대기: 서로 다른 브라우저 3곳 이상(30일 안)이거나 지금 사용자 본인이 제보한 장소(app/place_reports.py).
+    from .place_reports import pending_place_ids
+    pending=pending_place_ids()
     excluded=[p for p in rows if p['id'] in c.excluded_place_ids]
     return list({p['id']:dict(p,price_unit=p.get('price_unit') or 'person',meal=is_meal(p),report_pending=p['id'] in pending) for p in rows if same_region(p,c.region) and in_area(p,c) and not any(matches(p,k) for k in denied) and p['id'] not in c.excluded_place_ids and not any(same_place(p,other) for other in excluded) and (c.trust_mode!='operating_sources' or operating_source_current(p) and p['id'] not in pending)}.values())
 

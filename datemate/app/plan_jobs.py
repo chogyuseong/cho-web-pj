@@ -18,6 +18,8 @@ from threading import Lock
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from .models import Conditions
+from .request_usage import client_range
+from .web_security import limit
 
 router = APIRouter()
 _jobs = {}
@@ -54,6 +56,7 @@ def _persist(key):
     job = dict(_jobs[key])
     job.pop("started", None)
     job.pop("finished", None)
+    job.pop("client", None)
     job["heartbeat"] = time.time()
     with store.connect() as db:
         db.execute("BEGIN IMMEDIATE")
@@ -187,6 +190,15 @@ def start(data: Conditions, request: Request):
                 if j.get("fingerprint") == fingerprint:
                     return {"id": key}
                 raise HTTPException(429, "이미 코스를 찾고 있어요. 잠시 기다려 주세요.")
+        # 한 IP 범위(web_security.client_key: IPv4 주소·IPv6 /64)가 쿠키를 바꿔 가며 전역 6자리를 다 차지하지 못하게,
+        # 범위당 진행 중 작업도 센다(docs/reviews/2026-11-24-full-review.md S2). 요청 밖(스크립트)에는 범위가 없다.
+        client = client_range()
+        if client and sum(
+            j["status"] == "running" and j.get("client") == client for j in _jobs.values()
+        ) >= limit("DATEMATE_IP_CONCURRENT_PLAN_JOBS", 2):
+            raise HTTPException(
+                429, "같은 곳에서 진행 중인 검색이 많아요. 앞의 검색이 끝난 뒤 다시 시도해 주세요."
+            )
         if sum(j["status"] == "running" for j in _jobs.values()) >= 6:
             raise HTTPException(429, "검색 요청이 많아요. 잠시 후 다시 시도해 주세요.")
         # 끝난 작업은 DB 에도 저장돼 있으므로(_persist) 메모리가 100개에 차면 오래 끝난 것부터 비운다.
@@ -227,7 +239,8 @@ def start(data: Conditions, request: Request):
                     _write(db, row["key"].removeprefix("plan-job:"), previous)
             job["id"] = key
             _write(db, key, job)
-        _jobs[key] = dict(job, started=now)
+        # client(해시한 IP 범위)는 이 인스턴스 메모리에만 둔다(_persist·poll 이 빼고 저장·응답).
+        _jobs[key] = dict(job, started=now, client=client)
     # Carry the request context (the caller's IP range) so limits and provider
     # budgets in the worker are charged to the person who started the search.
     _pool.submit(copy_context().run, _run, key, data, owner)
@@ -284,7 +297,16 @@ def poll(key: str, request: Request):
         return {
             k: v
             for k, v in job.items()
-            if k not in ("owner", "finished", "started", "fingerprint", "heartbeat", "deadline")
+            if k
+            not in (
+                "owner",
+                "finished",
+                "started",
+                "fingerprint",
+                "heartbeat",
+                "deadline",
+                "client",
+            )
         }
 
 

@@ -58,6 +58,26 @@ def test_familiar_groups_count_recent_runs():
         assert groups == ['카페', '보기', '쉬기']
 
 
+def test_plans_saved_in_the_same_instant_keep_their_order(monkeypatch):
+    """시계가 멈춘 것처럼 같은 시각이 나와도(Windows 의 굵은 시계 눈금, 빠른 연속 저장) 저장 순서가 created 에 남아야 한다.
+    '최근 5번'과 '한 번 추천의 첫 안'은 created 순서로 정하므로, 같은 값이 섞이면 결과가 실행마다 달라졌다
+    (2026-11-23 이 PC 전체 테스트에서 test_familiar_groups_count_recent_runs 가 가끔 실패하던 원인)."""
+    import time as real_time
+    from types import SimpleNamespace
+    frozen = real_time.time() + 5
+    monkeypatch.setattr(store, 'time', SimpleNamespace(time=lambda: frozen))
+    with TestClient(app):
+        who = owner()
+        run(who, ('카페', '하기', '하기'))
+        for i in range(5):
+            run(who, ('카페', '보기' if i < 2 else '쉬기' if i < 4 else '걷기'), ('하기', '하기'))
+        with store.connect() as db:
+            created = [row['created'] for row in db.execute('SELECT created FROM plans WHERE owner=?', (who,)).fetchall()]
+        # 11개(6번 추천: 1 + 5×2)가 모두 서로 다른 시각으로 저장된다.
+        assert len(created) == 11 and len(set(created)) == 11
+        assert familiar_groups(who, 'demo') == (['카페', '보기', '쉬기'], 'history')
+
+
 def test_one_run_counts_its_first_option_not_every_option():
     """한 번 추천에 일부러 서로 다르게 고른 3안이 저장된다. 그 셋을 다 세면 거의 모든 종류가 익숙해진다(검토 지적)."""
     with TestClient(app):

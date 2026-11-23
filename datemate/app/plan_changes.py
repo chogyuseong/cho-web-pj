@@ -24,8 +24,9 @@ def change_delta(before, after):
 
 def save_change(plan, original, owner, recovery=None):
     """recovery: 지각 복구 기록(app/delay_recovery.py). 주면 그 기록을 붙이고, 지연을 반영해 짠 시간표를
-    자동차 길찾기 재조회로 덮지 않는다(새 외부 호출 없음). 수단 바꾸기(app/main.py transport)도 지연을 넣어 다시 계산한 뒤
-    같은 기록을 넘긴다. 장소를 바꾸는 변경은 시간표를 지연 없이 다시 계산하므로 바꾸기 전 코스의 지각 기록을 이어받지 않는다."""
+    자동차 길찾기 재조회로 덮지 않는다(새 외부 호출 없음). 수단 바꾸기·장소 바꾸기·레저 교체(app/main.py)는 지연을 넣어 다시 계산한 뒤
+    kept 표시를 붙인 같은 기록을 넘긴다(delay_check.kept_record). recovery 없이 부르는 변경(식사 추가·합의 코스 등 장소 번호가
+    달라질 수 있는 것)은 시간표를 지연 없이 다시 계산하므로 바꾸기 전 코스의 지각 기록을 이어받지 않는다."""
     from .condition_audit import audit_plan
     from .preferences import hard_blocks
     from .experience import verification_summary
@@ -46,18 +47,27 @@ def save_change(plan, original, owner, recovery=None):
         kept = [m for m in conditions.leg_modes if (m.from_, m.to) in current]
         conditions = conditions.model_copy(update={"leg_modes": kept})
         updated["conditions"]["leg_modes"] = [m.model_dump() for m in kept]
-    if moved and conditions.mode == "real" and uses_car(conditions) and not recovery:
+    # 자동차 실제 길찾기 재확인: 지각 복구 자체(recovery 에 kept 없음)는 새 외부 호출을 하지 않으므로 건너뛴다.
+    # 지연을 이어 가는 장소 변경(kept='place')은 재확인하되, 같은 지연과 같은 종료 허용(delayed_conditions)을 넣어 다시 계산한다
+    # — 넣지 않으면 재확인이 지연을 지운 시간표로 덮는다.
+    kept = bool(recovery and recovery.get("kept"))
+    if moved and conditions.mode == "real" and uses_car(conditions) and (not recovery or kept):
         # 후보를 만들 때 정한 중간 축제 자리를 먼저 둔다(planner.evaluate festival_hint): 자리가 옮겨지지 않고,
         # 쓰지 않을 구간(장소 i → i+1, 마지막 장소 → 행사장)의 실제 길찾기 조회가 생기지 않는다.
+        from .delay_check import carried_delays, delayed_conditions
         from .leg_modes import middle_after
 
+        check_conditions = delayed_conditions(original, conditions) if kept else conditions
         checked, error = evaluate(
             updated["places"],
-            conditions,
+            check_conditions,
             soft=bool(updated.get("best_effort")),
             verify_routes=True,
             festival_hint=middle_after(updated),
+            delays=(carried_delays(original) or None) if kept else None,
         )
+        if checked and check_conditions is not conditions:
+            checked["conditions"]["end"] = conditions.end  # 계산에만 늦춘 종료 시각을 원래 값으로
         if checked:
             # 축제 방문 기록은 다시 계산한 코스를 따른다(실제 길찾기로 축제 자리가 빠지거나 바뀌면 옛 기록이 남지 않게).
             updated.pop("festival_visit", None)

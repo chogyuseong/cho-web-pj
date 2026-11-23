@@ -784,9 +784,11 @@ def replace(id: str, data: ReplaceInput, request: Request):
     if hard_blocks(updated):
         raise HTTPException(409, "필수 조건을 충족하지 않아 교체할 수 없어요.")
     from .plan_changes import save_change
+    from .delay_check import kept_record
 
     try:
-        return save_change(updated, plan, request.state.owner)
+        # 지각을 반영한 코스에서 장소를 바꾸면 후보(planner.replacements)가 이미 그 지연을 넣어 계산돼 있다 — 기록을 이어 붙인다.
+        return save_change(updated, plan, request.state.owner, recovery=kept_record(plan, "place"))
     except ValueError as exc:
         raise HTTPException(409, str(exc))
 
@@ -847,9 +849,11 @@ def change_transport(id: str, data: TransportInput, request: Request):
     # 기록을 지우면 지각 확인(delay_check.carried_delay)이 '지연 없는 시각'으로 잘못 본다. 기록이 없으면 예전과 같다(None).
     from .delay_check import carried_delays
 
-    # kept=True: 이 코스는 '지각 반영'이 아니라 '수단 변경'으로 만들어졌다는 표시. 화면(static/plan-detail.js)의 되돌리기 단추가
+    # kept='transport': 이 코스는 '지각 반영'이 아니라 '수단 변경'으로 만들어졌다는 표시(delay_check.kept_record). 화면의 되돌리기 단추가
     # 다시 열었을 때도 '수단 변경 되돌리기'로 보이게 한다(되돌리면 지각을 반영한 바로 앞 코스로 간다 — 지연은 남는다).
-    record = dict(plan["delay_recovery"], kept=True) if carried_delays(plan) else None
+    from .delay_check import kept_record
+
+    record = kept_record(plan, "transport")
     try:
         saved = save_change(updated, plan, request.state.owner, recovery=record)
     except ValueError as exc:
@@ -1051,8 +1055,10 @@ def leisure_select(id: str, data: ReplaceInput, request: Request):
 
     enrich(updated)
     from .plan_changes import save_change
+    from .delay_check import kept_record
 
     try:
-        return save_change(updated, plan, request.state.owner)
+        # 레저 후보(leisure.options)도 지각을 반영한 코스의 지연을 넣어 계산돼 있다 — 기록을 이어 붙인다(장소 바꾸기와 같음).
+        return save_change(updated, plan, request.state.owner, recovery=kept_record(plan, "place"))
     except ValueError as exc:
         raise HTTPException(409, str(exc))

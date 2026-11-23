@@ -253,7 +253,7 @@ def test_transport_change_keeps_the_delay(pool):
         assert response.status_code == 200, response.text
         changed = response.json()
         # 기록은 그대로 이어지고, 이 코스가 수단 변경으로 만들어졌다는 표시(kept)만 붙는다(되돌리기 단추 문구용).
-        assert changed['delay_recovery'] == dict(new['delay_recovery'], kept=True) and changed['delay_recovery']['delays'] == {'0': 40}
+        assert changed['delay_recovery'] == dict(new['delay_recovery'], kept='transport') and changed['delay_recovery']['delays'] == {'0': 40}
         assert 'kept' not in new['delay_recovery']
         # 첫 장소 도착 = 새 수단으로 지연 없이 계산한 도착 + 40분.
         plain, error = evaluate(changed['places'], Conditions.model_validate(changed['conditions']), soft=True)
@@ -276,14 +276,67 @@ def test_transport_change_without_a_delay_record_is_unchanged(pool):
         assert 'delay_recovery' not in changed and '지연' not in changed['change_reason']
 
 
-def test_place_change_still_drops_the_delay_record(pool):
-    # 장소를 바꾸는 변경은 시간표를 지연 없이 다시 계산하므로 기록을 이어받지 않는다(장소 번호도 달라질 수 있다).
+def test_change_that_does_not_carry_the_delay_drops_the_record(pool):
+    # 지연을 넣어 다시 계산했다고 알려 주지 않은 변경(recovery 없음 — 예: 식사 추가·합의 코스)은 기록을 이어받지 않는다.
     from app.plan_changes import save_change
     with TestClient(app) as client:
         stored = saved(client, course())
         new = recover(client, stored, replacement_id=NEAR['id']).json()
         owner = store.owner_of(client.cookies['dm_session'])
         assert 'delay_recovery' not in save_change(copy.deepcopy(new), new, owner)
+
+
+# C 산책과 같은 자리의 다른 장소(이동 시간이 같아 끝나는 시각도 같다).
+OTHER_WALK = place('w2', '다른 산책길', '산책·풍경', [0, 1440], 45, dlat=0.003)
+
+
+def test_place_replacement_keeps_the_delay(pool, monkeypatch):
+    # 지각을 반영해 고친 코스에서 다른 장소를 바꿔도 지연은 그대로다(예전에는 후보·저장 모두 '늦지 않은' 시간표로 돌아갔다).
+    from app import planner
+    monkeypatch.setattr(planner, 'candidates', lambda c: copy.deepcopy([OTHER_WALK]))
+    with TestClient(app) as client:
+        stored = saved(client, course())
+        new = recover(client, stored, replacement_id=NEAR['id']).json()
+        listed = client.post(f"/api/plans/{new['id']}/alternatives", json={'index': 2, 'locked': []})
+        assert listed.status_code == 200, listed.text
+        option = listed.json()['alternatives'][0]
+        # 후보의 시간표부터 지연이 들어 있다(첫 장소 도착이 복구한 코스와 같다).
+        assert option['timeline'][0] == new['timeline'][0] and option['timeline'][1] == new['timeline'][1]
+        assert '앞서 반영한 40분 지연은 그대로 뒀어요' in option['change_reason']
+        response = client.post(f"/api/plans/{new['id']}/replace", json={'index': 2, 'locked': [], 'replacement_id': OTHER_WALK['id']})
+        assert response.status_code == 200, response.text
+        changed = response.json()
+        assert changed['places'][2]['id'] == OTHER_WALK['id'] and changed['timeline'][:2] == new['timeline'][:2]
+        assert changed['delay_recovery'] == dict(new['delay_recovery'], kept='place')
+        again = client.get(f"/api/plans/{changed['id']}/delay-check", params=dict(index=0, minutes=0)).json()
+        assert again['status'] == 'ok' and again['carried'] == 40
+        assert client.post(f"/api/plans/{changed['id']}/undo").json()['id'] == new['id']
+
+
+def test_replacement_is_offered_when_the_delay_already_passed_the_end_time(pool, monkeypatch):
+    # 지각 탓에 이미 정한 종료 시각을 넘긴 코스: 지금보다 늦게 끝나지 않는 후보는 낸다(종료 시각 때문에 후보가 0곳이 되지 않게).
+    from app import planner
+    monkeypatch.setattr(planner, 'candidates', lambda c: copy.deepcopy([OTHER_WALK]))
+    with TestClient(app) as client:
+        stored = saved(client, course(conditions(end='18:20')))
+        new = recover(client, stored, replacement_id=NEAR['id']).json()
+        assert minutes(new['finish']) > minutes('18:20')
+        options = client.post(f"/api/plans/{new['id']}/alternatives", json={'index': 2, 'locked': []}).json()['alternatives']
+        assert [o['places'][2]['id'] for o in options] == [OTHER_WALK['id']]
+        assert options[0]['finish'] == new['finish'] and options[0]['conditions']['end'] == '18:20'
+        changed = client.post(f"/api/plans/{new['id']}/replace", json={'index': 2, 'locked': [], 'replacement_id': OTHER_WALK['id']}).json()
+        assert changed['conditions']['end'] == '18:20' and changed['finish'] == new['finish']
+
+
+def test_replacement_without_a_delay_record_is_unchanged(monkeypatch):
+    from app import planner
+    monkeypatch.setattr(planner, 'candidates', lambda c: copy.deepcopy([OTHER_WALK]))
+    with TestClient(app) as client:
+        stored = saved(client, course())
+        option = client.post(f"/api/plans/{stored['id']}/alternatives", json={'index': 2, 'locked': []}).json()['alternatives'][0]
+        assert option['timeline'][:2] == stored['timeline'][:2] and '지연' not in option['change_reason']
+        changed = client.post(f"/api/plans/{stored['id']}/replace", json={'index': 2, 'locked': [], 'replacement_id': OTHER_WALK['id']}).json()
+        assert 'delay_recovery' not in changed
 
 
 def test_second_recovery_on_a_recovered_course_adds_to_the_saved_delay(pool):

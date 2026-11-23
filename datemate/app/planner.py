@@ -389,6 +389,11 @@ def replacements(plan,index,locked):
     from .quality import pool as quality_pool
     from .leg_modes import middle_after
     from .festival_time import set_change_note
+    # 지각을 반영해 저장한 코스(plan['delay_recovery'])는 그 지연을 다시 넣어 후보를 계산한다 — 넣지 않으면 후보의 시간표가 '늦지 않은 것'으로 돌아간다.
+    # 같은 자리의 장소만 바뀌므로 장소 번호로 적힌 지연이 그대로 맞는다. 이미 종료 시각을 넘긴 코스는 지금 끝나는 시각까지 허용(delayed_conditions).
+    # 지연 기록이 없는 코스는 delays=None·ec=c 라 예전과 똑같다. 저장할 때 기록을 이어 붙이는 것은 app/main.py replace.
+    from .delay_check import carried_delays,delayed_conditions,kept_note
+    delays=carried_delays(plan) or None;ec=delayed_conditions(plan,c)
     pool=quality_pool(c) if plan.get('best_effort') else candidates(c)
     for p in pool:
         if any(w.lower() in (p['name']+' '+p['category']+' '+' '.join(p['tags'])).lower() for w in c.avoid if w):continue
@@ -396,15 +401,16 @@ def replacements(plan,index,locked):
         chosen=list(plan['places']);chosen[index]=p
         if not plan.get('best_effort') and c.theme_mode=='focus' and len({x['category'] for x in chosen})>1:continue
         # 중간 축제는 되도록 원래 자리에 둔다(evaluate festival_hint). 그래도 자리가 바뀌거나 빠지는 후보는 고르기 전에 알린다(festival_change).
-        updated,error=evaluate(chosen,c,soft=bool(plan.get('best_effort')),festival_hint=middle_after(plan))
+        updated,error=evaluate(chosen,ec,soft=bool(plan.get('best_effort')),festival_hint=middle_after(plan),delays=delays)
         if not error:
+            if ec is not c:updated['conditions']['end']=c.end  # 계산에만 늦춘 종료 시각을 원래 값으로
             set_change_note(updated,plan)
             if plan.get('course_search'):updated['course_search']=plan['course_search']
             if plan.get('best_effort'):
                 from .best_effort import annotate
                 updated=annotate(updated,c)
             updated['delta']=dict(minutes=updated['minutes']-plan['minutes'],cost=[updated['total'][i]-plan['total'][i] for i in (0,1)],total_before=list(plan['total']))
-            updated['change_reason']='앞뒤 이동·시간·비용과 요청 조건 차이를 다시 계산했습니다.'
+            updated['change_reason']='앞뒤 이동·시간·비용과 요청 조건 차이를 다시 계산했습니다.'+kept_note(plan)
             alternatives.append(updated)
     if plan.get('best_effort'):alternatives.sort(key=lambda p:p['penalty'])
     from .condition_audit import audit_plan

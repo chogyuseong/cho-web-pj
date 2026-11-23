@@ -244,7 +244,13 @@ def options(plan, index, locked, discover=False, diagnostics=None):
     for meters, place, info in sorted(indoor + outdoor, key=lambda r: (r[0], r[1]["id"])):
         chosen = list(plan["places"])
         chosen[index] = place
-        updated, error = evaluate(chosen, c, soft=bool(plan.get("best_effort")))
+        # 중간 축제는 되도록 원래 자리에(planner.evaluate festival_hint). 달라지면 후보에 알림(festival_change).
+        from .festival_time import set_change_note
+        from .leg_modes import middle_after
+
+        updated, error = evaluate(
+            chosen, c, soft=bool(plan.get("best_effort")), festival_hint=middle_after(plan)
+        )
         if error:
             reject(info, [error])
             continue
@@ -261,6 +267,7 @@ def options(plan, index, locked, discover=False, diagnostics=None):
         from .plan_changes import change_delta
 
         updated["delta"] = change_delta(plan, updated)
+        set_change_note(updated, plan)
         updated["change_reason"] = (
             "선택한 레저로 이 장소만 교체하고 이동·시간·비용을 다시 계산했어요."
         )

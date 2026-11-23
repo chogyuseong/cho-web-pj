@@ -1003,6 +1003,8 @@ def leisure_options(id: str, data: ReplaceInput, request: Request):
                     "place": r["plan"]["places"][data.index],
                     "distance_m": r["distance_m"],
                     "delta": r["plan"]["delta"],
+                    # 이 레저로 바꾸면 축제 방문이 달라지는지(app/festival_time.change_note). 없으면 None.
+                    "festival_change": r["plan"].get("festival_change"),
                     "total": r["plan"]["total"],
                     "sport": r["sport"],
                 }

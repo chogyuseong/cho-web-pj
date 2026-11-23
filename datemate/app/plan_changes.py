@@ -47,8 +47,16 @@ def save_change(plan, original, owner, recovery=None):
         conditions = conditions.model_copy(update={"leg_modes": kept})
         updated["conditions"]["leg_modes"] = [m.model_dump() for m in kept]
     if moved and conditions.mode == "real" and uses_car(conditions) and not recovery:
+        # 후보를 만들 때 정한 중간 축제 자리를 먼저 둔다(planner.evaluate festival_hint): 자리가 옮겨지지 않고,
+        # 쓰지 않을 구간(장소 i → i+1, 마지막 장소 → 행사장)의 실제 길찾기 조회가 생기지 않는다.
+        from .leg_modes import middle_after
+
         checked, error = evaluate(
-            updated["places"], conditions, soft=bool(updated.get("best_effort")), verify_routes=True
+            updated["places"],
+            conditions,
+            soft=bool(updated.get("best_effort")),
+            verify_routes=True,
+            festival_hint=middle_after(updated),
         )
         if checked:
             # 축제 방문 기록은 다시 계산한 코스를 따른다(실제 길찾기로 축제 자리가 빠지거나 바뀌면 옛 기록이 남지 않게).
@@ -61,6 +69,10 @@ def save_change(plan, original, owner, recovery=None):
             updated["route_verification"] = (
                 "변경한 동선의 실제 경로 확인 실패 · 추정 동선입니다: " + str(error)
             )
+    # 바꾸기 전 코스와 견줘 축제 방문이 달라졌으면 안내를 싣는다(실제 길찾기 재확인 뒤의 최종 모양 기준).
+    from .festival_time import set_change_note
+
+    set_change_note(updated, original)
     updated = price_plans([updated])[0]
     updated = audit_plan(updated)
     if hard_blocks(updated):

@@ -247,11 +247,17 @@ def _research(data):
 
 def _verify_car_routes(data, plans):
     from .planner import evaluate
+    from .leg_modes import middle_after
     from .condition_audit import audit_plan
 
     for i, plan in enumerate(plans):
+        # 추정 구간으로 정한 중간 축제 자리를 먼저 둔다(planner.evaluate festival_hint) — 쓰지 않을 구간의 길찾기 조회를 줄인다.
         verified, error = evaluate(
-            plan["places"], data, soft=bool(plan.get("best_effort")), verify_routes=True
+            plan["places"],
+            data,
+            soft=bool(plan.get("best_effort")),
+            verify_routes=True,
+            festival_hint=middle_after(plan),
         )
         if verified:
             # 축제 방문 기록은 다시 계산한 코스를 따른다(실제 길찾기로 축제 자리가 빠지면 옛 기록이 남지 않게).

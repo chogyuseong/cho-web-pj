@@ -65,16 +65,25 @@ def route_leg(a,b,route_conditions,mode,verify_routes=False,route_fallback=False
 # 코스 중간 축제(festival_after)를 그 자리에 둘 수 없을 때 evaluate 가 돌려주는 까닭(수단 바꾸기·지각 복구가 알아본다).
 MIDDLE_MISS='축제 운영 시간 불일치'
 
-def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None,festival_after=None):
+def evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fallback=False,failure=None,delays=None,festival_after=None,festival_hint=None):
     """delays: {장소 번호: 분} — 그 장소에 원래 도착 예정보다 그만큼 늦게 닿는다고 보고 시간표를 짠다(지각 복구, app/delay_recovery.py).
     그 앞 장소의 시간표는 그대로이고, 뒤는 같은 규칙(visit_window·저녁 축제·귀가·종료)으로 이어서 계산한다. 없으면 예전과 같다.
 
     축제 배치(app/festival_time.py): 먼저 예전 규칙(맨 앞 고정 → 코스 끝)으로 짠다. 둘 다 아니고 축제 없이 짠 코스가 성공했으면
     장소 i 와 i+1 사이(코스 중간)를 앞에서부터 보고 처음 맞는 자리를 쓴다. 못 찾으면 축제 없는 예전 결과 그대로다.
-    festival_after=i 를 주면 다른 자리는 보지 않고 그 자리에만 두며, 못 두면 MIDDLE_MISS 로 실패한다(수단 바꾸기·지각 복구가 자리를 지킬 때)."""
+    festival_after=i 를 주면 다른 자리는 보지 않고 그 자리에만 두며, 못 두면 MIDDLE_MISS 로 실패한다(수단 바꾸기·지각 복구가 자리를 지킬 때).
+    festival_hint=i 는 '되도록 그 자리'다(2026-11-23 후속, 이미 중간 축제가 있는 코스를 다시 계산할 때 — 장소 바꾸기·자동차 실제 길찾기 재확인).
+    그 자리에 먼저 두어 보고, 맞으면 그대로 쓴다. 못 두면 실패하지 않고 아래의 예전 순서(맨 앞 → 끝 → 중간을 앞에서부터)로 다시 찾는다.
+    까닭 1: 자리가 맞는 한 축제가 다른 칸으로 옮겨지지 않는다. 까닭 2: 예전 순서는 축제 없는 코스·코스 끝을 먼저 실제 길찾기로 계산해
+    결국 쓰지 않는 구간(장소 i → i+1, 마지막 장소 → 행사장)을 조회한다 — 자리를 먼저 두면 그 조회가 생기지 않는다.
+    hint 가 장소 사이가 아니거나(None 포함) 맨 앞 고정 조건이면 _evaluate 가 바로 MIDDLE_MISS 를 돌려줘 외부 호출 없이 예전 순서로 넘어간다.
+    festival_after 와 함께 주면 festival_after 가 이긴다."""
     args=dict(partial=partial,soft=soft,verify_routes=verify_routes,route_fallback=route_fallback,delays=delays)
     if festival_after is not None:
         return _evaluate(selected,c,failure=failure,middle=festival_after,**args)
+    if festival_hint is not None and not partial:
+        kept,_=_evaluate(selected,c,middle=festival_hint,**args)
+        if kept:return kept,None
     plan,error=_evaluate(selected,c,failure=failure,**args)
     if error or partial or plan.get('festival_visit'):return plan,error
     for after in _middle_gaps(plan,selected,c,soft):
@@ -378,14 +387,18 @@ def replacements(plan,index,locked):
     if index in set(locked)|set(c.locked):raise ValueError('고정한 장소는 먼저 고정을 해제하세요.')
     alternatives=[]
     from .quality import pool as quality_pool
+    from .leg_modes import middle_after
+    from .festival_time import set_change_note
     pool=quality_pool(c) if plan.get('best_effort') else candidates(c)
     for p in pool:
         if any(w.lower() in (p['name']+' '+p['category']+' '+' '.join(p['tags'])).lower() for w in c.avoid if w):continue
         if p['id'] in {x['id'] for x in plan['places']}:continue
         chosen=list(plan['places']);chosen[index]=p
         if not plan.get('best_effort') and c.theme_mode=='focus' and len({x['category'] for x in chosen})>1:continue
-        updated,error=evaluate(chosen,c,soft=bool(plan.get('best_effort')))
+        # 중간 축제는 되도록 원래 자리에 둔다(evaluate festival_hint). 그래도 자리가 바뀌거나 빠지는 후보는 고르기 전에 알린다(festival_change).
+        updated,error=evaluate(chosen,c,soft=bool(plan.get('best_effort')),festival_hint=middle_after(plan))
         if not error:
+            set_change_note(updated,plan)
             if plan.get('course_search'):updated['course_search']=plan['course_search']
             if plan.get('best_effort'):
                 from .best_effort import annotate

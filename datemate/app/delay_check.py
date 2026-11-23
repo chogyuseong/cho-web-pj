@@ -42,6 +42,23 @@ def carried_delay(plan, index):
         return 0
 
 
+def carried_delays(plan):
+    """지각 복구로 저장한 코스가 이미 반영한 지연 전체 {장소 번호(int): 분}. 기록이 없거나 값이 이상하면 {}.
+    planner.evaluate(delays=…) 에 그대로 넘길 수 있는 모양이다. 수단 바꾸기(app/leg_modes.apply_change)가 시간표를 다시 짤 때
+    이 지연을 다시 넣어, 수단을 바꿨다고 지연이 말없이 사라지지 않게 한다(2026-11-23)."""
+    record = plan.get("delay_recovery")
+    delays = record.get("delays") if isinstance(record, dict) else None
+    out = {}
+    for key, value in (delays or {}).items():
+        try:
+            index, late = int(key), int(value)
+        except (TypeError, ValueError):
+            continue
+        if late > 0 and 0 <= index < len(plan.get("places") or []):
+            out[index] = late
+    return out
+
+
 def delay_check(plan, index, delay):
     c = Conditions.model_validate(plan["conditions"])
     places, legs, timeline = plan["places"], plan["legs"], plan["timeline"]

@@ -255,9 +255,14 @@ def apply_change(plan, prepared):
     # 실제 길찾기는 자동차 구간에만, 캐시를 먼저 보고, 이번 변경에서 자동차 구간 수(최대 6)까지만 부른다.
     # 코스 중간 축제는 같은 자리(앞 장소 번호)에만 두고 다시 계산한다. 그 자리에 못 두면 evaluate 가 실패한다(아래 blocked_message).
     after = middle_after(plan)
+    # 지각 복구로 저장한 코스(plan['delay_recovery'])는 그때 반영한 지연을 다시 넣어 계산한다. 넣지 않으면 수단만 바꿨는데
+    # 시간표가 '늦지 않은 것'으로 돌아가 틀린 시각을 믿게 된다. 지연은 '그 장소에 원래보다 N분 늦게 닿음'이라 수단과 무관하게 유효하다.
+    # 기록 자체는 저장할 때 이어 붙인다(app/main.py transport → plan_changes.save_change(recovery=…)). 장소를 바꾸는 변경은 이어받지 않는다.
+    from .delay_check import carried_delays
+    delays = carried_delays(plan)
     with measure(limit=min(MAX_ROUTE_CALLS, car_legs)) if verify else nullcontext():
         checked, error = evaluate(plan['places'], c, soft=True, verify_routes=verify, route_fallback=True, failure=failure,
-                                  festival_after=after)
+                                  festival_after=after, delays=delays or None)
     if error:
         raise Blocked(blocked_message(failure))
     # 코스 끝 저녁 축제가 새 수단으로는 운영 시간에 맞지 않으면(개막까지 너무 오래 기다리거나 종료를 넘김) planner 는 축제 없이 끝내거나
@@ -289,6 +294,9 @@ def apply_change(plan, prepared):
                             cost=[updated['total'][i] - plan['total'][i] for i in (0, 1)],
                             total_before=list(plan['total']))
     updated['change_reason'] = '이동 수단을 바꿔 이동·시간·비용을 다시 계산했어요.'
+    if delays:
+        # 가장 큰 지연 하나만 적는다(기록은 보통 한 장소뿐이고, 여러 번 복구하면 같은 장소에 더해진다).
+        updated['change_reason'] += f' 앞서 반영한 {max(delays.values())}분 지연은 그대로 뒀어요.'
     # 수단을 바꿔 축제가 새로 들어갔으면(예: 빨라져 운영 시간에 맞음) 말없이 넣지 않고 알린다. 빠지거나 옮겨지는 변경은 위에서 이미 거절했다.
     from .festival_time import set_change_note
     set_change_note(updated, plan)

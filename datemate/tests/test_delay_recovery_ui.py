@@ -4,7 +4,7 @@ import json
 from fastapi.testclient import TestClient
 
 from app.main import app
-from test_delay_recovery import NEAR, course, pool, saved  # noqa: F401  (pool: 후보 고정 장치)
+from test_delay_recovery import LATE_C, LATE_WALK, NEAR, course, pool, saved, stops  # noqa: F401  (pool: 후보 고정 장치)
 from test_functional_audit import audit_page, wait_for_selected_detail  # noqa: F401  (브라우저 고정 장치)
 
 NO_OVERFLOW = 'document.documentElement.scrollWidth<=document.documentElement.clientWidth'
@@ -109,3 +109,30 @@ def test_no_buttons_when_the_course_cannot_be_changed(audit_page):  # noqa: F811
     text = page.evaluate("""([data, plan])=>{const box=document.createElement('div');box.append(...delayCheckView(data, plan));
       return box.textContent;}""", [none, dict(id='p1', places=[])])
     assert '대체 후보 없음 — 이 동네 후보에 같은 종류(카페)의 다른 곳이 없어요.' in text
+
+
+def test_bundle_on_a_narrow_phone_changes_two_places_at_once(audit_page, pool):  # noqa: F811
+    """묶음 후보: B 를 바꿔도 뒤 C 가 또 늦으면 그 줄에 까닭과 함께 바꿀 곳을 적고, 단추 하나로 두 곳을 바꾼다."""
+    page, base, errors = audit_page
+    pool.append(LATE_WALK)
+    with TestClient(app) as client:
+        plan = saved(client, course(rows=stops(**LATE_C)))
+        owner = client.cookies['dm_session']
+    page.set_viewport_size({'width': 320, 'height': 700})
+    open_saved(page, base, plan, owner)
+    box = run_check(page)
+    block = box.locator('.delay-check-bad .delay-recovery')
+    block.wait_for()
+    first = block.locator('.delay-recovery-options li').first
+    also = first.locator('.delay-recovery-also').inner_text()
+    assert 'C 산책에서 영업 종료(17:50)' in also and '늦게까지 여는 산책길로 함께 바꿔요' in also
+    choose = first.get_by_role('button', name='B 카페 대신 가까운 늦은 카페로 바꾸기, C 산책은 늦게까지 여는 산책길로 함께 바꾸기')
+    assert choose.inner_text() == '두 곳 함께 바꾸기'
+    assert page.evaluate(NO_OVERFLOW)
+    choose.click()
+    page.wait_for_function('(id)=>selected?.parent===id', arg=plan['id'])
+    assert page.evaluate('selected.places.map(p=>p.name)') == ['A 전시', '가까운 늦은 카페', '늦게까지 여는 산책길']
+    notice = page.locator('#plan-detail .delay-recovery-notice').inner_text()
+    assert 'B 카페를 가까운 늦은 카페로 바꾸고 C 산책을 늦게까지 여는 산책길로 바꾸고' in notice
+    assert page.evaluate(NO_OVERFLOW)
+    assert not errors

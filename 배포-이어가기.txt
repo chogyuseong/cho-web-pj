@@ -7,6 +7,20 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
+배포 대기(아래 fix/plan-save-order 와 함께 한 번에): 브랜치 feat/delay-recovery-bundle — 지각 복구 묶음 후보·장소를 바꿔도 지연 유지·식사 추가 때 축제 자리.
+  설계: docs/superpowers/specs/2026-11-23-delay-recovery-bundle-design.md (사용자 '완성도 높은 방향으로 진행해'). 브랜치에 커밋 3개 + fix/plan-save-order 커밋 포함.
+  · ① 장소를 바꿔도 지연 유지: 지각을 반영한 코스에서 장소 바꾸기·레저 교체 후보가 '늦지 않은' 시간표로 돌아가던 것. planner.replacements·leisure.options 가
+    저장된 지연을 evaluate(delays=…)에 다시 넣고, app/main.py replace·leisure-select 가 기록을 kept='place' 로 이어 붙임(delay_check.kept_record).
+    이미 종료 시각을 넘긴 코스는 지금 끝나는 시각까지 허용(delayed_conditions — 안 그러면 후보 0곳). 자동차 재확인도 같은 지연으로. 안내 '앞서 반영한 N분 지연은 그대로 뒀어요.'
+    kept 값: 'transport'(수단)·'place'(장소), 80차의 True 는 'transport'. 되돌리기 단추: 수단 변경 / 지각 반영(kept 없음) / 교체.
+  · ② 식사 추가 때 중간 축제 자리: experience.meal_draft 가 festival_hint 를 넘김(끼워 넣은 자리가 축제 앞 장소 이하면 번호 +1, 같은 자리 교체는 그대로). 달라지면 festival_change.
+  · ③ 묶음 후보('여러 장소 한꺼번에 바꾸기'의 지각 복구 쪽): 한 곳만 바꿔서 맞는 후보가 하나도 없고 뒤 장소 한 곳이 또 늦을 때(영업 종료·마지막 입장),
+    그 장소까지 함께 처리한 안을 한 후보로 냄 — 같은 종류의 다른 곳으로 바꾸기(가까운 순 4곳)가 먼저, 안 되면 빼기. 한 곳까지만(세 곳은 안 함).
+    뒤 장소가 예약·고정이면 안 함. 후보에 also(무엇을 왜 함께 바꾸는지 — 서버가 쓴 글), 단추 '두 곳 함께 바꾸기'/'바꾸고 뒤 장소 빼기', 기록 delay_recovery.also.
+    새 코스 하나로 저장 → 되돌리기 한 번으로 두 곳 모두 원래대로. 외부 호출 없음. 장소 이름 뒤 '(으)로'는 ㄹ 받침이면 '로'(_ro — 예전 문장도 고침).
+  · 남긴 것: 세 곳 이상·'빼고 진행'의 묶음·순서 바꾸기, 식사 추가·합의 코스에서 지연 이어 가기(장소 번호의 뜻이 달라짐 — 기록을 지움).
+  · 검증: tests/test_delay_recovery.py(묶음 8·지연 유지 4·조사 1 — 옛 '뒤 장소도 늦으면 후보 없음' 테스트는 묶음으로 대체), test_delay_recovery_ui.py(묶음 320px 1),
+    test_festival_middle_followup.py(식사 3). 각각 고치기 전 실패 확인. 관련 테스트 통과, format_sources --check 통과. __FULL__
 배포 대기: 브랜치 fix/plan-save-order — 같은 시각에 저장된 코스의 순서가 흔들리던 것(전체 테스트에서 test_fresh_place::test_familiar_groups_count_recent_runs 가 가끔 실패하던 원인).
   · 원인: 코스 저장 시각(plans.created)이 time.time() 그대로라, 시계 눈금이 굵은 Windows 에서는 연달아 저장한 코스가 같은 값이 됨. '최근 5번 추천'과 '한 번 추천의 첫 안'을
     created 순서로 가리는 app/fresh_place.familiar_groups(ORDER BY created DESC)가 같은 값끼리의 순서에 따라 다른 답을 냈음. 테스트만의 문제가 아니라 코드의 약점.

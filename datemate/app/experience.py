@@ -58,8 +58,10 @@ def make_draft(plan,original,owner,kind,summary,vote_snapshot=None):
         from .planner import evaluate
         from .pricing import price_plans
         from .leg_modes import middle_after
+        from .delay_check import carried_delays
         # 중간 축제는 원래 자리를 먼저 둔다(planner.evaluate festival_hint).
-        recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True,festival_hint=middle_after(plan))
+        # 지연을 이어 가는 초안(plan['delay_recovery'] — 식사 추가·합의 코스)은 같은 지연을 넣는다. 안 넣으면 재조회가 지연을 지운 시간표로 덮는다.
+        recalculated,error=evaluate(plan['places'],c,soft=True,verify_routes=True,festival_hint=middle_after(plan),delays=carried_delays(plan) or None)
         if recalculated:
             plan.pop('festival_visit',None);plan.update(recalculated);plan=price_plans([plan])[0]
             plan['route_verification']='연결된 경로 공급자로 변경 동선을 재조회했어요. 조회 시점 기준입니다.'
@@ -154,17 +156,21 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     # 코스 중간 축제(festival_visit.after = 축제 바로 앞 장소 번호)는 되도록 같은 장소 뒤에 둔다(planner.evaluate festival_hint).
     # 식당을 끼워 넣으면 그 자리(target)부터 장소 번호가 하나씩 밀리므로, 축제 앞 장소가 target 이상이면 번호도 하나 민다.
     # 같은 자리의 장소를 식당으로 바꾸는 경우(replace_index)는 번호가 그대로다. 그 자리에 못 두면 evaluate 가 예전 순서로 다시 찾는다.
-    # 달라진 축제 자리는 plan['festival_change'] 로 알린다(festival_time.set_change_note). 지각 기록(delay_recovery)은 이어 가지 않는다
-    # — 식사가 끼면 지연을 적어 둔 장소 번호의 뜻이 달라져서다(plan_changes.save_change 가 지운다).
+    # 달라진 축제 자리는 plan['festival_change'] 로 알린다(festival_time.set_change_note).
+    # 지각을 반영한 코스(delay_recovery)면 지연도 같은 규칙으로 옮겨 이어 간다: 끼운 자리가 지연 장소 번호 이하면 +1(지연은 그 장소를 따라간다),
+    # 같은 자리 교체는 그대로(81차 장소 바꾸기와 같다). 기록은 kept='meal'(docs/superpowers/specs/2026-11-23-delay-kept-meal-consensus-design.md).
     from .leg_modes import middle_after
     from .festival_time import set_change_note
+    from .delay_check import carried_delays,kept_note,moved_record
     hint=middle_after(original)
     if hint is not None and replace_index is None and target<=hint:hint+=1
-    plan,error=evaluate(chosen,c,soft=True,verify_routes=c.mode=='real' and uses_car(c),festival_hint=hint)
+    delays={k+(replace_index is None and target<=k):v for k,v in carried_delays(original).items()}
+    plan,error=evaluate(chosen,c,soft=True,verify_routes=c.mode=='real' and uses_car(c),festival_hint=hint,delays=delays or None)
     route_note=None
     if error and c.mode=='real' and uses_car(c) and c.allow_estimates:
-        plan,error=evaluate(chosen,c,soft=True,festival_hint=hint);route_note='자동차 경로 조회 실패로 추정 동선을 유지했어요.'
+        plan,error=evaluate(chosen,c,soft=True,festival_hint=hint,delays=delays or None);route_note='자동차 경로 조회 실패로 추정 동선을 유지했어요.'
     if error:raise ValueError(error)
+    if delays:plan['delay_recovery']=moved_record(original,delays,'meal')
     set_change_note(plan,original)
     if original.get('course_search'):plan['course_search']=original['course_search']
     plan=price_plans([plan])[0];plan=audit_plan(plan,c)
@@ -173,7 +179,7 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     if route_note:plan['route_verification']=route_note
     elif c.mode=='real' and uses_car(c):plan['route_verification']='네이버 자동차 길찾기 재조회 반영'
     action='교체' if replace_index is not None else '추가'
-    summary=f"{food['name']} {action} · 방문 {len(original['places'])}→{len(chosen)}곳 · 식사 {food['stay']}분 및 비용·이동 재계산"
+    summary=f"{food['name']} {action} · 방문 {len(original['places'])}→{len(chosen)}곳 · 식사 {food['stay']}분 및 비용·이동 재계산"+('.'+kept_note(original) if delays else '')
     return make_draft(plan,original,owner,'meal',summary)
 
 def vote_status(plan,viewer):
@@ -206,6 +212,39 @@ def save_votes(plan,viewer,plan_owner,choices,share_token=None):
     event(viewer,plan['id'],'vote',dict(place_count=len(choices)))
     return vote_status(plan,viewer)
 
+def _with_carried_delay(plan,candidates):
+    """합의 코스에 지각 기록(delay_recovery)의 지연을 이어 간다. (고른 코스, 안내 문장 끝에 붙일 글).
+    합의 코스는 장소를 새로 골라 하루를 다시 짠다. 지연은 '그 장소의 도착 예정보다 N분 늦음'이라 장소 id 로 새 번호를 찾아 옮긴다.
+    - 지연 장소가 새 코스에 없으면 그 지연은 버리고 알린다(기준이 된 장소가 없다 — 같은 번호의 다른 장소에 붙이면 지연을 지어내는 셈).
+    - 지연을 넣으면 맞지 않는 후보(영업 종료·축제 등)는 건너뛴다. 모두 안 맞으면 거절한다 — 늦지 않은 시간표를 대신 내지 않는다.
+    - 지연 기록이 없는 코스는 예전과 같다(첫 후보, 덧붙일 글 없음).
+    설계: docs/superpowers/specs/2026-11-23-delay-kept-meal-consensus-design.md"""
+    from .delay_check import carried_delays,delayed_conditions,kept_note,moved_record
+    carried=carried_delays(plan)
+    if not carried:return candidates[0],''
+    from .condition_audit import audit_plan
+    from .leg_modes import josa,middle_after
+    from .planner import evaluate
+    from .pricing import price_plans
+    from .preferences import filter_required
+    for candidate in candidates:
+        ids=[p['id'] for p in candidate['places']]
+        moved={ids.index(plan['places'][k]['id']):v for k,v in carried.items() if plan['places'][k]['id'] in ids}
+        dropped=''.join(f" 앞서 반영한 {v}분 지연은 {name}{josa(name,'이','가')} 합의 코스에서 빠져 넣지 않았어요."
+                        for k,v in carried.items() if plan['places'][k]['id'] not in ids for name in [plan['places'][k]['name']])
+        if dropped:dropped+=' 늦어지면 새 코스에서 지각 확인을 다시 해 주세요.'
+        if not moved:return candidate,dropped
+        c=Conditions.model_validate(candidate['conditions']);ec=delayed_conditions(plan,c)
+        result,_=evaluate(candidate['places'],ec,soft=bool(candidate.get('best_effort')),delays=moved,festival_hint=middle_after(candidate))
+        if not result:continue
+        if ec is not c:result['conditions']['end']=c.end  # 계산에만 늦춘 종료 시각을 원래 값으로(81차 delayed_conditions 와 같다)
+        updated=copy.deepcopy(candidate);updated.pop('festival_visit',None);updated.update(result)
+        updated['delay_recovery']=moved_record(plan,moved,'agreement')
+        updated=audit_plan(price_plans([updated])[0])
+        if not filter_required([updated]):continue
+        return updated,kept_note(updated)+dropped
+    raise ValueError(f'앞서 반영한 {max(carried.values())}분 지연을 넣으면 두 사람의 의견과 필수 조건을 함께 맞추는 코스가 없어요. 지각 확인으로 먼저 코스를 고치거나 의견·조건을 조정해 주세요.')
+
 def agreement_draft(plan,owner,ui_locked=None):
     from .planner import recommend
     from .pricing import price_plans
@@ -227,10 +266,10 @@ def agreement_draft(plan,owner,ui_locked=None):
     result=recommend(c)
     candidates=filter_required(price_plans(result['plans']))
     if not candidates:raise ValueError('두 사람의 의견과 필수 조건을 함께 만족하는 코스를 찾지 못했어요. 조건이나 반대 의견을 직접 조정해 주세요.')
-    chosen=candidates[0]
+    chosen,delay_note=_with_carried_delay(plan,candidates)
     chosen['undo_locks']=undo_locks
     if plan.get('course_search'):chosen['course_search']=plan['course_search']
     preserved=[p['name'] for i,p in enumerate(plan['places']) if i in locked]
     removed=[p['name'] for p in plan['places'] if p['id'] in disliked]
-    summary=('유지: '+', '.join(preserved)+' · ' if preserved else '')+('제외: '+', '.join(removed)+' · ' if removed else '')+'두 사람의 의견과 필수 조건으로 시간·동선·비용을 다시 계산했어요.'
+    summary=('유지: '+', '.join(preserved)+' · ' if preserved else '')+('제외: '+', '.join(removed)+' · ' if removed else '')+'두 사람의 의견과 필수 조건으로 시간·동선·비용을 다시 계산했어요.'+delay_note
     return make_draft(chosen,plan,owner,'agreement',summary,vote_snapshot=status['places'])

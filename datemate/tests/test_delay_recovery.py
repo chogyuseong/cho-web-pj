@@ -363,7 +363,8 @@ def test_transport_change_without_a_delay_record_is_unchanged(pool):
 
 
 def test_change_that_does_not_carry_the_delay_drops_the_record(pool):
-    # 지연을 넣어 다시 계산했다고 알려 주지 않은 변경(recovery 없음 — 예: 식사 추가·합의 코스)은 기록을 이어받지 않는다.
+    # 지연을 넣어 다시 계산했다고 알려 주지 않은 save_change(recovery 없음 — 예: 순서 바꾸기)는 기록을 이어받지 않는다.
+    # (식사 추가·합의 코스는 save_change 를 거치지 않고 번호를 옮겨 이어 간다 — test_delay_kept_meal_consensus.py)
     from app.plan_changes import save_change
     with TestClient(app) as client:
         stored = saved(client, course())

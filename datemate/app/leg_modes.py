@@ -257,7 +257,7 @@ def apply_change(plan, prepared):
     after = middle_after(plan)
     # 지각 복구로 저장한 코스(plan['delay_recovery'])는 그때 반영한 지연을 다시 넣어 계산한다. 넣지 않으면 수단만 바꿨는데
     # 시간표가 '늦지 않은 것'으로 돌아가 틀린 시각을 믿게 된다. 지연은 '그 장소에 원래보다 N분 늦게 닿음'이라 수단과 무관하게 유효하다.
-    # 기록 자체는 저장할 때 이어 붙인다(app/main.py transport → plan_changes.save_change(recovery=…)). 장소를 바꾸는 변경은 이어받지 않는다.
+    # 기록 자체는 저장할 때 이어 붙인다(app/main.py transport → plan_changes.save_change(recovery=…)). 장소를 바꾸는 변경도 이제 각자 이어 간다(장소 바꾸기·레저·식사 추가·합의 코스).
     from .delay_check import carried_delays
     delays = carried_delays(plan)
     with measure(limit=min(MAX_ROUTE_CALLS, car_legs)) if verify else nullcontext():

@@ -62,9 +62,21 @@ def carried_delays(plan):
 def kept_record(plan, how):
     """지연을 넣어 다시 계산한 코스에 이어 붙일 기록. 지연 기록이 없는 코스면 None(= 예전과 같은 동작).
     how: 'transport'(수단 바꾸기) 또는 'place'(같은 자리의 장소를 다른 곳으로 바꾸기 — 장소 번호가 그대로인 변경만).
+    장소 번호가 달라지는 변경(식사 추가·합의 코스)은 moved_record 를 쓴다.
     kept 는 '이 코스는 지각 반영이 아니라 그 뒤의 다른 변경으로 만들어졌다'는 표시다 — 화면(static/plan-detail.js)의 되돌리기 단추 문구와
     저장(plan_changes.save_change)의 자동차 재확인 여부가 이 값을 본다. 80차에 저장된 값 True 는 'transport' 와 같게 읽는다."""
     return dict(plan["delay_recovery"], kept=how) if carried_delays(plan) else None
+
+
+def moved_record(plan, delays, how):
+    """장소 번호가 달라지는 변경(식사 추가 'meal'·합의 코스 'agreement')에서 지연을 새 번호로 옮겨 이어 붙일 기록.
+    delays: 새 코스 기준 {장소 번호: 분}(비면 None — 이어 가지 않음). delays 만 새 번호로 바꾸고, index·target·place·also 는
+    지각 복구 당시의 이력으로 그대로 둔다(지연 계산·지각 확인은 delays 만 본다). 설계: docs/superpowers/specs/2026-11-23-delay-kept-meal-consensus-design.md"""
+    if not delays:
+        return None
+    return dict(
+        plan["delay_recovery"], delays={str(k): v for k, v in sorted(delays.items())}, kept=how
+    )
 
 
 def kept_note(plan):

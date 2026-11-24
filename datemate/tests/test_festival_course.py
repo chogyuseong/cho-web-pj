@@ -19,10 +19,12 @@ def festival_conditions(**fields):
                       festival=FESTIVAL, **fields)
 
 
-def test_festival_anchor_must_be_the_real_mode_origin():
+def test_festival_anchor_needs_the_real_mode():
     assert festival_conditions().festival.id == '770100'
-    with pytest.raises(ValidationError):
-        Conditions(mode='real', visit_date='2026-10-24', origin=dict(name='서울 강남', lat=37.49, lon=127.02), festival=FESTIVAL)
+    # 2026-11-24 「+ 내 코스에 추가」: 출발지가 행사장이 아닌 코스도 받는다(그런 코스는 축제를 맨 앞에 두지 않는다 —
+    # tests/test_festival_add.py). 축제 기준 추천은 여전히 행사장을 출발지로 보낸다(static/festivals.js anchorFor).
+    apart = Conditions(mode='real', visit_date='2026-10-24', origin=dict(name='서울 강남', lat=37.49, lon=127.02), festival=FESTIVAL)
+    assert apart.festival.id == '770100' and apart.origin.name == '서울 강남'
     with pytest.raises(ValidationError):
         Conditions(mode='demo', visit_date='2026-10-24', origin=dict(name='데모', lat=FESTIVAL['lat'], lon=FESTIVAL['lon']), festival=FESTIVAL)
 

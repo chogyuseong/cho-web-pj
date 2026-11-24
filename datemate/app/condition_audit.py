@@ -55,8 +55,9 @@ def audit_plan(plan,c=None):
     add('start','시작 시간','met',c.start+'에 출발하는 일정이에요.')
     if c.festival:
         # 축제 참석 시간 고정(app/festival_time.py). 맨 앞이나 코스 끝에 고정했으면 충족, 시간을 모르거나 맞출 수 없으면 코스는 그대로 두고 '방문 전 확인'으로 알린다.
-        from .festival_time import explain
-        _,message=explain(c.festival.title,c.festival.hours,c.start,c.end,c.stay_minutes,plan.get('finish'),plan.get('festival_visit'))
+        # 행사장이 출발지가 아닌 코스(「+ 내 코스에 추가」)는 apart 로 그 코스에 맞는 말을 고른다(festival_time.explain).
+        from .festival_time import explain,venue_apart
+        _,message=explain(c.festival.title,c.festival.hours,c.start,c.end,c.stay_minutes,plan.get('finish'),plan.get('festival_visit'),apart=venue_apart(c))
         add('festival','축제 참석 시간','met' if plan.get('festival_visit') else 'unknown',message)
     # 한 곳만 새로운 곳으로(app/fresh_place.py). 켠 코스에만 행과 plan['fresh_place'] 가 붙는다.
     from .fresh_place import audit_row

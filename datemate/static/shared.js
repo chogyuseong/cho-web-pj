@@ -34,7 +34,8 @@ function link(text,url){
     function festivalBlock(){
       const block=node('section',undefined,'shared-festival-visit'+(last?' last':middle!==null?' middle':''));
       block.setAttribute('aria-label',last?'코스 끝에 둔 축제 방문':middle!==null?'코스 중간에 둔 축제 방문':'코스 맨 앞에 고정한 축제 방문');
-      const text=last?'장소를 둘러본 뒤 행사장으로 돌아와 축제로 마무리해요.':middle!==null?`${places[middle].name}을(를) 둘러본 뒤 행사장에 들러 축제를 보고 다음 장소로 이동해요.`:'축제를 먼저 들른 뒤 아래 장소로 이동해요.';
+      // apart: 만든 코스에 나중에 넣은 축제(행사장이 출발지가 아님, app/sharing.festival_visit). 돌아오는 게 아니라 가는 것이다.
+      const text=last?`장소를 둘러본 뒤 행사장으로 ${visit.apart?'가서':'돌아와'} 축제로 마무리해요.`:middle!==null?`${places[middle].name}을(를) 둘러본 뒤 행사장에 들러 축제를 보고 다음 장소로 이동해요.`:'축제를 먼저 들른 뒤 아래 장소로 이동해요.';
       block.append(node('h2',`${visit.title} · ${visit.arrival}~${visit.departure}`),node('p',text+' 개최·운영 시간은 방문 전 주최 측 안내를 확인해 주세요.','hint'));
       document.getElementById('shared-places').append(block);
     }

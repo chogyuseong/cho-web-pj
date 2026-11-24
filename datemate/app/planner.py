@@ -1,7 +1,7 @@
 from collections import Counter
 import re
 from .catalog import places
-from .festival_time import evening_window,festival_slot,last_slot,visit_record
+from .festival_time import evening_window,festival_slot,last_slot,venue,visit_record
 from .models import Conditions
 from .routes import leg, distance
 from .taxonomy import classification_themes,concept_score
@@ -110,11 +110,12 @@ def _middle_gaps(plan,selected,c,soft):
     통과한 자리만 evaluate 가 실제 구간으로 다시 계산한다(뒤 장소 영업·종료·예산 등)."""
     window=evening_window(c)
     if not window or len(selected)<2 or festival_slot(c):return
-    venue=c.origin.model_dump()
+    # 행사장 좌표는 축제에서 읽는다(festival_time.venue — 출발지 = 행사장인 코스는 출발지 값 그대로).
+    place=venue(c)
     probe=c.model_copy(update={'allow_estimates':True}) if c.mode=='real' else c
     overrides={(m.from_,m.to):m.mode for m in c.leg_modes}
     for after in range(len(selected)-1):
-        route=route_leg(selected[after],venue,probe,overrides.get((selected[after]['id'],'festival'),c.transport))
+        route=route_leg(selected[after],place,probe,overrides.get((selected[after]['id'],'festival'),c.transport))
         if route['minutes'] is None or (route['minutes']>c.max_leg and not soft):continue
         if last_slot(window,minutes(plan['timeline'][after]['departure'])+route['minutes']+c.transition_buffer_minutes,c.stay_minutes):yield after
 
@@ -180,10 +181,11 @@ def _evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fall
         if route['mode']=='car':unknown.append(p['name']+' 주차비')
         previous=p;previous_id=p['id']
         if position==middle:
-            # 코스 중간 축제: 이 장소에서 행사장(출발지)으로 가서 운영 시간에 맞춰 축제를 보고, 다음 장소는 행사장에서 떠난다.
+            # 코스 중간 축제: 이 장소에서 행사장으로 가서 운영 시간에 맞춰 축제를 보고, 다음 장소는 행사장에서 떠난다.
             # 들어가는 구간은 legs 에 넣지 않는다(코스 끝 축제와 같은 festival_visit.leg). 시간이 맞지 않으면 이 자리는 실패.
-            venue=c.origin.model_dump()
-            back=route_leg(p,venue,route_conditions,overrides.get((p['id'],'festival'),c.transport),verify_routes,route_fallback)
+            # 행사장 좌표는 축제에서(festival_time.venue). 출발지 = 행사장인 코스는 예전처럼 출발지 값 그대로다.
+            site=venue(c)
+            back=route_leg(p,site,route_conditions,overrides.get((p['id'],'festival'),c.transport),verify_routes,route_fallback)
             usable=back['minutes'] is not None and (back['minutes']<=c.max_leg or soft) and not (c.max_walk is not None and back['walking'] is None)
             slot=last_slot(window,now+back['minutes']+c.transition_buffer_minutes,c.stay_minutes) if usable else None
             if not slot:return fail(MIDDLE_MISS,place=c.festival.title)
@@ -191,7 +193,7 @@ def _evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fall
             back['destination']=c.festival.title+' 행사장'
             walking+=back['walking'] or 0
             if back['mode']=='car':unknown.append(c.festival.title+' 행사장 주차비')
-            now=slot['departure'];previous=venue;previous_id='festival';middle_visit=(back,slot)
+            now=slot['departure'];previous=site;previous_id='festival';middle_visit=(back,slot)
     def home_leg(point):
         # 귀가 수단 예외는 어디서 출발하든 (마지막 장소 id, 'home') 이다(app/leg_modes.endpoints).
         mode=overrides.get((previous_id,'home'),c.transport)
@@ -203,16 +205,17 @@ def _evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fall
         return route,None
     # 저녁 축제(app/festival_time.py): 맨 앞에 두기엔 개막이 늦으면 마지막 장소에서 행사장(출발지)으로 돌아와 축제로 마무리하고,
     # 귀가는 행사장에서 떠난다. 돌아오는 구간은 legs 에 넣지 않는다. 시간이 맞지 않는 조합은 축제 없이 아래처럼 끝낸다.
+    # 행사장이 출발지가 아닌 코스(「+ 내 코스에 추가」)는 '돌아오는' 대신 행사장으로 가고, 좌표는 축제에서 읽는다(festival_time.venue).
     evening=None if partial or festival or middle is not None else evening_window(c)
     last=None
     if evening:
-        venue=c.origin.model_dump()
-        back=route_leg(previous,venue,route_conditions,overrides.get((previous_id,'festival'),c.transport),verify_routes,route_fallback)
+        site=venue(c)
+        back=route_leg(previous,site,route_conditions,overrides.get((previous_id,'festival'),c.transport),verify_routes,route_fallback)
         usable=back['minutes'] is not None and (back['minutes']<=c.max_leg or soft) and not (c.max_walk is not None and back['walking'] is None)
         slot=last_slot(evening,now+back['minutes']+c.transition_buffer_minutes,c.stay_minutes) if usable else None
         if slot:
             back['buffer_minutes']=c.transition_buffer_minutes
-            home,_=home_leg(venue) if c.return_home else (None,None)
+            home,_=home_leg(site) if c.return_home else (None,None)
             done=slot['departure']+(home['minutes']+home['buffer_minutes'] if home else 0)
             if (home or not c.return_home) and (done<=end or soft):last=(back,slot,home)
     if last:

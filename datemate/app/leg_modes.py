@@ -142,8 +142,11 @@ def car_position_notes(plan):
     if not any(mode == 'car' for _, _, mode in steps):
         return []
     names = place_names(plan)
-    # 행사장 = 출발지 좌표(app/festival_time.py). 차 위치를 비교할 때는 같은 곳으로 본다.
-    same = lambda a, b: {a, b} <= {'origin', 'festival'} or a == b
+    # 축제 기준 추천은 행사장 = 출발지 좌표(app/festival_time.py)라 차 위치를 비교할 때 같은 곳으로 본다.
+    # 「+ 내 코스에 추가」로 넣은 축제는 행사장이 출발지와 다른 곳이라(festival_time.venue_apart) 따로 본다.
+    from .festival_time import venue_apart
+    together = not venue_apart(plan.get('conditions') or {})
+    same = lambda a, b: a == b or (together and {a, b} <= {'origin', 'festival'})
     car_at, used, notes = 'origin', False, []
     for start, end, mode in steps:
         if mode == 'car':

@@ -16,6 +16,11 @@
 - 낮 축제(코스 중간, 2026-11-23): 맨 앞도 코스 끝도 맞지 않을 때만, 같은 축제 창(late_opening)으로 장소 i 와 i+1 사이를 앞에서부터 찾는다
   (planner.evaluate). 장소 i → 행사장(festival_visit.leg, legs 밖) → 축제 → 행사장 → 장소 i+1(legs[i+1], 출발 이름 '<축제> 행사장').
   저장: position='middle', after=i. 맨 앞·끝이 맞는 코스는 예전과 똑같다.
+- 행사장이 출발지가 아닌 코스(2026-11-24, 결과 화면 축제 카드의 「+ 내 코스에 추가」, app/festival_add.py): 이미 만든 코스에
+  축제를 끼워 넣으면 출발지는 사용자의 원래 출발지 그대로다. 행사장 좌표는 늘 conditions.festival.lat/lon 에서 읽고(venue),
+  맨 앞 자리는 쓰지 않는다(festival_slot 이 None — 출발지에서 축제부터 볼 수는 없다). 코스 끝·중간 자리는 맨 앞에 둘 만한
+  낮 축제(_slot 'fixed')도 볼 수 있게 축제 창을 준다(evening_window). 출발지 = 행사장인 코스(축제 기준 추천·저장된 옛 코스)는
+  venue 가 출발지 값을 그대로 돌려주고 나머지 규칙도 예전과 한 글자도 다르지 않다.
 - 하지 않는 것: 요금을 비용에 넣기(주최 측 자유 글이라 계산하지 않는다, festivals.py).
 """
 
@@ -84,10 +89,36 @@ def _slot(hours, start, end, stay):
     return False, 'too_short', (opening, closing)
 
 
+def _value(item, key):
+    return item.get(key) if isinstance(item, dict) else getattr(item, key, None)
+
+
+def venue_apart(c):
+    """행사장이 출발지와 다른 코스인지. c 는 Conditions 또는 저장된 조건 dict(plan['conditions']).
+    축제 기준 추천은 행사장을 출발지로 삼아 둘이 같다(models.FestivalAnchor). 「+ 내 코스에 추가」로 넣은 축제만 다르다."""
+    festival, origin = _value(c, 'festival'), _value(c, 'origin')
+    if not festival or not origin:
+        return False
+    try:
+        return (abs(_value(origin, 'lat') - _value(festival, 'lat')) > 1e-6
+                or abs(_value(origin, 'lon') - _value(festival, 'lon')) > 1e-6)
+    except TypeError:
+        return False
+
+
+def venue(c):
+    """행사장 지점(이름·좌표). 출발지 = 행사장인 코스는 출발지 값 그대로(이름도 — 귀가 구간 이름 등 저장 모양이 예전과 같게),
+    다른 코스는 축제 좌표와 '<축제> 행사장' 이름. planner·delay_recovery 가 행사장으로 가고 오는 구간에 쓴다."""
+    if not venue_apart(c):
+        return c.origin.model_dump()
+    return dict(name=c.festival.title + ' 행사장', lat=c.festival.lat, lon=c.festival.lon)
+
+
 def festival_slot(c):
-    """조건으로 정해지는 축제 방문 칸. 고정하면 dict(arrival·departure 는 '하루의 분'), 아니면 None."""
+    """조건으로 정해지는 축제 방문 칸. 고정하면 dict(arrival·departure 는 '하루의 분'), 아니면 None.
+    행사장이 출발지가 아닌 코스는 맨 앞에 둘 수 없어 늘 None 이다(코스 끝·중간은 evening_window 로 본다)."""
     festival = c.festival
-    if not festival:
+    if not festival or venue_apart(c):
         return None
     fixed, _, values = _slot(festival.hours, c.start, c.end, c.stay_minutes)
     if not fixed:
@@ -97,12 +128,17 @@ def festival_slot(c):
 
 
 def evening_window(c):
-    """맨 앞에 두기엔 개막이 늦은(late_opening) 축제의 (개막, 종료). 장소를 먼저 돌고 마지막에 둘지 볼 축제가 아니면 None."""
+    """맨 앞에 두기엔 개막이 늦은(late_opening) 축제의 (개막, 종료). 장소를 먼저 돌고 마지막에 둘지 볼 축제가 아니면 None.
+    행사장이 출발지가 아닌 코스는 맨 앞 자리가 없으므로, 코스 시작 무렵 이미 여는 낮 축제(_slot 'fixed')도 창을 준다."""
     festival = c.festival
     if not festival:
         return None
     _, reason, values = _slot(festival.hours, c.start, c.end, c.stay_minutes)
-    return values if reason == 'late_opening' else None
+    if reason == 'late_opening':
+        return values
+    if reason == 'fixed' and venue_apart(c):
+        return values[3], values[4]
+    return None
 
 
 def last_slot(window, reached, stay):
@@ -184,12 +220,13 @@ def set_change_note(updated, original):
     return updated
 
 
-def explain(title, hours, start, end, stay, finish=None, visit=None):
+def explain(title, hours, start, end, stay, finish=None, visit=None, apart=False):
     """(고정 여부, 안내 문장). 조건 확인(condition_audit)과 축제 안내(recommendation_summary.festival_context)가 같이 쓴다.
     finish 는 코스가 끝나는 시각('HH:MM'). 알면 '코스가 끝난 뒤 들르기'를 그 시각으로 적는다.
-    visit 은 코스에 저장된 축제 방문(plan['festival_visit']). 코스 끝에 둔 축제면 그 시각으로 적는다."""
+    visit 은 코스에 저장된 축제 방문(plan['festival_visit']). 코스 끝에 둔 축제면 그 시각으로 적는다.
+    apart: 행사장이 출발지가 아닌 코스(venue_apart, 「+ 내 코스에 추가」). 행사장으로 '돌아오지' 않고 '가며', 맨 앞 자리가 없다."""
     if isinstance(visit, dict) and visit.get('position') == 'last':
-        text = (f'‘{title}’ 축제는 안내된 운영 시간({hours})에 맞춰, 장소를 먼저 돌고 행사장으로 돌아와 '
+        text = (f'‘{title}’ 축제는 안내된 운영 시간({hours})에 맞춰, 장소를 먼저 돌고 행사장으로 {"가서" if apart else "돌아와"} '
                 f'{visit["arrival"]}~{visit["departure"]}({visit["stay"]}분) 축제로 코스를 마무리하도록 배치했어요.')
         if visit.get('wait'):
             text += f' 행사장에 닿은 뒤 축제 시작까지 {visit["wait"]}분 기다려요.'
@@ -200,6 +237,10 @@ def explain(title, hours, start, end, stay, finish=None, visit=None):
         if visit.get('wait'):
             text += f' 행사장에 닿은 뒤 축제 시작까지 {visit["wait"]}분 기다려요.'
         return True, text
+    if apart:
+        # 넣은 뒤 장소·수단을 바꿔 자리가 없어진 코스. 맨 앞 고정·'행사장을 출발점으로' 같은 말은 이 코스에 맞지 않는다.
+        return False, (f'‘{title}’ 축제는 지금 코스로는 안내된 운영 시간({hours})에 맞춰 장소 사이나 코스 끝에 들를 자리가 없어 '
+                       '일정에 넣지 못했어요. 주최 측 안내를 확인하고 따로 시간을 내 들러 주세요.')
     fixed, reason, values = _slot(hours, start, end, stay)
     if fixed:
         arrival, departure, wait, _, _ = values

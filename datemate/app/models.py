@@ -20,7 +20,8 @@ class Point(BaseModel):
     lon: float = Field(ge=-180, le=180)
 
 class FestivalAnchor(BaseModel):
-    """결과 화면에서 고른 축제. 코스는 이 축제 위치에서 출발한다."""
+    """결과 화면에서 고른 축제. 축제 기준 추천은 이 축제 위치에서 출발하고, 「+ 내 코스에 추가」로 넣은 축제는
+    원래 출발지를 그대로 두고 코스 끝·중간에 행사장을 들른다(행사장 좌표는 늘 여기 lat/lon, app/festival_time.venue)."""
     # 관광공사 contentid(숫자) 또는 목록이 만든 '제목:시작일' 형태의 ID.
     id: str = Field(min_length=1, max_length=240)
     title: str = Field(min_length=1, max_length=200)
@@ -136,8 +137,11 @@ class Conditions(BaseModel):
             raise ValueError('선택한 대분류에 맞는 데이트 소분류를 선택해 주세요.')
         if self.end <= self.start:
             raise ValueError('종료 시간은 같은 날 시작 시간 이후여야 합니다.')
-        if self.festival and (self.mode != 'real' or abs(self.origin.lat - self.festival.lat) > 1e-6 or abs(self.origin.lon - self.festival.lon) > 1e-6):
-            raise ValueError('축제 기준 코스는 실제 장소 모드에서 축제 위치를 출발지로 사용해야 합니다.')
+        # 축제는 실제 장소 모드에서만. 출발지가 행사장이 아니어도 된다(2026-11-24 「+ 내 코스에 추가」, app/festival_add.py) —
+        # 그런 코스는 축제를 맨 앞(출발 직후)에 두지 않고 코스 끝·중간에만 둔다(festival_time.venue_apart·festival_slot).
+        # 출발지 = 행사장인 코스(축제 기준 추천·저장된 옛 코스)의 규칙은 그대로다.
+        if self.festival and self.mode != 'real':
+            raise ValueError('축제 기준 코스는 실제 장소 모드에서만 만들 수 있어요.')
         if self.return_home and self.home is None:
             raise ValueError('귀가 위치와 좌표가 필요합니다.')
         if any(x not in THEMES for x in self.themes):

@@ -7,6 +7,15 @@
 
 ★ 지금 상태 (2026-11-24 기준)
 ----------------------------------------------------------------------
+여든일곱 번째 배포(2026-11-24) 완료: main 43e1489(병합 = fix/photo-info-fold), Worker 버전 c6c4ce34-e9c4-46c3-a0d6-eb9b7e5b07e1. 사용자 '배포까지 진행해'. 정적 파일 3개.
+  · '사진 정보' 접기: 코스 카드의 장소 사진 미리보기·둘러보기 카드에서 열어도 빈 상자였다(사용자 신고). 작은 카드의 사진 설명 숨김 규칙이 접기 안까지
+    숨겼다(식당 카드만 되살리는 규칙이 있었음) → :is(.meal-photo,.plan-photo-preview,.catalog) .photo-copy-fold .place-photo-copy{display:block}.
+  · 'NAVER 오픈 API': 링크 → 회색 글자(.naver-api-mark, 사용자 결정 — 누를 일 없는 단추처럼 보임). 출처 표시와 원본 링크는 그대로. 크기는 14px 하한 때문에 줄이지 않음.
+    네이버 답에서 링크가 필요하다고 하면 naver-attribution.js 의 NAVER_API_HUB_URL 로 되돌린다.
+  · CI: 첫 Run 45327452777 은 test_popup_course_ui 의 블록 링크 수(9→8)를 놓쳐 실패 → 75f60bd, Run 45330675582 5개 성공. test:security 25 통과.
+  · 운영 확인(14분 뒤 한 번): /api/status 200, place-photos.css·naver-attribution.js·style.css 해시가 로컬과 같음, 접기 규칙·naver-api-mark 있음.
+  · 블로그 후기 모음·홍보 글(사용자 질문): 받은 글 거르기는 특약 2.2 로 불가. 검색어 비교(6곳×10건) — 지금 검색어가 가장 나았다(구 이름 넣으면 관련 글 56→45).
+  · 되돌리는 법: git revert -m 1 43e1489 후 재배포.
 여든여섯 번째 배포(2026-11-24) 완료: main 22d1881(병합 = feat/ux-p2 — feat/ux-p0·p1 포함), Worker 버전 6cd1b8ba-ae0d-48d9-b64b-15e25e1a0047.
   사용자 'UX 개선 P0~P2' 요구(개발자 문구 제거·폼 2단계·코스 이후 동선·둘러보기 연결), '진행해' → '배포해'. 정적 파일 18개.
   · P0: 첫 화면에서 'API 키'·'접속 IP'·'가상 장소 데모'·내부 수치 제거(index.html), 서비스 상태 배너는 장애·운영 키 누락 때만(#status, app.js showServiceNotice,

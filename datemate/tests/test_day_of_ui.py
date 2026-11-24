@@ -118,3 +118,34 @@ def test_step_view_order_matches_the_field_itinerary(audit_page):
         # 현장용 일정에서 각 이름이 처음 나오는 자리의 순서가 단계 순서와 같다.
         positions = [text.index(' ' + n if n != '빛축제' else '축제 · 빛축제') for n in names]
         assert positions == sorted(positions), (visit, names, text)
+
+
+def test_step_view_shows_the_place_photo(audit_page):
+    """2026-11-24 사용자 요청: 한 곳씩 크게 보기에서 그 장소 사진도 보인다(코스 화면과 같은 사진 패널). 축제 단계·가상 장소에는 없다."""
+    from test_results_extras_ui import mount_photo_routes
+    page, base, _ = audit_page
+    mount_photo_routes(page, base, count=1)
+    got = page.evaluate(f"""async ()=>{{
+      const plan=({STEP_PLAN})({{position:'middle',after:0,leg:{{minutes:9,mode:'walk'}}}});
+      plan.conditions.mode='real';
+      showStepDialog(plan);
+      const d=document.querySelector('#dialog'),rows=[];
+      for(let guard=0;guard<10;guard++){{
+        const panel=d.querySelector('.step-view .place-photo-panel');
+        if(panel)await new Promise(r=>{{const t=Date.now();(function wait(){{const img=panel.querySelector('img');if((img&&!img.hidden&&img.complete&&img.naturalWidth)||Date.now()-t>5000)r();else setTimeout(wait,50);}})();}});
+        const img=panel?.querySelector('img');
+        rows.push([d.querySelector('.step-name').textContent,!!panel,!!(img&&!img.hidden&&img.naturalWidth),
+                   panel?!!(d.querySelector('.step-name').compareDocumentPosition(panel)&Node.DOCUMENT_POSITION_FOLLOWING):null]);
+        const next=[...d.querySelectorAll('button')].find(b=>b.textContent==='다음 →');
+        if(next.disabled)break;
+        next.click();await new Promise(r=>setTimeout(r,0));
+      }}
+      return rows;
+    }}""")
+    assert [r[0] for r in got] == ['A', '빛축제', 'B']
+    assert got[0][1:] == [True, True, True] and got[2][1:] == [True, True, True], got
+    assert got[1][1] is False, '축제 단계에는 사진 패널이 없다(행사장 사진 자료가 없음)'
+    # 가상 장소(데모)는 사진 패널을 넣지 않는다.
+    demo = page.evaluate(f"""async ()=>{{const p=({STEP_PLAN})({{position:'first'}});p.conditions.mode='demo';showStepDialog(p);
+      await new Promise(r=>setTimeout(r,0));return document.querySelectorAll('#dialog .step-view .place-photo-panel').length;}}""")
+    assert demo == 0

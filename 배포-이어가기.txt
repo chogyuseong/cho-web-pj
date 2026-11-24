@@ -1,4 +1,4 @@
-데이트메이트 — 다른 컴퓨터에서 이어서 작업하기
+﻿데이트메이트 — 다른 컴퓨터에서 이어서 작업하기
 작성일: 2026-11-12 (2026-11-13 전체 정리, 같은 날 노선 디자인 반영)
 
 이 문서는 저장소를 새 컴퓨터에 클론한 뒤 바로 실행·개발·배포를 이어갈 수 있도록
@@ -7,8 +7,23 @@
 
 ★ 지금 상태 (2026-11-24 기준)
 ----------------------------------------------------------------------
-[브랜치 대기 — 미병합·미배포] feat/redesign-results(2026-11-24, 작업 폴더 ..\cho-web-pj-redesign-results): 리디자인 3단계 결과 화면(가이드 §2.5).
-  main 병합·배포는 사용자 지시 때만. 서버(app/) 변경 없음, DB 변경 없음. 정적 파일 5개(plan-results.js·maps.js·plan-detail.js·delay-check.js·redesign.css).
+아흔 번째 배포(2026-11-24) 완료: main c083fa2(병합 = feat/redesign-results), Worker 버전 5eb995e5-2c88-43fe-ac02-afeb09cc383a. 리디자인 3단계 결과 화면(가이드 §2.5).
+  사용자 '1순위 진행해'·'완성도 최상으로'·'끝나면 배포까지 진행해'. 사용자 결정: 축제·팝업 '+ 내 코스에 추가'는 다음 브랜치(서버 기능 필요), 탭 이름 '안 N · 지금 이름',
+  기존 접힌 지각 상자는 토글과 함께 둠. 리디자인 가이드 파일은 이 PC 에서 D:\Downloads\datemate_2026.md (다운로드 폴더가 D 드라이브).
+  · CI: 브랜치 첫 Run 45400583498 실패(test_redesign_shell_ui·test_theme_two_track_ui 가 시작 시각 '11:00' 을 글자 그대로 기대 — CI 는 UTC 라 13:00 등.
+    main 의 88·89차 기록 Run 45378263513 실패도 같은 원인) → 테마 전 값과 비교로 고침, Run 45406031787 성공(sqlite 1557·postgres 1553 통과).
+    main CI Run 45410754179 성공. 병합 뒤 npm run test:security 25 통과 → npx wrangler deploy(정적 파일 5개). 이 PC 는 Docker Desktop 이 꺼져 있으면 배포가 'Docker CLI … could not be launched' 로
+    멈춘다 → %LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe 를 켜고 docker info 가 될 때 다시.
+  · 운영 확인(배포 14분 뒤): /api/status 200, 정적 파일 5개에 새 코드(optionDeltaBadges·delaySimBar·focusPlanMapStop·stop-map-focus·delta-badge).
+    실제 브라우저(Edge headless, 데모 코스): 1440 — 탭 '안 1 · 기준 코스'…, 배지 '비교 기준'·'도보 +2분'·'예산 −0.8만원'·'이동 +2분', 오른쪽 요약·공유 1개,
+    토글 켜면 '30분 늦어도 괜찮아요. 끝나는 시간이 13:43에서 14:13로' + 장소 3곳 밀린 시각, 지도 보기 → 핀 강조 1, 가로 넘침 없음, 콘솔 오류 0.
+    390 — 같은 결과, 오른쪽 요약 없음(중복 없음), 콘솔 429 1건(확인 스크립트가 데모 추천을 연달아 만든 탓으로 봄, 확인 안 함).
+    보지 못한 것: 실제 장소 코스의 휴게·마지막 입장 배지(데모엔 자료 없음), 실기기 휴대폰, 실제 네이버 지도 SDK 위 핀 이동(캡처 순간엔 지도 불러오는 중).
+  · 되돌리는 법: git revert -m 1 c083fa2 후 재배포(DB·서버 변경 없음).
+  · 다음 후보: 축제·팝업 '+ 내 코스에 추가'(기존 코스에 끼워 넣는 서버 기능 — 지금은 출발지 = 행사장이어야 함, models.py:139), '안 N'/'코스 N' 용어 통일,
+    4단계 데이트/여행 모드(정의 필요), 1인 예산 칩·계절 달 기준(결정 대기). 작업 폴더 ..\cho-web-pj-redesign-results·..\cho-web-pj-tmp-main 남아 있음(지우려면 사용자 지시).
+  아래는 브랜치 때 기록:
+  서버(app/) 변경 없음, DB 변경 없음. 정적 파일 5개(plan-results.js·maps.js·plan-detail.js·delay-check.js·redesign.css).
   · 코스 탭: '안 N · {option_purpose}'(고정 이름 안 씀). 1안 대비 배지 도보·예산·이동(1안 '비교 기준'). 값 모르면·0이면 없음.
     도보 = 모든 구간(축제 구간 포함) walking 이 있을 때만(자동차 길찾기 구간은 walking=null 인데 plan.walking 에 0 으로 더해짐).
     예산 = total 상한끼리(서버 예산 판정이 상한 기준), 하한 차이와 방향이 반대면(범위가 감싸면) 없음, unknown 이 있으면 없음. 1만원 미만은 '원'.
@@ -190,7 +205,7 @@
     static/order-suggestion.js. 견주지 않는 코스(까닭 표시): 장소 1곳·기한 지난 코스·지각을 반영한 코스·구간마다 수단을 바꾼 코스.
     고른 것: '사용자가 직접 끌어 옮기기' 대신 '서버가 순서 하나 제안'(어떤 순서가 영업시간을 지키는지 시행착오로 찾지 않게, 개선 프롬프트 14번 완료 기준과 맞음).
   · 검증: tests/test_order_suggestion.py 8개·test_order_suggestion_ui.py 2개(320px), 소유자 검사 목록(test_plan_owner_check)에 새 경로 2개 등록.
-    이 Windows PC SQLite 전체 1403 통과·1 건너뜀·실패 0(26분), 브랜치 CI Run 45146193429 5개 성공(sqlite·postgres 포함), main 병합 뒤 npm run test:security 25 통과, format_sources --check 통과.
+    이 Windows PC SQLite 전체 1403 통과·1 건너뜀·실패 0(26분), 브랜치 CI Run 45146193429 5개 성공(sqlite·postgres 포함), main main CI Run 45410754179 성공. 병합 뒤 npm run test:security 25 통과, format_sources --check 통과.
   · 배포: 정적 파일 5개(order-suggestion.js·delay-check.js·plan-detail.js·results.css·index.html). 요청 없이 14분 기다린 뒤 확인(79차 ★).
   · 운영 확인: /api/status 200, /static/order-suggestion.js 200·첫 화면이 그 파일을 ?v= 로 참조. 코스 140efb099ff24cd4b42eca9e104d148d 에서 순서 제안 상자를 펼침 →
     '지금 순서가 이동이 가장 짧거나, 다른 순서로는 5분 넘게 줄지 않아요.'(같은 추천의 다른 두 코스도 같음 — 추천이 이미 순서를 골라서), 지각을 반영한 코스는 '지각을 반영해 고친 코스는 순서를 견주지 않아요…',

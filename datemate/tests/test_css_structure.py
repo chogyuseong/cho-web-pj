@@ -19,8 +19,8 @@ STATIC = ROOT / 'static'
 # 화면별 CSS 순서(5-5 기준). 홈·피드백은 shell.css(예전 selle·calm·editorial·clarity)를 읽고, 공유·관리 화면은 읽지 않는다.
 PAGE_STYLESHEETS = {
     'index.html': ['style.css', 'location-picker.css', 'shell.css', 'readability.css', 'line.css',
-                   'home.css', 'results.css', 'place-photos.css', 'plan-map.css', 'popups.css', 'server-wake.css'],
-    'feedback.html': ['style.css', 'shell.css', 'readability.css', 'feedback.css', 'line.css'],
+                   'home.css', 'results.css', 'place-photos.css', 'plan-map.css', 'popups.css', 'server-wake.css', 'redesign.css'],
+    'feedback.html': ['style.css', 'shell.css', 'readability.css', 'feedback.css', 'line.css', 'redesign.css'],
     'feedback-admin.html': ['style.css', 'readability.css', 'feedback.css', 'line.css'],
     'shared.html': ['style.css', 'readability.css', 'line.css', 'shared.css', 'server-wake.css'],
 }
@@ -31,11 +31,13 @@ ALLOWED_PRINT_SHARED = {'#festival-origin-note', '#festival-section', '#plan-det
                         '.parking-panel', '.plan-card .stats'}
 # 2026-11-19 5-7 기준 파일별 !important 개수 상한(주석 안 글자는 세지 않음). 합계 318, 정리 전 326. 늘리지 말 것.
 IMPORTANT_LIMITS = {
-    'style.css': 4, 'shell.css': 32, 'readability.css': 1, 'line.css': 39, 'home.css': 88, 'results.css': 114,
+    'style.css': 4, 'shell.css': 32, 'readability.css': 1, 'line.css': 36, 'home.css': 88, 'results.css': 114,
     'place-photos.css': 27, 'plan-map.css': 9, 'popups.css': 1, 'shared.css': 3, 'location-picker.css': 0, 'feedback.css': 0,
     'server-wake.css': 0,
+    # 리디자인 층(2026-11-24): !important 없이 뒤에 읽어 덮는다. line.css 는 휴대폰 메뉴 규칙 3개를 지워 39 → 36.
+    'redesign.css': 0,
 }
-NEW_FILES = ('results.css', 'home.css', 'place-photos.css', 'plan-map.css', 'shell.css', 'shared.css')
+NEW_FILES = ('results.css', 'home.css', 'place-photos.css', 'plan-map.css', 'shell.css', 'shared.css', 'redesign.css')
 
 
 def _without_comments(text):

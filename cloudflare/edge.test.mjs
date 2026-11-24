@@ -241,6 +241,6 @@ test("static files: immutable only when ?v= is the content hash the built pages 
     assert.equal(other.headers.get("cache-control"), "public, max-age=0, must-revalidate", suffix);
   }
   // Fonts and images are not versioned by the pages, so they always revalidate.
-  const font = (await run("/static/fonts/line-heading-800.woff2?v=" + versioned[1])).response;
+  const font = (await run("/static/fonts/pretendard/Pretendard-Regular.subset.woff2?v=" + versioned[1])).response;
   assert.equal(font.headers.get("cache-control"), "public, max-age=0, must-revalidate");
 });

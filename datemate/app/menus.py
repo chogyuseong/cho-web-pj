@@ -140,7 +140,15 @@ def restaurant_menu(place,force=False):
     # 2026-11-19: 네이버 검색 결과 화면을 자동으로 읽지 않는다(약관·robots.txt, app/naver_pages.py).
     # 운영자가 확인한 메뉴가 없으면 네이버 지도 링크로만 안내한다(가격을 다른 곳에서 읽어 오지 않는다).
     from .naver_pages import allowed
-    if not allowed():return map_menu_link(place,empty)
+    if not allowed():
+        # 관광공사 음식점 안내의 대표·취급 메뉴가 있으면 지도 링크와 함께 싣는다(2026-11-24, app/tour_places.tour_menu — 가격 없음, 글 그대로).
+        # 화면(static/meal-suggestions.js)은 tour_menu 를 '관광공사 안내' 한 줄로 보여 주고 지도 링크는 그대로 둔다.
+        from .tour_places import tour_menu
+        result=map_menu_link(place,empty)
+        try:menu=tour_menu(place)
+        except Exception:menu=None
+        if menu:result['tour_menu']=menu
+        return result
     # New parser must not reuse old false-negative entries.
     key='restaurant-menu-v4:'+place['id']
     if not force:

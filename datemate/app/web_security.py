@@ -84,7 +84,7 @@ EXPENSIVE = [re.compile(pattern) for pattern in (
     r'^GET /api/places/[^/]+/(?:media|blogs|menu|review-facts|identity)$',
     r'^POST /api/plans/[^/]+/(?:leisure-options|alternatives|replace|transport|reorder)$',
     # 코스를 다시 계산하는 미리보기·적용(길찾기를 다시 부를 수 있음, 2026-11-24 검토 S3).
-    r'^POST /api/plans/[^/]+/(?:agreement-preview|meal-preview|delay-recovery|leisure-select|draft-apply)$',
+    r'^POST /api/plans/[^/]+/(?:agreement-preview|meal-preview|festival-preview|delay-recovery|leisure-select|draft-apply)$',
     r'^GET /api/plans/[^/]+/(?:restaurants|restaurant-matches|meal-rescue|parking)$',
     r'^POST /api/chat/[^/]+/[^/]+$',
 )]

@@ -162,6 +162,14 @@ function showStepDialog(plan, start = 0) {
         node('p', shortAddress(step.place) || '주소 정보 없음', 'step-address'),
         node('p', legText ? (step.fromVenue ? '축제 행사장에서 여기까지 ' : '여기까지 ') + legText : '', 'hint'),
         placeMapLink('지도에서 열기 ↗', step.place));
+      // 장소 사진(2026-11-24 사용자 요청): 현장에서 '여기가 맞나'를 바로 알아보게 이름 아래에 둔다.
+      // 코스 화면과 같은 사진 패널(place-photos.js placePhotoPanel)이라 출처 표시·크게 보기·사진 없을 때의 지도 링크가 같고,
+      // 같은 장소의 사진 목록은 fetchPlacePhotos 가 캐시해 이전·다음으로 오가도 다시 받지 않는다.
+      // 가상 장소(데모)는 붙일 사진이 없어 넣지 않는다. 신호가 약하면 패널이 '다시 불러오기'를 보여 줄 뿐 나머지 정보는 그대로다.
+      // 사진 높이는 results.css '.step-view .place-photo-panel' 에서 정한다.
+      if (typeof placePhotoPanel === 'function' && plan.conditions?.mode !== 'demo' && !step.place.demo) {
+        view.querySelector('.step-name').after(placePhotoPanel(step.place, plan.conditions.mode, false, true));
+      }
     }
     prev.disabled = index === 0;
     next.disabled = index === steps.length - 1;

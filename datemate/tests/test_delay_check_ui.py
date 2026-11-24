@@ -17,8 +17,9 @@ def test_delay_check_answers_on_a_phone_and_changes_nothing(audit_page):
     page.wait_for_function("document.querySelector('#plan-detail .delay-check-basis')", timeout=20000)
     text = result.inner_text()
     second = page.evaluate('selected.places[1].name')
-    assert f'{second}의 원래 도착 예정 시각' in text and '10분을 더해' in text
-    assert any(word in text for word in ('그대로 갈 수 있어요', '처음 문제가 생기는 곳', '시간표로는 갈 수 있어요'))
+    assert f'{second}의 원래 도착 예정 시각' in text and '10분 늦는다고 보고' in text
+    # 결론 세 갈래(2026-11-24 말하듯이 다듬은 문구, static/delay-check.js delayCheckView).
+    assert any(word in text for word in ('그대로 가면 돼요', '여기서 처음 문제가 생겨요', '시간표로는 괜찮아 보여요'))
     assert result.locator('li').count() >= 1
     # 범위 밖 값은 서버에 보내지 않고 바로 알려 준다.
     box.locator('input[type=number]').fill('500')

@@ -34,7 +34,18 @@ function restaurantMenuPanel(food){
       }
       if(data.menu_images?.length){
         box.append(node('p',data.message,'hint'));const preview=node('div',undefined,'menu-image-preview');for(const url of data.menu_images.slice(0,2))preview.append(menuImage(url,food.name));box.append(preview,button('메뉴판 크게 보기 · '+data.menu_images.length+'장',()=>showMenuImages(food,data),'secondary'),node('small',data.note,'menu-checked'));
-      }else if(!data.items?.length)box.append(node('p',data.message||'공개 메뉴 자료가 없습니다.','hint'),link('지도에서 메뉴 확인 ↗',data.source_url||placeMapUrl(food)));
+      }else if(!data.items?.length){
+        // 관광공사 음식점 안내의 대표·취급 메뉴(서버 tour_menu, app/tour_places.tour_menu — 2026-11-24). 글 그대로, 가격 없음.
+        // 있으면 '모아 두지 않았어요' 문구 대신 이 한 줄과 출처를 먼저 보여 주고, 지도 링크는 그대로 둔다(지금 메뉴·가격은 지도에서).
+        const tour=data.tour_menu;
+        if(tour&&(tour.first||tour.treat)){
+          const line=node('p',undefined,'tour-menu');
+          line.append(document.createTextNode('관광공사 안내 · '+[tour.first&&('대표 메뉴 '+tour.first),tour.treat&&('취급 메뉴 '+tour.treat)].filter(Boolean).join(' · ')+' (가격·지금 메뉴는 지도에서 확인해 주세요) '));
+          if(tour.source_url)line.append(link('출처 ↗',tour.source_url));
+          box.append(line);
+        }else box.append(node('p',data.message||'공개 메뉴 자료가 없습니다.','hint'));
+        box.append(link('네이버 지도에서 메뉴보기 ↗',data.source_url||placeMapUrl(food)));
+      }
       // 모아 둔 메뉴 자료가 없는 식당(서버 reason not_collected)은 다시 조회해도 달라지지 않아 단추를 두지 않는다.
       if(data.reason!=='not_collected')box.append(button('메뉴 새로 조회',()=>load(true),'secondary menu-refresh'));
     }catch(error){box.replaceChildren(node('p','메뉴 조회를 완료하지 못했어요. '+error.message,'hint'),button('메뉴 다시 확인',()=>load(true)));}
@@ -55,7 +66,9 @@ function restaurantCard(food,{badge='',near='',plan=null,index=0}={}){
   if(isPublicDataPlace(food))info.append(publicDataSource(food));
   else if(food.recognition&&food.source)info.append(link(food.recognition+' ↗',food.source));
   const photo=node('div',undefined,'meal-photo');photo.append(placePhotoPanel(food,'real'));
-  const actions=node('div',undefined,'actions meal-actions');actions.append(button('사진·장소 정보',()=>showPlace(food.id,'real'),'secondary'),placeMapLink('네이버 지도·메뉴 ↗',food));
+  // '사진·장소 정보'는 앱 안 창이 바로 뜨지만 이 링크는 네이버 지도로 나간다 — 어디로 가서 무엇을 보는지 이름에 적는다(2026-11-24 사용자 요청).
+  // 같은 문구: 아래 메뉴 칸의 링크, maps.js 식당 정보창. ↗ 는 새 창으로 나간다는 앱 공통 표시.
+  const actions=node('div',undefined,'actions meal-actions');actions.append(button('사진·장소 정보',()=>showPlace(food.id,'real'),'secondary'),placeMapLink('네이버 지도에서 메뉴보기 ↗',food));
   if(plan&&plan.can_edit!==false)actions.append(button('이 식당을 일정에 넣기',()=>showMealChange(food,plan,index),'primary'));card.append(info,photo,actions,placeBlogPanel(food,'real'));return card;
 }
 function mealRescuePanel(plan){

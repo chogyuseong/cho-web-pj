@@ -123,3 +123,13 @@ def test_tour_hours_reach_the_card(audit_page):
     # 같은 응답이 두 번 와도 한 번만 붙는다.
     page.evaluate("markTourHours(selected.places[0].id,{hours:'10:00~22:00'})")
     assert page.locator(f'#plan-detail li[data-operating-place-id="{first}"] .tour-hours').count() == 1
+    # 2026-11-24 사용자 스크린샷: 안내 글이 줄(3칸 격자)의 넷째 칸으로 붙어 첫 칸이 넓어지고, '확인 필요' 배지가 가로로 늘어나고
+    # 본문이 한 글자씩 세로로 쌓였다. 안내 글은 본문 칸 안에 들어가야 한다(줄의 자식은 배지·이름·본문 셋).
+    shape = page.evaluate(f"""()=>{{
+      const li=document.querySelector('#plan-detail li[data-operating-place-id="{first}"]');
+      li.closest('details').open=true;
+      const badge=li.querySelector('.evidence-badge').getBoundingClientRect(),text=li.querySelector(':scope>.evidence-text').getBoundingClientRect();
+      return [li.children.length,Math.round(badge.width),Math.round(text.width)];
+    }}""")
+    assert shape[0] == 3, shape
+    assert shape[1] < 120 and shape[2] > 200, shape

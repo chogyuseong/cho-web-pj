@@ -351,7 +351,9 @@ def delay_check(plan, index, delay):
         start_place=places[index]["name"],
         planned_arrival=clock(planned_arrival),
         delayed_arrival=clock(planned_arrival + delay),
-        basis=f"{places[index]['name']}의 {planned}에 {delay}분을 더해, 방문 순서를 그대로 두고 다시 계산했어요."
+        # 말하듯이(2026-11-24 사용자: '답변이 너무 딱딱해'). 계산 내용(기준 장소·기준 시각·더한 분·순서 유지)은 그대로다.
+        # 테스트가 '다시 계산했어요.'로 끝나는지, '앞서 N분 늦음을 반영해 저장한 시각'이 들어 있는지 본다 — 바꾸면 함께 고칠 것.
+        basis=f"{places[index]['name']}의 {planned}에 {delay}분 늦는다고 보고, 들르는 순서는 그대로 둔 채 남은 일정을 다시 계산했어요."
         + later_note,
         rows=rows,
         first_problem=first_problem,

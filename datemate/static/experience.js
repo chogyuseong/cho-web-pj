@@ -232,6 +232,9 @@ function showDraft(original, draft, recompute) {
   const differences = draft.plan.deviations?.filter(d => d.state === 'unmet') || [];
   if (differences.length) root.append(node('p', '변경 후 조건 차이: ' + differences.map(d => d.message).join(' / '), 'warning'));
   if (draft.blocking.length) root.append(node('p', '필수 조건 때문에 적용할 수 없어요: ' + draft.blocking.map(c => c.label).join(' · '), 'warning'));
+  // 축제가 빠지거나 자리가 바뀌면 확정하기 전에 알린다(2026-11-24 점검 F4). 서버(app/experience.make_draft)가 원래 코스와 견줘 싣는 한 줄이고,
+  // 장소 바꾸기(place-dialog.js)·레저(leisure.js)·순서 제안(order-suggestion.js)과 같은 모양이다. 문구는 app/festival_time.change_note 에서 바꾼다.
+  if (draft.plan.festival_change) root.append(node('p', draft.plan.festival_change, 'warning festival-change-note'));
   // 코스 변경 잠금은 다른 변경·되돌리기와 같이 쓴다(plan-actions.js runPlanChange). 못 연 새 코스는 commitNewPlan 이 알린다.
   const apply = button('이 변경안으로 확정', () => runPlanChange(async () => {
     apply.disabled = true;

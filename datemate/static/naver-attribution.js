@@ -3,7 +3,9 @@
    표기: NAVER API HUB 상표·BI 가이드(https://guide.ncloud-docs.com/docs/apihub-brandguide)의 텍스트 표기 —
    'NAVER 오픈 API' 를 API HUB 포털로 새 창 링크. 로고 이미지는 쓰지 않는다(가이드가 텍스트 표기를 허용, 로고 파일은 받지 않음).
    다른 스크립트보다 먼저 읽힌다(index.html). DOM 도우미(node·link)에 기대지 않는다. */
-const NAVER_API_HUB_URL = 'https://www.ncloud.com/product/applicationService/NAVERAPIHUB';
+// 경로는 대소문자를 가린다: '/NAVERAPIHUB' 는 404 였다(2026-11-24 사용자 신고, curl 로 확인 — 없는 경로도 404 라 '/naverApiHub' 200 은 실제 페이지).
+// 바꿀 때는 tests/test_naver_terms_2026_09.py 의 주소 확인도 함께 고친다.
+const NAVER_API_HUB_URL = 'https://www.ncloud.com/product/applicationService/naverApiHub';
 const NAVER_RESULT_LABEL = '네이버 검색결과';
 
 function naverSafeUrl(url) {

@@ -269,7 +269,10 @@ def test_attribution_script_is_loaded_and_used():
     assert index.index('naver-attribution.js') < index.index('app.js')
     assert 'naver-attribution.js' in shared
     script = (ROOT / 'static/naver-attribution.js').read_text('utf-8')
-    assert '네이버 검색결과' in script and 'NAVERAPIHUB' in script
+    # API HUB 주소는 대소문자를 가린다. '/NAVERAPIHUB' 는 404 였다(2026-11-24).
+    assert '네이버 검색결과' in script and "'https://www.ncloud.com/product/applicationService/naverApiHub'" in script
+    # 옛 주소를 상수 값으로 다시 쓰지 않는다(주석에서 옛 주소를 설명하는 것은 괜찮다).
+    assert "'https://www.ncloud.com/product/applicationService/NAVERAPIHUB'" not in script
     # 코스 조사 패널(course-search.js)은 place-blogs.js 의 블록(naverBlogBlock)으로 출처 표시를 단다.
     # 비용 표(price-controls.js)에는 더 이상 네이버 검색 자료가 없다(블로그 가격을 읽지 않음).
     assert 'naverBlogBlock(' in (ROOT / 'static/course-search.js').read_text('utf-8')

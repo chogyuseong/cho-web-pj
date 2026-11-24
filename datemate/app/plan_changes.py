@@ -21,8 +21,11 @@ def change_delta(before, after):
     )
 
 
-def save_change(plan, original, owner, recovery=None):
-    """recovery: 지각 복구 기록(app/delay_recovery.py). 주면 그 기록을 붙이고, 지연을 반영해 짠 시간표를
+def save_change(plan, original, owner, recovery=None, kind=None):
+    """kind: 이 코스를 만든 변경의 종류를 저장해 둘 때('transport' — 수단 바꾸기). 화면의 되돌리기 단추 문구가 새로고침·고정 토글 뒤에도
+    같게 읽는다(static/plan-detail.js, 2026-11-24 점검 F6 — 예전에는 응답에만 있는 transport_change 를 봤다). 주지 않으면 표시를 지운다
+    (다음 변경이 앞 변경의 표시를 물려받지 않게). 식사·합의·축제 넣기 초안은 experience.apply_draft 에서 지운다.
+    recovery: 지각 복구 기록(app/delay_recovery.py). 주면 그 기록을 붙이고, 지연을 반영해 짠 시간표를
     자동차 길찾기 재조회로 덮지 않는다(새 외부 호출 없음). 수단 바꾸기·장소 바꾸기·레저 교체(app/main.py)는 지연을 넣어 다시 계산한 뒤
     kept 표시를 붙인 같은 기록을 넘긴다(delay_check.kept_record). recovery 없이 부르는 변경(순서 바꾸기 — 지각을 반영한 코스는 견주지 않음)은
     바꾸기 전 코스의 지각 기록을 이어받지 않는다. 식사 추가·합의 코스는 이 함수를 거치지 않고 초안(experience.make_draft/apply_draft)에
@@ -37,6 +40,9 @@ def save_change(plan, original, owner, recovery=None):
 
     updated = copy.deepcopy(plan)
     updated.pop("delay_recovery", None)
+    updated.pop("change_kind", None)
+    if kind:
+        updated["change_kind"] = kind
     if recovery:
         updated["delay_recovery"] = copy.deepcopy(recovery)
     moved = [p["id"] for p in updated["places"]] != [p["id"] for p in original["places"]]

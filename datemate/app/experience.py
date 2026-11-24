@@ -104,6 +104,8 @@ def apply_draft(parent,token,owner):
         ensure_votes_unchanged(current,owner,draft['vote_snapshot'])
     if hard_blocks(plan):raise ValueError('필수 조건을 충족하지 못해 적용할 수 없어요.')
     plan.update(delta=draft['delta'],change_reason=draft['summary'])
+    # 앞 변경(수단 바꾸기)의 표시는 물려받지 않는다 — 이 코스의 되돌리기는 식사·합의·축제 넣기를 되돌린다(plan_changes.save_change kind).
+    plan.pop('change_kind',None)
     # 동시 적용 요청도 동일한 일정 한 개만 생성한다 (SQLite 단일 트랜잭션).
     with store.connect() as db:
         db.execute('BEGIN IMMEDIATE')

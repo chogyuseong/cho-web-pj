@@ -882,7 +882,7 @@ def change_transport(id: str, data: TransportInput, request: Request):
 
     record = kept_record(plan, "transport")
     try:
-        saved = save_change(updated, plan, request.state.owner, recovery=record)
+        saved = save_change(updated, plan, request.state.owner, recovery=record, kind="transport")
     except ValueError as exc:
         raise HTTPException(409, str(exc))
     saved["transport_change"] = summary

@@ -112,11 +112,12 @@ def test_posts_keep_the_order_count_and_text_naver_gave(fake):
     assert data["attribution"] == "네이버 블로그 검색 결과"
     source = data["sources"][0]
     assert source["query"] == "2026년 11월 서울 팝업스토어" and source["cached"] is False
-    assert source["sort"] == "date" and source["display"] == 50 and source["returned"] == len(BLOG)
+    # 정확도순(sim, 2026-11-24 — 최신순은 부동산 글이 섞였다. app/popup_api.py 모듈 설명).
+    assert source["sort"] == "sim" and source["display"] == 50 and source["returned"] == len(BLOG)
     # 검색은 한 번뿐이다(예전에는 두 검색어 결과를 합쳤다). 이미지·지역 검색은 부르지 않는다.
     assert fake.calls == [("blog", "2026년 11월 서울 팝업스토어")]
     assert fake.params[0] == dict(
-        query="2026년 11월 서울 팝업스토어", display=50, start=1, sort="date", format="json"
+        query="2026년 11월 서울 팝업스토어", display=50, start=1, sort="sim", format="json"
     )
     # 받은 순서 그대로, 받은 건수 그대로. 빠지는 것은 링크를 걸 수 없는 항목(javascript:) 하나뿐이다.
     # 팝업이 아닌 글·다른 지역 글·끝난 팝업 글·모아 보기 글·같은 글의 다른 주소·같은 주소 반복도 그대로 둔다.

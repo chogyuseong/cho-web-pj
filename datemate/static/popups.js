@@ -143,10 +143,15 @@ const PopupView = {
   source(data) {
     return (data.sources || [])[0] || {};
   },
-  // "네이버 블로그 검색 ‘2026년 11월 서울 팝업스토어’ · 최신순 50건". 어떤 검색어의 결과인지 그대로 적는다.
+  // "네이버 블로그 검색 ‘2026년 11월 서울 팝업스토어’ · 정확도순 50건". 어떤 검색어·정렬의 결과인지 그대로 적는다.
+  // 서버 정렬은 app/popup_api.py SORT(2026-11-24 정확도순 sim). 예전 응답(date)도 이름표가 맞게 둘 다 다룬다.
   scopeText(data, count) {
     const source = this.source(data);
-    return `네이버 블로그 검색 ‘${source.query || data.region + ' 팝업스토어'}’ · ${source.sort === 'date' ? '최신순 ' : ''}${count}건`;
+    const order = {
+      date: '최신순 ',
+      sim: '정확도순 '
+    } [source.sort] || '';
+    return `네이버 블로그 검색 ‘${source.query || data.region + ' 팝업스토어'}’ · ${order}${count}건`;
   },
   // 같은 검색어의 네이버 블로그 검색 화면(블록의 원본 링크).
   searchUrl(data) {
@@ -436,8 +441,50 @@ const PopupCourse = {
     facts.append(this.fact('위치', this.levelText(hub), 'place'));
     // 고른 거점은 곧 출발지라 거리를 적지 않는다.
     if (origin && !chosen) facts.append(this.fact('거리', this.distanceText(item.meters, hub), 'distance'));
-    block.append(node('h5', this.label(hub), 'popup-hub-name'), facts, this.hubAction(hub, chosen));
+    block.append(node('h5', this.label(hub), 'popup-hub-name'), this.hubMedia(hub), facts, this.hubAction(hub, chosen));
     return block;
+  },
+  // 거점 사진 한 장(2026-11-24, 서버 app/popup_hub_media.py — 한국관광공사 공공누리 제1·제3유형). 검색된 팝업 글의 사진이 아니라
+  // 거점(건물·거리) 사진이라 그 사실을 사진 아래에 적는다. 출처·이용조건은 줄이지 않는다(장소 사진과 같은 규칙).
+  // 사진이 없거나(관광공사 항목으로 확인하지 않은 거점, 사진 없음, 하루 상한) 받지 못하면 자리를 지운다 — 빈칸을 남기지 않는다.
+  // 화면 가까이 올 때 받는다(거점이 많은 시·도에서 한꺼번에 부르지 않게). 같은 거점은 한 번만 묻는다(hubMediaRequests).
+  hubMediaRequests: new Map(),
+  hubMedia(hub) {
+    const figure = node('figure', undefined, 'popup-hub-media');
+    const load = async () => {
+      try {
+        if (!this.hubMediaRequests.has(hub.hub_id)) this.hubMediaRequests.set(hub.hub_id, api('/popups/hubs/' + encodeURIComponent(hub.hub_id) + '/media').catch(() => null));
+        const picture = (await this.hubMediaRequests.get(hub.hub_id))?.photos?.[0];
+        if (!picture) return figure.remove();
+        const img = node('img');
+        Object.assign(img, {
+          src: picture.image_url,
+          alt: `${hub.name} 사진(한국관광공사)`,
+          loading: 'lazy',
+          decoding: 'async',
+          referrerPolicy: 'no-referrer'
+        });
+        img.addEventListener('error', () => figure.remove());
+        const caption = node('figcaption', '거점 사진이에요. 지금 열리는 팝업의 사진은 아니에요. ', 'hint');
+        caption.append(document.createTextNode(`사진: ${picture.author || '한국관광공사'} · `), link(picture.license || '이용조건', picture.license_url));
+        if (picture.source) caption.append(document.createTextNode(' · '), link('사진 원문 ↗', picture.source));
+        figure.replaceChildren(img, caption);
+      } catch {
+        figure.remove();
+      }
+    };
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(entries => {
+        if (entries.some(e => e.isIntersecting)) {
+          observer.disconnect();
+          load();
+        }
+      }, {
+        rootMargin: '200px'
+      });
+      requestAnimationFrame(() => figure.isConnected ? observer.observe(figure) : load());
+    } else load();
+    return figure;
   },
   hubList(items, data, origin) {
     const block = node('section', undefined, 'popup-list popup-hubs');

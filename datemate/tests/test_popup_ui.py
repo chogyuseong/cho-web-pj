@@ -63,7 +63,7 @@ def payload(status="ready", posts=None, region="서울", hubs=None, query=QUERY,
                 name="네이버 블로그 검색",
                 status="ok",
                 query=query,
-                sort="date",
+                sort="sim",
                 returned=len(posts),
                 display=50,
             )
@@ -167,7 +167,7 @@ def test_popup_browse_shows_one_untouched_naver_block_and_its_states(audit_page)
     assert page.locator("#explore-section h2").inner_text() == "팝업스토어 둘러보기"
     assert page.locator("body>header nav>*").count() == 4
     # 어떤 검색어의 결과인지와 받은 건수를 그대로 적는다.
-    assert page.locator("#popup-status").inner_text() == f"네이버 블로그 검색 ‘{QUERY}’ · 최신순 4건"
+    assert page.locator("#popup-status").inner_text() == f"네이버 블로그 검색 ‘{QUERY}’ · 정확도순 4건"
     # 왜 기간·장소가 없는지는 블록 밖 한 줄로.
     about = page.locator("#popup-browse .popup-about").inner_text()
     assert "받은 순서 그대로" in about and "기간과 장소는 글 원문에서 확인" in about

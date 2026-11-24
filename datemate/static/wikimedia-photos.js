@@ -10,10 +10,17 @@ function publicPhotoJson(host,params){
   photoApiQueue=run.catch(()=>{}).then(()=>new Promise(resolve=>setTimeout(resolve,1000)));
   return run;
 }
+// 사진이 2장보다 적으면(없거나 관광공사 사진 1장뿐) Wikidata 대표 사진(P18)을 뒤에 덧붙인다. 서버가 그때 wikidata_id 를 준다(app/media.py).
+// 2026-11-24: 예전에는 사진이 한 장이라도 있으면 찾지 않았다(사용자 신고 '사진이 올라가 있는데 못 가져온다'). 이미 있는 사진은 앞에 그대로 둔다.
+// 받은 P18 목록은 7일 이 브라우저에 보관한다(키에 이미 있는 사진은 넣지 않음 — 합치는 것은 돌려줄 때).
+function mergeWikidataPhotos(data,found){
+  const seen=new Set(data.photos.map(p=>p.image_url||p.url)),photos=[...data.photos,...found.filter(p=>!seen.has(p.image_url||p.url))].slice(0,5);
+  return {...data,photos,status:photos.length?'available':data.status};
+}
 async function discoverPlacePhotos(place,data){
-  if(!data.wikidata_id||!/^Q[1-9][0-9]*$/.test(data.wikidata_id)||data.photos.length)return data;
+  if(!data.wikidata_id||!/^Q[1-9][0-9]*$/.test(data.wikidata_id)||data.photos.length>=2)return data;
   const key='datemate-photos-v2:'+data.wikidata_id;
-  try{const cached=JSON.parse(localStorage.getItem(key));if(cached?.expires>Date.now())return {...data,photos:cached.photos};}catch{}
+  try{const cached=JSON.parse(localStorage.getItem(key));if(cached?.expires>Date.now())return mergeWikidataPhotos(data,cached.photos||[]);}catch{}
   const claims=await publicPhotoJson('www.wikidata.org',{action:'wbgetclaims',entity:data.wikidata_id,property:'P18'});
   const titles=[...new Set((claims.claims?.P18||[]).filter(c=>c.rank!=='deprecated').map(c=>c.mainsnak?.datavalue?.value).filter(value=>typeof value==='string'&&/\.jpe?g$/i.test(value)))].slice(0,5);
   if(!titles.length)return data;
@@ -31,5 +38,6 @@ async function discoverPlacePhotos(place,data){
       association:'Wikidata '+data.wikidata_id+'의 P18 대표 이미지',changes:'원본 변경 없음 · 공급자 축소 이미지 표시'});
   }
   try{localStorage.setItem(key,JSON.stringify({photos,expires:Date.now()+7*86400000}));}catch{}
-  return {...data,photos,status:photos.length?'available':'not_found'};
+  const merged=mergeWikidataPhotos(data,photos);
+  return merged.photos.length?merged:{...merged,status:'not_found'};
 }

@@ -175,7 +175,7 @@ def test_naver_block_keeps_order_and_hub_list_is_separate_from_the_posts(audit_p
     )
     # 글: 블록 하나에 받은 순서 그대로. 처음 6건 + 「글 더 보기」, 펼쳐도 순서는 같다.
     assert page.locator("#popup-course-status").inner_text() == (
-        f"네이버 블로그 검색 ‘{QUERY}’ · 최신순 7건"
+        f"네이버 블로그 검색 ‘{QUERY}’ · 정확도순 7건"
     )
     assert page.locator("#popup-course-results .popup-naver-block").count() == 1
     assert page.locator("#popup-course-results .popup-naver-block .naver-result-head>h4").inner_text() == (

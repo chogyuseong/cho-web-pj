@@ -331,6 +331,97 @@ def _failed(cache_key):
     return result
 
 
+def info_cache_key(place):
+    """tour_info 가 결과를 보관하는 키(관광공사 목록에서 온 장소는 _listed_info 의 키). 상가정보 후보는 관광공사 안내가 없어 None.
+    찾는 방법을 바꿔 버전을 올리면 여기 한 곳만 고친다(apply_rest_days 가 같은 키를 읽는다)."""
+    if place.get("tour_content_id"):
+        return "tour-listed-v1:" + str(place["tour_content_id"])
+    if str(place.get("id") or "").startswith("public:store-"):
+        return None
+    return "tour-place-v3:" + hashlib.sha256(
+        repr([place.get("id"), place.get("name"), place.get("address"), place.get("lat"), place.get("lon")]).encode()
+    ).hexdigest()
+
+
+# ---------------------------------------------------------------- 쉬는 날 → 휴무 요일 (2026-11-24)
+# 왜: 사용자가 '네이버 지도에는 휴무일이 있는데 안 나온다'고 신고했다. 네이버 화면은 읽지 않으므로(약관, docs/naver-terms-review-2026-11-19.ko.md)
+# 공공 자료인 관광공사 '쉬는 날' 글을 휴무 계산에 넣기로 했다(사용자 결정: '(관광공사 안내 기준)'으로 표시).
+# 예전에는 '언제 확인한 안내인지 모른다'는 까닭으로 글을 보여 주기만 했다 — 지금도 화면은 그 사실을 함께 적는다(plan-evidence.js).
+# 매주 쉬는 요일이 분명할 때만 쓴다. 애매하면(격주·몇째 주·부정기) None — 예전처럼 '연다'고 가정하고 '확인 필요'로 둔다.
+_WEEKDAYS = "월화수목금토일"
+_NOT_WEEKLY = re.compile(r"격주|째\s*주|마지막\s*주|[1-5]\s*주\s*차?|부정기|비정기|홀수|짝수|매월|격월")
+_DAY_LIST = re.compile(r"((?:[월화수목금토일]\s*(?:요일)?\s*[,·/및와과\s]*\s*)+)요일")
+
+
+def rest_weekdays(text):
+    """관광공사 쉬는 날 글 → 휴무 요일 목록(월=0 … 일=6, planner 의 weekday 와 같다). 연중무휴면 [], 쓸 수 없으면 None.
+    날짜만 적힌 휴무(설·추석, 1월 1일)는 요일이 아니라 넣지 않는다(요일 휴무만 남긴다)."""
+    raw = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not raw:
+        return None
+    if re.search(r"연중\s*무휴|휴무\s*없음|무휴", raw) and not re.search(r"[월화수목금토일]요일", raw):
+        return []
+    if _NOT_WEEKLY.search(raw):
+        return None
+    days = set()
+    for group in _DAY_LIST.findall(raw):
+        days.update(_WEEKDAYS.index(ch) for ch in group if ch in _WEEKDAYS)
+    return sorted(days) if days else None
+
+
+def apply_rest_days(rows):
+    """추천 후보(quality.pool)의 휴무 요일을 보관된 관광공사 안내로 채운다. 공공 API 를 부르지 않는다(보관분 한 번 조회).
+    운영자가 확인한 closed_days 가 있으면 그대로 둔다. 채운 장소에는 closed_days_basis='관광공사 안내 기준'을 단다(화면·근거용).
+    안내는 사용자가 카드를 열 때(/media → tour_info) 쌓이므로, 아직 아무도 안 연 장소는 채워지지 않는다(예전과 같음)."""
+    wanted = {}
+    for row in rows:
+        if row.get("closed_days") is None and not row.get("demo"):
+            key = info_cache_key(row)
+            if key:
+                wanted.setdefault(key, []).append(row)
+    if not wanted:
+        return rows
+    found = store.cached_many(list(wanted))
+    for key, info in found.items():
+        if not isinstance(info, dict) or info.get("status") != "available":
+            continue
+        days = rest_weekdays(info.get("rest"))
+        if days is None:
+            continue
+        for row in wanted.get(key, []):
+            row["closed_days"] = days
+            row["closed_days_basis"] = "관광공사 안내 기준"
+    return rows
+
+
+# ---------------------------------------------------------------- 대표 메뉴 (2026-11-24)
+# 왜: 사용자가 '네이버 지도에 메뉴가 있는데 못 받아온다'고 신고했다. 네이버 화면은 읽지 않으므로(약관) 공공 자료인
+# 관광공사 음식점 소개(detailIntro2, contentTypeId 39)의 대표 메뉴(firstmenu)·취급 메뉴(treatmenu)를 글 그대로 보여 준다(사용자 결정).
+# 가격은 이 자료에 없어 만들지 않는다. 영업 안내와 같은 응답에서 읽으므로 호출이 늘지 않는다.
+# 이 필드가 들어오기 전에 보관한 안내(최대 7일)에는 메뉴가 없다 — 보관이 끝나 다시 받으면 생긴다(보관 키 버전은 올리지 않았다: 하루 호출 한도).
+
+
+def _intro_menu(type_id, intro):
+    if type_id != FOOD_TYPE:
+        return {}
+    first, treat = _text(intro.get("firstmenu")), _text(intro.get("treatmenu"))
+    return {key: value for key, value in (("menu_first", first), ("menu_treat", treat)) if value}
+
+
+def tour_menu(place):
+    """식당 메뉴 칸에 붙일 관광공사 대표·취급 메뉴(글 그대로). 없으면 None. tour_info 를 부른다(보관분이 있으면 호출 없음)."""
+    info = tour_info(place)
+    if info.get("status") != "available" or not (info.get("menu_first") or info.get("menu_treat")):
+        return None
+    return dict(
+        first=info.get("menu_first"),
+        treat=info.get("menu_treat"),
+        source_url=info.get("source_url"),
+        source_label="한국관광공사 음식점 안내",
+        checked_at=info.get("checked_at"),
+    )
+
+
 def tour_info(place, force=False):
     """dict(status, content_id, photo, hours, rest, source_url, link). status: available·not_found·key_missing·unavailable·not_applicable.
 
@@ -347,9 +438,7 @@ def tour_info(place, force=False):
         # 상가정보에서 온 후보는 후보를 고를 때 같은 동네의 관광공사 항목과 이미 견줬다(같은 가게면 관광공사 항목이 뽑힘).
         # 여기서 이름으로 또 찾지 않는다(하루 호출 한도를 아낌).
         return dict(status="not_found")
-    cache_key = "tour-place-v3:" + hashlib.sha256(
-        repr([place.get("id"), place.get("name"), place.get("address"), place.get("lat"), place.get("lon")]).encode()
-    ).hexdigest()
+    cache_key = info_cache_key(place)
     cached = store.cached(cache_key)
     if cached and not (force and cached.get("status") == "unavailable"):
         return cached
@@ -365,6 +454,7 @@ def tour_info(place, force=False):
                 return result
             content_id, type_id = str(row.get("contentid") or ""), str(row.get("contenttypeid") or "")
             hours = rest = None
+            menu = {}
             if type_id in HOURS_FIELDS and content_id.isdigit():
                 detail = observed_http(
                     client.get, DETAIL_ENDPOINT, params=dict(base, contentId=content_id, contentTypeId=type_id)
@@ -373,6 +463,7 @@ def tour_info(place, force=False):
                 intro = (_items(detail) or [{}])[0]
                 hours_field, rest_field = HOURS_FIELDS[type_id]
                 hours, rest = _text(intro.get(hours_field)), _text(intro.get(rest_field))
+                menu = _intro_menu(type_id, intro)
         photo, license_type = row_photo(row)
         exact, _ = match_rows(place, [row])
         result = dict(
@@ -387,6 +478,7 @@ def tour_info(place, force=False):
             checked_at=date.today().isoformat(),
             link="exact" if exact else "loose",
             radius_m=link_radius_m(place, row),
+            **menu,
         )
         store.cache(cache_key, result, CACHE_SECONDS)
         return result
@@ -438,7 +530,7 @@ def _listed_info(place, key, force=False):
             detail.raise_for_status()
             intro = (_items(detail) or [{}])[0]
             hours_field, rest_field = HOURS_FIELDS[type_id]
-            result.update(hours=_text(intro.get(hours_field)), rest=_text(intro.get(rest_field)))
+            result.update(hours=_text(intro.get(hours_field)), rest=_text(intro.get(rest_field)), **_intro_menu(type_id, intro))
         except (httpx.HTTPError, ValueError, TypeError, KeyError, AttributeError):
             store.cache(retry_key, True, FAIL_SECONDS)
             return result
@@ -596,4 +688,11 @@ def tour_hours(place):
     info = tour_info(place)
     if info.get("status") != "available" or not (info.get("hours") or info.get("rest")):
         return None
-    return dict(hours=info.get("hours"), rest=info.get("rest"), source_url=info.get("source_url"), checked_at=info.get("checked_at"))
+    # closed_days: 쉬는 날 글에서 읽은 휴무 요일(rest_weekdays). 화면이 '휴무 요일은 일정 계산에 반영(관광공사 안내 기준)'을 덧붙인다.
+    return dict(
+        hours=info.get("hours"),
+        rest=info.get("rest"),
+        closed_days=rest_weekdays(info.get("rest")),
+        source_url=info.get("source_url"),
+        checked_at=info.get("checked_at"),
+    )

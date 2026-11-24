@@ -439,3 +439,20 @@ def test_unmet_requested_activity_names_the_nearest_place_outside_the_neighborho
     # 저장한 코스를 다시 열어 조건을 다시 대조해도 안내가 남는다(다시 찾지 않음).
     again = audit_plan(json.loads(json.dumps(plan)))
     assert '가장 가까운 곳은 전포 도자기 공방' in next(r for r in again['condition_checks'] if r['condition'] == 'request_activity')['message']
+
+
+def test_listed_tour_restaurant_shows_its_menu_text(api):
+    """관광공사 음식점 안내의 대표·취급 메뉴를 메뉴 칸에 글 그대로 싣는다(2026-11-24). 가격은 만들지 않고 지도 링크는 그대로다."""
+    from app.menus import restaurant_menu
+    from app.tour_places import tour_menu
+    row = public_places._tour_row(tour_item(56, '서면 국밥집', 35.16, 129.06))
+    place = public_places.tour_place(row, '부산')
+    api['detail']['56'] = dict(opentimefood='11:00~21:00', restdatefood='연중무휴', firstmenu='돼지국밥', treatmenu='돼지국밥, 수육 백반')
+    assert tour_menu(place) == dict(first='돼지국밥', treat='돼지국밥, 수육 백반', source_url=place['source'],
+                                    source_label='한국관광공사 음식점 안내', checked_at=tour_menu(place)['checked_at'])
+    menu = restaurant_menu(place)
+    assert menu['tour_menu']['first'] == '돼지국밥' and menu['items'] == [] and menu['source_label'] == '네이버 지도에서 메뉴 보기'
+    # 메뉴 글이 없는 음식점·음식점이 아닌 곳은 싣지 않는다.
+    other = public_places.tour_place(public_places._tour_row(tour_item(57, '서면 빵집', 35.16, 129.06)), '부산')
+    api['detail']['57'] = dict(opentimefood='08:00~20:00', restdatefood='')
+    assert 'tour_menu' not in restaurant_menu(other)

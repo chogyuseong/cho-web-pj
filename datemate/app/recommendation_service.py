@@ -403,6 +403,12 @@ def _finish(data, result, owner):
             for plan in result["plans"]
         ],
     )
+    # 결과에 들어간 식당·카페의 폐업 여부(행안부 인허가)를 미리 조회해 둔다 — 다음 추천부터 quality.pool 이 폐업한 곳을 뺀다
+    # (2026-11-24, app/place_identity.prefetch). 배경 일꾼이 하므로 이 요청을 늦추지 않는다.
+    if data.mode == "real":
+        from .place_identity import prefetch
+
+        prefetch([p for plan in result["plans"] for p in plan["places"]])
     before_pricing = _shape(result["plans"])
     with span("price.price_plans"):
         result["plans"] = price_plans(result["plans"])

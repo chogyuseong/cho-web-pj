@@ -370,6 +370,41 @@ def enqueue(place):
     _start_worker()
 
 
+# ---------------------------------------------------------------- 추천 후보 거르기 (2026-11-24)
+# 왜: 사용자가 '추천받은 코스에 폐업한 곳이 나왔다'고 신고했다. 인허가 판정(closed)은 화면의 '위치' 줄에 표시만 하고
+# 추천 후보에는 남겨 두고 있었다. 이제 quality.pool 이 closed_ids 로 뺀다. 판정을 새로 부르지는 않는다(느린 API — 위 '응답이 느리다').
+# 판정이 없는 곳은 빼지 않는다(자료가 없다는 것은 폐업이라는 뜻이 아니다). 판정은 prefetch(추천 결과)와 카드 열기(verify_identity)로 쌓인다.
+# 한계: 처음 보는 가게는 첫 추천 때 판정이 아직 없다. 인허가가 이름·도로명 주소로만 맞춰져, 간판 이름이 다르면 판정이 없다.
+
+
+def _license_targets(places):
+    return [p for p in places if applies(p) and license_kinds(p)]
+
+
+def closed_ids(places):
+    """저장된 인허가 판정이 '폐업으로 등록됨'(closed)인 장소 id 들. 공공 API 를 부르지 않는다(캐시 한 번 조회)."""
+    targets = _license_targets(places)
+    if not targets:
+        return set()
+    found = store.cached_many([cache_key(p, "license") for p in targets])
+    return {p["id"] for p in targets if (found.get(cache_key(p, "license")) or {}).get("status") == "closed"}
+
+
+def prefetch(places):
+    """추천 결과에 들어간 식당·카페 중 인허가 판정이 아직 없는 곳을 배경 조회에 맡긴다. 다음 추천부터 closed_ids 가 거른다.
+    대기열은 QUEUE_MAX 곳이라 후보 전체가 아니라 결과에 나온 곳만 넣는다. 키가 없으면 아무것도 하지 않는다."""
+    if not _key():
+        return
+    targets = _license_targets(places)
+    if not targets:
+        return
+    keys = [cache_key(p, part) for p in targets for part in ("license", "license-retry")]
+    found = store.cached_many(keys)
+    for p in targets:
+        if cache_key(p, "license") not in found and cache_key(p, "license-retry") not in found:
+            enqueue(p)
+
+
 # ---------------------------------------------------------------- 화면용 판정
 
 

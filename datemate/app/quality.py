@@ -68,6 +68,17 @@ def pool(c):
     from .place_reports import pending_place_ids
     pending=pending_place_ids()
     excluded=[p for p in rows if p['id'] in c.excluded_place_ids]
+    # 행안부 인허가로 '폐업으로 등록됨'이 저장된 식당·카페는 후보에서 뺀다(2026-11-24 사용자 신고, app/place_identity.closed_ids).
+    # 사용자가 고정한 곳은 남긴다(화면에 '폐업으로 등록됨'이 그대로 보인다). 판정이 없는 곳은 빼지 않는다. 가상 장소(데모)는 판정이 없다.
+    if c.mode=='real':
+        from .place_identity import closed_ids
+        locked=set((c.locked or {}).values()) if isinstance(c.locked,dict) else set()
+        closed=closed_ids(rows)-locked
+        if closed:rows=[p for p in rows if p['id'] not in closed]
+        # 휴무 요일을 모르는 곳은 보관된 관광공사 '쉬는 날' 안내로 채운다(2026-11-24, app/tour_places.apply_rest_days — 새 호출 없음).
+        # 원본(카탈로그) 행을 바꾸지 않게 복사본에 채운다.
+        from .tour_places import apply_rest_days
+        rows=apply_rest_days([dict(p) for p in rows])
     return list({p['id']:dict(p,price_unit=p.get('price_unit') or 'person',meal=is_meal(p),report_pending=p['id'] in pending) for p in rows if same_region(p,c.region) and in_area(p,c) and not any(matches(p,k) for k in denied) and p['id'] not in c.excluded_place_ids and not any(same_place(p,other) for other in excluded) and (c.trust_mode!='operating_sources' or operating_source_current(p) and p['id'] not in pending)}.values())
 
 def meal_time_matches(plan):

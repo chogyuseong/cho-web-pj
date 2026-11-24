@@ -108,6 +108,10 @@ app.include_router(user_feedback_router)
 from .popup_api import router as popup_router
 
 app.include_router(popup_router)
+# 팝업 거점 사진(관광공사 공공누리 사진 한 장, app/popup_hub_media.py — 2026-11-24).
+from .popup_hub_media import router as popup_hub_media_router
+
+app.include_router(popup_hub_media_router)
 from .search_robots import router as search_robots_router
 
 app.include_router(search_robots_router)

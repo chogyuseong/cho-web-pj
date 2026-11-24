@@ -176,15 +176,26 @@ function watchIdentity(place){
   next();
 }
 // 한국관광공사 TourAPI 의 영업 안내(app/tour_places.py tour_hours, /media 응답의 tour_hours). 관광공사에 제공된 글 그대로이고
-// 언제 확인한 정보인지 모르므로 '확인 필요' 상태는 그대로 두고 안내 글과 출처만 덧붙인다(일정 계산에도 넣지 않는다).
+// 언제 확인한 정보인지 모르므로 '확인 필요' 상태는 그대로 두고 안내 글과 출처만 덧붙인다.
+// 2026-11-24: 쉬는 날 글에서 매주 쉬는 요일을 읽을 수 있으면(서버 tour_hours.closed_days, app/tour_places.rest_weekdays) 그 요일은
+// 일정 계산에 넣는다(사용자 결정). 그때만 '휴무 요일은 일정 계산에 반영(관광공사 안내 기준)'을 덧붙인다. 영업 시간은 여전히 넣지 않는다.
+const WEEKDAY_NAMES='월화수목금토일';
+function tourRestNote(days){
+  if(!Array.isArray(days))return '';
+  if(!days.length)return ' 연중무휴로 보고 일정을 계산했어요(관광공사 안내 기준).';
+  return ` 매주 ${days.map(d=>WEEKDAY_NAMES[d]).join('·')}요일 휴무는 일정 계산에 반영했어요(관광공사 안내 기준).`;
+}
 function markTourHours(placeId,tour){
   if(!tour||!(tour.hours||tour.rest))return;
   for(const item of document.querySelectorAll('li[data-operating-place-id]')){
     if(item.dataset.operatingPlaceId!==placeId||item.querySelector('.tour-hours'))continue;
-    const note=node('span',undefined,'evidence-text tour-hours');
-    note.append(document.createTextNode(' 한국관광공사 안내: '+[tour.hours,tour.rest&&('쉬는 날 '+tour.rest)].filter(Boolean).join(' · ')+' (언제 확인한 안내인지 알 수 없어요) '));
+    // 안내 글은 줄의 본문 칸(.evidence-text) 안에 넣는다. 줄은 3칸 격자(배지·이름·본문, results.css .evidence-item)라
+    // li 에 넷째 자식으로 붙이면 다음 줄의 첫 칸으로 들어가 그 칸을 글 너비만큼 넓힌다 — 배지가 가로로 늘어나고 본문이
+    // 한 글자씩 세로로 쌓였다(2026-11-24 사용자 스크린샷). 줄바꿈은 CSS(.evidence-text .tour-hours display:block)가 한다.
+    const note=node('span',undefined,'tour-hours');
+    note.append(document.createTextNode('한국관광공사 안내: '+[tour.hours,tour.rest&&('쉬는 날 '+tour.rest)].filter(Boolean).join(' · ')+' (언제 확인한 안내인지 알 수 없어요)'+tourRestNote(tour.closed_days)+' '));
     if(tour.source_url)note.append(link('출처 ↗',tour.source_url));
-    item.append(note);
+    item.querySelector('.evidence-text').append(note);
   }
 }
 function evidenceItem(label,state,text){

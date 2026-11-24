@@ -20,11 +20,35 @@ function applyPresetArea(card){
     setDateClassification(['사교적인','활동적인'].includes(mood)?'타입별':'콘셉트별',mood);
     return true;
   }
+  // 카드를 누르면 채운 조건을 폼 맨 위에 태그로 보여 주고, '이 조건으로 바로 추천받기'에 포커스를 둔다(2026-11-24 UX P0).
+  // 기본 조건(날짜·시간·예산)은 바로 아래 요약 한 줄에 보이므로, 확인만 하고 이 단추를 누르면 된다 — 카드 → 추천까지 두 번.
+  // 다른 지역을 고르면 태그는 맞지 않으니 지운다(syncPresetTags).
+  let presetCard=null;
+  function presetTags(card){
+    let box=document.getElementById('preset-tags');
+    if(!box){box=node('div',undefined,'preset-tags');box.id='preset-tags';box.setAttribute('role','group');box.setAttribute('aria-label','고른 테마로 채운 조건');form.prepend(box);}
+    const mood=card.querySelector('.curation-mood')?.textContent||card.dataset.mood;
+    const tags=node('div',undefined,'preset-tag-list');
+    for(const text of [mood,card.dataset.preset,card.dataset.mood])if(text)tags.append(node('span',text,'tag'));
+    const go=button('이 조건으로 바로 추천받기',()=>form.requestSubmit(),'primary preset-go');
+    box.replaceChildren(node('p','고른 테마로 채웠어요. 날짜·시간·예산은 아래 기본 조건에서 확인해 주세요.','hint'),tags,go);
+    box.hidden=false;
+    return go;
+  }
+  function syncPresetTags(){
+    const box=document.getElementById('preset-tags');
+    if(!box||box.hidden||!presetCard)return;
+    if(locationState.origin?.name!==presetCard.dataset.origin){box.hidden=true;presetCard=null;}
+  }
+  document.addEventListener('click',()=>setTimeout(syncPresetTags));
   document.querySelectorAll('[data-preset]').forEach(card=>card.onclick=()=>{
     if(!applyCard(card))return;
     const region=card.dataset.preset;
     document.getElementById('nav-plan').click();
+    presetCard=card;
+    const go=presetTags(card);
     document.querySelector('#parse-notice').textContent=region+' 지역과 데이트 분위기를 입력했어요. 날짜·시간·예산을 확인하고 추천받아 주세요.';
-    toast(region+'에서 시작하는 취향을 골랐어요. 조건을 확인하고 코스를 만들어 보세요.');
+    toast(region+'에서 시작하는 테마를 골랐어요.');
+    requestAnimationFrame(()=>{go.focus({preventScroll:true});go.scrollIntoView({block:'center',behavior:'instant'});});
   });
 })();

@@ -1,5 +1,8 @@
+// 홈의 '테마로 고르는 하루' 카드(data-preset 도 있음)는 theme-cards.js 가 지역까지 채워 처리한다. 여기서 또 처리하면 분류를 두 번 정하고
+// 토스트가 겹쳤다(2026-11-24 UX P0). 그래서 클릭은 지역 없는 분위기 단추에만 붙이고, 눌림 표시(aria-pressed)는 모두에 맞춘다.
 document.querySelectorAll('[data-mood]').forEach(button=>{
   button.setAttribute('aria-pressed','false');
+  if(button.hasAttribute('data-preset'))return;
   button.addEventListener('click',()=>{
     if(!document.querySelector('[name=themes]')){toast('데이트 테마를 준비하고 있어요. 잠시 후 다시 골라주세요.');return;}
     const theme=button.dataset.mood;

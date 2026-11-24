@@ -5,9 +5,19 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
-★ 지금 상태 (2026-11-24 기준)
+★ 지금 상태 (2026-11-25 기준)
 ----------------------------------------------------------------------
-[브랜치 대기 — 미병합·미배포] fix/review-f6-f8 (작업 폴더 ..\cho-web-pj-review-f6-f8). 점검 보고서 docs/reviews/2026-11-24-full-review.md 의 낮음 F6·F7·F8.
+아흔두 번째 배포(2026-11-25) 완료: main dac7817(병합 = fix/review-f6-f8), Worker 버전 4ff809a8-523d-4806-8182-3eccbf894a30. 사용자 자리 비움 중 메인이 골라 진행.
+  · 병합 때 이 파일만 충돌(91차 기록과 브랜치 기록) → 둘 다 남김. 병합 뒤 test:security 25 통과 → wrangler deploy. main CI Run 45450772222 성공.
+  · 운영 확인(배포 14분 뒤): /api/status 200, delay-check.js delayCheckMemo·order-suggestion.js orderSuggestionMemo·plan-detail.js change_kind 있음.
+    보지 못한 것: 실제 화면에서 고정 토글 뒤 상자 유지(브라우저 시험으로만), 실기기.
+  · 되돌리는 법: git revert -m 1 dac7817 후 재배포.
+  · 정리: 작업 폴더 cho-web-pj-festival-add·cho-web-pj-review-f6-f8, 브랜치 feat/festival-add-to-course·fix/review-f6-f8(로컬·원격) 삭제. 원격 브랜치는 main 하나.
+  · 다음 후보: 점검 보고서 남은 것 S4(공유 의견 자리 점유)·F9('이동 N분' 화면마다 다른 합계)·F10, '안 N'/'코스 N' 용어 통일(결정 필요),
+    팝업 '+ 내 코스에 추가'(팝업 좌표·운영 시간 근거가 생기면), 4단계 데이트/여행 모드(정의 필요), 1인 예산 칩·계절 달 기준(결정 대기).
+    대기: 네이버 세 번째 문의 답(식당 사진), 공공데이터포털 운영계정 승인.
+  아래는 브랜치 때 기록:
+  fix/review-f6-f8. 점검 보고서 docs/reviews/2026-11-24-full-review.md 의 낮음 F6·F7·F8.
   · F7(static/delay-check.js·order-suggestion.js): 지각 확인·순서 제안 상자가 마지막 코스의 상태(열림·입력·받은 결과)를 기억한다(delayCheckMemo·orderSuggestionMemo).
     같은 코스·같은 고정으로 다시 그리면(제보 저장 등) 그대로 되살리고 다시 묻지 않음. 같은 코스에서 고정만 바뀌면(planPanelRelation 'locks') 열려 있을 때
     같은 입력으로 다시 계산하고 '고정한 장소가 바뀌어 …다시 확인했어요' 한 줄 → '고정을 풀면 대신 갈 곳을 고를 수 있어요'를 따라 풀면 대신 갈 곳이 나옴.

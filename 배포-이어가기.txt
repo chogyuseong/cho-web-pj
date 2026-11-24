@@ -7,6 +7,27 @@
 
 ★ 지금 상태 (2026-11-24 기준)
 ----------------------------------------------------------------------
+[브랜치 대기 — 미병합·미배포] feat/festival-add-to-course (작업 폴더 ..\cho-web-pj-festival-add). 축제 카드 「+ 내 코스에 추가」(가이드 §2.5 마지막 항목).
+  사용자와 정한 범위: 축제만(팝업 제외), 자리는 플래너 규칙 그대로(끝 → 중간, 출발지≠행사장이면 맨 앞 금지), 미리보기 → 확정(draft-apply 재사용).
+  · 서버: POST /api/plans/{id}/festival-preview {festival_id} (app/festival_add.py, EXPENSIVE 에 추가). 화면은 id 만 보냄(extra=forbid).
+    제목·좌표·기간 = fetch_festivals(방문일, 방문일, 시·도) — 화면 축제 구역과 같은 캐시 열쇠. 운영 시간 = 상세 캐시, 없으면 seen() 인 축제만 상세 1회.
+    거절(409, 사용자 말투): 데모 코스·이미 축제 있음·목록에 없음·기간 밖·좌표 없음·운영 시간 없음/여러 개/못 읽음·넣을 자리 없음(엄격 계산: 종료·구간 이동·도보·예산)·
+    best_effort 코스는 soft 계산 뒤 종료/구간/도보가 더 나빠지면 거절·필수 조건(hard_blocks). 남의 코스 404, 21일 지난 코스 409(ensure_changeable).
+    다시 계산은 plan_rules.reevaluate(late_end=True, 지연 이어 감 kept='festival'). 축제 요금은 비용에 안 넣음.
+  · 출발지 = 행사장 가정 정리: models.py 규칙을 '실제 장소 모드만'으로 완화. festival_time.venue_apart/venue 추가 — 행사장 좌표는 conditions.festival 에서,
+    출발지 = 행사장 코스는 출발지 값 그대로(이름까지) → 옛 코스 동작 같음. festival_slot 은 apart 면 None(맨 앞 금지), evening_window 는 apart 면 'fixed' 낮 축제도 창을 줌.
+    고친 곳: planner(_middle_gaps·중간·끝 3곳), delay_recovery(_saved_legs·_next_point·_previous_point), leg_modes.car_position_notes(행사장≠출발지면 차 위치 따로),
+    festival_time.explain·condition_audit·recommendation_summary(문구 '돌아와'→'가서', 자리 없어진 코스 안내), sharing.festival_visit(apart=True 일 때만 키) + shared.js,
+    maps.js(planSegments 행사장 점·지도 범위·넣은 축제 진한 표시·정보창), place-dialog.js 개략도, plan-detail.js·plan-results.js 문구.
+    확인만 하고 안 고친 곳(좌표 안 씀): delay_check(저장 구간 사용)·order_suggestion·day-of.js·action-card.js·카톡 일정 복사(position 만 봄).
+  · 화면: 카드에 「+ 내 코스에 추가」(코스 없음·데모·이미 축제·방문일 밖·바꿀 수 없는 코스면 비활성 + 까닭), 관광공사 번호 없는 축제는 단추 대신 까닭, 좌표 없는 축제는 기존 한 줄에 합침.
+    미리보기 = showDraft 에 '축제 방문'(어디·몇 시)·'총 도보' 줄, 경로 글에 축제, festival-change-note. 확정 뒤 renderDetail 이 단추 상태 다시 맞춤.
+  · 테스트: tests/test_festival_add.py(28, 고치기 전 18개 실패 확인)·test_festival_add_ui.py(3). test_festival_course 의 '출발지≠행사장이면 거절' 시험은 완화에 맞게 바꿈.
+    로컬 전체 1589 통과·1 건너뜀, npm run test:security 25 통과, format_sources --check 통과. CI Run 45424770921.
+  · 직접 본 것: 1440·390 스크린샷(카드 단추·까닭, 미리보기 표, 확정 뒤 타임라인 중간 축제·Leaflet 지도의 행사장 선·진한 표시·오른쪽 요약). 못 본 것: 실제 관광공사 자료·네이버 지도 SDK·실기기.
+  · 남은 한계: make_draft 의 자동차 경로 재조회는 soft 라 드물게 자리가 바뀔 수 있음(안내 줄은 최종 초안 기준, 축제가 빠지면 거절). 새 추천 API 로도 출발지≠행사장 축제를 보낼 수 있게 됨(화면은 안 보냄).
+  · 되돌리는 법: 병합 전이면 브랜치를 버리면 됨, 병합 후면 git revert -m 1 <병합 커밋>. DB 변경 없음.
+
 아흔 번째 배포(2026-11-24) 완료: main c083fa2(병합 = feat/redesign-results), Worker 버전 5eb995e5-2c88-43fe-ac02-afeb09cc383a. 리디자인 3단계 결과 화면(가이드 §2.5).
   사용자 '1순위 진행해'·'완성도 최상으로'·'끝나면 배포까지 진행해'. 사용자 결정: 축제·팝업 '+ 내 코스에 추가'는 다음 브랜치(서버 기능 필요), 탭 이름 '안 N · 지금 이름',
   기존 접힌 지각 상자는 토글과 함께 둠. 리디자인 가이드 파일은 이 PC 에서 D:\Downloads\datemate_2026.md (다운로드 폴더가 D 드라이브).

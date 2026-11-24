@@ -17,6 +17,8 @@
   보낸 날짜·답은 사용자가 알려 주면 여기 적는다.
 - 2026-11-24: 사용자가 '추가 문의'를 새 문의로 보냄(ncloud 고객지원 > 서비스 > Application Services(O2O_APP) > NAVER API HUB(O2O_APP_025),
   역삼개나리공원 블로그 후기 화면 첨부). 답을 받으면 질문 1·2·3 별로 허용 여부를 여기 적고 static/place-blogs.js·app/blog_search.py 를 고친다.
+- 2026-11-24: 사용자가 '세 번째 문의(장소 사진·업체 연결)'를 보냄. 답을 받으면 질문 1~4 별로 허용 여부를 여기 적고,
+  허락 범위만큼 app/public_place_photos.py·app/image_search.py 를 고친다(app/naver_pages.py ALLOWED 는 서면 허락일 때만).
 
 ---
 

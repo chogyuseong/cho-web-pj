@@ -22,6 +22,8 @@
   · 되돌리는 법: git revert -m 1 c083fa2 후 재배포(DB·서버 변경 없음).
   · 다음 후보: 축제·팝업 '+ 내 코스에 추가'(기존 코스에 끼워 넣는 서버 기능 — 지금은 출발지 = 행사장이어야 함, models.py:139), '안 N'/'코스 N' 용어 통일,
     4단계 데이트/여행 모드(정의 필요), 1인 예산 칩·계절 달 기준(결정 대기). 정리(사용자 '작업 폴더 지워'·'브랜치도 지워'): 작업 폴더 cho-web-pj-redesign-results·cho-web-pj-tmp-main, 브랜치 feat/redesign-results(로컬·원격) 삭제.
+    '남은 원격 브랜치도 지워': 병합된 feat/redesign-tokens-shell·feat/theme-two-track·fix/photo-info-fold·fix/route-source-fold 원격 삭제.
+    css/stage-* 8개는 main 에 없는 커밋이 있어(병합 안 된 체인) 남김 — 지울지 사용자 확인 대기.
   아래는 브랜치 때 기록:
   서버(app/) 변경 없음, DB 변경 없음. 정적 파일 5개(plan-results.js·maps.js·plan-detail.js·delay-check.js·redesign.css).
   · 코스 탭: '안 N · {option_purpose}'(고정 이름 안 씀). 1안 대비 배지 도보·예산·이동(1안 '비교 기준'). 값 모르면·0이면 없음.

@@ -83,6 +83,9 @@ def test_public_list_then_untouched_naver_blocks(audit_page, width):
     assert '네이버 검색결과 · 지역 검색' in head.locator('.naver-attribution').inner_text()
     assert head.locator('a').first.get_attribute('href').startswith('https://map.naver.com/p/search/')
     assert 'NAVER 오픈 API' in head.inner_text()
+    # 상표 표기는 링크가 아닌 작은 글자다(2026-11-24 사용자 결정 — 누를 일이 없는 단추처럼 보였다).
+    assert head.get_by_role('link', name='NAVER 오픈 API').count() == 0
+    assert head.locator('.naver-api-mark').inner_text() == 'NAVER 오픈 API'
     # 본문: 받은 순서·건수 그대로(다른 시·도, 병원, 같은 가게 두 번도 그대로). 태그 글자는 글자로만.
     titles = first.locator('.naver-local-title').all_inner_texts()
     assert titles == ['<b>글자</b>로만 카페', '같은 가게', '서울 병원', '같은 가게']

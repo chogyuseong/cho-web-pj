@@ -26,7 +26,7 @@
     /api/popups/hubs/seoul-thehyundai/media 사진 1장(공공누리 제3유형), /api/places/{관광공사 장소}/blogs 글 있음(사진 3곳 칸의 '후기가 안 보임'은 칸 늘어남 탓으로 봄).
     보지 못한 것(테스트로만): 폐업 판정 장소가 실제 추천에서 빠지는 것, 휴무 요일 표시, 관광공사 메뉴 줄.
   · 되돌리는 법: git revert -m 1 1cec3b9 / 7d3f678 후 재배포(DB 마이그레이션 없음).
-  · 남은 worktree·브랜치(삭제는 사용자 확인 뒤): cho-web-pj-festival-steps, -delay-midnight, -ui-batch, -public-data, -hub-photos.
+  · 정리(사용자 '지워'): 작업 worktree 5개와 브랜치(로컬·원격) fix/day-of-festival-steps·fix/delay-midnight·fix/ui-batch-1124·feat/public-data-1124·feat/popup-hub-photos 삭제.
 여든네 번째 배포(2026-11-24) 완료: main 320ba0f(병합 284f709 = fix/day-of-festival-steps F5·F4, 병합 320ba0f = fix/delay-midnight A5),
   Worker 버전 e10aa5d9-cf15-49a5-ad4c-027b67957bf0. 사용자 '끝나면 배포까지 진행해'. 두 브랜치 CI Run 45300303975·45302787478 각 5개 성공,
   병합 뒤 main 에서 관련 테스트 25 통과·format_sources --check·npm run test:security 25 통과 → Claude Code 가 npx wrangler deploy(정적 파일 2개).

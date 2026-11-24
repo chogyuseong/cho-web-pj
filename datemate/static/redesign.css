@@ -141,3 +141,18 @@ header nav .nav.active,header nav a[aria-current=page] { color:#fff; background:
 /* 휴대폰 장소 단추 2열 격자: 「코스 지도에서 보기」가 홀수 번째(실제 장소 = 다섯 번째)면 한 줄을 다 쓴다.
    체험 코스는 네이버 지도 링크가 없어 네 번째라 2열 칸을 그대로 채운다. */
 @media(max-width:480px) { .detail .stop .actions>.stop-map-focus:nth-child(odd) { grid-column:1 / -1; } }
+
+/* 7-4) 오른쪽 패널 코스 요약·공유(plan-results.js planRailSummary, 801px 이상에서만 만든다).
+   영수증 모양 세 줄([이름 · 덧말 | 값]) + 공유 단추 2열. 패널 높이를 아껴 1440×900 에서 아래 지도가 첫 화면에 다 보이게 한다. */
+.plan-rail-summary { margin:14px 0 0; padding:8px 14px 14px; border:1px solid var(--line); border-radius:16px; background:var(--platform); }
+.rail-stats { margin:0; }
+.rail-stat { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:0 12px; min-width:0; padding:6px 0; border-bottom:1px solid var(--line); }
+.rail-stat dt { min-width:0; font-size:14px; font-weight:600; line-height:1.5; color:var(--muted); }
+.rail-stat .rail-stat-note { font-weight:500; }
+.rail-stat dd { margin:0 0 0 auto; min-width:0; font-size:17px; font-weight:800; line-height:1.45; color:var(--ink); text-align:right; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.rail-stat dd .range-lines { display:inline; }
+.rail-stat dd .range-lines>span { display:inline-block; }
+.rail-stat dd .range-lines>span+span { margin-left:.3em; }
+.rail-share { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+/* 글자 14px: readability.css 의 main button.primary(15px)보다 명시도를 높여 두 단추가 패널 폭 안에서 한두 줄에 들어가게 한다. */
+.plan-rail-summary .rail-share button { min-height:44px; padding:8px 10px; font-size:14px; line-height:1.35; white-space:normal; }

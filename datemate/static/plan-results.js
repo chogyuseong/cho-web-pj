@@ -132,3 +132,35 @@ function renderResults(result={}){
   // 7~9. 일정 · 확인 · 결정과 공유
   root.append(detail);
 }
+
+/* ── 오른쪽 고정 패널의 코스 요약·공유(리디자인 3단계, datemate_2026.md §2.5 '우측 스티키 패널') ──────────────
+   데스크톱(801px 이상)의 지도 카드(#plan-map-rail .plan-map-card) 안, 지도 탭 바로 아래에 maps.js renderPlanMapCard 가 붙인다.
+   휴대폰은 지도가 일정 뒤(#plan-map-slot)로 내려가고 같은 값이 선택한 코스 카드·공유 구역에 이미 있으므로 붙이지 않는다(중복 금지).
+   값은 선택한 코스(selected) 그대로다. 코스 탭을 바꾸거나 장소를 바꾸면 renderDetail → renderPlanMapCard 가 다시 그리므로 따로 갱신하지 않는다.
+   공유 단추는 일정 아래 공유 구역(plan-detail.js .plan-share)과 같은 함수(copyKakaoItinerary·copyPlanShare)를 부른다 — 복사 글·링크 만드는 법을 여기서 다시 만들지 않는다.
+   단추 이름은 공유 구역과 같은 글자에 코스 번호를 붙인다(같은 이름의 단추가 둘이면 화면 읽기 목록에서 구분되지 않는다). */
+function durationText(minutes){
+  if(!Number.isFinite(minutes)||minutes<0)return '';
+  const h=Math.floor(minutes/60),m=minutes%60;
+  return h?(m?`${h}시간 ${m}분`:`${h}시간`):`${m}분`;
+}
+function planRailSummary(p){
+  const index=plans.findIndex(item=>item.id===p.id),number=index+1;
+  const box=node('section',undefined,'plan-rail-summary');
+  box.setAttribute('aria-label',`코스 ${number} 요약과 공유`);
+  // 영수증처럼 [이름 · 덧말 | 값] 세 줄. 덧말: 인원(또는 합계에서 빠진 미확인 항목 수), 도보를 모르는 구간, 출발–끝 시각.
+  const stats=node('dl',undefined,'rail-stats');
+  const stat=(label,note,value,kind)=>{const row=node('div',undefined,'rail-stat'),dt=node('dt',label),dd=node('dd');row.dataset.stat=kind;
+    if(note)dt.append(node('span',' · '+note,'rail-stat-note'));dd.append(value);row.append(dt,dd);stats.append(row);};
+  const unknown=(p.unknown||[]).length,walk=knownWalking(p);
+  stat('예상 예산',unknown?`미확인 ${unknown}항목 제외`:`${p.conditions?.people||2}명`,p.total?rangeLines(p.total):'모름','budget');
+  stat('총 도보',walk===null?'일부 구간 모름':'',walk===null?'모름':`${walk}분`,'walk');
+  stat('총 소요',p.conditions?.start&&p.finish?`${p.conditions.start}–${p.finish}`:'',durationText(p.minutes)||'모름','time');
+  box.append(stats);
+  if(p.id){
+    const share=node('div',undefined,'rail-share'),label=(text,cls,action)=>{const b=button(text,action,cls);b.setAttribute('aria-label',`${text} · 코스 ${number}`);return b;};
+    share.append(label('카톡용 일정 복사','primary rail-kakao-copy',()=>copyKakaoItinerary(p)),label('공유 링크 복사','secondary rail-link-copy',()=>copyPlanShare(p)));
+    box.append(share);
+  }
+  return box;
+}

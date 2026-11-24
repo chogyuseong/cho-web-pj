@@ -59,6 +59,9 @@ def test_hero_quick_start_fills_theme_and_area(audit_page, width):
     chips = page.get_by_role('group', name='바로 시작하기').get_by_role('button')
     assert chips.all_inner_texts() == ['비 오는 날 성수 실내', '퇴근 후 한남 3시간', '강릉 바다 드라이브', '어색함 없는 서촌 소개팅']
     assert all(chip.bounding_box()['height'] >= 44 for chip in chips.all())
+    # 첫 화면의 시작 시각은 지금 시각에 따라 11:00·13:00·17:00 중 하나다(simple-form.js startPassed — 브라우저 시계, CI 는 UTC).
+    # 그래서 되돌릴 값은 적어 두지 않고 칩을 누르기 전 값을 쓴다.
+    start_before = page.evaluate('form.elements.start.value')
     chips.nth(1).click()
     page.wait_for_function("location.hash==='#planner-section'")
     assert page.evaluate('[form.elements.region.value, locationState.origin.name, form.elements.start.value, form.elements.end.value]') == [
@@ -68,7 +71,7 @@ def test_hero_quick_start_fills_theme_and_area(audit_page, width):
     page.wait_for_function("document.activeElement?.classList.contains('preset-go')")
     # [테마 해제]는 칩이 넣은 동네까지 되돌린다.
     banner.get_by_role('button', name='테마 해제').click()
-    assert page.evaluate('[locationState.origin, form.elements.start.value]') == [None, '11:00']
+    assert page.evaluate('[locationState.origin, form.elements.start.value]') == [None, start_before]
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
 
 

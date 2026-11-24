@@ -28,10 +28,10 @@
 
 import copy
 
-from .delay_check import carried_delay, delay_check
+from .delay_check import carried_delay, delay_check, festival_minutes
 from .festival_time import places_start
 from .models import Conditions
-from .planner import clock, minutes, visit_window
+from .planner import ASSUMED_HOURS, clock, minutes, visit_window
 
 MAX_OPTIONS = 3
 # 거리·영업으로 거른 뒤 남은 일정 전체를 다시 짜 볼 후보 수(앞에서부터). 많아도 이만큼만 계산한다.
@@ -195,7 +195,8 @@ def _arrival_base(plan, check, c, j):
     after = _middle(plan)
     if j == index:
         if index and index - 1 == after:
-            departure = minutes(plan["festival_visit"]["departure"])
+            # 저장된 축제 시각은 옛 코스에서 '00:30'처럼 접혀 있을 수 있어 지각 확인과 같은 함수로 읽는다(A5).
+            departure = festival_minutes(plan["festival_visit"]["departure"], c)
         else:
             departure = (
                 minutes(plan["timeline"][index - 1]["departure"]) if index else places_start(c)
@@ -503,7 +504,10 @@ def _options(plan, check, c, j, delays):
         if go is not None and (go["minutes"] is None or go["minutes"] > c.max_leg):
             continue
         arrival = departure + come["minutes"] + c.transition_buffer_minutes + extra
-        visit = dict(p, hours=p.get("hours") or [0, 1440], stay=p.get("stay") or c.stay_minutes)
+        # 영업시간을 모르면 planner.ASSUMED_HOURS(종료 판단 없음, A5) — 자정을 넘긴다는 까닭만으로 후보를 버리지 않는다.
+        visit = dict(
+            p, hours=p.get("hours") or list(ASSUMED_HOURS), stay=p.get("stay") or c.stay_minutes
+        )
         visit.setdefault("last_entry", None)
         _, problem = visit_window(visit, arrival)
         if problem:

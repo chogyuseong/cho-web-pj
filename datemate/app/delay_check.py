@@ -25,9 +25,18 @@
 from .festival_time import hours_range, places_start
 from .leg_modes import middle_after
 from .models import Conditions
-from .planner import clock, minutes, visit_window
+from .planner import ASSUMED_HOURS, clock, minutes, visit_window
 
 MAX_DELAY = 180
+
+
+def festival_minutes(text, c):
+    """저장된 축제 방문 시각(festival_visit.arrival·departure)을 분으로. 코스 시작보다 이른 시각은 다음 날로 읽는다.
+    왜(2026-11-24 점검 A5): 2026-11-24 전에 저장한 코스는 자정 뒤 축제 시각을 '00:30'처럼 접어 저장했다(festival_time._clock).
+    그대로 읽으면 하루가 앞당겨져 뒤 장소 도착이 '00:40'처럼 계산된다. 지금은 '24:30'으로 저장하므로 새 코스에는 아무 일도 하지 않는다.
+    한계: 코스 시작보다 이른 시각에 실제로 축제를 보는 코스는 없다고 본다(축제는 코스 안에 들어 있다)."""
+    value = minutes(text)
+    return value + 1440 if value < minutes(c.start) else value
 
 
 def _leg_minutes(leg, c):
@@ -159,7 +168,7 @@ def delay_check(plan, index, delay):
     visit = plan.get("festival_visit")
     after = middle_after(plan)
     if index and index - 1 == after:
-        previous_departure = minutes(visit["departure"])
+        previous_departure = festival_minutes(visit["departure"], c)
     else:
         previous_departure = minutes(timeline[index - 1]["departure"]) if index else places_start(c)
     carried = carried_delay(plan, index)
@@ -190,7 +199,7 @@ def delay_check(plan, index, delay):
             departure=clock(start + visit["stay"]),
             wait=start - arrival,
             original_start=visit["arrival"],
-            shift=start - minutes(visit["arrival"]),
+            shift=start - festival_minutes(visit["arrival"], c),
             stay=visit["stay"],
             stay_assumed=False,
             state="ok",
@@ -241,9 +250,10 @@ def delay_check(plan, index, delay):
         ]
         if missing:
             # 자료가 없으면 planner.evaluate 처럼 '하루 종일 연다·휴무 없음'으로 가정하고 계속 간다(개점 대기·영업 종료 판단 없음).
+            # 가정한 창은 planner.ASSUMED_HOURS — 자정을 넘겨도 '영업 종료 24:00'을 지어내지 않는다(A5). 그 줄은 'unchecked'로 남는다.
             pending.append(dict(place=p["name"], fields=missing))
             if p.get("hours") is None:
-                p["hours"] = [0, 1440]
+                p["hours"] = list(ASSUMED_HOURS)
         stay_assumed = p.get("stay") is None
         p["stay"] = p.get("stay") or c.stay_minutes
         if p.get("last_entry") is None:

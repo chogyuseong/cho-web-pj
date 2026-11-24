@@ -190,4 +190,8 @@ main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; li
    블로그 상자를 칸 맨 아래 같은 줄에 둔다(그리드 행은 이미 칸 높이를 맞춘다). 한 칸(800px 이하)에서는 차이가 없다. */
 .plan-photo-item { display:flex; flex-direction:column; }
 .plan-photo-item>.place-photo-panel { flex:1 0 auto; }
+/* 한 칸의 '블로그 후기 보기'를 펼치면 그 칸만 늘어난다(2026-11-24 사용자 신고). 위의 '높이 맞추기'는 그리드 행이 가장 긴 칸에 맞춰
+   늘어나는 것(align-items 기본값 stretch)에 기대므로, 펼친 상자가 하나라도 있으면 칸마다 제 높이(start)로 둔다. 닫으면 다시 맞춘다.
+   :has() 를 모르는 오래된 브라우저에서는 예전처럼 같이 늘어날 뿐 깨지지는 않는다. */
+.plan-photo-preview:has(.place-blogs[open]) { align-items:start; }
 

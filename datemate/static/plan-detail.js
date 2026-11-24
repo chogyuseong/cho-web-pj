@@ -137,6 +137,8 @@ function renderDetail() {
   if (orderPanel) box.append(orderPanel);
   // 약속 당일 도구(day-of.js): 마지막 출발 시각, 한 곳씩 크게 보기, 현장용 일정 복사. 서버에 묻지 않는다.
   if (typeof dayOfTools === 'function') box.append(dayOfTools(p));
+  // '+30분 늦어지면?' 토글(delay-check.js delaySimBar): 일정 바로 위. 켜면 장소 칸에 밀린 시각·주의 배지를 겹친다(아래 delaySimRefresh).
+  if (p.id && typeof delaySimBar === 'function') box.append(delaySimBar(p));
   // 운영 시간에 맞춰 맨 앞에 고정한 축제 방문(app/festival_time.py). 첫 구간 줄(행사장 → 첫 장소) 바로 앞에 둔다.
   const middle = festivalMiddleAfter(p);
   if (p.festival_visit && p.festival_visit.position !== 'last' && middle === null) box.append(festivalVisitBlock(p, p.festival_visit));
@@ -178,6 +180,13 @@ function renderDetail() {
       const map = placeMapLink('네이버 지도 보기 ↗', place);
       map.classList.add('stop-map-link');
       buttons.append(map);
+    }
+    // 일정 카드 → 코스 지도(maps.js focusPlanMapStop, 리디자인 3단계): 지도의 이 장소 표시를 강조하고 지도를 그 위치로 옮긴다.
+    // 지도 표시 → 일정 카드(focusPlanStop)의 반대 방향. 좌표가 없는 장소(보관 기간이 지나 지움)는 지도에 없어 달지 않는다.
+    if (Number.isFinite(place.lat) && Number.isFinite(place.lon) && typeof focusPlanMapStop === 'function') {
+      const show = button('코스 지도에서 보기', () => focusPlanMapStop(i), 'secondary stop-map-focus');
+      show.setAttribute('aria-label', `${i + 1}번 ${place.name} 코스 지도에서 보기`);
+      buttons.append(show);
     }
     body.append(placeEvidencePanel(p, i));
     if (p.can_edit === false) {
@@ -299,6 +308,8 @@ function renderDetail() {
   box.append(share);
   if (p.id) queueMicrotask(() => refreshShareStatus(p));
   root.append(box);
+  // 지연 토글이 켜져 있으면 새로 그린 장소 칸에 다시 겹친다(코스가 바뀌었으면 새 코스로 다시 계산).
+  if (typeof delaySimRefresh === 'function') delaySimRefresh(p);
   renderPlanMapCard();
   // 부가 정보: 축제 구역 뒤 #plan-extras
   const more = node('section', undefined, 'detail panel plan-extras-panel');

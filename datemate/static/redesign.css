@@ -2,6 +2,7 @@
    맡는 범위: 홈(index.html)과 피드백(feedback.html)에서 맨 마지막에 읽어, 예전 '노선' 화면(모서리 0·밑줄 메뉴·노선 동그라미)의 모양만 덮는다.
      1) 글자: 제목 자간, 숫자 고정폭  2) 머리글: 반투명·흐림, 알약 메뉴(가운데)  3) 휴대폰 하단 고정 바(720px 이하)
      4) 히어로 커맨드 바·바로 시작 칩  5) 테마 카드(벤토)  6) 단추·입력·칩·패널 모서리.
+     7) 결과 화면(3단계, 가이드 §2.5 스플릿 뷰): 코스 탭 델타 배지, '+30분 늦어지면?' 토글과 일정 겹침, 일정 카드 → 지도 강조, 오른쪽 패널 요약·공유.
    색·글꼴·모서리 값은 style.css :root 토큰(--hong·--radius-card 등)에 있다 — 값을 바꿀 때는 그쪽을 고친다.
    정리 원칙: 이 파일에는 !important 를 쓰지 않는다(tests/test_css_structure.py 상한 0). 앞 파일의 !important 규칙과 부딪히면
    그 규칙을 제자리에서 고친다(예: line.css 휴대폰 메뉴 규칙은 지우고 여기 하단 바로 옮겼다). 다음 단계(폼·결과 화면)도 이 파일 뒤쪽에 덧붙인다.
@@ -88,3 +89,70 @@ header nav .nav.active,header nav a[aria-current=page] { color:#fff; background:
 :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) { border-radius:var(--radius-control); }
 .quick-chip,.chips span,.tag { border-radius:var(--radius-pill); }
 .preset-tags,.quick-summary { border-radius:var(--radius-card); }
+
+/* ---------- 7) 결과 화면(3단계) ---------- */
+/* 글자색 대비(흰 바탕 기준 4.5:1 이상, tests/test_redesign_results_ui.py 가 잰다): 줄어듦 초록 #047857(--accent-safe) · 문제 #9F1239 · 휴게 #6B4B00 ·
+   안내 #1E40AF · 모름 --muted. 배지 바탕은 모두 옅은 색이라 같은 글자색에서 4.5:1 을 넘는다. 글자 14px 하한. */
+
+/* 7-1) 코스 탭 델타 배지(plan-results.js optionDeltaBadges). 탭 단추 안 span 의 공통 규칙(display:block·글자색)을 명시도로 덮는다. */
+#results .plan-option-tabs .option-deltas { display:flex; flex-wrap:wrap; gap:6px; }
+#results .plan-option-tabs .delta-badge { display:inline-flex; align-items:center; width:auto; padding:2px 10px; border-radius:var(--radius-pill); font-size:14px; font-weight:700; line-height:1.5; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--ink); background:var(--platform); }
+#results .plan-option-tabs .delta-badge.is-less { color:var(--accent-safe); background:#ECFDF5; }
+#results .plan-option-tabs .delta-badge.delta-base { background:#fff; box-shadow:inset 0 0 0 1px var(--field-line,#9AA3AF); }
+
+/* 7-2) '+30분 늦어지면?' 토글(delay-check.js delaySimBar)과 장소 칸에 겹친 시각·배지. 단추는 .primary/.secondary 를 쓰지 않는다
+   (line.css 의 !important 바탕색 때문에 켜짐 색을 줄 수 없다). 켜짐은 aria-pressed 로만 고른다. */
+.delay-sim { display:grid; gap:6px; margin:0 0 18px; padding:12px 14px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+.delay-sim-toggle { justify-self:start; display:inline-flex; align-items:center; gap:10px; min-height:44px; padding:6px 18px 6px 8px; border:1px solid var(--line); border-radius:var(--radius-pill); background:#fff; color:var(--ink); font-size:16px; font-weight:700; }
+.delay-sim-toggle:hover { border-color:var(--ink); }
+.delay-sim-switch { position:relative; flex:0 0 auto; width:44px; height:26px; border-radius:var(--radius-pill); background:var(--muted); transition:background .15s; }
+.delay-sim-switch::after { content:''; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .15s; }
+.delay-sim-toggle[aria-pressed=true] { border-color:var(--hong); }
+.delay-sim-toggle[aria-pressed=true] .delay-sim-switch { background:var(--hong); }
+.delay-sim-toggle[aria-pressed=true] .delay-sim-switch::after { transform:translateX(18px); }
+.delay-sim .delay-sim-help,.delay-sim .delay-sim-basis { margin:0; font-size:14px; line-height:1.6; }
+.delay-sim-status { margin:0; font-size:15px; font-weight:600; line-height:1.6; color:var(--ink); overflow-wrap:anywhere; }
+.delay-sim-status.is-problem { padding:6px 10px; border-left:4px solid var(--hong); background:#FFF1F2; }
+.delay-sim-status.warning { padding:8px 10px; }
+/* 시각 도장 안: 데스크톱은 도착 시각 아래 칸(88px), 휴대폰은 같은 줄에 이어서. */
+.detail .timeline-stamp .delay-sim-time { grid-column:1; display:flex; flex-wrap:wrap; align-items:baseline; gap:0 6px; margin-top:6px; padding-right:8px; }
+.delay-sim-time .delay-sim-start { font-size:18px; font-weight:800; line-height:1.3; color:var(--hong); }
+.delay-sim-time .delay-sim-start::before { content:'→ '; }
+.detail .timeline-stamp .delay-sim-time .delay-sim-shift { display:inline; padding:0; font-size:14px; font-weight:700; color:var(--hong); }
+@media(max-width:800px) { .detail .timeline-stamp .delay-sim-time { margin:0; padding:0; } }
+.delay-sim-badges { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px; }
+.delay-sim-badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:var(--radius-pill); font-size:14px; font-weight:700; line-height:1.5; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.delay-sim-badge.is-problem { color:#9F1239; background:#FFE4E6; }
+.delay-sim-badge.is-caution { color:#6B4B00; background:#FFF4D6; }
+.delay-sim-badge.is-info { color:#1E40AF; background:#EAF0FF; }
+.delay-sim-badge:is(.is-unknown,.is-skipped) { color:var(--muted); background:var(--platform); font-weight:600; }
+@media(prefers-reduced-motion:reduce) { .delay-sim-switch,.delay-sim-switch::after { transition:none; } }
+@media print { .delay-sim,.delay-sim-time,.delay-sim-badges { display:none; } }
+
+/* 7-3) 일정 카드 → 코스 지도(maps.js focusPlanMapStop). 고른 장소 표시: 진한 칠 + 코랄 고리 + 조금 크게(지도 표시 자리·기준점은 그대로). */
+.route-marker.route-stop-marker.is-focused { background:var(--ink); box-shadow:0 0 0 4px rgba(224,0,77,.45); transform:scale(1.15); }
+.leaflet-tooltip.route-stop-tooltip-focused { font-weight:800; border-color:var(--ink); }
+.map-focus-note { margin:10px 0 0; }
+/* 데스크톱 오른쪽 패널: 강조한 표시가 지도에 바로 보이므로 안내 줄은 화면 읽기용으로만 둔다(보이게 두면 글이 들어올 때 지도가 아래로 밀려
+   1440×900 에서 지도 아래 끝이 패널 밖으로 나갔다). 휴대폰은 지도까지 스크롤하므로 보이게 두고 돌아가기 단추를 함께 둔다. */
+.plan-map-rail .map-focus-note { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.plan-map-card .map-focus-status { margin:0; font-size:14px; font-weight:600; line-height:1.6; color:var(--ink); }
+.map-focus-back { margin-top:8px; min-height:44px; }
+/* 휴대폰 장소 단추 2열 격자: 「코스 지도에서 보기」가 홀수 번째(실제 장소 = 다섯 번째)면 한 줄을 다 쓴다.
+   체험 코스는 네이버 지도 링크가 없어 네 번째라 2열 칸을 그대로 채운다. */
+@media(max-width:480px) { .detail .stop .actions>.stop-map-focus:nth-child(odd) { grid-column:1 / -1; } }
+
+/* 7-4) 오른쪽 패널 코스 요약·공유(plan-results.js planRailSummary, 801px 이상에서만 만든다).
+   영수증 모양 세 줄([이름 · 덧말 | 값]) + 공유 단추 2열. 패널 높이를 아껴 1440×900 에서 아래 지도가 첫 화면에 다 보이게 한다. */
+.plan-rail-summary { margin:14px 0 0; padding:8px 14px 14px; border:1px solid var(--line); border-radius:16px; background:var(--platform); }
+.rail-stats { margin:0; }
+.rail-stat { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:0 12px; min-width:0; padding:6px 0; border-bottom:1px solid var(--line); }
+.rail-stat dt { min-width:0; font-size:14px; font-weight:600; line-height:1.5; color:var(--muted); }
+.rail-stat .rail-stat-note { font-weight:500; }
+.rail-stat dd { margin:0 0 0 auto; min-width:0; font-size:17px; font-weight:800; line-height:1.45; color:var(--ink); text-align:right; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.rail-stat dd .range-lines { display:inline; }
+.rail-stat dd .range-lines>span { display:inline-block; }
+.rail-stat dd .range-lines>span+span { margin-left:.3em; }
+.rail-share { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+/* 글자 14px: readability.css 의 main button.primary(15px)보다 명시도를 높여 두 단추가 패널 폭 안에서 한두 줄에 들어가게 한다. */
+.plan-rail-summary .rail-share button { min-height:44px; padding:8px 10px; font-size:14px; line-height:1.35; white-space:normal; }

@@ -84,7 +84,9 @@ def test_switching_themes_leaves_nothing_behind_and_clear_restores(audit_page):
     page.get_by_role('tab', name='주말 떠나기 좋은 동네').click()
     page.locator('[data-preset="강릉 안목해변"]').click()
     fields = page.evaluate(FIELDS)
-    assert (fields['start'], fields['end'], fields['transport'], fields['count']) == ('11:00', '19:00', 'car', '4')
+    # 시각은 동네 테마가 정하지 않아 테마 전 값 그대로다. 첫 화면은 지금 시각이 11:00 을 넘으면 다음 시간대(13:00·17:00)로 시작하므로
+    # (simple-form.js startPassed — 브라우저 시계 기준, CI 는 UTC) '11:00' 을 적어 두면 하루 중 몇 시간 동안 실패했다.
+    assert (fields['start'], fields['end'], fields['transport'], fields['count']) == (before['start'], before['end'], 'car', '4')
     assert page.evaluate(CHECKS)['themes'] == []
     banner = page.locator('#preset-tags')
     assert '‘강릉 안목해변’ 추천 조건을 채웠어요. 날짜와 시간만 확인하고 바로 추천받아 보세요.' in banner.inner_text()

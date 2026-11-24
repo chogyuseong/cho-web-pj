@@ -221,6 +221,25 @@ document.addEventListener('DOMContentLoaded',()=>{
   toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','condition-details');toggle.setAttribute('aria-describedby','quick-summary-text');
   summary.append(summaryText,toggle);form.append(summary);
   const panel=node('div',undefined,'condition-details');panel.id='condition-details';panel.hidden=true;form.append(panel);
+
+  // 3. 원하는 활동(여러 개, 2026-11-24 리디자인 2단계 — 가이드 2.4 '원하는 활동 대분류 복수 선택 칩').
+  // 숨긴 분류 체크박스(name=themes, app.js 가 서버 /status 의 themes 로 만든다)를 누르기 쉬운 칩으로 꺼낸다. 값은 서버 분류 이름 그대로
+  // (app/models.py THEMES), 칩 글자만 쉬운 말로. 고르면 그 분류의 장소로만 코스를 짜고(app/planner.py — 식사 시간대 식당은 예외),
+  // 안 고르면 예전처럼 골고루. 상황 테마·자연어 해석이 체크박스를 바꿔도 refresh 가 칩 눌림을 맞춘다. 분류가 늘면 ACTIVITY_CHIPS 에 더한다.
+  const ACTIVITY_CHIPS=[['카페·미식','카페·맛집'],['산책·풍경','산책·풍경'],['문화·예술','전시·문화'],['체험·제작','공방·체험'],['오락·놀이','놀거리'],['레저·활동','레저·스포츠'],['휴식·힐링','휴식·힐링']];
+  const activity=group('원하는 활동 (선택 · 여러 개)');activity.classList.add('activity-group');
+  const activityRow=chipRow('원하는 활동');
+  const activityChips=ACTIVITY_CHIPS.map(([value,label])=>{
+    const item=chip(label,()=>{
+      const input=form.querySelector(`[name=themes][value="${value}"]`);
+      if(!input){toast('장소 정보를 준비 중이에요. 잠시 후 다시 눌러 주세요.');return;}
+      input.checked=!input.checked;input.dispatchEvent(new Event('change',{bubbles:true}));
+      item.setAttribute('aria-pressed',String(input.checked));
+    });
+    item.dataset.theme=value;return item;
+  });
+  activityRow.append(...activityChips);
+  activity.append(activityRow,node('p','고른 종류의 장소로만 코스를 짜요(식사 시간대 식당은 따로 넣어요). 고르지 않으면 골고루 섞어요.','hint'));
   function setOpen(open){panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'접기':'바꾸기';}
   function field(title){const section=node('fieldset',undefined,'quick-field');section.append(node('legend',title));panel.append(section);return section;}
   // ‘직접’을 누르거나 값이 칩과 맞지 않을 때만 기존 입력칸을 보여 준다.
@@ -291,6 +310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       item.setAttribute('aria-pressed',String(Boolean(origin&&origin.name===card.dataset.origin&&Math.abs(origin.lat-Number(card.dataset.lat))<1e-6&&Math.abs(origin.lon-Number(card.dataset.lon))<1e-6)));}
     // 예산 무관을 켠 채 금액을 직접 고치면 금액이 우선이다.
     if(unlimited?.checked&&manual.budget)setUnlimited(false);
+    for(const item of activityChips)item.setAttribute('aria-pressed',String(Boolean(form.querySelector(`[name=themes][value="${item.dataset.theme}"]`)?.checked)));
     sync(dates,'date',f.visit_date.value);sync(times,'time',f.start.value+'–'+f.end.value);sync(budgets,'budget',unlimited?.checked?'unlimited':f.budget.value);
     for(const item of times.chips){const passed=startPassed(item.item.start);item.disabled=passed;item.title=passed?'오늘은 이미 시작 시각이 지났어요':'';}
     const parts=[`${f.start.value}–${f.end.value}`,`${f.people.value}명`,budgetText(f.budget.value,unlimited?.checked),`${f.count.value}곳`,transportText(f.transport.value)];

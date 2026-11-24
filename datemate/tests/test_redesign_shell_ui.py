@@ -100,3 +100,29 @@ def test_theme_cards_are_rounded_cards(audit_page):
     card = page.locator('#curation-situation .curation-card').first
     style = card.evaluate("e=>{const s=getComputedStyle(e);return [s.borderTopLeftRadius,s.backgroundColor,getComputedStyle(e,'::before').content]}")
     assert style == ['20px', 'rgb(255, 255, 255)', 'none'], style
+
+
+@pytest.mark.parametrize('width', [375, 1280])
+def test_activity_chips_toggle_the_category_filter(audit_page, width):
+    # 리디자인 2단계: 숨긴 분류 체크박스(themes)를 '원하는 활동' 칩으로. 상황 테마가 바꾼 분류도 칩 눌림에 맞춰진다.
+    page, _, _ = audit_page
+    page.set_viewport_size({'width': width, 'height': 900})
+    ready(page)
+    page.locator('#nav-plan').click()
+    group = page.get_by_role('group', name='원하는 활동')
+    chips = group.get_by_role('button')
+    assert chips.all_inner_texts() == ['카페·맛집', '산책·풍경', '전시·문화', '공방·체험', '놀거리', '레저·스포츠', '휴식·힐링']
+    assert all(c.bounding_box()['height'] >= 44 for c in chips.all())
+    group.get_by_role('button', name='전시·문화').click()
+    group.get_by_role('button', name='카페·맛집').click()
+    assert page.evaluate("[...document.querySelectorAll('[name=themes]:checked')].map(i=>i.value)") == ['카페·미식', '문화·예술']
+    assert group.get_by_role('button', name='전시·문화').get_attribute('aria-pressed') == 'true'
+    assert page.evaluate("FormState.edited.has('themes')")
+    group.get_by_role('button', name='카페·맛집').click()
+    assert page.evaluate("[...document.querySelectorAll('[name=themes]:checked')].map(i=>i.value)") == ['문화·예술']
+    # 상황 테마(최소 도보 힐링)가 분류를 채우면 칩도 눌린 상태로.
+    page.evaluate("document.body.classList.remove('show-date-plan')")
+    page.locator('[data-situation="rest"]').click()
+    page.wait_for_function("document.querySelector('[data-theme=\"휴식·힐링\"]').getAttribute('aria-pressed')==='true'")
+    assert group.get_by_role('button', name='전시·문화').get_attribute('aria-pressed') == 'true'
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')

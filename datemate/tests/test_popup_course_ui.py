@@ -189,7 +189,8 @@ def test_naver_block_keeps_order_and_hub_list_is_separate_from_the_posts(audit_p
     # 블록 안에는 우리 판정·거점·버튼이 없다: 글마다 원문 링크 하나, 그 밖의 링크는 출처 표시 둘뿐.
     for gone in (".popup-reading", ".popup-fact", ".popup-hub", ".popup-action", "button", "dl", "img"):
         assert block.locator(gone).count() == 0, gone
-    assert block.locator(".popup-post a").count() == 7 and block.locator("a").count() == 9
+    # 링크: 글 7 + 머리글의 원본 1. 'NAVER 오픈 API' 는 2026-11-24 부터 링크가 아닌 글자다(naver-attribution.js).
+    assert block.locator(".popup-post a").count() == 7 and block.locator("a").count() == 8
     text = section.inner_text()
     for word in ("읽은 정보", "읽은 장소", "기간 미확인", "위치 미확인", "위치를 확인한 글", "모아 소개", "숨겼어요", "뺐어요", "검색된 글"):
         assert word not in text, word

@@ -362,6 +362,13 @@ function values() {
   data.festival = FestivalPanel.anchorFor(data);
   if (selected && selected.conditions.mode === data.mode)
     for (const i of locks) data.locked[i] = selected.places[i].id;
+  // 둘러보기에서 「이 장소 포함해서 코스 짜기」로 고른 장소(explore.js includePlace, 2026-11-24 UX P2)를 비어 있는 첫 자리에 고정한다.
+  // 서버는 고정한 장소가 후보에 없으면 둘러보기 보관분에서 찾아 넣는다(app/quality.py pool). 체험 코스(가상 장소)에는 넣지 않는다.
+  if (typeof includedPlace !== 'undefined' && includedPlace && data.mode === 'real' && !Object.values(data.locked).includes(includedPlace.id)) {
+    let slot = 0;
+    while (slot in data.locked) slot += 1;
+    if (slot < data.count) data.locked[slot] = includedPlace.id;
+  }
   return data;
 }
 async function init() {

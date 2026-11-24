@@ -2,11 +2,38 @@
    기본 목록: 공공 자료(한국관광공사 관광정보·소상공인 상가정보)를 우리 기준으로 정리한 카드. 사진·상세·코스에 쓰는 것은 이 목록뿐이다.
    그 아래 '네이버에서 더 찾기': 펼쳤을 때만 불러, 검색어 하나당 네이버 지역 검색 결과를 받은 순서 그대로 한 블록씩 보여 준다
    (naver-attribution.js naverResultBlock). 블록 항목은 합치거나 거르지 않고, 우리 카드·사진·장소 상세와 잇지 않는다. */
+// 둘러보기에서 「이 장소 포함해서 코스 짜기」로 고른 장소 {id,name,origin}(2026-11-24 UX P2). app.js values() 가 추천 요청의
+// 고정 자리(locked)에 넣는다. 다른 지역을 고르거나 '이 장소 빼기'를 누르면 비운다. 화면 태그는 테마 카드와 같은 자리(#preset-tags)를 쓴다.
+let includedPlace=null;
+function includePlace(place,region){
+  // 출발 기준을 그 장소 위치로 둔다(서버의 지역 일치 검증: 출발지 이름은 시·도로 시작). 그래야 그 장소가 동선 범위 안에 든다.
+  const origin={name:`${region} ${place.name} 주변`,lat:place.lat,lon:place.lon};
+  applyArea(region,origin);
+  includedPlace={id:place.id,name:place.name,origin:origin.name};
+  document.getElementById('nav-plan').click();
+  let box=document.getElementById('preset-tags');
+  if(!box){box=node('div',undefined,'preset-tags');box.id='preset-tags';box.setAttribute('role','group');form.prepend(box);}
+  box.setAttribute('aria-label','포함할 장소');
+  const tags=node('div',undefined,'preset-tag-list');tags.append(node('span','포함할 장소','tag'),node('strong',place.name));
+  const go=button('이 조건으로 바로 추천받기',()=>form.requestSubmit(),'primary preset-go');
+  const drop=button('이 장소 빼기',()=>{includedPlace=null;box.hidden=true;},'secondary');
+  box.replaceChildren(node('p','이 장소를 꼭 넣고, 그 주변에서 나머지 장소를 찾아요. 날짜·시간·예산은 아래 기본 조건에서 확인해 주세요.','hint'),tags,go,drop);
+  box.hidden=false;
+  toast(place.name+'을(를) 넣어 코스를 짜요.');
+  requestAnimationFrame(()=>{go.focus({preventScroll:true});go.scrollIntoView({block:'center',behavior:'instant'});});
+}
+// 출발지를 다른 곳으로 바꾸면 포함할 장소도 비운다(그 장소가 동선 범위를 벗어날 수 있다).
+document.addEventListener('click',()=>setTimeout(()=>{
+  if(!includedPlace||locationState.origin?.name===includedPlace.origin)return;
+  includedPlace=null;const box=document.getElementById('preset-tags');if(box&&box.getAttribute('aria-label')==='포함할 장소')box.hidden=true;
+}));
 const ExploreView={
   sequence:0,offset:0,regionTouched:false,
   card(place,mode){
     const card=node('article',undefined,'place-card');
-    card.append(placePhotoPanel(place,mode),node('span',place.demo?'가상 장소':place.category,'tag'),node('h3',place.name),node('p',place.address||'주소는 상세에서 확인해 주세요.','hint'),...(isPublicDataPlace(place)?[publicDataSource(place)]:[]),button('장소 자세히 보기',()=>showPlace(place.id,mode),'secondary'));
+    // 실제 장소에만 「이 장소 포함해서 코스 짜기」(좌표가 있어야 출발 기준이 된다).
+    const include=!place.demo&&Number.isFinite(Number(place.lat))&&Number.isFinite(Number(place.lon))?[button('이 장소 포함해서 코스 짜기',()=>includePlace(place,this.conditions().region),'primary include-place')]:[];
+    card.append(placePhotoPanel(place,mode),node('span',place.demo?'가상 장소':place.category,'tag'),node('h3',place.name),node('p',place.address||'주소는 상세에서 확인해 주세요.','hint'),...(isPublicDataPlace(place)?[publicDataSource(place)]:[]),...include,button('장소 자세히 보기',()=>showPlace(place.id,mode),'secondary'));
     return card;
   },
   controls(){let controls=document.getElementById('explore-controls');if(!controls){controls=node('div',undefined,'explore-controls');controls.id='explore-controls';document.getElementById('catalog').after(controls);}return controls;},

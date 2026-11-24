@@ -67,6 +67,15 @@ def pool(c):
     # 제보 확인 대기: 서로 다른 브라우저 3곳 이상(30일 안)이거나 지금 사용자 본인이 제보한 장소(app/place_reports.py).
     from .place_reports import pending_place_ids
     pending=pending_place_ids()
+    # 고정한 장소가 후보에 없으면 찾아 넣는다(2026-11-24 UX P2 '이 장소 포함해서 코스 짜기'). 둘러보기에서 찾은 공공 장소는
+    # 새 추천을 시작할 때 사용자 후보 보관분이 비워져 여기 없을 수 있다 — 그대로 두면 고정 자리에 넣을 장소가 없어 코스가 나오지 않는다.
+    # catalog.get_place 가 둘러보기 목록 보관분·저장 코스에서 찾는다. 아래의 지역·거리·제외 조건은 그대로 적용한다.
+    if isinstance(c.locked,dict) and c.locked:
+        have={p['id'] for p in rows}
+        from . import catalog
+        for pid in set(c.locked.values())-have:
+            found=catalog.get_place(pid,c.mode)
+            if found:rows.append(dict(found))
     excluded=[p for p in rows if p['id'] in c.excluded_place_ids]
     # 행안부 인허가로 '폐업으로 등록됨'이 저장된 식당·카페는 후보에서 뺀다(2026-11-24 사용자 신고, app/place_identity.closed_ids).
     # 사용자가 고정한 곳은 남긴다(화면에 '폐업으로 등록됨'이 그대로 보인다). 판정이 없는 곳은 빼지 않는다. 가상 장소(데모)는 판정이 없다.

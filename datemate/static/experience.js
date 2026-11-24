@@ -214,14 +214,28 @@ async function showMealChange(food, plan, afterIndex = 0) {
 function showDraft(original, draft, recompute) {
   const root = openDialog('변경 전후를 확인해 주세요'),
     generation = dialogGeneration;
-  root.append(node('p', draft.summary), node('p', draft.plan.places.map(p => p.name).join(' → '), 'path-text'));
+  // 축제 넣기 초안은 들르는 순서에 축제도 적는다(코스 끝 또는 N번째 장소 뒤).
+  const names = draft.plan.places.map(p => p.name),
+    added = draft.kind === 'festival' ? draft.plan.festival_visit : null;
+  if (added) names.splice(festivalMiddleAfter(draft.plan) !== null ? festivalMiddleAfter(draft.plan) + 1 : names.length, 0, '축제 · ' + added.title);
+  root.append(node('p', draft.summary), node('p', names.join(' → '), 'path-text'));
   const table = node('table');
-  for (const [label, before, after] of [
-      ['방문 수', original.places.length + '곳', draft.plan.places.length + '곳'],
-      ['종료 시간', original.finish, draft.plan.finish],
-      ['이동+체류', original.minutes + '분', draft.plan.minutes + '분'],
-      ['전체 비용', range(original.total), range(draft.plan.total)]
-    ]) {
+  const rows = [
+    ['방문 수', original.places.length + '곳', draft.plan.places.length + '곳'],
+    ['종료 시간', original.finish, draft.plan.finish],
+    ['이동+체류', original.minutes + '분', draft.plan.minutes + '분'],
+    ['전체 비용', range(original.total), range(draft.plan.total)]
+  ];
+  // 축제 넣기 초안(festivals.js 「+ 내 코스에 추가」, app/festival_add.py): 어디에·몇 시에 들르는지와 바뀌는 총 도보를 더 보여 준다.
+  // 자리는 서버가 정한 것(festival_visit)을 그대로 적는다 — 코스 끝 또는 N번째 장소 뒤(maps.js festivalMiddleAfter).
+  const visit = draft.kind === 'festival' ? draft.plan.festival_visit : null;
+  if (visit) {
+    const middle = festivalMiddleAfter(draft.plan);
+    const where = middle !== null ? `${middle + 1}번째 장소(${draft.plan.places[middle].name}) 뒤` : '코스 끝';
+    rows.splice(1, 0, ['축제 방문', '없음', `${where} ${visit.arrival}~${visit.departure}`]);
+    rows.push(['총 도보', (original.walking ?? 0) + '분', (draft.plan.walking ?? 0) + '분']);
+  }
+  for (const [label, before, after] of rows) {
     const row = node('tr');
     row.append(node('th', label), node('td', before), node('td', '→ ' + after));
     table.append(row);
@@ -262,7 +276,7 @@ function showDraft(original, draft, recompute) {
       form.elements.count.value = next.conditions.count;
       $('#dialog').close();
       $('#plan-detail').scrollIntoView();
-      toast('시간·동선·비용을 반영했어요. 교체 되돌리기로 원래 코스로 돌아갈 수 있어요.');
+      toast(draft.kind === 'festival' ? '축제를 코스에 넣었어요. 교체 되돌리기로 원래 코스로 돌아갈 수 있어요.' : '시간·동선·비용을 반영했어요. 교체 되돌리기로 원래 코스로 돌아갈 수 있어요.');
     } finally {
       apply.disabled = false;
     }

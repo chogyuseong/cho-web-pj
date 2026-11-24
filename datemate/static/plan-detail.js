@@ -53,7 +53,8 @@ function festivalVisitBlock(plan, visit) {
   block.setAttribute('aria-label', last ? '운영 시간에 맞춰 코스 끝에 둔 축제 방문' : middle !== null ? '운영 시간에 맞춰 코스 중간에 둔 축제 방문' : '운영 시간에 맞춰 고정한 축제 방문');
   if (goes && visit.leg && Number.isFinite(visit.leg.minutes)) block.append(festivalLegLine(plan, visit));
   const wait = visit.wait ? ` · ${goes ? '행사장에 닿은 뒤 ' : ''}시작까지 ${visit.wait}분 기다림` : '';
-  const after = last ? '마지막 장소를 둘러본 뒤 행사장으로 돌아와 축제로 하루를 마무리해요.' : middle !== null ? `${middle + 1}번째 장소(${plan.places[middle].name}) 다음에 행사장에 들러 축제를 보고, 끝나면 행사장에서 다음 장소로 이동해요.` : '축제가 끝나면 행사장에서 아래 첫 장소로 이동해요.';
+  // 「+ 내 코스에 추가」로 넣은 축제(행사장 ≠ 출발지, maps.js festivalVenueApart)는 행사장으로 '돌아오지' 않고 간다.
+  const after = last ? `마지막 장소를 둘러본 뒤 행사장으로 ${festivalVenueApart(plan) ? '가서' : '돌아와'} 축제로 하루를 마무리해요.` : middle !== null ? `${middle + 1}번째 장소(${plan.places[middle].name}) 다음에 행사장에 들러 축제를 보고, 끝나면 행사장에서 다음 장소로 이동해요.` : '축제가 끝나면 행사장에서 아래 첫 장소로 이동해요.';
   block.append(node('strong', `${visit.arrival}~${visit.departure} 축제 · ${visit.title}`, 'festival-visit-title'),
     node('p', `안내된 운영 시간 ${visit.hours} 기준으로 시각을 고정했어요${wait}. ${after} 개최·시간은 방문 전 주최 측에서 다시 확인해 주세요.`, 'hint'));
   return block;
@@ -71,6 +72,8 @@ function renderDetail() {
   root.replaceChildren();
   // 어느 코스의 상세인지(코스 탭은 상세를 다음 화면 갱신 뒤에 그림, plan-results choose).
   root.dataset.planId = selected ? selected.id : '';
+  // 축제 카드의 「+ 내 코스에 추가」는 지금 고른 코스에 넣는다. 코스가 바뀔 때마다(탭·확정·되돌리기) 단추 상태를 맞춘다(festivals.js).
+  if (typeof FestivalPanel !== 'undefined') FestivalPanel.syncAdd();
   extras?.replaceChildren();
   if (!selected) {
     renderPlanMapCard();

@@ -103,7 +103,10 @@
 }
 .meal-photo .place-photo-panel { display:block!important; margin:0; padding:0; background:transparent; border:0; }
 .meal-photo .place-photo-copy { display:none; }
-.meal-photo .photo-copy-fold .place-photo-copy { display:block; }
+/* 작은 카드(식당·코스 미리보기·둘러보기)는 사진 설명을 숨기지만, '사진 정보' 접기 안(place-photos.js photo-copy-fold)에서는 보인다.
+   2026-11-24 사용자 신고('사진 정보 눌러도 안 나온다'): 미리보기·둘러보기에는 이 규칙이 없어 접기를 열어도 빈 상자였다(식당 카드만 있었음).
+   아래 미리보기 규칙(800px 이하 @media 포함)보다 구체적이라 그쪽 display:none 을 이긴다. */
+:is(.meal-photo,.plan-photo-preview,.catalog) .photo-copy-fold .place-photo-copy { display:block; }
 .meal-photo .place-photo img { height:125px!important; border-radius:12px; }
 .meal-photo .place-photo figcaption { font-size:8px; }
 .meal-photo .photo-status { font-size:10px; padding:8px; }

@@ -62,25 +62,36 @@ function delayCheckPanel(plan) {
     }
   }, 'secondary');
   form.append(placeLabel, minutesLabel, check);
-  box.append(node('p', '지연은 고른 장소의 원래 도착 예정 시각을 기준으로 더해요. 개점 대기·휴게 시간·마지막 입장·영업 종료를 다시 따져요. 이 확인은 코스를 바꾸지 않아요.', 'hint'), form, result);
+  box.append(node('p', '어디서부터 몇 분 늦을지 고르면, 남은 일정을 다시 따져 봐요. 문 여는 시간·쉬는 시간·마지막 입장·문 닫는 시간까지 봐요. 확인만 하고 코스는 바꾸지 않아요.', 'hint'), form, result);
   return box;
 }
 
 function delayCheckView(data, plan) {
   const parts = [node('p', data.basis, 'hint delay-check-basis')];
   // 영업시간·휴무 자료가 없는 곳은 서버가 '연다'고 가정하고 계속 계산한다(app/delay_check.py). 그 사실과 먼저 확인할 곳을 밝힌다.
+  // 결론 한 줄은 말하듯이 쓴다(2026-11-24 사용자: '답변이 너무 딱딱해'). 먼저 '괜찮은지'를 말하고, 무엇이 달라지는지, 무엇을 하면 되는지 순서로.
+  // 시각·분·장소 이름은 그대로 두고 문장만 바꿨다. 아래 줄 목록(이용 시각 표)은 확인용이라 그대로 간결하게 둔다.
+  // 테스트가 보는 문구: tests/test_delay_check_ui.py(결론 세 갈래), tests/test_delay_tone_ui.py.
   const wait = (data.pending || []).map(p => `${p.place}(${p.fields.join('·')})`).join(', ');
   const later = data.finish && data.original_finish && data.finish !== data.original_finish;
-  const finishText = later ? `끝나는 시각 ${data.original_finish} → ${data.finish}.` : data.finish ? `끝나는 시각은 ${data.finish} 그대로예요.` : '';
+  const finishText = later ? `대신 끝나는 시간이 ${data.original_finish}에서 ${data.finish}로 늦어져요.` : data.finish ? `끝나는 시간도 ${data.finish} 그대로예요.` : '';
   if (data.status === 'unknown') {
-    parts.push(node('p', `${data.delay}분 늦어도 시간표로는 갈 수 있어요. ${finishText} 다만 ${wait} 자료가 없어 그곳은 문을 연다고 가정했어요. 출발 전에 먼저 확인할 것: ${wait}.`, 'warning delay-check-unchecked'));
+    parts.push(node('p', `${data.delay}분 늦어도 시간표로는 괜찮아 보여요. ${finishText} 다만 ${wait}은 영업 정보가 없어서 문을 연다고 보고 계산했어요. 출발 전에 이곳부터 확인해 보세요.`, 'warning delay-check-unchecked'));
   } else if (data.status === 'problem') {
     const p = data.first_problem;
-    const what = p.kind === 'last_entry' ? `마지막 입장 ${p.limit}보다 ${p.over}분 늦어요` : p.kind === 'closing' ? `영업 종료 ${p.limit}까지 마치지 못해요(${p.over}분 넘김)` : p.kind === 'festival' ? `축제 운영 종료 ${p.limit}까지 마치지 못해요(${p.over}분 넘김)` : `정한 종료 시각 ${p.limit}보다 ${p.over}분 늦게 끝나요`;
-    parts.push(node('p', `처음 문제가 생기는 곳: ${p.place} · ${p.time} · ${what}. 이 장소에 먼저 연락하거나 순서를 다시 정해 보세요.`, 'warning delay-check-problem'));
-    if (wait) parts.push(node('p', `그 앞에 자료가 없어 문을 연다고 가정한 곳: ${wait}.`, 'hint'));
+    // 무엇이 문제인지와, 그 문제에 맞는 다음 행동(점검 보고서 F10: 일정 종료·축제 종료에 '이 장소에 연락하라'고 하지 않는다).
+    // 종류별 [무엇이 문제인지, 다음 행동]. 모르는 종류(kind)는 'end' 문장으로 둔다.
+    const problemText = {
+      last_entry: [`${p.place}에 ${p.time}에 닿는데, 마지막 입장(${p.limit})을 ${p.over}분 넘겨요.`, '들어갈 수 있는지 미리 전화해 보거나, 아래에서 대신 갈 곳을 골라 보세요.'],
+      closing: [`${p.place}에서 ${p.time}에 시작하면 ${p.limit}에 문을 닫기 전에 다 못 보고 ${p.over}분 모자라요.`, '머무는 시간을 줄이거나, 아래에서 대신 갈 곳을 골라 보세요.'],
+      festival: [`${p.time}에 축제에 닿으면 ${p.limit}에 끝나기 전에 ${p.over}분 모자라요.`, '축제를 먼저 들르도록 순서를 바꿔 보는 건 어때요?'],
+      end: [`일정이 ${p.time}에 끝나서, 정한 종료 시간(${p.limit})보다 ${p.over}분 늦어요.`, '한 곳을 빼거나 종료 시간을 조금 늦춰 보세요.']
+    };
+    const [what, next] = problemText[p.kind] || problemText.end;
+    parts.push(node('p', `${data.delay}분 늦으면 여기서 처음 문제가 생겨요. ${what} ${next}`, 'warning delay-check-problem'));
+    if (wait) parts.push(node('p', `참고로 그 앞의 ${wait}은 영업 정보가 없어서 문을 연다고 보고 계산했어요.`, 'hint'));
   } else {
-    parts.push(node('p', `${data.delay}분 늦어도 그대로 갈 수 있어요. ${finishText}`, 'delay-check-ok'));
+    parts.push(node('p', `${data.delay}분 늦어도 괜찮아요. 그대로 가면 돼요. ${finishText}`, 'delay-check-ok'));
   }
   const list = node('ol', undefined, 'delay-check-rows');
   const recovery = delayRecoveryAllowed(plan) ? data.recovery : null;

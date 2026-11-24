@@ -53,13 +53,17 @@ def test_leaflet_is_not_loaded_until_the_fallback_map_needs_it(audit_page):
 
 
 def test_heading_font_is_real_woff2_and_preloaded():
-    data = (STATIC / 'fonts' / 'line-heading-800.woff2').read_bytes()
-    assert data[:4] == b'wOF2', data[:4]
-    assert len(data) < 150_000, len(data)
+    # 2026-11-24 리디자인 1단계: Pretendard 부분집합 네 굵기(fonts/LICENSE). 본문(400)·제목(800)만 미리 받는다.
+    for weight in ('Regular', 'SemiBold', 'Bold', 'ExtraBold'):
+        data = (STATIC / 'fonts' / 'pretendard' / f'Pretendard-{weight}.subset.woff2').read_bytes()
+        assert data[:4] == b'wOF2', (weight, data[:4])
+        assert len(data) < 300_000, (weight, len(data))
+    assert (STATIC / 'fonts' / 'pretendard' / 'LICENSE.txt').read_text(encoding='utf-8').count('SIL OPEN FONT LICENSE')
     for name in ('index.html', 'shared.html'):
         html = (STATIC / name).read_text(encoding='utf-8')
-        assert ('<link rel="preload" href="/static/fonts/line-heading-800.woff2" as="font" type="font/woff2" crossorigin>'
-                in html), name
+        for weight in ('Regular', 'ExtraBold'):
+            assert (f'<link rel="preload" href="/static/fonts/pretendard/Pretendard-{weight}.subset.woff2" as="font" type="font/woff2" crossorigin>'
+                    in html), (name, weight)
 
 
 def test_hero_photo_is_skipped_on_narrow_screens_and_prioritised_on_wide(audit_page):

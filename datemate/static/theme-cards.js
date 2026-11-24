@@ -46,6 +46,15 @@ const SEASON_THEMES={
   winter:{key:'season-winter',title:'겨울 감성 · 따뜻한 실내와 연말 야경',copy:'따뜻한 곳에서 쉬다가 저녁 불빛을 보러 가는 날',tags:['#실내 위주','#저녁 산책','#따뜻한 카페'],
     values:{season:'겨울',start:'15:00',end:'21:00',themes:['카페·미식','문화·예술','산책·풍경']}}
 };
+// 히어로 '바로 시작' 칩(2026-11-24 리디자인 1단계, 가이드 2.2). 상황 테마 + 동네를 한 번에 채운다(동네만 있으면 동네 카드 그대로).
+// area 출발지 이름은 시·도 이름으로 시작해야 서버의 지역 일치 검증을 통과한다. 한남·서촌은 동네 카드에 없어 기준 역 좌표를 여기 둔다
+// (한남 = 6호선 한강진역, 서촌 = 3호선 경복궁역). 칩을 바꾸면 tests/test_redesign_shell_ui.py 의 기대값도 함께 고친다.
+const HERO_QUICK_STARTS=[
+  {label:'비 오는 날 성수 실내',situation:'indoor',area:{region:'서울',name:'서울 성수역 지역 중심',lat:37.5446,lon:127.0559,label:'서울 성수'}},
+  {label:'퇴근 후 한남 3시간',situation:'after-work',area:{region:'서울',name:'서울 한남 한강진역 지역 중심',lat:37.5396,lon:127.0017,label:'서울 한남'}},
+  {label:'강릉 바다 드라이브',preset:'강릉 안목해변'},
+  {label:'어색함 없는 서촌 소개팅',situation:'first-date',area:{region:'서울',name:'서울 서촌 경복궁역 지역 중심',lat:37.5757,lon:126.9735,label:'서울 서촌'}}
+];
 function seasonFor(month){return month>=3&&month<=5?'spring':month>=6&&month<=8?'summer':month>=9&&month<=11?'autumn':'winter';}
 
 // 배너에 보여 줄 '실제로 채운 조건' 문장(카드의 # 태그는 홍보 문구라 따로 둔다).
@@ -97,7 +106,12 @@ const ThemePresets=(()=>{
     for(const [name,value] of Object.entries(values))if(THEME_FIELDS.includes(name))setField(name,value);
   }
   return {
-    situation(theme){begin();applyValues(theme.values);active={kind:'situation',theme};return active;},
+    // area: 히어로 칩처럼 동네까지 함께 정할 때(없으면 지금 고른 지역을 그대로 둔다).
+    situation(theme,area){
+      begin();applyValues(theme.values);
+      if(area)applyArea(area.region,{name:area.name,lat:area.lat,lon:area.lon});
+      active={kind:'situation',theme,area:area||null};return active;
+    },
     area(card){
       begin();
       applyPresetArea(card);
@@ -110,7 +124,7 @@ const ThemePresets=(()=>{
     clear(){
       if(!baseline)return;
       const saved=baseline;restore(saved);
-      if(active?.kind==='area'){
+      if(active?.kind==='area'||active?.area){
         locationState.origin=saved.origin;form.elements.region.value=saved.region;form.elements.origin_name.value=saved.origin?.name||'';
       }
       baseline=null;active=null;
@@ -168,6 +182,7 @@ const ThemePresets=(()=>{
     const box=banner(),name=state.kind==='area'?state.card.dataset.preset:state.theme.title;
     const message=state.kind==='area'
       ?`‘${name}’ 추천 조건을 채웠어요. 날짜와 시간만 확인하고 바로 추천받아 보세요.`
+      :state.area?`‘${name}’ 조건과 ${state.area.label} 지역을 채웠어요. 날짜와 시간만 확인하고 바로 추천받아 보세요.`
       :`‘${name}’ 조건을 채웠어요. 데이트할 지역과 날짜만 골라 주세요.`;
     const values=state.kind==='area'?{transport:state.card.dataset.transport}:state.theme.values;
     const conditions=themeConditionText(values);
@@ -183,9 +198,9 @@ const ThemePresets=(()=>{
     return go;
   }
   function areaGroup(){return document.getElementById('origin-location')?.closest('.simple-form-group');}
-  function pickSituation(theme){
+  function pickSituation(theme,area){
     if(!ready())return;
-    const state=ThemePresets.situation(theme);
+    const state=ThemePresets.situation(theme,area);
     markPressed(document.querySelector(`[data-situation="${theme.key}"]`));
     document.getElementById('nav-plan').click();
     const go=showBanner(state);
@@ -230,4 +245,31 @@ const ThemePresets=(()=>{
   document.addEventListener('click',()=>setTimeout(syncBanner));
   form.addEventListener('change',()=>setTimeout(syncBanner));
   areaGrid?.querySelectorAll('[data-preset]').forEach(card=>card.addEventListener('click',()=>pickArea(card)));
+
+  // 히어로(index.html .hero-start): 바로 시작 칩과 한 줄 입력.
+  const quick=document.getElementById('hero-quick');
+  for(const start of quick?HERO_QUICK_STARTS:[]){
+    const chip=button(start.label,()=>{
+      if(start.preset){const card=areaGrid?.querySelector(`[data-preset="${start.preset}"]`);if(card)pickArea(card);return;}
+      const theme=SITUATION_THEMES.find(item=>item.key===start.situation);
+      if(theme)pickSituation(theme,start.area);
+    });
+    chip.type='button';chip.dataset.quick=start.label;quick.append(chip);
+  }
+  // 한 줄 입력 → 조건 화면의 '어떤 데이트를 꿈꾸나요?' 칸에 넣고 해석 단추(#parse, app.js applyRequest)를 누른다.
+  // 해석은 지역을 정하지 않으므로, 지역이 비어 있으면 상황 테마처럼 '어디에서 만날까요?'를 강조한다.
+  document.getElementById('hero-command')?.addEventListener('submit',event=>{
+    event.preventDefault();
+    const input=document.getElementById('hero-command-input'),text=input.value.trim();
+    if(!text){input.focus();toast('원하는 데이트를 한 줄로 적어 주세요.');return;}
+    if(!ready())return;
+    const request=form.elements.request;request.value=text;request.dispatchEvent(new Event('input',{bubbles:true}));
+    document.getElementById('nav-plan').click();
+    document.getElementById('parse').click();
+    requestAnimationFrame(()=>{
+      const dream=document.querySelector('.simple-dream')||request;
+      if(!locationState.origin)areaGroup()?.classList.add('needs-area');
+      dream.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+    });
+  });
 })();

@@ -1,0 +1,90 @@
+/* 리디자인 1단계 층(2026-11-24, 사용자 가이드 datemate_2026.md — 트리플·에어비앤비·토스 느낌의 둥근 카드·알약 메뉴·반투명 머리글).
+   맡는 범위: 홈(index.html)과 피드백(feedback.html)에서 맨 마지막에 읽어, 예전 '노선' 화면(모서리 0·밑줄 메뉴·노선 동그라미)의 모양만 덮는다.
+     1) 글자: 제목 자간, 숫자 고정폭  2) 머리글: 반투명·흐림, 알약 메뉴(가운데)  3) 휴대폰 하단 고정 바(720px 이하)
+     4) 히어로 커맨드 바·바로 시작 칩  5) 테마 카드(벤토)  6) 단추·입력·칩·패널 모서리.
+   색·글꼴·모서리 값은 style.css :root 토큰(--hong·--radius-card 등)에 있다 — 값을 바꿀 때는 그쪽을 고친다.
+   정리 원칙: 이 파일에는 !important 를 쓰지 않는다(tests/test_css_structure.py 상한 0). 앞 파일의 !important 규칙과 부딪히면
+   그 규칙을 제자리에서 고친다(예: line.css 휴대폰 메뉴 규칙은 지우고 여기 하단 바로 옮겼다). 다음 단계(폼·결과 화면)도 이 파일 뒤쪽에 덧붙인다.
+   되돌리기: index.html·feedback.html 의 <link …redesign.css> 한 줄을 지우면 모양은 예전으로(토큰 색·글꼴은 style.css 에 남는다). */
+
+/* ---------- 1) 글자 ---------- */
+h1,h2 { letter-spacing:-.03em; }
+/* 시각·금액·거리 숫자는 자릿수마다 폭이 같게(줄마다 숫자 끝이 맞는다). */
+time,.timeline-stamp,.stats,.stop-cost,.quick-summary-text,.plan-card,.route-line,.curation-tags { font-variant-numeric:tabular-nums; }
+
+/* ---------- 2) 머리글 ---------- */
+/* 반투명 흰 바탕 + 흐림(가이드 bg-white/85 + blur 16px). 흐림을 못 쓰는 브라우저는 85% 흰색만. */
+body > header { background:rgba(255,255,255,.85); -webkit-backdrop-filter:saturate(180%) blur(16px); backdrop-filter:saturate(180%) blur(16px); border-bottom:1px solid var(--line); }
+.brand-icon { border-color:var(--accent-date); }
+/* 메뉴: 가운데 알약 묶음. 고른 메뉴는 진한 알약(흰 글자 — 대비 17:1). */
+header nav { margin-inline:auto; gap:4px; padding:4px; border-radius:var(--radius-pill); background:var(--platform); }
+/* 알약 높이 44px: 터치 영역 기준(tests/test_user_feedback_ui.py header_fits — 44~60px). */
+header nav .nav,header nav a { min-height:44px; display:inline-flex; align-items:center; padding:8px 16px; border:0; border-radius:var(--radius-pill); color:var(--muted); background:none; font-weight:600; }
+header nav .nav:hover,header nav a:hover { color:var(--ink); background:#fff; }
+header nav .nav.active,header nav a[aria-current=page] { color:#fff; background:var(--ink); border-bottom:0; }
+
+/* ---------- 3) 휴대폰 하단 바(720px 이하) ---------- */
+/* 머리글에는 브랜드만 남기고, 메뉴 네 개는 화면 아래 떠 있는 반투명 바로(엄지가 닿는 곳). 칸 높이 52px(터치 44px 이상).
+   본문 끝·알림(#toast)이 바에 가리지 않도록 body 아래 여백과 알림 위치를 함께 올린다. 바 높이를 바꾸면 --bottom-bar 를 고친다. */
+@media(max-width:720px) {
+  :root { --bottom-bar:76px; }
+  /* 흐림(backdrop-filter)이 있는 요소는 그 안의 position:fixed 기준이 된다 — 머리글에 흐림을 두면 바가 화면 아래가 아니라 머리글에 붙었다.
+     그래서 휴대폰에서는 머리글 흐림을 끄고 거의 불투명한 흰색으로 둔다(흐림은 바 자신이 갖는다). */
+  body > header { -webkit-backdrop-filter:none; backdrop-filter:none; background:rgba(255,255,255,.96); }
+  body { padding-bottom:calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
+  body > header nav { position:fixed; z-index:40; left:12px; right:12px; bottom:calc(10px + env(safe-area-inset-bottom)); margin:0; width:auto;
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; padding:6px; overflow:visible;
+    border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.85); -webkit-backdrop-filter:saturate(180%) blur(16px); backdrop-filter:saturate(180%) blur(16px);
+    box-shadow:0 8px 24px rgba(17,24,39,.12); }
+  /* 링크(a)와 단추(button)가 같은 칸 높이가 되도록. button.nav 로 써야 line.css 의 'header nav button.nav'(480px 이하 padding)보다 명시도가 높다. */
+  body > header nav > :is(a,button.nav) { display:flex; align-items:center; margin:0; min-height:52px; justify-content:center; padding:4px; border-radius:14px; font-size:14px; line-height:1.3; letter-spacing:-.02em; text-align:center; white-space:normal; }
+  /* 420px 이하: 안쪽 여백만 줄인다. 글자는 14px 아래로 줄이지 않는다(가독성 기준, tests/test_readability_ui.py).
+     '장소 둘러보기'가 칸보다 길면 두 줄로 넘어가지만 칸 높이(52px)는 그대로다. */
+  @media(max-width:420px) { body > header nav > :is(a,button.nav) { padding:4px 2px; } }
+  #toast { bottom:calc(var(--bottom-bar) + 16px + env(safe-area-inset-bottom)); }
+}
+@media print { body > header nav { display:none; } }
+
+/* ---------- 4) 히어로 커맨드 바 ---------- */
+/* 한 줄 입력 + '코스 찾기'를 둥근 막대 하나로. 아래 바로 시작 칩 4개(theme-cards.js HERO_QUICK_STARTS). 예전 노선 예시 자리(grid-area:line)를 쓴다. */
+.hero-start { grid-area:line; min-width:0; }
+.hero-command { display:flex; align-items:center; gap:8px; padding:6px 6px 6px 18px; border:1px solid var(--field-line); border-radius:var(--radius-pill); background:#fff; box-shadow:0 6px 20px rgba(17,24,39,.08); }
+.hero-command:focus-within { border-color:var(--ink); box-shadow:0 0 0 4px var(--accent-soft); }
+/* id 로 고른다: line.css 의 입력칸 공통 테두리 규칙(:is(input:not(...)…))이 클래스 선택자보다 명시도가 높다. 테두리는 바깥 막대(.hero-command)가 맡는다. */
+#hero-command-input { flex:1; min-width:0; height:48px; padding:0; border:0; border-radius:0; background:none; font-size:17px; color:var(--ink); }
+#hero-command-input:focus { outline:none; }
+.hero-command button { flex:0 0 auto; min-height:48px; padding:0 22px; border-radius:var(--radius-pill); font-size:16px; font-weight:700; }
+.hero-quick { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.hero-quick button { min-height:44px; padding:8px 16px; border:1px solid var(--line); border-radius:var(--radius-pill); background:#fff; color:var(--ink); font-size:15px; font-weight:600; }
+.hero-quick button:hover { border-color:var(--accent-border); background:var(--accent-soft); }
+.hero-actions .text-link { color:var(--muted); }
+@media(max-width:600px) {
+  .hero-command { padding-left:14px; }
+  #hero-command-input { font-size:16px; }
+  .hero-command button { padding:0 16px; }
+  /* 칩 네 개는 두 줄 격자로(한 줄에 둘). */
+  .hero-quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .hero-quick button { padding:8px 10px; font-size:14px; }
+}
+
+/* ---------- 5) 테마 카드(벤토) ---------- */
+/* 흰 둥근 카드(20px)를 간격 16px 격자로. 노선 동그라미·세로선(home.css ::before/::after)은 뺀다. 600px 이하 가로 넘김은 home.css 가 그대로 맡는다. */
+#curation .curation-grid { gap:16px; border-top:0; }
+#curation .curation-card { grid-template-columns:minmax(0,1fr); padding:20px; border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; box-shadow:0 1px 2px rgba(17,24,39,.04); transition:box-shadow .15s,border-color .15s; }
+#curation .curation-card:hover { border-color:var(--accent-border); box-shadow:0 10px 24px rgba(17,24,39,.08); }
+#curation .curation-card::before,#curation .curation-card::after { content:none; }
+#curation .curation-card>* { grid-column:1; }
+#curation .curation-card[aria-pressed=true] { border-color:var(--hong); box-shadow:0 0 0 3px var(--accent-soft); }
+#curation .curation-badge { padding:2px 10px; border-radius:var(--radius-pill); background:var(--platform); }
+#curation .curation-badge.is-season { background:var(--hong); color:#fff; }
+.curation-tabs { gap:6px; padding:4px; border:0; border-radius:var(--radius-pill); background:#fff; width:max-content; max-width:100%; }
+.curation-tabs [role=tab] { border:0; border-radius:var(--radius-pill); padding:8px 18px; }
+.curation-tabs [role=tab][aria-selected=true] { color:#fff; background:var(--ink); }
+@media(max-width:480px) { .curation-tabs { width:100%; } .curation-tabs [role=tab] { padding:8px 6px; font-size:14px; } }
+@media(prefers-reduced-motion:reduce) { #curation .curation-card { transition:none; } }
+
+/* ---------- 6) 모서리: 단추·입력·칩·패널 ---------- */
+.primary,.secondary { border-radius:var(--radius-control); }
+:is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea) { border-radius:var(--radius-control); }
+.quick-chip,.chips span,.tag { border-radius:var(--radius-pill); }
+.preset-tags,.quick-summary { border-radius:var(--radius-card); }

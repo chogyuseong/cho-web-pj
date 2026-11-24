@@ -30,6 +30,13 @@ def test_same_leg_note_is_written_once_above_the_timeline(audit_page):
       once:document.querySelectorAll('#plan-detail .route-source-note').length})""")
     if state['shared']:
         assert state == {'shared': state['shared'], 'perLeg': 0, 'once': 1}, state
+        # 계산 방식은 기본으로 접혀 있고, 누르면 펼쳐져 설명이 보인다(2026-11-24 사용자 요청).
+        fold = page.locator('#plan-detail details.route-source-note')
+        assert fold.count() == 1 and not fold.evaluate('e=>e.open')
+        assert not fold.locator('.hint').is_visible()
+        fold.locator('summary').click()
+        assert fold.locator('.hint').is_visible()
+        assert state['shared'] in fold.locator('.hint').inner_text()
     else:
         assert state['once'] == 0, state
     assert page.evaluate("sharedLegSource({legs:[{source:'a'},{source:'a'}]})") == 'a'

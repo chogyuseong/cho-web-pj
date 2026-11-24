@@ -118,8 +118,15 @@ function renderDetail() {
   });
   box.append(links);
   // 구간마다 같은 설명(예: '직선거리 × 1.35 기반 이동 추정 · 실제 길찾기 미반영')이면 여기서 한 번만 적는다(routeLine 은 생략).
+  // 기본은 접어 둔다(2026-11-24 사용자 요청 — 늘 보일 필요는 없고, 궁금한 사람만 눌러 본다). 모양은 '출처'·'사진 정보' 접기와 같다
+  // (results.css 의 .detail :is(.stop-source,.photo-meta,.route-source-note)). 다시 늘 보이게 하려면 예전처럼
+  // node('p', '이동 시간: ' + legSource, 'hint route-source-note') 한 줄로 되돌리고 그 CSS 목록에서 .route-source-note 를 뺀다.
   const legSource = sharedLegSource(p);
-  if (legSource) box.append(node('p', '이동 시간: ' + legSource, 'hint route-source-note'));
+  if (legSource) {
+    const fold = node('details', undefined, 'route-source-note');
+    fold.append(node('summary', '이동 시간 계산 방식'), node('p', legSource, 'hint'));
+    box.append(fold);
+  }
   // 대중교통 구간이 있으면 지하철·버스 구분 없는 추정이라는 것과 가정값을 일정 위에 한 번 적는다(plan-evidence.js transitBasisNote).
   const transitNote = transitBasisNote(p);
   if (transitNote) box.append(transitNote);

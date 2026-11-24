@@ -24,28 +24,39 @@ def no_overflow(page):
 
 @pytest.mark.parametrize('width', [390, 1440])
 def test_theme_cards_show_theme_first(audit_page, width):
+    # 2026-11-24 2트랙: 첫 탭(상황 테마 7장 = 계절 1 + 상황 6)이 기본, 둘째 탭이 동네 5곳.
     page, base, errors = audit_page
     page.set_viewport_size({'width': width, 'height': 900})
     section = page.locator('#curation')
     assert section.locator('#curation-title').inner_text() == '테마로 고르는 하루'
     assert '테마를 고르면' in section.locator('.curation-heading p').inner_text()
-    cards = section.locator('.curation-card')
-    assert cards.count() == 6
+    cards = section.locator('#curation-situation .curation-card')
+    assert cards.count() == 7
     first = cards.first
-    # 테마가 먼저, 더 크게. 동네 이름은 보조 정보.
-    assert first.evaluate('c=>c.firstElementChild.className') == 'curation-mood'
-    sizes = first.evaluate("c=>['.curation-mood','.curation-area'].map(s=>parseFloat(getComputedStyle(c.querySelector(s)).fontSize))")
+    # 배지 → 제목(크게) → 문구 → 조건 태그.
+    assert first.evaluate('c=>[...c.children].map(e=>e.className.split(" ")[0])') == ['curation-badge', 'curation-mood', 'curation-copy', 'curation-tags']
+    sizes = first.evaluate("c=>['.curation-mood','.curation-badge'].map(s=>parseFloat(getComputedStyle(c.querySelector(s)).fontSize))")
     assert sizes == [19, 14]
-    mood, area = first.locator('.curation-mood').bounding_box(), first.locator('.curation-area').bounding_box()
-    assert mood['y'] + mood['height'] <= area['y'] + 1
-    lefts = {round(card.bounding_box()['x']) for card in cards.all()}
-    assert len(lefts) == (3 if width == 1440 else 1)
     for card in cards.all():
-        assert card.evaluate('c=>[...c.children].every(s=>s.scrollWidth<=s.clientWidth+1)')
+        assert 2 <= card.locator('.curation-tags span').count() <= 3
+    if width == 1440:
+        lefts = {round(card.bounding_box()['x']) for card in cards.all()}
+        assert len(lefts) == 3
+        for card in cards.all():
+            assert card.evaluate('c=>[...c.children].every(s=>s.scrollWidth<=s.clientWidth+1)')
+    else:
+        # 휴대폰: 가로로 넘기는 한 줄(카드는 같은 줄, 목록만 옆으로 넘친다).
+        tops = {round(card.bounding_box()['y']) for card in cards.all()}
+        assert len(tops) == 1
+        assert section.locator('#curation-situation').evaluate('g=>g.scrollWidth>g.clientWidth')
     assert no_overflow(page)
     # 조건 화면 동네 칩은 그대로 동네 이름(data-preset)을 쓴다.
     assert page.get_by_role('group', name='인기 동네').get_by_role('button').all_inner_texts()[:2] == ['서울 성수', '부산 해운대']
-    first.click()
+    section.get_by_role('tab', name='주말 떠나기 좋은 동네').click()
+    areas = section.locator('#curation-areas .curation-card')
+    assert areas.count() == 5 and not cards.first.is_visible()
+    assert areas.first.locator('.curation-badge').inner_text() == '서울 성수'
+    areas.first.click()
     page.wait_for_function('form.elements.origin_name.value==="서울 성수역 지역 중심"')
 
 

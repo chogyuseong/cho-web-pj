@@ -13,10 +13,9 @@ from test_functional_audit import audit_page  # noqa: F401  (pytest fixture)
 AREAS = {
     '서울 성수': ('서울', '서울 성수역 지역 중심', 37.5446, 127.0559),
     '부산 해운대': ('부산', '부산 해운대역 지역 중심', 35.1631, 129.1636),
-    '제주 애월': ('제주', '제주 애월 한담해변 지역 중심', 33.4621, 126.3104),
-    '경주 황리단길': ('경북', '경북 경주 황리단길 지역 중심', 35.8375, 129.2097),
-    '전주 한옥마을': ('전북', '전북 전주 한옥마을 지역 중심', 35.8150, 127.1530),
     '강릉 안목해변': ('강원', '강원 강릉 안목해변 지역 중심', 37.7716, 128.9477),
+    '경주 황리단길': ('경북', '경북 경주 황리단길 지역 중심', 35.8375, 129.2097),
+    '제주 애월': ('제주', '제주 애월 한담해변 지역 중심', 33.4621, 126.3104),
 }
 
 
@@ -90,6 +89,7 @@ def test_theme_card_fills_planner_with_its_region(audit_page):  # noqa: F811
         page.set_viewport_size({'width': width, 'height': 900})
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), width
     page.set_viewport_size({'width': 1440, 'height': 1000})
+    page.get_by_role('tab', name='주말 떠나기 좋은 동네').click()
     page.locator('[data-preset="제주 애월"]').click()
     page.wait_for_function('location.hash==="#planner-section"')
     assert page.locator('[name=region]').input_value() == '제주'

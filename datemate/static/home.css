@@ -200,8 +200,10 @@
 .preset-tags[hidden] { display:none; }
 .preset-tags .hint { margin:0; }
 .preset-tag-list { display:flex; flex-wrap:wrap; gap:6px; }
-.preset-tags .preset-go { justify-self:start; min-height:44px; }
-@media(max-width:480px) { .preset-tags .preset-go { justify-self:stretch; } }
+.preset-tags .preset-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.preset-tags .preset-actions button { min-height:44px; }
+.preset-tags .preset-go[hidden] { display:none; }
+@media(max-width:480px) { .preset-tags .preset-actions button { flex:1 1 100%; } }
 /* 맨 위 '어떤 데이트를 꿈꾸나요?'(simple-form.js): 상황 예시 칩은 입력칸 위, 활동 칩은 아래. */
 .simple-dream-examples { margin:0 0 10px; }
 .simple-dream .simple-activity-ideas { margin:10px 0 14px; }
@@ -416,6 +418,21 @@ body:not(.show-date-plan) .hero-photo { display:block; grid-area:photo; height:a
 .curation-area { grid-column:2; font-size:14px; color:var(--muted); line-height:1.6; }
 .curation-copy { grid-column:2; margin-top:4px; font-size:16px; line-height:1.6; color:var(--ink); }
 .curation-card[aria-pressed=true] .curation-mood { color:var(--hong); text-decoration:underline; text-underline-offset:4px; }
+/* 2트랙 탭·배지·조건 태그(2026-11-24, theme-cards.js). 탭은 밑줄형 두 개, 고른 탭은 --hong 밑줄.
+   카드 안 순서: 배지(.curation-badge — 상황 테마/지금 시즌/동네 이름) → 제목(.curation-mood) → 문구 → 조건 태그(.curation-tags).
+   동네 카드의 배지는 예전 .curation-area 글씨 규칙도 함께 받는다(같은 요소에 두 클래스). */
+.curation-tabs { display:flex; gap:4px; margin:0 0 12px; border-bottom:1px solid var(--line); overflow-x:auto; }
+.curation-tabs [role=tab] { flex:0 0 auto; min-height:44px; padding:8px 14px; border:0; border-bottom:3px solid transparent; border-radius:0; background:transparent; color:var(--muted); font-size:16px; font-weight:700; box-shadow:none; }
+.curation-tabs [role=tab][aria-selected=true] { color:var(--ink); border-bottom-color:var(--hong); }
+.curation-tabs [role=tab]:focus-visible { outline:2px solid var(--hong); outline-offset:-2px; }
+.curation-grid[hidden] { display:none; }
+/* 480px 이하: 두 탭을 반씩 나눠 이름이 잘리지 않게(375px 에서 '주말 떠나기 좋은 동네'가 넘쳤다). 긴 이름은 두 줄로. */
+@media(max-width:480px) { .curation-tabs [role=tab] { flex:1 1 0; padding:8px 4px; font-size:15px; line-height:1.4; white-space:normal; } }
+.curation-badge { grid-column:2; justify-self:start; font-size:14px; font-weight:700; color:var(--muted); line-height:1.6; }
+.curation-badge.is-season { padding:0 8px; border-radius:999px; background:var(--hong); color:#fff; }
+.curation-tags { grid-column:2; display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:6px; font-size:14px; color:var(--hong); font-weight:600; }
+/* 상황 테마로 넘어왔는데 지역이 비어 있으면 '어디에서 만날까요?' 묶음을 강조한다(지역을 고르면 theme-cards.js 가 뗀다). */
+.simple-plan-form .simple-form-group.needs-area { outline:2px solid var(--hong); outline-offset:6px; border-radius:4px; }
 .data-banner { margin:32px 0 0; padding:0; background:none!important; color:var(--ink); border-radius:0; display:block; }
 .data-banner h2 { font-size:19px!important; margin:0 0 8px; color:var(--ink)!important; }
 .data-points { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 24px; color:var(--ink); font-size:16px; }
@@ -462,6 +479,14 @@ body:not(.show-date-plan) .hero-photo { display:block; grid-area:photo; height:a
   .curation-card:first-child::after { top:22px; }
   .curation-card:last-child::after { bottom:auto; height:22px; }
   .curation-card::before { position:relative; z-index:1; }
+}
+/* 600px 이하: 카드를 가로로 넘겨 본다(세로로 일곱 장을 쌓으면 첫 화면 아래가 너무 길어진다). 승강장 선(::after)·역 동그라미는 빼고
+   테두리 있는 카드로. 카드 폭 82%라 다음 카드 끝이 보여 넘길 수 있다는 걸 알린다. 폭을 바꾸려면 flex-basis 만 고친다. */
+@media(max-width:600px) {
+  .curation-grid { display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; padding:4px 0 12px; border-top:0; overscroll-behavior-x:contain; }
+  .curation-grid .curation-card { flex:0 0 82%; grid-template-columns:minmax(0,1fr); scroll-snap-align:start; padding:16px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .curation-grid .curation-card::before,.curation-grid .curation-card::after { content:none; }
+  .curation-grid .curation-card>* { grid-column:1; }
 }
 @media(max-width:420px) {
   .hero .hero-description { font-size:16px!important; }

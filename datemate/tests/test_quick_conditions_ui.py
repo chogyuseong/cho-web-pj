@@ -127,7 +127,7 @@ def test_area_chip_is_one_tap_and_map_choice_clears_it(server):
             assert not page.locator(f'[name={name}]').is_visible(), name
         assert summary(page) == '기본 조건 오늘 11월 13일 (금) · 11:00–19:00 · 2명 · 10만 원 · 3곳 · 도보'
         chips = page.get_by_role('group', name='인기 동네').get_by_role('button')
-        assert chips.all_inner_texts()[:6] == ['서울 성수', '부산 해운대', '제주 애월', '경주 황리단길', '전주 한옥마을', '강릉 안목해변']
+        assert chips.all_inner_texts()[:5] == ['서울 성수', '부산 해운대', '강릉 안목해변', '경주 황리단길', '제주 애월']
         for chip in chips.all():
             box = chip.bounding_box()
             assert box['height'] >= 44

@@ -169,8 +169,12 @@ def media_info(place, prefer_public=False, force=False, review_only=False):
         )
         result["map_url"] = map_url
         result["photo_source"] = "reviewed_registry" if only_registry else "priority_place_photos"
+        # 위키데이터 장소(Q 번호)는 사진이 2장보다 적으면 화면이 Wikidata 대표 사진(P18)을 덧붙여 찾는다(static/wikimedia-photos.js).
+        # 2026-11-24: 예전에는 등록 사진만 있을 때만 넘겨, 관광공사 사진이 1장 있으면 위키데이터 사진을 찾지 않았다(사용자 신고 '사진을 못 가져온다').
         result["wikidata_id"] = (
-            place["id"] if only_registry and re.fullmatch(r"Q[1-9][0-9]*", place["id"]) else None
+            place["id"]
+            if (only_registry or len(photos) < 2) and re.fullmatch(r"Q[1-9][0-9]*", place["id"])
+            else None
         )
         result["photo_lookup_incomplete"] = len(photos) < 2
         result["photo_retry"] = False

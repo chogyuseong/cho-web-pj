@@ -128,3 +128,16 @@ header nav .nav.active,header nav a[aria-current=page] { color:#fff; background:
 .delay-sim-badge:is(.is-unknown,.is-skipped) { color:var(--muted); background:var(--platform); font-weight:600; }
 @media(prefers-reduced-motion:reduce) { .delay-sim-switch,.delay-sim-switch::after { transition:none; } }
 @media print { .delay-sim,.delay-sim-time,.delay-sim-badges { display:none; } }
+
+/* 7-3) 일정 카드 → 코스 지도(maps.js focusPlanMapStop). 고른 장소 표시: 진한 칠 + 코랄 고리 + 조금 크게(지도 표시 자리·기준점은 그대로). */
+.route-marker.route-stop-marker.is-focused { background:var(--ink); box-shadow:0 0 0 4px rgba(224,0,77,.45); transform:scale(1.15); }
+.leaflet-tooltip.route-stop-tooltip-focused { font-weight:800; border-color:var(--ink); }
+.map-focus-note { margin:10px 0 0; }
+/* 데스크톱 오른쪽 패널: 강조한 표시가 지도에 바로 보이므로 안내 줄은 화면 읽기용으로만 둔다(보이게 두면 글이 들어올 때 지도가 아래로 밀려
+   1440×900 에서 지도 아래 끝이 패널 밖으로 나갔다). 휴대폰은 지도까지 스크롤하므로 보이게 두고 돌아가기 단추를 함께 둔다. */
+.plan-map-rail .map-focus-note { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.plan-map-card .map-focus-status { margin:0; font-size:14px; font-weight:600; line-height:1.6; color:var(--ink); }
+.map-focus-back { margin-top:8px; min-height:44px; }
+/* 휴대폰 장소 단추 2열 격자: 「코스 지도에서 보기」가 홀수 번째(실제 장소 = 다섯 번째)면 한 줄을 다 쓴다.
+   체험 코스는 네이버 지도 링크가 없어 네 번째라 2열 칸을 그대로 채운다. */
+@media(max-width:480px) { .detail .stop .actions>.stop-map-focus:nth-child(odd) { grid-column:1 / -1; } }

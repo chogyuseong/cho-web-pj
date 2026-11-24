@@ -181,6 +181,13 @@ function renderDetail() {
       map.classList.add('stop-map-link');
       buttons.append(map);
     }
+    // 일정 카드 → 코스 지도(maps.js focusPlanMapStop, 리디자인 3단계): 지도의 이 장소 표시를 강조하고 지도를 그 위치로 옮긴다.
+    // 지도 표시 → 일정 카드(focusPlanStop)의 반대 방향. 좌표가 없는 장소(보관 기간이 지나 지움)는 지도에 없어 달지 않는다.
+    if (Number.isFinite(place.lat) && Number.isFinite(place.lon) && typeof focusPlanMapStop === 'function') {
+      const show = button('코스 지도에서 보기', () => focusPlanMapStop(i), 'secondary stop-map-focus');
+      show.setAttribute('aria-label', `${i + 1}번 ${place.name} 코스 지도에서 보기`);
+      buttons.append(show);
+    }
     body.append(placeEvidencePanel(p, i));
     if (p.can_edit === false) {
       buttons.children[0].disabled = true;

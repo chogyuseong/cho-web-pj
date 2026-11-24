@@ -70,7 +70,7 @@ function renderPlanMapCard(){
   });
   // 휴대폰에서는 지도가 상세('우리 하루, 자세히 보기', h2) 안에 들어가므로 한 단계 낮은 h3. 그래야 뒤의 '비용은 투명하게'가 지도에 속한 것처럼 읽히지 않는다(구역 표시줄·화면 읽기 목차).
   const mapTitle=node(mobile?'h3':'h2','우리 코스 지도','plan-map-title');
-  card.append(mapTitle,tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),mapLegend(selected),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),drawPlanMap(selected));
+  card.append(mapTitle,tabs,node('p',courseTitle(selected),'map-course-title'),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),mapLegend(selected),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'),mapFocusNote(),drawPlanMap(selected));
   // 지도 아래 장소 목록: 한 줄에 네이버 지도 링크('1. 이름')와 「일정에서 보기」 단추(2026-11-18 가독성 8단계).
   // 단추는 지도 번호 표시와 같은 focusPlanStop(일정의 그 장소 카드로 스크롤 + 제목 포커스). 지도 표시는 키보드 Tab 으로 닿지 않아
   // 키보드·화면 읽기 사용자가 일정으로 가는 길이 이 단추다. 링크는 test_map_links_ui 가 '.map-place-list a' 로 확인한다.
@@ -244,6 +244,41 @@ function focusPlanStop(index){
   title.focus({preventScroll:true});
   return true;
 }
+/* ── 일정 카드 → 지도(리디자인 3단계, datemate_2026.md §2.5) ───────────────────────────────────────
+   위 focusPlanStop(지도 표시 → 일정 카드)의 반대 방향. 일정 장소 카드의 「코스 지도에서 보기」(plan-detail.js)가 부른다.
+   지도(drawPlanMap 의 wrap.focusStop)가 그 장소 표시를 강조하고 지도를 그 위치로 옮긴다(네이버 지도·공개 지도 Leaflet 모두).
+   지도를 아직 불러오는 중이면 그린 직후에 옮긴다. 개략도만 남은 경우(공개 지도도 실패)는 옮길 지도가 없다고 알린다.
+   - 데스크톱: 지도는 오른쪽 고정 패널에 늘 보이므로 페이지는 그대로 두고, 패널 카드가 아래로 넘겨져 지도가 가려졌으면 패널 안만 넘긴다.
+     키보드 포커스는 누른 단추에 그대로 둔다(일정을 계속 읽는다).
+   - 휴대폰(지도가 일정 뒤 #plan-map-slot): 지도 바로 위 안내 줄로 스크롤하고, 그 줄의 「N번 일정으로 돌아가기」 단추로 포커스를 옮긴다.
+   안내 줄(.map-focus-status, role=status)은 처음부터 문서에 있어야 화면 읽기가 바뀐 글을 읽는다(비어 있으면 높이 0). */
+function mapFocusNote(){
+  const box=node('div',undefined,'map-focus-note'),status=node('p','','map-focus-status');
+  status.setAttribute('role','status');
+  const back=button('',()=>focusPlanStop(Number(back.dataset.index)),'secondary map-focus-back');back.hidden=true;
+  box.append(status,back);return box;
+}
+function focusPlanMapStop(index){
+  const card=planMapCard,place=selected?.places?.[index];
+  if(!card?.isConnected||!place)return false;
+  const wrap=card.querySelector('.plan-map'),status=card.querySelector('.map-focus-status'),back=card.querySelector('.map-focus-back');
+  const mobile=Boolean(card.closest('#plan-map-slot')),name=`${index+1}번 장소(${place.name})`;
+  const state=Number.isFinite(place.lat)&&Number.isFinite(place.lon)?wrap?.focusStop?.(index)||'none':'nowhere';
+  if(status)status.textContent={applied:`${name}를 지도 가운데에 표시했어요.`,pending:`지도를 불러오면 ${name}를 가운데에 표시할게요.`,
+    none:`지도를 불러오지 못해 ${name} 위치를 표시하지 못했어요. 장소 목록의 네이버 지도 링크를 이용해 주세요.`,nowhere:`${name}는 위치 정보가 없어 지도에 표시하지 못해요.`}[state];
+  if(back){back.hidden=!mobile;back.dataset.index=String(index);back.textContent=`${index+1}번 일정으로 돌아가기`;}
+  if(mobile){
+    (status||wrap||card).scrollIntoView({block:'start'});
+    back?.focus({preventScroll:true});
+  }else if(wrap){
+    // 패널 카드(넘김 가능) 안에서 지도 칸(.naver-plan-map, 공개 지도도 같은 class)이 보이게 필요한 만큼만 넘긴다(안내 줄은 패널에서 화면 읽기 전용, redesign.css).
+    // 카드 밖 문서는 움직이지 않는다(popupHubList revealPanel 과 같은 방식). 이미 다 보이면 그대로 둔다(위의 요약·탭이 밀려나지 않게).
+    const box=card.getBoundingClientRect(),map=(wrap.querySelector('.naver-plan-map')||wrap).getBoundingClientRect();
+    if(map.top<box.top)card.scrollTop+=map.top-box.top-8;
+    else if(map.bottom>box.bottom)card.scrollTop+=Math.min(map.bottom-box.bottom+8,map.top-box.top-8);
+  }
+  return true;
+}
 // 장소 번호 표시의 접근 가능한 이름은 고정 문구(번호만)다. 장소 이름은 HTML 에 넣지 않고 title(네이버 표시 옵션)로만 준다.
 function stopMarkerLabel(number){return number+'번 장소 · 눌러서 일정에서 보기';}
 /* ── 겹친 장소 번호 합치기(가독성 7단계, 2026-11-18) ──────────────────────────────────────────────
@@ -308,7 +343,14 @@ function drawPlanMap(plan){
     if(window.L&&map instanceof L.Map&&map._animatingZoom)map._onZoomTransitionEnd();
     quietly(()=>map?.remove?.());quietly(()=>map?.destroy?.());};
   wrap.updateFestivals=()=>{};wrap.updatePopups=()=>{};
-  wrap.disposeMap=()=>{disposed=true;clearFestivals();clearPopups();clearParking();dropMap();};
+  wrap.disposeMap=()=>{disposed=true;applyFocus=null;clearFestivals();clearPopups();clearParking();dropMap();};
+  // 일정 카드 → 지도(focusPlanMapStop). focused: 강조할 장소 순번(0부터). applyFocus(pan): 지금 그려진 지도(네이버·Leaflet)가 강조를 다시 그리고
+  // pan 이면 그 장소로 옮긴다. 지도를 그리기 전·다시 그리는 중이면 null 이라 순번만 기억해 두고, 지도를 그린 직후에 옮긴다.
+  // 돌려주는 값: 'applied'(옮김) · 'pending'(지도 불러오는 중) · 'none'(개략도만 남아 옮길 지도가 없음).
+  let focused=null,applyFocus=null;
+  wrap.dataset.mapState='loading';
+  wrap.focusStop=index=>{focused=index;if(applyFocus){applyFocus(true);return 'applied';}return wrap.dataset.mapState==='none'?'none':'pending';};
+  const reduceMotion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
   const canvas=node('div','네이버 지도를 불러오는 중…','naver-plan-map');
   canvas.setAttribute('role','region');canvas.setAttribute('aria-label','출발지와 방문 순서가 표시된 네이버 지도');
   const caption=node('p','출발 → 방문 순서 → 귀가','map-caption');
@@ -323,7 +365,7 @@ function drawPlanMap(plan){
     clearFestivals();wrap.updateFestivals=()=>{};
     clearPopups();wrap.updatePopups=()=>{};
     clearParking();
-    dropMap();
+    dropMap();applyFocus=null;wrap.dataset.mapState='loading';
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
     wrap.replaceChildren(canvas,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
@@ -357,16 +399,18 @@ function drawPlanMap(plan){
       //   ② 지도의 zoom_changed(확대 단추·두 손가락·식당 표시 뒤 fitBounds 모두). 실제 SDK 는 zoom_changed 때 이미 새 확대 수준의 좌표를 준다
       //      ('zooming' 은 바뀌기 전 좌표라 쓰지 않는다). 끌어서 옮기기는 화면 거리가 그대로라 다시 묶을 필요가 없다.
       // 표시 수가 장소 수(최대 몇 개)뿐이라 매번 새로 만드는 비용은 작다. 표시마다 붙인 click 처리는 표시와 함께 SDK 가 버린다.
-      let stopMarkers=[];
+      let stopMarkers=[],stopGroups=[];
       const drawStops=()=>{
         // 지도를 다시 그렸거나(코스 탭 전환·다시 연결) 정리했으면 예전 지도의 늦은 zoom_changed 는 무시한다.
         if(disposed||activeMap!==map)return;
-        stopMarkers.forEach(marker=>quietly(()=>marker.setMap(null)));stopMarkers=[];
+        stopMarkers.forEach(marker=>quietly(()=>marker.setMap(null)));stopMarkers=[];stopGroups=[];
         // 좌표 있는 장소만 묶는다. planStopGroups 는 넘긴 배열의 순번을 돌려주므로 일정 순번(stops[m])으로 바꿔 쓴다.
         const stops=plan.places.map((place,index)=>({place,index})).filter(({place})=>located(place));
         planStopGroups(stops.map(s=>s.place),place=>map.getProjection().fromCoordToOffset(coord(place))).forEach(grouped=>{
           // members: 이 표시에 묶인 장소 순번(0부터). 화면 번호는 +1. '·'(가운뎃점)으로 잇는다.
-          const members=grouped.map(m=>stops[m].index);
+          const members=grouped.map(m=>stops[m].index);stopGroups.push(members);
+          // 일정 카드에서 고른 장소(focused)가 든 표시는 강조(is-focused·aria-current, plan-map.css)하고 다른 번호 위에 둔다.
+          const lit=focused!==null&&members.includes(focused);
           const numbers=members.map(i=>i+1),label=numbers.join('·'),width=stopMarkerWidth(members.length);
           // 합친 표시의 자리는 묶인 장소 좌표의 평균(한 장소면 그 장소 그대로).
           const lat=members.reduce((sum,i)=>sum+plan.places[i].lat,0)/members.length,lon=members.reduce((sum,i)=>sum+plan.places[i].lon,0)/members.length;
@@ -374,9 +418,9 @@ function drawPlanMap(plan){
           const merged=members.length>1,name=merged?label+'번 장소 · 눌러서 일정에서 '+numbers[0]+'번부터 보기':stopMarkerLabel(numbers[0]);
           // 보안: content(HTML)에는 숫자·고정 문구만 넣는다. 장소 이름(외부 검색 결과)은 title 옵션으로만 준다(SDK 가 글자로 다룸).
           // 이 줄을 고칠 때 장소 이름이나 검색 결과 글자를 content 에 이어 붙이지 말 것.
-          const marker=new naver.maps.Marker({map,position:new naver.maps.LatLng(lat,lon),zIndex:130,
+          const marker=new naver.maps.Marker({map,position:new naver.maps.LatLng(lat,lon),zIndex:lit?140:130,
             title:members.map(i=>(i+1)+' · '+plan.places[i].name).join(' / '),
-            icon:{content:'<span class="route-marker route-stop-marker'+(merged?' route-stop-merged" style="width:'+width+'px':'')+'" role="button" aria-label="'+name+'">'+label+'</span>',
+            icon:{content:'<span class="route-marker route-stop-marker'+(lit?' is-focused':'')+(merged?' route-stop-merged" style="width:'+width+'px':'')+'" role="button" aria-label="'+name+'"'+(lit?' aria-current="true"':'')+'>'+label+'</span>',
               anchor:new naver.maps.Point(width/2,19)}});
           // 합친 표시는 앞 번호 장소로 간다(일정에서 뒤 번호는 바로 아래 카드). 묶인 장소를 고르게 하려면 여기서 작은 선택 칸을 열면 된다.
           // 네이버 지도는 표시 click 을 알린 뒤 지도 칸(tabindex)에 포커스를 되돌려 그 칸으로 다시 스크롤한다(운영 SDK 에서 확인).
@@ -400,6 +444,19 @@ function drawPlanMap(plan){
       // 장소 번호는 화면 거리로 묶으므로 fitBounds 로 확대 수준이 정해진 뒤에 그리고, 확대 수준이 바뀔 때마다 다시 묶는다(drawStops 주석).
       drawStops();
       naver.maps.Event.addListener(map,'zoom_changed',drawStops);
+      // 일정 카드 → 지도: 강조를 다시 그리고 그 장소로 옮긴다. 다른 번호와 한 표시로 합쳐져 있으면 두 단계 확대해 떼어 보이게 한다
+      // (확대하면 zoom_changed → drawStops 가 다시 묶는다). 동작 줄이기면 움직임 없이 바로 옮긴다. SDK 에 없는 함수는 부르지 않는다.
+      applyFocus=pan=>{
+        drawStops();
+        const place=plan.places[focused];
+        if(!pan||!located(place))return;
+        const at=coord(place),merged=stopGroups.some(group=>group.length>1&&group.includes(focused));
+        const zoom=merged&&map.getZoom?Math.min(map.getZoom()+2,21):null;
+        if(zoom!==null&&!reduceMotion()&&map.morph)map.morph(at,zoom);
+        else{if(zoom!==null)map.setZoom?.(zoom,false);if(!reduceMotion()&&map.panTo)map.panTo(at);else map.setCenter?.(at);}
+      };
+      wrap.dataset.mapState='naver';
+      if(focused!==null)applyFocus(true);
       wrap.updateFestivals=()=>{
         if(disposed||!canvas.isConnected)return;
         clearFestivals();const items=festivalMapItems();
@@ -480,7 +537,7 @@ function drawPlanMap(plan){
     clearFestivals();wrap.updateFestivals=()=>{};festivalNote.hidden=true;
     clearPopups();wrap.updatePopups=()=>{};popupMapNote(popupNote,[]);
     clearParking();
-    dropMap();
+    dropMap();applyFocus=null;wrap.dataset.mapState='loading';
     const notice=node('div',undefined,'map-reconnect');
     notice.setAttribute('role','status');
     notice.append(node('strong','네이버 지도 연결이 잠시 끊겼어요'),node('p',message,'hint'),
@@ -493,7 +550,7 @@ function drawPlanMap(plan){
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
       wrap.prepend(mapCanvas,mapCaption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
-      if(!points.length)return;
+      if(!points.length){wrap.dataset.mapState='none';return;}
       try{
         const map=L.map(mapCanvas,{scrollWheelZoom:true}).setView([points[0].lat,points[0].lon],14);activeMap=map;
         // 팝업 표시는 코스 원·이동선·축제 원(overlayPane 400)보다 아래 층(popups.css 의 390)에 둔다. 같은 자리여도 출발·번호 원이 위에 보인다.
@@ -524,25 +581,39 @@ function drawPlanMap(plan){
         // 원 반지름 9px(지름 18px)이라 묶는 거리는 네이버 표시와 같은 STOP_MERGE_PX(38px)로 둔다 — 여기에 툴팁 글자도 함께 겹치기 때문.
         const stopLayer=L.layerGroup().addTo(map);
         const stops=plan.places.map((place,index)=>({place,index})).filter(({place})=>Number.isFinite(place?.lat)&&Number.isFinite(place?.lon));
+        let leafletGroups=[];
         const drawLeafletStops=()=>{
           if(disposed||activeMap!==map)return;
           stopLayer.clearLayers();
           const size=map.getSize();
           const groups=planStopGroups(stops.map(s=>s.place),place=>{if(!size.x||!size.y)throw Error('지도 크기 없음');return map.latLngToContainerPoint([place.lat,place.lon]);});
+          leafletGroups=groups.map(members=>members.map(m=>stops[m].index));
           groups.forEach(members=>{
             const indexes=members.map(m=>stops[m].index),numbers=indexes.map(i=>i+1),label=numbers.join('·'),merged=indexes.length>1;
+            // 일정 카드에서 고른 장소(focused)가 든 원은 크게, 진한 테두리·홍색 칠로 강조하고 맨 위로 올린다(aria-current).
+            const lit=focused!==null&&indexes.includes(focused);
             const at=[indexes.reduce((s,i)=>s+plan.places[i].lat,0)/indexes.length,indexes.reduce((s,i)=>s+plan.places[i].lon,0)/indexes.length];
             if(touch)goToStop(L.circleMarker(at,{pane:'routeHits',radius:22,stroke:false,fillColor:'#fff',fillOpacity:0,className:'route-hit-area'}).addTo(stopLayer),indexes[0],false);
-            const circle=L.circleMarker(at,{radius:9,color:'#b5245e',fillColor:'#fff',fillOpacity:1,weight:3,className:'route-stop-circle'+(merged?' route-stop-merged-circle':'')}).addTo(stopLayer);
+            const circle=L.circleMarker(at,{radius:lit?12:9,color:lit?'#111827':'#b5245e',fillColor:lit?'#E0004D':'#fff',fillOpacity:1,weight:lit?4:3,className:'route-stop-circle'+(merged?' route-stop-merged-circle':'')+(lit?' is-focused':'')}).addTo(stopLayer);
             // 툴팁은 글자 노드로만(장소 이름은 외부 검색 결과). 합친 원은 '2·3 · 이름A / 이름B'.
-            circle.bindTooltip(node('span',label+' · '+indexes.map(i=>plan.places[i].name).join(' / ')),{permanent:true,direction:'top'});
+            circle.bindTooltip(node('span',label+' · '+indexes.map(i=>plan.places[i].name).join(' / ')),{permanent:true,direction:'top',className:lit?'route-stop-tooltip-focused':''});
             goToStop(circle,indexes[0],true);
             // 합친 원의 화면 읽기 이름: 네이버 지도와 같은 문구(앞 번호로 간다는 것).
             if(merged)circle.getElement?.()?.setAttribute('aria-label',label+'번 장소 · 눌러서 일정에서 '+numbers[0]+'번부터 보기');
+            if(lit){circle.bringToFront();circle.getElement?.()?.setAttribute('aria-current','true');}
           });
         };
         drawLeafletStops();
         map.on('zoomend',drawLeafletStops);
+        // 일정 카드 → 지도(네이버 지도 쪽 applyFocus 와 같은 규칙): 강조를 다시 그리고 그 장소로 옮긴다. 합쳐진 원이면 두 단계 확대.
+        applyFocus=pan=>{
+          drawLeafletStops();
+          const place=plan.places[focused];
+          if(!pan||!Number.isFinite(place?.lat)||!Number.isFinite(place?.lon))return;
+          const merged=leafletGroups.some(group=>group.length>1&&group.includes(focused));
+          map.setView([place.lat,place.lon],merged?Math.min(map.getZoom()+2,map.getMaxZoom?.()||19):map.getZoom(),{animate:!reduceMotion()});
+        };
+        wrap.dataset.mapState='leaflet';
         // 구간마다 수단에 맞는 점선으로 잇는다(공개 지도에는 실제 도로 경로를 그리지 않는다).
         // 이동선은 장소 원 뒤에 그려져 원 가운데를 지나므로, 누름을 받지 않게 해(interactive:false) 원 가운데를 눌러도 장소로 가게 한다.
         // 구간은 planSegments(저녁 축제면 행사장을 거침). 좌표 없는 점(보관 기간이 지난 장소)에 닿는 구간은 그리지 않는다.
@@ -581,11 +652,12 @@ function drawPlanMap(plan){
           marker.bindPopup(parkingMapInfo(lot));
           return ()=>{marker.off();marker.remove();};
         }));
-        const fit=()=>{if(!disposed&&mapCanvas.isConnected){map.invalidateSize();map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35],maxZoom:16});}};
+        // 전체 맞춤 뒤에 일정 카드에서 고른 장소가 있으면 그 장소로 다시 옮긴다(지도를 불러오기 전에 눌렀거나, 폭이 바뀌어 다시 맞춘 경우).
+        const fit=()=>{if(!disposed&&mapCanvas.isConnected){map.invalidateSize();map.fitBounds(L.latLngBounds(coordinates),{padding:[35,35],maxZoom:16});if(focused!==null)applyFocus?.(true);}};
         requestAnimationFrame(fit);
         if(window.ResizeObserver){resizeObserver=new ResizeObserver(fit);resizeObserver.observe(mapCanvas);}
-      }catch{mapCanvas.replaceWith(node('p','공개 지도를 표시하지 못했어요. 아래 개략도와 장소 링크를 이용해 주세요.','hint'));}
-    }).catch(()=>{});
+      }catch{applyFocus=null;wrap.dataset.mapState='none';mapCanvas.replaceWith(node('p','공개 지도를 표시하지 못했어요. 아래 개략도와 장소 링크를 이용해 주세요.','hint'));}
+    }).catch(()=>{if(!disposed)wrap.dataset.mapState='none';});
   }
   return wrap;
 }

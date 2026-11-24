@@ -5,9 +5,17 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
-★ 지금 상태 (2026-11-23 기준)
+★ 지금 상태 (2026-11-24 기준)
 ----------------------------------------------------------------------
-[브랜치, 병합·배포 전] fix/day-of-festival-steps (2026-11-24, worktree ..\cho-web-pj-festival-steps): 점검 보고서 F5·F4.
+여든네 번째 배포(2026-11-24) 완료: main 320ba0f(병합 284f709 = fix/day-of-festival-steps F5·F4, 병합 320ba0f = fix/delay-midnight A5),
+  Worker 버전 e10aa5d9-cf15-49a5-ad4c-027b67957bf0. 사용자 '끝나면 배포까지 진행해'. 두 브랜치 CI Run 45300303975·45302787478 각 5개 성공,
+  병합 뒤 main 에서 관련 테스트 25 통과·format_sources --check·npm run test:security 25 통과 → Claude Code 가 npx wrangler deploy(정적 파일 2개).
+  · 운영 확인(요청 없이 14분 뒤 한 번): /api/status 200, 첫 화면이 day-of.js?v=69eec4c96e86·experience.js?v=9cf83f50b873(로컬 해시와 같음),
+    dayOfSteps·festival-change-note 있음. 보지 못한 것(테스트로만): 실제 축제 코스의 한 곳씩 크게 보기, 식사·합의 미리보기 축제 안내, 자정 넘는 지각 확인.
+  · A5 코드는 커밋 9d425b3(제목이 잘못 'Docs: …')에 있다 — 강제 push 가 막혀 히스토리를 고치지 않고 다음 커밋·병합 메시지에 적었다.
+  · 되돌리는 법: git revert -m 1 320ba0f / 284f709 후 재배포(DB 마이그레이션 없음. '24:30' 표기로 저장된 축제 시각은 옛 코드도 그대로 읽음).
+  · 진행 중: fix/ui-batch-1124(화면 6건), feat/public-data-1124(폐업 거르기·관광공사 휴무 요일·대표 메뉴·위키데이터 사진·팝업 정확도순). 아래 기록 참고 예정.
+[병합·배포됨] fix/day-of-festival-steps (2026-11-24, worktree ..\cho-web-pj-festival-steps): 점검 보고서 F5·F4.
   · F5: static/day-of.js 에 dayOfSteps(장소와 축제를 들르는 순서 — 맨 앞·중간·끝). 「한 곳씩 크게 보기」가 축제를 한 단계로 보여 줌
     (위쪽 표시 '축제' — 장소 번호 'N / 전체'는 그대로, 지도 링크 없음 — 기록에 행사장 주소가 없음), 행사장에서 오는 구간은 '축제 행사장에서 여기까지'.
     「현장용 일정 복사」도 dayOfSteps 를 씀 — 글은 고치기 전과 같음(축제 6가지·귀가 1가지 경우 출력 비교).
@@ -16,7 +24,7 @@
   · 테스트: tests/test_day_of_ui.py 2개 추가, tests/test_draft_festival_change.py 4개(고치기 전 7개 실패 확인). 관련 19개 파일 173 통과, format_sources --check 통과.
   · A5(자정 넘김)는 .claude/fable-handoff.md 로 Fable 에 넘김(같은 날 전역 CLAUDE.md 가 'Opus high 먼저'로 바뀌어 Opus 로 할지 사용자 판단 대기).
   · 이어서 할 일: 브랜치 push → CI → main 병합 → 배포(사용자 지시 때만).
-[브랜치, 병합 전] fix/delay-midnight (2026-11-24, worktree ..\cho-web-pj-delay-midnight): 점검 보고서 A5(자정 넘김).
+[병합·배포됨] fix/delay-midnight (2026-11-24, worktree ..\cho-web-pj-delay-midnight): 점검 보고서 A5(자정 넘김).
   · 영업시간 자료가 없는 곳의 가정 창을 [0,1440] → planner.ASSUMED_HOURS=(0,2880)(추천·지각 확인·지각 복구 같은 값).
     지각으로 자정을 넘겨도 가정한 '영업 종료 24:00'을 문제로 잡지 않음(그 줄은 unchecked). 자료로 확인한 24:00 종료는 그대로 문제.
   · 축제 방문 시각 저장을 장소 시각과 같은 표기로(festival_time._visit_clock — '00:30' 아닌 '24:30'). 운영 시간을 말하는 문장은 그대로 _clock.

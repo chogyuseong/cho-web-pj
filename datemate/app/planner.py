@@ -11,6 +11,15 @@ def minutes(value):
     return hour*60+minute
 
 def clock(value):return f'{value//60:02}:{value%60:02}'
+# 코스 시각 표기: 자정 뒤는 접지 않고 '24:30'처럼 적는다. 저장한 글을 minutes() 로 다시 읽어도 같은 분이 나와야 하기 때문이다
+# (지각 확인·되돌리기·현장 일정이 저장값을 다시 읽는다). 축제 방문 시각도 같은 표기다(festival_time._visit_clock — 함께 바꿀 것).
+
+# 영업시간 자료가 없는 곳을 계산할 때 가정하는 창(분). '하루 종일 연다'는 뜻이고 종료 판단을 하지 않으려는 값이다.
+# 왜(2026-11-24 점검 A5): 예전 값 [0, 1440] 은 자정에서 닫는 것처럼 계산돼, 지각으로 자정을 넘기면 '영업 종료 24:00'이 사실처럼 나오고
+# 지각 복구가 대신 갈 곳을 찾으러 갔다. 이틀 치(2880)면 코스(지각 최대 180분 포함)가 닿을 일이 없다.
+# 쓰는 곳: evaluate(아래), app/delay_check.py, app/delay_recovery.py — 셋이 같은 값을 써야 추천·지각 확인·복구 후보가 같은 답을 낸다.
+# 그 장소는 따로 '영업시간 확인 필요'로 알린다(evaluate 의 unknown, delay_check 의 pending·'unchecked' 줄). 저장되는 장소 자료는 바꾸지 않는다.
+ASSUMED_HOURS=(0,2*1440)
 
 def candidates(c):
     rows=[]
@@ -135,7 +144,7 @@ def _evaluate(selected,c,partial=False,soft=False,verify_routes=False,route_fall
         p=dict(original)
         if str(c.visit_date) in p.get('closed_dates',[]):return fail('방문일 휴무',place=p['name'])
         if c.mode=='real' and (c.allow_estimates or soft):
-            if p['hours'] is None:unknown.append(p['name']+' 영업시간');p['hours']=[0,1440]
+            if p['hours'] is None:unknown.append(p['name']+' 영업시간');p['hours']=list(ASSUMED_HOURS)
             if p['closed_days'] is None:unknown.append(p['name']+' 휴무');p['closed_days']=[]
             if p['stay'] is None:p['stay']=c.stay_minutes;p['stay_basis']='사용자가 선택한 체류 시간'
             if p['reservation'] is None:unknown.append(p['name']+' 예약 여부')

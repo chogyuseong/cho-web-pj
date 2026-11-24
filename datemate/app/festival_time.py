@@ -33,7 +33,16 @@ def _minutes(value):
 
 
 def _clock(value):
+    """운영 시간(하루 중 몇 시)을 말할 때만 쓴다: '18:00~02:00 축제'의 종료처럼 24로 나눈 나머지로 적는다.
+    코스의 방문 시각(저장값)에는 쓰지 않는다 — _visit_clock 을 쓴다(아래, 2026-11-24 점검 A5)."""
     return f'{value // 60 % 24:02}:{value % 60:02}'
+
+
+def _visit_clock(value):
+    """코스의 방문 시각. planner.clock 과 같은 표기 — 자정 뒤는 '24:30'처럼 그대로 적는다(이 모듈은 planner 를 import 하지 않아 따로 둔다.
+    표기를 바꾸면 planner.clock 과 함께 바꿀 것). 왜(A5): 예전에는 _clock 으로 '00:30'처럼 접어 저장해, 같은 코스의 장소 시각(24:xx)과
+    표기가 달랐고, 지각 확인(app/delay_check.py)이 그 글을 다시 분으로 읽으면 하루가 앞당겨졌다."""
+    return f'{value // 60:02}:{value % 60:02}'
 
 
 def hours_range(text):
@@ -116,7 +125,7 @@ def visit_record(c, slot, back=None, after=None):
     back(장소 → 행사장 구간)이 있으면 코스 끝(position='last'), after(앞 장소 번호)도 있으면 코스 중간(position='middle')이다."""
     position = 'middle' if after is not None else 'last' if back else 'first'
     record = dict(id=c.festival.id, title=c.festival.title, hours=c.festival.hours, position=position,
-                  arrival=_clock(slot['arrival']), departure=_clock(slot['departure']),
+                  arrival=_visit_clock(slot['arrival']), departure=_visit_clock(slot['departure']),
                   stay=slot['departure'] - slot['arrival'], wait=slot['wait'])
     if after is not None:
         record['after'] = after
@@ -194,7 +203,7 @@ def explain(title, hours, start, end, stay, finish=None, visit=None):
     fixed, reason, values = _slot(hours, start, end, stay)
     if fixed:
         arrival, departure, wait, _, _ = values
-        text = (f'‘{title}’ 방문을 안내된 운영 시간({hours})에 맞춰 {_clock(arrival)}~{_clock(departure)}({departure - arrival}분)으로 '
+        text = (f'‘{title}’ 방문을 안내된 운영 시간({hours})에 맞춰 {_visit_clock(arrival)}~{_visit_clock(departure)}({departure - arrival}분)으로 '
                 '코스 맨 앞에 고정하고, 나머지 장소는 축제가 끝난 뒤 행사장에서 출발하도록 배치했어요.')
         if wait:
             text += f' 코스 시작 {start}부터 축제 시작까지 {wait}분 기다려요.'

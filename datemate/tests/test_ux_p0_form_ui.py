@@ -84,6 +84,7 @@ def test_theme_card_fills_tags_and_focuses_the_quick_submit(audit_page, width): 
     page, _, _ = audit_page
     page.set_viewport_size({'width': width, 'height': 900})
     page.wait_for_function('!!statusData')
+    page.get_by_role('tab', name='주말 떠나기 좋은 동네').click()
     page.locator('[data-preset="서울 성수"]').click()
     tags = page.locator('#preset-tags')
     tags.wait_for()

@@ -4,7 +4,7 @@
 이 분류는 후보를 거르지 않고 우선순위로만 쓴다(app/taxonomy.py classification_strict). 그래서 엄격 추천이 status ok 로
 3안을 내고, '분류 확대' 완화 안내나 미충족 표시가 붙지 않아야 한다.
 부산·경주는 2026-11-13 실제 키 측정 때 캐시된 장소(tests/fixtures/regional_places.json), 서울 성수는 저장소 자료,
-제주·전주·강릉은 재현 자료가 없어 종류별 후보 수를 흉내 낸 자료를 쓴다.
+제주·강릉은 재현 자료가 없어 종류별 후보 수를 흉내 낸 자료를 쓴다.
 """
 import copy
 import json
@@ -41,17 +41,18 @@ def synthetic(region, origin, counts):
 
 # (카드 이름, 시·도, 출발지, data-mood, 대분류, 재현 자료). static/index.html 의 data-preset·data-mood 그대로.
 JEJU = dict(name='제주 애월 한담해변 지역 중심', lat=33.4621, lon=126.3104)
-JEONJU = dict(name='전북 전주 한옥마을 지역 중심', lat=35.8150, lon=127.1530)
 GANGNEUNG = dict(name='강원 강릉 안목해변 지역 중심', lat=37.7716, lon=128.9477)
 CARDS = [
     ('서울 성수', '서울', dict(name='서울 성수역 지역 중심', lat=37.5446, lon=127.0559), '지적인 데이트', '콘셉트별', None),
     ('부산 해운대', '부산', FIXTURE['부산']['origin'], '활동적인', '타입별', FIXTURE['부산']['places']),
     ('제주 애월', '제주', JEJU, '편안한 데이트', '콘셉트별', synthetic('제주', JEJU, dict(meal=4, cafe=8, walk=3, culture=1))),
     ('경주 황리단길', '경북', FIXTURE['경북']['origin'], '지적인 데이트', '콘셉트별', FIXTURE['경북']['places']),
-    ('전주 한옥마을', '전북', JEONJU, '편안한 데이트', '콘셉트별', synthetic('전북', JEONJU, dict(meal=6, cafe=6, culture=4, workshop=2, walk=2))),
     # 강릉: 식당 1곳, 카페가 대부분, 전시·공방은 반경 밖(배포-이어가기.txt 6-1).
     ('강릉 안목해변', '강원', GANGNEUNG, '사교적인', '타입별', synthetic('강원', GANGNEUNG, dict(meal=1, cafe=10, walk=2))),
 ]
+
+# 동네 카드의 이동 수단(index.html data-transport, 2026-11-24 2트랙 개편부터 카드가 채운다).
+TRANSPORT = {'서울 성수': 'walk', '부산 해운대': 'transit', '제주 애월': 'car', '경주 황리단길': 'walk', '강릉 안목해변': 'car'}
 
 
 def card_body(region, origin, mood, category, **patch):
@@ -87,12 +88,12 @@ def kinds(plans):
 @pytest.mark.parametrize('name,region,origin,mood,category,rows', CARDS, ids=[c[0] for c in CARDS])
 def test_card_default_is_a_strict_ok_with_three_options(area, name, region, origin, mood, category, rows):
     area(region, rows)
-    c = normalize(Conditions(**card_body(region, origin, mood, category)))
+    c = normalize(Conditions(**card_body(region, origin, mood, category, transport=TRANSPORT[name])))
     strict = planner.recommend_strict(c)
     assert strict['status'] == 'ok' and len(strict['plans']) == 3, (name, strict.get('reasons'))
     assert len(kinds(strict['plans'])) >= 2, (name, kinds(strict['plans']))
     assert strict['diagnostics']['classification']['applied'] == 'preference'
-    result = planner.recommend(Conditions(**card_body(region, origin, mood, category)))
+    result = planner.recommend(Conditions(**card_body(region, origin, mood, category, transport=TRANSPORT[name])))
     assert result['status'] == 'ok' and len(result['plans']) == 3
     for plan in result['plans']:
         assert not plan.get('search_adjustments') and not plan.get('best_effort')

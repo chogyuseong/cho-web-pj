@@ -367,6 +367,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(f.return_home?.checked)parts.push('귀가 포함');
     if(f.use_mbti?.checked&&f.mbti?.value)parts.push(`MBTI ${f.mbti.value.toUpperCase()}`);
     if(f.include_meal&&!f.include_meal.checked)parts.push('식사 빼기');
+    // 상황 테마가 채운 분류(숨긴 체크박스 themes, theme-cards.js)도 배지에 보인다 — 화면에 체크박스가 없어 여기서만 알 수 있다.
+    const themes=[...form.querySelectorAll('[name=themes]:checked')].map(input=>input.value);
+    if(themes.length)parts.push('분류 '+themes.join('·'));
     const shown=parts.slice(0,2).join(', ')+(parts.length>2?` 외 ${parts.length-2}건`:'');
     optionalBadge.textContent=parts.length?'상세 조건 설정됨 · '+shown:'';
     optionalBadge.hidden=!parts.length;

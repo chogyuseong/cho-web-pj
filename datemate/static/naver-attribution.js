@@ -1,10 +1,12 @@
 /* 네이버 검색 API 특약 2.1·2.2(2026-09 개정): 네이버 검색 데이터가 보이는 곳마다 '네이버 검색결과'임을 표시하고,
    항목마다 원본(데이터 출처)으로 가는 링크를 단다.
-   표기: NAVER API HUB 상표·BI 가이드(https://guide.ncloud-docs.com/docs/apihub-brandguide)의 텍스트 표기 —
-   'NAVER 오픈 API' 를 API HUB 포털로 새 창 링크. 로고 이미지는 쓰지 않는다(가이드가 텍스트 표기를 허용, 로고 파일은 받지 않음).
+   표기: NAVER API HUB 상표·BI 가이드(https://guide.ncloud-docs.com/docs/apihub-brandguide)의 텍스트 표기 'NAVER 오픈 API'.
+   로고 이미지는 쓰지 않는다(가이드가 텍스트 표기를 허용, 로고 파일은 받지 않음).
+   2026-11-24 사용자 결정: 'NAVER 오픈 API' 는 링크가 아니라 작은 회색 글자(.naver-api-mark)로만 둔다 — 사용자가 누를 일이 없는 단추처럼 보였다.
+   출처 표시 자체(네이버 검색결과임 + 원본 링크)는 그대로다. 가이드가 링크까지 요구하는지는 분명하지 않아, 네이버 질의
+   (docs/naver-terms-inquiry-draft-2026-11-20.ko.md) 답에서 링크가 필요하다고 하면 아래 NAVER_API_HUB_URL 로 다시 링크를 걸면 된다
+   (주소는 대소문자를 가린다 — '/NAVERAPIHUB' 는 404 였다).
    다른 스크립트보다 먼저 읽힌다(index.html). DOM 도우미(node·link)에 기대지 않는다. */
-// 경로는 대소문자를 가린다: '/NAVERAPIHUB' 는 404 였다(2026-11-24 사용자 신고, curl 로 확인 — 없는 경로도 404 라 '/naverApiHub' 200 은 실제 페이지).
-// 바꿀 때는 tests/test_naver_terms_2026_09.py 의 주소 확인도 함께 고친다.
 const NAVER_API_HUB_URL = 'https://www.ncloud.com/product/applicationService/naverApiHub';
 const NAVER_RESULT_LABEL = '네이버 검색결과';
 
@@ -37,7 +39,10 @@ function naverAttribution(kind, originalUrl, tag = 'p') {
   box.append(label);
   const original = naverSafeUrl(originalUrl);
   if (original) box.append(document.createTextNode(' · '), naverAnchor('원본 ↗', original, NAVER_RESULT_LABEL + ' 원본 보기'));
-  box.append(document.createTextNode(' · '), naverAnchor('NAVER 오픈 API', NAVER_API_HUB_URL, 'NAVER 오픈 API (NAVER API HUB)'));
+  const mark = document.createElement('span');
+  mark.className = 'naver-api-mark';
+  mark.textContent = 'NAVER 오픈 API';
+  box.append(document.createTextNode(' · '), mark);
   return box;
 }
 

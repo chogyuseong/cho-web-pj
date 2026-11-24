@@ -5,29 +5,71 @@
 // - 문구·판단은 서버가 한다(줄어드는 분, 고정·예약한 장소는 제자리, 영업시간을 지키는 순서만). 여기서는 받은 값을 적기만 한다.
 // - 누르면 새 코스로 저장되고(되돌리기 가능), 화면은 장소 바꾸기와 같은 방식(commitNewPlan)으로 새 코스를 보여 준다.
 // - 공유받은 코스·보관 기한이 지난 코스·장소가 한 곳인 코스에는 상자를 두지 않는다(plan-detail.js 가 이 함수의 null 을 건너뛴다).
+// - 펼칠 때마다 다시 묻는다(2026-11-24 점검 F8). 예전에는 한 번 받으면 다시 묻지 않아, 저장할 때 409 '순서 제안을 다시 열어 주세요'를
+//   따라 닫았다 열어도 같은 낡은 제안이 남았다. 고정 토글·제보 저장처럼 같은 코스를 다시 그릴 때는 열림·결과를 그대로 둔다
+//   (F7, delay-check.js planPanelRelation). 고정이 바뀌었으면 제자리에 둘 장소가 달라져 열려 있을 때 다시 묻는다.
+let orderSuggestionMemo = null;
+
 function orderSuggestionPanel(plan) {
   if (!plan?.id || plan.can_edit === false || (plan.places || []).length < 2) return null;
   if (typeof planHistoryExpired === 'function' && planHistoryExpired(plan)) return null;
   // 클래스는 지각 확인(.delay-check)과 따로 둔다 — 그 이름으로 상자를 찾는 코드·테스트와 겹치지 않게. 모양만 results.css 에서 같이 쓴다.
   const box = node('details', undefined, 'order-suggestion');
+  box.dataset.planId = plan.id;
   box.append(node('summary', '순서를 바꾸면 이동이 줄어들까?'));
   const result = node('div', undefined, 'order-suggestion-result');
   result.setAttribute('role', 'status');
   box.append(result);
-  let asked = false;
-  box.addEventListener('toggle', async () => {
-    if (!box.open || asked) return;
-    asked = true;
-    result.replaceChildren(node('p', '가능한 순서를 계산하고 있어요…', 'hint'));
+  const relation = planPanelRelation(orderSuggestionMemo, plan);
+  const before = relation === 'none' ? null : orderSuggestionMemo;
+  const memo = relation === 'same' ? before : {
+    planId: plan.id,
+    lockSig: planLockSig(plan),
+    open: Boolean(before?.open),
+    data: null,
+    error: null,
+    lead: '',
+    pending: false,
+    turn: 0
+  };
+  orderSuggestionMemo = memo;
+  // 지금 화면의 상자에 적는다(묻는 사이 같은 코스로 다시 그렸으면 새 상자).
+  const paint = () => {
+    const live = livePlanPanel('.order-suggestion', plan.id);
+    if (!live || orderSuggestionMemo !== memo) return;
+    const target = live.querySelector('.order-suggestion-result');
+    if (memo.pending) target.replaceChildren(node('p', '가능한 순서를 계산하고 있어요…', 'hint'));
+    else if (memo.data) target.replaceChildren(...(memo.lead ? [node('p', memo.lead, 'hint order-suggestion-refreshed')] : []), ...orderSuggestionView(selected?.id === plan.id ? selected : plan, memo.data, target));
+    else if (memo.error) target.replaceChildren(node('p', memo.error, 'warning'));
+    else target.replaceChildren();
+  };
+  const ask = async (lead = '') => {
+    const mine = ++memo.turn;
+    memo.pending = true;
+    paint();
     try {
       const data = await api(`/plans/${encodeURIComponent(plan.id)}/order-suggestion`);
-      if (selected?.id !== plan.id) return;
-      result.replaceChildren(...orderSuggestionView(plan, data, result));
+      if (mine !== memo.turn) return;
+      Object.assign(memo, { data, error: null, lead, pending: false });
     } catch (error) {
-      asked = false; // 실패하면 다시 펼쳤을 때 한 번 더 묻는다
-      result.replaceChildren(node('p', error.message, 'warning'));
+      if (mine !== memo.turn) return;
+      Object.assign(memo, { data: null, error: error.message, lead: '', pending: false });
     }
+    paint();
+  };
+  if (memo.open) box.open = true;
+  // 다시 그려 열린 채로 만든 상자도 toggle 이 한 번 온다. 열림이 실제로 바뀐 때만 본다(그때 열렸으면 묻는다).
+  let shown = box.open;
+  box.addEventListener('toggle', () => {
+    if (box.open === shown) return;
+    shown = memo.open = box.open;
+    if (box.open) ask();
   });
+  if (relation === 'same') {
+    if (memo.pending || memo.data || memo.error) queueMicrotask(paint);
+  } else if (relation === 'locks' && memo.open) {
+    queueMicrotask(() => ask('고정한 장소가 바뀌어 다시 계산했어요.'));
+  }
   return box;
 }
 

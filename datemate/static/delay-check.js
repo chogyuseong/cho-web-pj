@@ -6,12 +6,59 @@
 // 마지막 지각 복구의 안내. 그 결과로 만든 코스(planId)를 보고 있을 때만 상자 위에 보여 준다(plan-actions.js transportNotice 와 같은 방식).
 let delayRecoveryNotice = null;
 
+/* 다시 그려도 상자 상태를 잃지 않게(2026-11-24 점검 F7). 고정 토글·제보 저장은 같은 코스(같은 id)를 다시 받아 상세 전체를 새로 그린다.
+   예전에는 그때마다 이 상자와 순서 제안 상자(order-suggestion.js)가 접히고 입력·결과가 사라졌다.
+   - 마지막으로 그린 코스 하나의 상태(열림·입력·받은 결과)를 기억한다. 같은 코스·같은 고정이면 그대로 되살리고 서버에 다시 묻지 않는다.
+   - 같은 코스에서 고정만 바뀌었으면 받은 결과가 낡았다(지각 확인의 대신 갈 곳, 순서 제안 모두 고정한 장소를 본다).
+     열려 있고 결과가 있었으면 같은 입력으로 다시 계산하고 그렇다고 한 줄 적는다 — '고정을 풀면 대신 갈 곳을 고를 수 있어요'를 따라 푼 경우.
+   - 다른 코스(장소·수단·순서를 바꿔 새 id 를 받음, 탭 전환, 되돌리기)는 예전처럼 새 상자다. 지각 복구 뒤의 안내(delayRecoveryNotice)도 예전 그대로.
+   '+30분 늦어지면?' 토글(아래 delaySim)도 코스 id 별로 결과를 기억한다. 그 토글은 코스가 바뀌어도 켜 둔 채 다시 계산하고, 이 상자들은 같은 코스일 때만 이어 간다. */
+function planLockSig(plan) {
+  return Object.keys(plan?.conditions?.locked || {}).map(Number).sort((a, b) => a - b).join(',');
+}
+
+// 기억한 상태(memo)와 지금 그리는 코스의 관계: 'same'(같은 코스·같은 고정) · 'locks'(같은 코스, 고정만 바뀜) · 'none'(다른 코스).
+function planPanelRelation(memo, plan) {
+  if (!memo || !plan?.id || memo.planId !== plan.id) return 'none';
+  return memo.lockSig === planLockSig(plan) ? 'same' : 'locks';
+}
+
+// 지금 화면에 있는 그 코스의 상자(다시 그린 뒤 늦게 온 응답은 새 상자에 적는다).
+function livePlanPanel(selector, planId) {
+  return [...document.querySelectorAll(`#plan-detail ${selector}`)].find(box => box.dataset.planId === planId) || null;
+}
+
+let delayCheckMemo = null;
+
 function delayCheckPanel(plan) {
   const box = node('details', undefined, 'delay-check');
+  box.dataset.planId = plan.id;
   box.append(node('summary', '늦어지면 어디서 문제가 생길까?'));
+  const relation = planPanelRelation(delayCheckMemo, plan);
+  const before = relation === 'none' ? null : delayCheckMemo;
+  // 같은 코스·같은 고정이면 기억을 그대로 이어 쓴다(진행 중인 확인의 응답도 새 상자에 적힌다). 아니면 새로 기억한다.
+  const memo = relation === 'same' ? before : {
+    planId: plan.id,
+    lockSig: planLockSig(plan),
+    open: Boolean(before?.open),
+    index: before?.index,
+    minutes: before?.minutes,
+    data: null,
+    error: null,
+    lead: '',
+    pending: false,
+    turn: 0
+  };
+  delayCheckMemo = memo;
   const notice = delayRecoveryNotice?.planId === plan.id ? delayRecoveryNotice : null;
+  // 복구한 코스를 처음 그릴 때는 열어 두고 같은 장소·0분으로 둔다. 그 뒤 다시 그릴 때는 사용자가 둔 그대로.
+  if (notice && relation === 'none') Object.assign(memo, {
+    open: true,
+    index: notice.index < plan.places.length ? String(notice.index) : undefined,
+    minutes: '0'
+  });
+  if (memo.open) box.open = true;
   if (notice) {
-    box.open = true;
     const text = node('div', undefined, 'delay-recovery-notice');
     text.tabIndex = -1;
     notice.messages.forEach(line => text.append(node('p', line)));
@@ -26,8 +73,8 @@ function delayCheckPanel(plan) {
     option.value = String(i);
     place.append(option);
   });
-  // 복구한 뒤에는 같은 장소·0분으로 두어, 다시 누르면 지금 시간표 그대로를 확인한다.
-  if (notice && notice.index < plan.places.length) place.value = String(notice.index);
+  // 복구한 뒤에는 같은 장소·0분으로 두어, 다시 누르면 지금 시간표 그대로를 확인한다(위 memo). 다시 그릴 때는 사용자가 고른 값.
+  if (memo.index !== undefined && Number(memo.index) < plan.places.length) place.value = memo.index;
   placeLabel.append(place);
   const minutesLabel = node('label', '늦는 시간(분)'),
     minutes = node('input');
@@ -36,33 +83,75 @@ function delayCheckPanel(plan) {
     min: '0',
     max: '180',
     step: '1',
-    value: notice ? '0' : '10',
+    value: memo.minutes ?? '10',
     inputMode: 'numeric'
   });
   minutesLabel.append(minutes);
+  place.addEventListener('change', () => memo.index = place.value);
+  minutes.addEventListener('input', () => memo.minutes = minutes.value);
+  box.addEventListener('toggle', () => memo.open = box.open);
   const result = node('div', undefined, 'delay-check-result');
   result.setAttribute('role', 'status');
-  let generation = 0;
-  const check = button('확인', async () => {
+  // 결과는 지금 화면의 상자에 적는다(확인을 기다리는 사이 같은 코스로 다시 그렸으면 새 상자). lead: 결과 위에 붙일 한 줄.
+  const paint = () => {
+    const live = livePlanPanel('.delay-check', plan.id);
+    if (!live || delayCheckMemo !== memo) return;
+    const target = live.querySelector('.delay-check-result'),
+      liveCheck = live.querySelector('.delay-check-form button');
+    if (liveCheck) liveCheck.disabled = memo.pending;
+    if (memo.pending) target.replaceChildren(node('p', '다시 계산하고 있어요…', 'hint'));
+    else if (memo.data) target.replaceChildren(...(memo.lead ? [node('p', memo.lead, 'hint delay-check-refreshed')] : []), ...delayCheckView(memo.data, selected?.id === plan.id ? selected : plan));
+    else if (memo.error) target.replaceChildren(node('p', memo.error, 'warning'));
+    else target.replaceChildren();
+  };
+  const run = async (lead = '') => {
     const value = Number(minutes.value);
     if (!Number.isInteger(value) || value < 0 || value > 180) {
-      result.replaceChildren(node('p', '늦는 시간은 0~180분 사이의 정수로 입력해 주세요.', 'warning'));
+      Object.assign(memo, {
+        data: null,
+        error: '늦는 시간은 0~180분 사이의 정수로 입력해 주세요.',
+        lead: ''
+      });
+      paint();
       return;
     }
-    const mine = ++generation;
-    check.disabled = true;
-    result.replaceChildren(node('p', '다시 계산하고 있어요…', 'hint'));
+    const mine = ++memo.turn;
+    Object.assign(memo, {
+      pending: true,
+      index: place.value,
+      minutes: minutes.value
+    });
+    paint();
     try {
       const data = await api(`/plans/${encodeURIComponent(plan.id)}/delay-check?index=${place.value}&minutes=${value}`);
-      if (mine === generation) result.replaceChildren(...delayCheckView(data, plan));
+      if (mine !== memo.turn) return;
+      Object.assign(memo, {
+        data,
+        error: null,
+        lead,
+        pending: false
+      });
     } catch (error) {
-      if (mine === generation) result.replaceChildren(node('p', error.message, 'warning'));
-    } finally {
-      check.disabled = false;
+      if (mine !== memo.turn) return;
+      Object.assign(memo, {
+        data: null,
+        error: error.message,
+        lead: '',
+        pending: false
+      });
     }
-  }, 'secondary');
+    paint();
+  };
+  const check = button('확인', () => run(), 'secondary');
   form.append(placeLabel, minutesLabel, check);
   box.append(node('p', '어디서부터 몇 분 늦을지 고르면, 남은 일정을 다시 따져 봐요. 문 여는 시간·쉬는 시간·마지막 입장·문 닫는 시간까지 봐요. 확인만 하고 코스는 바꾸지 않아요.', 'hint'), form, result);
+  if (relation === 'same') {
+    // 같은 코스 다시 그리기: 받은 결과·진행 중 표시를 그대로 둔다(상자가 문서에 붙은 뒤 적는다).
+    if (memo.pending || memo.data || memo.error) queueMicrotask(paint);
+  } else if (relation === 'locks' && memo.open && (before.data || before.pending)) {
+    // 고정이 바뀌었다: 받은 결과(대신 갈 곳·막힌 까닭)가 낡았다. 같은 입력으로 다시 확인한다.
+    queueMicrotask(() => run('고정한 장소가 바뀌어 같은 조건으로 다시 확인했어요.'));
+  }
   return box;
 }
 

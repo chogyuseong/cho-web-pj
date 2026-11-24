@@ -68,6 +68,13 @@ def make_draft(plan,original,owner,kind,summary,vote_snapshot=None):
             plan.pop('festival_visit',None);plan.update(recalculated);plan=price_plans([plan])[0]
             plan['route_verification']='연결된 경로 공급자로 변경 동선을 재조회했어요. 조회 시점 기준입니다.'
         else:plan['route_verification']='실제 경로 확인 실패 · 추정 동선이며 실제 이동은 길찾기로 확인해 주세요.'
+    # 축제 변화 안내(2026-11-24 점검 F4): 초안을 확정하기 전에 미리보기(static/experience.js showDraft)가 보여 준다.
+    # - 여기서 하는 까닭: 위의 자동차 경로 재조회가 축제 자리를 다시 정할 수 있어, 최종 초안을 원래 코스와 견줘야 맞다.
+    #   예전에는 식사 초안만 meal_draft 에서 재조회 전에 실었고(낡은 안내가 될 수 있었음), 합의 초안은 아예 싣지 않았다.
+    # - 확정하면 apply_draft 가 plan 을 그대로 저장하므로 코스 상세(plan-detail.js)에도 같은 안내가 남는다(장소 바꾸기 등과 같음).
+    # - 문구는 festival_time.change_note 한 곳에서 정한다. 같은 자리면 키를 지운다(앞선 변경의 안내가 남지 않게).
+    from .festival_time import set_change_note
+    set_change_note(plan,original)
     from .plan_changes import change_delta
     token=uuid.uuid4().hex;blocking=hard_blocks(plan)
     plan['verification']=verification_summary(plan)
@@ -160,7 +167,8 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
     # 코스 중간 축제(festival_visit.after = 축제 바로 앞 장소 번호)는 되도록 같은 장소 뒤에 둔다(planner.evaluate festival_hint).
     # 식당을 끼워 넣으면 그 자리(target)부터 장소 번호가 하나씩 밀리므로, 축제 앞 장소가 target 이상이면 번호도 하나 민다.
     # 같은 자리의 장소를 식당으로 바꾸는 경우(replace_index)는 번호가 그대로다. 그 자리에 못 두면 evaluate 가 예전 순서로 다시 찾는다.
-    # 달라진 축제 자리는 plan['festival_change'] 로 알린다(festival_time.set_change_note).
+    # 달라진 축제 자리는 plan['festival_change'] 로 알린다(festival_time.set_change_note). 아래 make_draft 가 경로 재조회 뒤 한 번 더
+    # 견줘 최종 안내로 덮는다(F4). 여기 것은 그 전에 조건 확인(audit_plan)이 같은 plan 을 보게 남겨 둔다.
     # 지각을 반영한 코스(delay_recovery)면 지연도 같은 규칙으로 옮겨 이어 간다: 끼운 자리가 지연 장소 번호 이하면 +1(지연은 그 장소를 따라간다),
     # 같은 자리 교체는 그대로(81차 장소 바꾸기와 같다). 기록은 kept='meal'(docs/superpowers/specs/2026-11-23-delay-kept-meal-consensus-design.md).
     from .leg_modes import middle_after

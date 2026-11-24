@@ -7,6 +7,15 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
+[브랜치, 병합·배포 전] fix/day-of-festival-steps (2026-11-24, worktree ..\cho-web-pj-festival-steps): 점검 보고서 F5·F4.
+  · F5: static/day-of.js 에 dayOfSteps(장소와 축제를 들르는 순서 — 맨 앞·중간·끝). 「한 곳씩 크게 보기」가 축제를 한 단계로 보여 줌
+    (위쪽 표시 '축제' — 장소 번호 'N / 전체'는 그대로, 지도 링크 없음 — 기록에 행사장 주소가 없음), 행사장에서 오는 구간은 '축제 행사장에서 여기까지'.
+    「현장용 일정 복사」도 dayOfSteps 를 씀 — 글은 고치기 전과 같음(축제 6가지·귀가 1가지 경우 출력 비교).
+  · F4: app/experience.make_draft 가 경로 재조회 뒤 set_change_note(원래 코스와 견줌) — 합의 초안에도 festival_change. 미리보기(static/experience.js showDraft)가
+    확정 단추 앞에 'warning festival-change-note' 한 줄. 확정하면 코스 상세에도 남음.
+  · 테스트: tests/test_day_of_ui.py 2개 추가, tests/test_draft_festival_change.py 4개(고치기 전 7개 실패 확인). 관련 19개 파일 173 통과, format_sources --check 통과.
+  · A5(자정 넘김)는 .claude/fable-handoff.md 로 Fable 에 넘김(같은 날 전역 CLAUDE.md 가 'Opus high 먼저'로 바뀌어 Opus 로 할지 사용자 판단 대기).
+  · 이어서 할 일: 브랜치 push → CI → main 병합 → 배포(사용자 지시 때만).
 여든세 번째 배포(2026-11-24) 완료: 전체 점검 docs/reviews/2026-11-24-full-review.md 의 수정을 세 브랜치로 동시 진행해 모두 병합·배포·운영 확인.
   · 운영 확인(요청 없이 14분 뒤 한 번): /api/status 200, /static/plan-actions.js 에 runPlanChange, /static/action-card.js 가 빈 체크도 저장(removeItem 없음).
     main 병합 뒤 CI Run 45222147820 5개 성공(sqlite·postgres 포함). 보지 못한 것(테스트로만): 실제 화면에서 지각 재확인·빼고 진행 뒤 교체·되돌린 뒤 공유 줄·제보 3곳 기준·IP 동시 2개.

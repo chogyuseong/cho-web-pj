@@ -7,6 +7,19 @@
 
 ★ 지금 상태 (2026-11-24 기준)
 ----------------------------------------------------------------------
+[브랜치 대기 — 미병합·미배포] fix/review-f6-f8 (작업 폴더 ..\cho-web-pj-review-f6-f8). 점검 보고서 docs/reviews/2026-11-24-full-review.md 의 낮음 F6·F7·F8.
+  · F7(static/delay-check.js·order-suggestion.js): 지각 확인·순서 제안 상자가 마지막 코스의 상태(열림·입력·받은 결과)를 기억한다(delayCheckMemo·orderSuggestionMemo).
+    같은 코스·같은 고정으로 다시 그리면(제보 저장 등) 그대로 되살리고 다시 묻지 않음. 같은 코스에서 고정만 바뀌면(planPanelRelation 'locks') 열려 있을 때
+    같은 입력으로 다시 계산하고 '고정한 장소가 바뀌어 …다시 확인했어요' 한 줄 → '고정을 풀면 대신 갈 곳을 고를 수 있어요'를 따라 풀면 대신 갈 곳이 나옴.
+    새 코스 id(장소·수단·순서 변경·탭 전환·되돌리기)는 예전처럼 새 상자(지각 복구 안내 delayRecoveryNotice 동작 그대로). 늦게 온 응답은 지금 화면의 상자(data-plan-id)에 적음.
+    '+30분 늦어지면?'(delaySim) 은 손대지 않음 — 그쪽은 코스가 바뀌어도 켜 둔 채 다시 계산, 이 상자들은 같은 코스일 때만 이어 감.
+  · F8: 순서 제안은 펼칠 때마다 다시 묻는다(예전 asked 가 성공 뒤 계속 true). 다시 그려 열린 채 만든 상자의 toggle 은 열림이 실제로 바뀐 때만 봄.
+  · F6(서버 최소 변경): plan_changes.save_change(kind=) — 수단 바꾸기(main.py transport)만 change_kind='transport' 를 저장, 다른 save_change·apply_draft(식사·합의·축제)는 지움.
+    plan-detail.js 되돌리기 문구는 transport_change(응답에만 있음) 대신 change_kind 를 봄. 이 브랜치 전에 저장한 수단 변경 코스는 예전처럼 '교체 되돌리기'(DB 이전 없음).
+  · 테스트: tests/test_review_f6_f8.py(8, 고치기 전 8개 모두 실패 확인 — 409 는 page.route 가짜 응답). 로컬 전체 1597 통과·1 건너뜀(1 실패 test_quick_conditions_ui
+    test_current_location_allowed 는 부하 중 포커스 흔들림, 따로 돌리면 통과·이 변경과 무관), 관련 UI 30개 2회 통과, npm run test:security 25, format_sources --check 통과.
+  · 되돌리는 법: 병합 전이면 브랜치를 버리면 됨, 병합 후면 git revert -m 1 <병합 커밋>. DB 스키마 변경 없음(payload 에 키 하나 추가).
+
 [브랜치 대기 — 미병합·미배포] feat/festival-add-to-course (작업 폴더 ..\cho-web-pj-festival-add). 축제 카드 「+ 내 코스에 추가」(가이드 §2.5 마지막 항목).
   사용자와 정한 범위: 축제만(팝업 제외), 자리는 플래너 규칙 그대로(끝 → 중간, 출발지≠행사장이면 맨 앞 금지), 미리보기 → 확정(draft-apply 재사용).
   · 서버: POST /api/plans/{id}/festival-preview {festival_id} (app/festival_add.py, EXPENSIVE 에 추가). 화면은 id 만 보냄(extra=forbid).

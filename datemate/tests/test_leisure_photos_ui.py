@@ -108,3 +108,29 @@ def test_only_one_trusted_photo_does_not_show_an_empty_second_card(audit_page):
     panel.get_by_role('button',name='사진 다시 찾기',exact=True).wait_for()
     assert panel.locator('.leisure-photo-grid figure').count()==1
     assert panel.locator('.leisure-photo-empty').count()==0
+
+
+def test_card_without_photos_shows_the_sport_picture_at_the_top(audit_page):
+    # 2026-11-24: 상가정보 레저(당구장·볼링장 등)는 쓸 수 있는 사진이 없다. 종목 그림을 카드 맨 위에 두고 '이 가게 사진 아님'을 적는다.
+    page,base,errors=audit_page
+    panel=setup_photos(page,base,[False],[])
+    page.route('**/leisure-options',lambda route:route.fulfill(json={'message':'주변 레저','options':[{'place':dict(page.evaluate('selected.places[0]'),id='photo-sport',name='사진 확인 볼링장',demo=False,category='레저·활동'),'distance_m':100,'delta':{'minutes':10,'cost':[0,10000]},'sport':{'key':'bowling','label':'볼링','setting':'indoor','varies':False,'group':'실내 게임'}}]}))
+    panel.locator('summary').click()
+    card=panel.locator('.leisure-result-card').first
+    card.locator('.leisure-photo-panel').scroll_into_view_if_needed()
+    art=card.locator('.leisure-sport-art')
+    art.wait_for()
+    assert page.evaluate("document.querySelector('.leisure-result-card').firstElementChild.className")=='leisure-photo-panel'
+    assert '볼링' in art.inner_text() and '이 가게 사진 아님' in art.inner_text()
+    assert art.locator('svg').get_attribute('aria-hidden')=='true'
+    assert card.locator('.leisure-photo-grid img').count()==0
+    assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+
+
+def test_real_photos_replace_the_sport_picture(audit_page):
+    page,base,errors=audit_page
+    panel=setup_photos(page,base,[True],[])
+    panel.locator('summary').click()
+    panel.locator('.leisure-photo-panel').scroll_into_view_if_needed()
+    page.wait_for_function("[...document.querySelectorAll('.leisure-photo-grid img')].filter(i=>!i.hidden&&i.complete&&i.naturalWidth>0).length===2")
+    assert panel.locator('.leisure-sport-art').count()==0

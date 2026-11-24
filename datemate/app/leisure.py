@@ -48,6 +48,8 @@ def leisure_info(place, c):
         setting_basis=basis,
         varies=sport.varies and basis == "default",
         radius_km=INDOOR_RADIUS_KM if setting == "indoor" else outdoor_radius(c),
+        # 종목 묶음('실내 게임'·'수상 레저' 등): 사진이 없는 카드의 종목 그림을 고른다(static/leisure.js leisureSportArt).
+        group=sport.group,
     )
 
 
@@ -240,7 +242,12 @@ def options(plan, index, locked, discover=False, diagnostics=None):
             diagnostics["rejected"][reason] = diagnostics["rejected"].get(reason, 0) + 1
             group["reasons"][reason] = group["reasons"].get(reason, 0) + 1
 
-    for meters, place, info in sorted(indoor + outdoor, key=lambda r: (r[0], r[1]["id"])):
+    # 관광공사 사진(tour_photo)이 있는 후보를 먼저, 그 안에서는 가까운 순(2026-11-24 사용자 요청 — 사진 있는 형식).
+    # 화면은 실내·실외로 나눠 이 순서 그대로 그리므로 구분마다 사진 있는 곳이 앞에 온다. 거리만으로 되돌리려면 키에서 첫 항목을 뺀다.
+    # 자르기(MAX_*_OPTIONS)는 위에서 가까운 순으로 이미 했다 — 사진 때문에 먼 곳이 가까운 곳을 밀어내지 않는다.
+    for meters, place, info in sorted(
+        indoor + outdoor, key=lambda r: (not r[1].get("tour_photo"), r[0], r[1]["id"])
+    ):
         chosen = list(plan["places"])
         chosen[index] = place
         # 중간 축제는 되도록 원래 자리에(planner.evaluate festival_hint). 달라지면 후보에 알림(festival_change).

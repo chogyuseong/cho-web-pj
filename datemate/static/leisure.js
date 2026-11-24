@@ -19,6 +19,53 @@ function leisureSportText(sport) {
   return sport.label + ' · ' + (sport.setting === 'outdoor' ? '실외' : '실내') + (sport.varies ? ' (시설에 따라 다름)' : '');
 }
 
+// 종목 그림(2026-11-24 사용자 요청 — 레저 카드를 사진 있는 형식으로).
+// 왜: 상가정보 레저(당구장·볼링장·탁구장 등)에는 등록 사진도 관광공사 사진도 없고, 네이버 검색 사진은 쓰지 않는다(특약 2.2, app/media.py).
+//     그래서 실제 사진이 0장이면 카드 맨 위에 종목 묶음(app/sports.py 의 Sport.group)의 그림을 두고 '이 가게 사진 아님'을 적는다.
+// 그림: 48×48 선 그림, 색은 CSS(.leisure-sport-art — results.css)가 currentColor 로 정한다. 묶음 이름이 바뀌거나 새 묶음이 생기면
+//     여기에 한 줄 더한다(없으면 LEISURE_ART_DEFAULT). 서버가 group 을 주지 않는 옛 응답도 기본 그림으로 그린다.
+const LEISURE_ART_DEFAULT = '<circle cx="24" cy="24" r="14"/><path d="M24 14v20M14 24h20"/>';
+const LEISURE_ART = {
+  // 볼링 핀과 공
+  '실내 게임': '<path d="M17 8c-3 0-4 4-3 8s-3 6-3 12c0 7 3 12 6 12s6-5 6-12c0-6-4-8-3-12s0-8-3-8z"/><circle cx="34" cy="32" r="8"/><circle cx="32" cy="29" r="1"/><circle cx="36" cy="29" r="1"/>',
+  // 라켓과 셔틀콕
+  '실내 코트': '<ellipse cx="19" cy="19" rx="9" ry="11" transform="rotate(-35 19 19)"/><path d="M25 27l10 12M14 14l10 10M12 21l8-8"/><path d="M36 9l4 6-3 2-4-6zM37 16l-1 4"/>',
+  // 화면과 공
+  '스크린': '<rect x="6" y="9" width="36" height="24" rx="2"/><path d="M18 40h12M24 33v7"/><circle cx="30" cy="21" r="4"/><path d="M12 27l8-6"/>',
+  // 클라이밍 벽의 홀드
+  '실내 활동': '<path d="M8 42L16 6h24v36z"/><circle cx="22" cy="14" r="2.5"/><circle cx="30" cy="22" r="2.5"/><circle cx="20" cy="28" r="2.5"/><circle cx="31" cy="35" r="2.5"/>',
+  // 스케이트
+  '빙상·롤러': '<path d="M12 12h10v12l12 4c3 1 4 3 4 6H12z"/><path d="M8 40h34M16 34v6M34 34v6"/>',
+  // 물결과 헤엄치는 사람
+  '물놀이': '<circle cx="30" cy="14" r="4"/><path d="M12 26l8-6 10 4 8-2"/><path d="M6 34c4-3 8-3 12 0s8 3 12 0 8-3 12 0M6 41c4-3 8-3 12 0s8 3 12 0 8-3 12 0"/>',
+  // 산과 해
+  '육상 레저': '<path d="M4 40l14-22 8 11 6-8 12 19z"/><circle cx="36" cy="11" r="4"/>',
+  // 물 위의 배
+  '수상 레저': '<path d="M24 8v22M24 10l12 18H24"/><path d="M10 31h28l-5 6H15z"/><path d="M6 42c4-3 8-3 12 0s8 3 12 0 8-3 12 0"/>',
+  // 라켓과 공, 바닥 선
+  '야외 코트': '<ellipse cx="18" cy="18" rx="9" ry="11" transform="rotate(-35 18 18)"/><path d="M24 26l9 11"/><circle cx="36" cy="12" r="4"/><path d="M4 42h40"/>',
+  // 눈 결정
+  '겨울 레저': '<path d="M24 6v36M8 15l32 18M8 33l32-18M20 9l4 4 4-4M20 39l4-4 4 4"/>',
+  // 패러글라이더
+  '하늘 레저': '<path d="M6 20C10 10 38 10 42 20"/><path d="M6 20l18 16 18-16M15 14l9 22 9-22"/><circle cx="24" cy="39" r="2"/>'
+};
+
+function leisureSportArt(sport) {
+  const figure = node('figure', undefined, 'leisure-sport-art');
+  figure.dataset.setting = sport.setting === 'outdoor' ? 'outdoor' : 'indoor';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 48 48');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  // 고정 문자열(LEISURE_ART)만 SVG 로 읽는다(innerHTML 을 쓰지 않는 저장소 관례). 서버 값은 묶음 이름을 고르는 데만 쓴다.
+  const shapes = new DOMParser().parseFromString('<svg xmlns="http://www.w3.org/2000/svg">' + (LEISURE_ART[sport.group] || LEISURE_ART_DEFAULT) + '</svg>', 'image/svg+xml');
+  svg.append(...[...shapes.documentElement.childNodes].map(child => document.importNode(child, true)));
+  const caption = node('figcaption');
+  caption.append(node('strong', sport.label), node('span', '종목 예시 그림 · 이 가게 사진 아님'));
+  figure.append(svg, caption);
+  return figure;
+}
+
 function leisureSuggestionPanel(plan, index) {
   const panel = node('details', undefined, 'leisure-results');
   panel.append(node('summary', `${index+1}. ${plan.places[index].name} 주변 레저`));
@@ -36,6 +83,8 @@ function leisureSuggestionPanel(plan, index) {
       sport = leisureSport(row),
       card = node('article', undefined, 'leisure-result-card');
     card.dataset.sport = sport.label;
+    // 사진 칸을 카드 맨 위에 둔다(2026-11-24 — 사진 있는 형식). 실제 사진이 없으면 그 칸이 종목 그림을 보여 준다(leisureSportArt).
+    card.append(leisurePhotoPanel(place, plan.conditions.mode, sport));
     card.append(node('strong', place.name), node('p', leisureSportText(sport), 'leisure-sport-tag'), node('p', `${place.description||place.category} · 현재 장소에서 직선 ${leisureDistance(row.distance_m)}`, 'hint'), node('p', `교체 시 전체 소요 시간 ${row.delta.minutes>=0?'+':''}${row.delta.minutes}분 · ${costChangeText(row.delta.total_before, row.total)}`, 'hint'));
     // 이 레저로 바꾸면 축제 방문이 달라지는 후보는 고르기 전에 알린다(app/festival_time.change_note).
     if (row.festival_change) card.append(node('p', row.festival_change, 'warning festival-change-note'));
@@ -70,7 +119,7 @@ function leisureSuggestionPanel(plan, index) {
     actions.append(select, placeMapLink('지도에서 확인 ↗', place));
     // 레저 후보는 공공 자료(한국관광공사·소상공인 상가정보)에서 찾는다(app/leisure.py). 출처 한 줄을 둔다.
     if (isPublicDataPlace(place)) card.append(publicDataSource(place));
-    card.append(leisurePhotoPanel(place, plan.conditions.mode), actions);
+    card.append(actions);
     return card;
   }
 
@@ -163,10 +212,12 @@ function leisureCoursePanel(plan) {
 }
 
 
-function leisurePhotoPanel(place, photoMode) {
+// sport: 실제 사진이 0장일 때 대신 보여 줄 종목(leisureSportArt). 없으면 그림 없이 예전처럼 안내만.
+function leisurePhotoPanel(place, photoMode, sport) {
   const panel = node('section', undefined, 'leisure-photo-panel');
   panel.setAttribute('aria-label', place.name + ' 사진 최대 2장');
   if (place.demo || photoMode === 'demo') {
+    if (sport) panel.append(leisureSportArt(sport));
     panel.append(node('p', '가상 장소 · 실제 사진을 붙이지 않습니다.', 'hint'));
     return panel;
   }
@@ -280,11 +331,19 @@ function leisurePhotoPanel(place, photoMode) {
       for (const slot of slots.filter(slot => !slot.loaded)) {
         slot.figure.remove();
       }
-      if (!count) grid.remove();
+      if (!count) {
+        grid.remove();
+        // 사진이 하나도 없으면 안내 글 앞에 종목 그림(다시 찾기로 사진이 오면 load 가 panel 을 비우며 그림도 지운다).
+        // 그림 설명이 '이 가게 사진 아님'을 말하므로 서버의 긴 까닭 문장은 숨기고 '네이버 지도에서 사진 보기 ↗'만 남긴다(화면 읽기 프로그램에도 숨김).
+        if (sport) {
+          status.before(leisureSportArt(sport));
+          status.hidden = true;
+        }
+      }
       // 서버가 '다시 불러와도 같다'고 알린 경우(photo_retry===false: 자료에 사진이 없다고 확정)에는 다시 찾기 단추를 두지 않는다(place-photos.js 와 같은 규칙).
       if (count < 2) panel.append(...(data.photo_retry === false ? [] : [button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry')]), data.map_url ? photoMapLink(place) : link('네이버에서 사진 보기 ↗', data.search_url || 'https://search.naver.com/search.naver?where=image&query=' + encodeURIComponent(placeSearchQuery(place))));
     } catch {
-      panel.replaceChildren(node('p', '사진을 불러오지 못했어요.', 'hint'), button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'));
+      panel.replaceChildren(...(sport ? [leisureSportArt(sport)] : []), node('p', '사진을 불러오지 못했어요.', 'hint'), button('사진 다시 찾기', () => load(true), 'secondary leisure-photo-retry'));
     } finally {
       busy = false;
       panel.setAttribute('aria-busy', 'false');

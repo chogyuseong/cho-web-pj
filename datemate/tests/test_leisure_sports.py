@@ -244,7 +244,21 @@ def test_api_returns_sport_and_new_radius_message(monkeypatch):
         assert '1.5km' in data['message'] and '5km' in data['message']
         option = next(o for o in data['options'] if o['place']['id'] == 'api-tennis')
         assert option['sport'] == {'key': 'tennis', 'label': '테니스', 'setting': 'outdoor', 'setting_basis': 'default',
-                                   'varies': True, 'radius_km': 5.0}
+                                   'varies': True, 'radius_km': 5.0, 'group': '야외 코트'}
+
+
+def test_options_put_places_with_a_public_photo_first_within_each_setting(monkeypatch):
+    # 2026-11-24: 레저 카드를 사진 있는 형식으로. 관광공사 사진(tour_photo)이 있는 후보를 같은 구분 안에서 앞에 둔다.
+    from app.leisure import options
+    plan = fixture_plan()
+    anchor = plan['places'][0]
+    near = sport_row(anchor, 'no-photo', '가까운 볼링장', 'bowling', '스포츠,오락>볼링장', .3)
+    far = dict(sport_row(anchor, 'with-photo', '사진 있는 클라이밍', 'climbing', '스포츠,오락>클라이밍', 1.0),
+               tour_photo='https://tong.visitkorea.or.kr/a.jpg')
+    monkeypatch.setattr('app.catalog.places', lambda *args: [near, far, *plan['places']])
+    plan['conditions'].update(max_leg=180)
+    ids = [r['plan']['places'][0]['id'] for r in options(plan, 0, [])]
+    assert ids == ['with-photo', 'no-photo']
 
 
 def test_same_venue_in_both_public_sources_is_kept_once(public_leisure):

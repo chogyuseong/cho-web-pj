@@ -117,6 +117,240 @@ function delayCheckView(data, plan) {
   return parts;
 }
 
+/* ── '+30분 늦어지면?' 토글(리디자인 3단계, datemate_2026.md §2.5 지연 시뮬레이션) ──────────────────────────
+   일정 바로 위의 켜고 끄는 단추(aria-pressed). 켜면 위 접힌 상자와 같은 읽기 전용 확인(GET /api/plans/{id}/delay-check)을
+   '첫 장소(index=0)에 30분 늦게 도착'으로 한 번 불러, 그 결과를 일정의 장소 칸에 겹쳐 보여 준다. 끄면 겹친 것을 모두 떼어 원래대로.
+   - 장소 칸: 시각 도장 아래 '늦으면 이용 시작 시각(±분)', 장소 이름 아래 배지 — 서버가 판단한 것만 쓴다.
+     문제(row.state='problem'): 마지막 입장·영업 종료·축제 운영 종료(kind 그대로). 기다림(row.wait>0): 시작 시각이 그 장소의
+     휴게 시간 끝과 같으면 '휴게 시간', 여는 시각과 같으면 '문 여는 시각', 둘 다 아니면 서버 문구와 같은 '개점·휴게 대기'.
+     영업 자료 없음(state='unchecked'): 서버가 '연다'고 가정한 곳. 서버는 첫 문제에서 계산을 멈추므로 그 뒤 장소는 '계산하지 않았어요'.
+     라스트오더(주문 마감) 자료는 없어 말하지 않는다.
+   - 일정 종료 초과(kind='end')는 장소가 아니라 단추 옆 결론 줄에만 적는다.
+   - 상태는 코스가 바뀌어도(탭 전환·장소 교체·되돌리기) 켜진 채로 두고, 새 코스로 다시 계산한다(renderDetail → delaySimRefresh).
+     결과는 코스 id 별로 기억한다(코스 내용이 바뀌면 서버가 새 id 를 준다). 늦게 온 응답은 지금 보는 코스가 아니면 버린다.
+   - 대신 갈 곳·빼고 진행 같은 바꾸는 동작은 이 단추가 아니라 위 접힌 상자(delayCheckPanel)에 그대로 있다. */
+const DELAY_SIM_MINUTES = 30;
+const delaySim = {
+  on: false,
+  turn: 0,
+  cache: new Map()
+};
+
+function delaySimBar(plan) {
+  const bar = node('div', undefined, 'delay-sim');
+  bar.setAttribute('role', 'group');
+  bar.setAttribute('aria-label', '늦어질 때 미리 보기');
+  bar.dataset.planId = plan.id;
+  const toggle = node('button', undefined, 'delay-sim-toggle');
+  toggle.type = 'button';
+  const knob = node('span', undefined, 'delay-sim-switch');
+  knob.setAttribute('aria-hidden', 'true');
+  toggle.append(knob, node('span', `+${DELAY_SIM_MINUTES}분 늦어지면?`, 'delay-sim-label'));
+  toggle.setAttribute('aria-pressed', String(delaySim.on));
+  toggle.addEventListener('click', () => setDelaySim(!delaySim.on));
+  const help = node('p', `켜면 첫 장소에 ${DELAY_SIM_MINUTES}분 늦게 도착한다고 보고, 장소마다 밀린 시각과 주의할 점을 일정에 표시해요. 코스는 바꾸지 않아요.`, 'hint delay-sim-help');
+  help.hidden = delaySim.on;
+  const status = node('p', '', 'delay-sim-status');
+  status.setAttribute('role', 'status');
+  const basis = node('p', '', 'hint delay-sim-basis');
+  basis.hidden = true;
+  bar.append(toggle, help, status, basis);
+  return bar;
+}
+
+function delaySimParts() {
+  const detail = document.getElementById('plan-detail'),
+    bar = detail?.querySelector('.delay-sim');
+  if (!bar) return null;
+  return {
+    detail,
+    bar,
+    toggle: bar.querySelector('.delay-sim-toggle'),
+    help: bar.querySelector('.delay-sim-help'),
+    status: bar.querySelector('.delay-sim-status'),
+    basis: bar.querySelector('.delay-sim-basis')
+  };
+}
+
+function setDelaySim(on) {
+  delaySim.on = on;
+  const parts = delaySimParts();
+  if (parts) {
+    parts.toggle.setAttribute('aria-pressed', String(on));
+    parts.help.hidden = on;
+  }
+  if (!on) {
+    delaySim.turn += 1;
+    clearDelaySim();
+    if (parts) {
+      parts.status.textContent = '';
+      parts.status.className = 'delay-sim-status';
+      parts.basis.hidden = true;
+    }
+    return;
+  }
+  if (selected) delaySimRefresh(selected);
+}
+
+// renderDetail 이 상세를 다시 그린 뒤 부른다. 켜져 있으면 기억한 결과를 겹치거나 새로 불러온다.
+function delaySimRefresh(plan) {
+  if (!delaySim.on || !plan?.id) return;
+  const parts = delaySimParts();
+  if (!parts || parts.bar.dataset.planId !== plan.id) return;
+  const cached = delaySim.cache.get(plan.id);
+  if (cached) {
+    applyDelaySim(plan, cached);
+    return;
+  }
+  loadDelaySim(plan);
+}
+
+async function loadDelaySim(plan) {
+  const turn = ++delaySim.turn,
+    parts = delaySimParts();
+  clearDelaySim();
+  if (parts) {
+    parts.status.className = 'delay-sim-status';
+    parts.status.textContent = `${DELAY_SIM_MINUTES}분 늦을 때를 다시 계산하고 있어요…`;
+    parts.basis.hidden = true;
+  }
+  try {
+    const data = await api(`/plans/${encodeURIComponent(plan.id)}/delay-check?index=0&minutes=${DELAY_SIM_MINUTES}`);
+    delaySim.cache.set(plan.id, data);
+    if (delaySim.cache.size > 12) delaySim.cache.delete(delaySim.cache.keys().next().value);
+    if (turn !== delaySim.turn || !delaySim.on || selected?.id !== plan.id) return;
+    applyDelaySim(plan, data);
+  } catch (error) {
+    if (turn !== delaySim.turn || selected?.id !== plan.id) return;
+    // 계산하지 못하면 켜 둔 채로 두지 않는다(일정은 원래 시각 그대로라 '켜짐'이 거짓이 된다).
+    setDelaySim(false);
+    const after = delaySimParts();
+    if (after) {
+      after.status.className = 'delay-sim-status warning';
+      after.status.textContent = `늦어질 때를 계산하지 못했어요. ${error.message}`;
+    }
+  }
+}
+
+function clearDelaySim() {
+  document.querySelectorAll('#plan-detail .delay-sim-time, #plan-detail .delay-sim-badges').forEach(el => el.remove());
+  document.querySelectorAll('#plan-detail .is-delay-sim').forEach(el => el.classList.remove('is-delay-sim'));
+}
+
+function delaySimMinutes(text) {
+  const [h, m] = String(text || '').split(':').map(Number);
+  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
+}
+
+function delaySimClock(minutes) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+// 배지 [글, 종류]. 종류: problem(문제) · caution(휴게 시간 기다림) · info(문 여는 시각 기다림) · unknown(자료 없음) · skipped(계산 안 함).
+function delaySimBadges(row, place) {
+  const out = [];
+  if (row.state === 'problem') {
+    const text = {
+      last_entry: `마지막 입장 ${row.limit} · ${row.over}분 넘김`,
+      closing: `영업 종료 ${row.limit} · ${row.over}분 모자람`,
+      festival: `축제 운영 종료 ${row.limit} · ${row.over}분 모자람`
+    } [row.festival ? 'festival' : row.kind_hint] || `${row.reason} · ${row.limit}`;
+    out.push([text, 'problem']);
+  }
+  if (row.wait > 0) {
+    const start = delaySimMinutes(row.start),
+      rest = (place?.breaks || []).find(range => Array.isArray(range) && range[1] === start);
+    if (row.festival) out.push([`축제 시작 ${row.start}까지 ${row.wait}분 기다림`, 'info']);
+    else if (rest) out.push([`휴게 시간 ${delaySimClock(rest[0])}~${row.start} · ${row.wait}분 기다림`, 'caution']);
+    else if (Array.isArray(place?.hours) && place.hours[0] === start) out.push([`문 여는 ${row.start}까지 ${row.wait}분 기다림`, 'info']);
+    else out.push([`개점·휴게 대기 ${row.wait}분`, 'info']);
+  }
+  if (row.state === 'unchecked' && row.missing?.length) out.push([`${row.missing.join('·')} 자료 없음 · 연다고 보고 계산`, 'unknown']);
+  return out;
+}
+
+function delaySimBadgeLine(badges) {
+  const line = node('p', undefined, 'delay-sim-badges');
+  line.append(node('span', `${DELAY_SIM_MINUTES}분 늦으면: `, 'visually-hidden'));
+  badges.forEach(([text, kind]) => {
+    const badge = node('span', text, `delay-sim-badge is-${kind}`);
+    badge.dataset.kind = kind;
+    line.append(badge);
+  });
+  return line;
+}
+
+function delaySimStamp(row) {
+  const box = node('span', undefined, 'delay-sim-time');
+  const shift = row.shift > 0 ? `+${row.shift}분` : row.shift < 0 ? `${-row.shift}분 일찍` : '그대로';
+  box.append(node('span', `${DELAY_SIM_MINUTES}분 늦으면 이용 시작 `, 'visually-hidden'), node('b', row.start, 'delay-sim-start'), node('small', shift, 'delay-sim-shift'));
+  return box;
+}
+
+// 서버의 문제 종류(first_problem.kind)는 첫 문제 장소 줄에만 있다. 줄에는 reason 만 있어 kind 를 그 줄에 붙여 둔다.
+function delaySimRows(data) {
+  const kind = data.first_problem?.kind;
+  return (data.rows || []).map(row => row.state === 'problem' ? {
+    ...row,
+    kind_hint: kind
+  } : row);
+}
+
+function applyDelaySim(plan, data) {
+  clearDelaySim();
+  const parts = delaySimParts();
+  if (!parts) return;
+  const stops = [...parts.detail.querySelectorAll('.stop')];
+  let placeIndex = data.index - 1;
+  const done = new Set();
+  for (const row of delaySimRows(data)) {
+    if (row.festival) {
+      const block = parts.detail.querySelector('.festival-visit');
+      if (!block) continue;
+      const badges = [
+        [`늦으면 ${row.start} 시작${row.shift > 0 ? ` (+${row.shift}분)` : ''}`, 'info'], ...delaySimBadges(row, null)
+      ];
+      block.classList.add('is-delay-sim');
+      block.querySelector('.festival-visit-title')?.after(delaySimBadgeLine(badges));
+      continue;
+    }
+    placeIndex += 1;
+    const stop = stops[placeIndex];
+    if (!stop) continue;
+    done.add(placeIndex);
+    stop.classList.add('is-delay-sim');
+    stop.querySelector('.timeline-stamp')?.append(delaySimStamp(row));
+    const badges = delaySimBadges(row, plan.places[placeIndex]);
+    if (badges.length) stop.querySelector('.timeline-card>h4')?.after(delaySimBadgeLine(badges));
+  }
+  // 첫 문제에서 서버가 계산을 멈춘 뒤 장소(첫 장소 앞은 index=0 이라 없다).
+  if (data.status === 'problem') stops.forEach((stop, i) => {
+    if (i < data.index || done.has(i)) return;
+    stop.classList.add('is-delay-sim');
+    stop.querySelector('.timeline-card>h4')?.after(delaySimBadgeLine([
+      ['앞에서 문제가 생겨 계산하지 않았어요', 'skipped']
+    ]));
+  });
+  parts.status.className = 'delay-sim-status' + (data.status === 'problem' ? ' is-problem' : '');
+  parts.status.textContent = delaySimSummary(data);
+  parts.basis.textContent = data.basis || '';
+  parts.basis.hidden = !data.basis;
+}
+
+// 단추 옆 결론 한 줄(위 접힌 상자의 delayCheckView 와 같은 판단, 짧게).
+function delaySimSummary(data) {
+  const later = data.finish && data.original_finish && data.finish !== data.original_finish;
+  const finish = later ? ` 끝나는 시간이 ${data.original_finish}에서 ${data.finish}로 늦어져요.` : data.finish ? ` 끝나는 시간은 ${data.finish} 그대로예요.` : '';
+  if (data.status === 'problem') {
+    const p = data.first_problem;
+    if (p.kind === 'end') return `${data.delay}분 늦으면 일정이 ${p.time}에 끝나 정한 종료 시간(${p.limit})보다 ${p.over}분 늦어요.`;
+    return `${data.delay}분 늦으면 ${p.place}에서 처음 문제가 생겨요(${p.reason}). 대신 갈 곳은 아래 '늦어지면 어디서 문제가 생길까?'에서 볼 수 있어요.`;
+  }
+  const waits = (data.pending || []).length;
+  if (data.status === 'unknown') return `${data.delay}분 늦어도 시간표로는 괜찮아 보여요.${finish} 영업 정보가 없는 ${waits}곳은 연다고 보고 계산했어요.`;
+  return `${data.delay}분 늦어도 괜찮아요.${finish}`;
+}
+
 // 공유받은 코스·보관 기한(21일)이 지난 코스에서는 바꾸는 단추를 두지 않는다(서버도 404·409).
 function delayRecoveryAllowed(plan) {
   return Boolean(plan?.id) && plan.can_edit !== false && !(typeof planHistoryExpired === 'function' && planHistoryExpired(plan));

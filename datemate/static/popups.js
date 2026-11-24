@@ -143,10 +143,15 @@ const PopupView = {
   source(data) {
     return (data.sources || [])[0] || {};
   },
-  // "네이버 블로그 검색 ‘2026년 11월 서울 팝업스토어’ · 최신순 50건". 어떤 검색어의 결과인지 그대로 적는다.
+  // "네이버 블로그 검색 ‘2026년 11월 서울 팝업스토어’ · 정확도순 50건". 어떤 검색어·정렬의 결과인지 그대로 적는다.
+  // 서버 정렬은 app/popup_api.py SORT(2026-11-24 정확도순 sim). 예전 응답(date)도 이름표가 맞게 둘 다 다룬다.
   scopeText(data, count) {
     const source = this.source(data);
-    return `네이버 블로그 검색 ‘${source.query || data.region + ' 팝업스토어'}’ · ${source.sort === 'date' ? '최신순 ' : ''}${count}건`;
+    const order = {
+      date: '최신순 ',
+      sim: '정확도순 '
+    } [source.sort] || '';
+    return `네이버 블로그 검색 ‘${source.query || data.region + ' 팝업스토어'}’ · ${order}${count}건`;
   },
   // 같은 검색어의 네이버 블로그 검색 화면(블록의 원본 링크).
   searchUrl(data) {

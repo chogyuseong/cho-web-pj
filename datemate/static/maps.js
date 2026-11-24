@@ -452,7 +452,7 @@ function drawPlanMap(plan){
             const label=labels.join(' / ');
             const marker=new naver.maps.Marker({map,position:coord(food),title:label+' · '+food.name,
               icon:{content:'<span class="route-marker restaurant-marker">'+label+'</span>',anchor:new naver.maps.Point(19,19)}});
-            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),placeMapLink('네이버 지도·메뉴 ↗',food));
+            const content=node('div',undefined,'restaurant-map-info');content.append(node('strong',label+' · '+food.name),node('p',food.address||''),placeMapLink('네이버 지도에서 메뉴보기 ↗',food));
             const info=new naver.maps.InfoWindow({content});naver.maps.Event.addListener(marker,'click',()=>info.open(map,marker));
             bounds.extend(coord(food));count++;
           }

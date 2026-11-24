@@ -16,6 +16,10 @@ const FestivalPanel = {
   mapItems: [],
   // 공유 화면처럼 코스를 다시 추천할 수 없는 곳에서는 축제 선택 버튼을 그리지 않는다.
   readOnly: false,
+  // 「+ 내 코스에 추가」 자리({festival, box, busy}). 카드를 그릴 때 만들고, 고른 코스가 바뀌면(plan-detail.js renderDetail)
+  // syncAdd 가 단추 상태·까닭을 다시 맞춘다. 서버(app/festival_add.py)가 근거·자리·거절을 정하고, 화면은 축제 id 만 보낸다.
+  addSlots: [],
+  addCount: 0,
   // 새로고침으로 검색을 이어받을 때 축제 구역을 다시 그리는 데 필요한 조건만 남긴다.
   // 출발지는 축제를 고른 경우(곧 축제 장소)에만 담는다.
   contextOf(conditions) {
@@ -50,6 +54,7 @@ const FestivalPanel = {
   load(conditions) {
     const generation = ++this.generation;
     this.detailQueue = [];
+    this.addSlots = [];
     this.updateChosen(conditions);
     this.mapItems = [];
     this.refreshMaps();
@@ -306,10 +311,81 @@ const FestivalPanel = {
     if (!this.readOnly) {
       if (chosen) card.append(button('이 축제 선택 해제', () => this.clearChoice()));
       else if (this.hasPoint(festival)) card.append(button('이 축제 주변 코스 추천받기', () => this.planAround(festival)));
-      else card.append(node('p', '위치 좌표가 없어 지도 표시와 주변 코스 추천을 할 수 없어요.', 'hint'));
+      else card.append(node('p', '위치 좌표가 없어 지도 표시와 주변 코스 추천, 내 코스에 추가를 할 수 없어요.', 'hint'));
+      if (this.hasPoint(festival)) this.addSlot(card, festival);
     }
     this.queueDetail(festival, fee, hours, generation);
     return card;
+  },
+  // 「+ 내 코스에 추가」(리디자인 가이드 §2.5): 지금 고른 코스는 그대로 두고 이 축제 방문을 끼워 넣는다. 자리(코스 끝·장소 사이)와
+  // 시각은 서버가 운영 시간으로 정하고, 미리보기(experience.js showDraft)에서 확인한 뒤 확정한다. 출발지를 바꿔 처음부터 다시 추천하는
+  // 「이 축제 주변 코스 추천받기」와 다른 기능이다.
+  addSlot(card, festival) {
+    // 관광공사 번호(운영 시간을 받을 근거)가 없는 축제는 단추 대신 짧은 까닭만. 좌표가 없는 축제는 부르는 쪽(card)이 한 줄로 알린다.
+    if (!/^\d{1,12}$/.test(String(festival.id))) {
+      card.append(node('p', '운영 시간 정보를 받을 수 없는 축제라 내 코스에 넣을 수 없어요.', 'hint festival-add-note'));
+      return;
+    }
+    const slot = {
+      festival,
+      box: node('div', undefined, 'festival-add'),
+      busy: false
+    };
+    card.append(slot.box);
+    this.addSlots.push(slot);
+    this.drawAdd(slot);
+  },
+  // 지금 고른 코스(app.js selected)에 넣을 수 없으면 그 까닭(사용자 말투), 넣을 수 있으면 ''. 서버도 같은 경우를 거절한다.
+  addBlocked(festival) {
+    const plan = typeof selected === 'undefined' ? null : selected;
+    if (!plan?.id) return '코스를 먼저 만들면 이 축제를 코스에 넣을 수 있어요.';
+    if (plan.can_edit === false) return '지금 코스는 바꿀 수 없어요.';
+    if (plan.conditions?.mode !== 'real') return '가상 장소 시연 코스에는 실제 축제를 넣을 수 없어요.';
+    const has = plan.conditions.festival;
+    if (has) return String(has.id) === String(festival.id) ? '이미 지금 코스에 들어 있는 축제예요.' : `지금 코스에는 이미 ‘${has.title}’ 축제가 있어요.`;
+    if (typeof planHistoryExpired === 'function' && planHistoryExpired(plan)) return '보관 기간이 지난 장소가 있어 지금 코스를 다시 계산할 수 없어요.';
+    const day = plan.conditions.visit_date;
+    if (day && festival.start && festival.end && (day < festival.start || day > festival.end)) return '지금 코스의 방문일에는 열리지 않는 축제예요.';
+    return '';
+  },
+  drawAdd(slot) {
+    const reason = this.addBlocked(slot.festival);
+    const add = button(slot.busy ? '코스에 넣어 계산하는 중…' : '+ 내 코스에 추가', () => this.addToCourse(slot), 'secondary festival-add-button');
+    add.disabled = Boolean(reason) || slot.busy;
+    add.setAttribute('aria-label', `${slot.festival.title} 내 코스에 추가`);
+    slot.box.replaceChildren(add);
+    if (reason) {
+      const note = node('p', reason, 'hint festival-add-note');
+      note.id = 'festival-add-note-' + (++this.addCount);
+      add.setAttribute('aria-describedby', note.id);
+      slot.box.append(note);
+    }
+  },
+  syncAdd() {
+    this.addSlots = this.addSlots.filter(slot => slot.box.isConnected);
+    for (const slot of this.addSlots) this.drawAdd(slot);
+  },
+  async addToCourse(slot) {
+    const plan = typeof selected === 'undefined' ? null : selected;
+    if (slot.busy || !plan || this.addBlocked(slot.festival)) return;
+    slot.busy = true;
+    this.drawAdd(slot);
+    try {
+      const draft = await api('/plans/' + plan.id + '/festival-preview', {
+        festival_id: String(slot.festival.id)
+      }, 'POST', {
+        timeout: 90000
+      });
+      // 계산하는 사이 다른 코스를 골랐으면 옛 코스의 초안을 띄우지 않는다.
+      if (selected?.id !== plan.id) {
+        toast('선택한 코스가 바뀌었어요. 지금 코스에서 다시 눌러 주세요.');
+        return;
+      }
+      showDraft(plan, draft);
+    } finally {
+      slot.busy = false;
+      if (slot.box.isConnected) this.drawAdd(slot);
+    }
   },
   async request(conditions, generation) {
     const section = document.getElementById('festival-section');

@@ -640,6 +640,10 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .festival-card>strong { font-family:var(--font-head); font-weight:800; font-size:19px; line-height:1.45; }
 .festival-card a { color:var(--cheong); }
 .festival-card>button { justify-self:start; max-width:100%; white-space:normal; }
+/* 「+ 내 코스에 추가」 자리(festivals.js addSlot): 단추와, 넣을 수 없을 때의 짧은 까닭. 단추는 다른 카드 단추처럼 왼쪽에 붙고 줄바꿈된다. */
+.festival-add { display:grid; gap:.25rem; justify-items:start; min-width:0; }
+.festival-add>button { max-width:100%; min-height:44px; white-space:normal; }
+.festival-add-note { margin:0; }
 /* 사진은 자르지 않고(contain) 4:3 틀 안에, 출처는 사진 아래. */
 .festival-photo { display:grid; gap:.25rem; min-width:0; margin:0 0 .25rem; }
 .festival-photo-frame { aspect-ratio:4/3; width:100%; background:var(--platform); }

@@ -169,7 +169,7 @@ def test_running_plan_jobs_are_limited_per_ip_range(monkeypatch):
 
 # --- S3. 다시 계산하는 경로 ------------------------------------------------
 
-@pytest.mark.parametrize('route', ['agreement-preview', 'meal-preview', 'delay-recovery', 'leisure-select', 'draft-apply'])
+@pytest.mark.parametrize('route', ['agreement-preview', 'meal-preview', 'festival-preview', 'delay-recovery', 'leisure-select', 'draft-apply'])
 def test_recalculating_routes_are_expensive(route):
     path = f'POST /api/plans/{uuid.uuid4().hex}/{route}'
     assert any(pattern.match(path) for pattern in web_security.EXPENSIVE)

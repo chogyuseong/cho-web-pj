@@ -89,6 +89,11 @@ def festival_visit(plan):
         fields.update(position='middle', after=after)
     else:
         fields['position'] = 'last' if visit.get('position') == 'last' else 'first'
+    # 「+ 내 코스에 추가」로 넣은 축제(행사장 ≠ 출발지, festival_time.venue_apart)만 표시한다 — 공유 화면이 '행사장으로 돌아와'
+    # 대신 '행사장으로 가서'라고 적게. 출발지 좌표·이름은 그대로 싣지 않는다. 축제 기준 코스는 키가 없다(예전 모양 그대로).
+    from .festival_time import venue_apart
+    if venue_apart(plan.get('conditions') or {}):
+        fields['apart'] = True
     return fields
 
 

@@ -14,7 +14,7 @@
   (지각 자체로 늦어진 것이라 장소를 바꿔 풀 수 없다 — 종료가 필수 조건이면 저장 단계 hard_blocks 가 막는다).
   코스 중간 축제(position 'middle', after=i)는 같은 자리(빼기는 번호를 당긴 자리)에만 다시 두고(evaluate festival_after),
   그 자리에 못 두거나 자리가 장소 사이가 아니게 되면 그 후보·빼기는 내지 않는다('중간 축제 시간에 맞출 수 없어요'). 축제 시각이 늦어지는 것은 허용.
-  축제 바로 앞 장소를 바꾸면 다음 지점, 바로 뒤 장소를 바꾸면 앞 지점이 행사장(출발지 좌표)이다.
+  축제 바로 앞 장소를 바꾸면 다음 지점, 바로 뒤 장소를 바꾸면 앞 지점이 행사장(축제 좌표 — festival_time.venue)이다.
 - 빼고 진행: 같은 검사로 그 장소를 뺀 코스. 장소가 0곳이 되면 허용하지 않는다. 방문 장소 수 조건(count)은 사용자가 정한 값을 그대로 둔다
   (요청 수보다 적은 코스가 된다 — 그 코스의 장소 바꾸기·레저 후보는 장소 수를 검사하지 않고 계산한다, app/plan_rules.py).
 - 앞서 반영한 다른 장소의 지연(2026-11-24): 지각 확인을 다른 번호에서 다시 해도 남긴다(안내 문장에 '다른 장소에 앞서 반영한 N분 지연은
@@ -105,8 +105,10 @@ def _located(point):
 
 def _saved_legs(plan, c):
     """바뀌지 않는 구간을 다시 조회·추정하지 않도록 저장된 구간을 (출발, 도착, 수단) 열쇠로 모은다.
-    코스 중간 축제 뒤 구간은 행사장(출발지 좌표)에서 출발한다. 행사장으로 가는 구간(festival_visit.leg)은 저장 모양이 줄어 있어
-    코스 끝 축제와 같이 다시 추정한다."""
+    코스 중간 축제 뒤 구간은 행사장에서 출발한다. 행사장으로 가는 구간(festival_visit.leg)은 저장 모양이 줄어 있어
+    코스 끝 축제와 같이 다시 추정한다. 행사장 좌표는 축제에서 읽는다(festival_time.venue — 출발지 = 행사장인 코스는 출발지 그대로,
+    「+ 내 코스에 추가」로 넣은 축제는 출발지와 다른 곳)."""
+    from .festival_time import venue
     from .routes import leg_key
 
     places, legs = plan["places"], plan["legs"]
@@ -115,13 +117,13 @@ def _saved_legs(plan, c):
     rows = {}
     for i, leg in enumerate(legs[: len(places)]):
         a, b = (
-            (c.origin.model_dump() if after is not None and i == after + 1 else points[i]),
+            (venue(c) if after is not None and i == after + 1 else points[i]),
             points[i + 1],
         )
         if _located(a) and _located(b) and leg.get("minutes") is not None:
             rows[leg_key(a, b, leg.get("mode") or c.transport)] = leg
     if len(legs) > len(places) and c.home and legs[-1].get("minutes") is not None:
-        start = c.origin.model_dump() if _evening(plan) else places[-1]
+        start = venue(c) if _evening(plan) else places[-1]
         if _located(start):
             rows[leg_key(start, c.home.model_dump(), legs[-1].get("mode") or c.transport)] = legs[
                 -1
@@ -151,21 +153,28 @@ def _estimate(a, b, c):
 
 
 def _next_point(plan, c, j, places):
+    from .festival_time import venue
+
     if _middle(plan) == j:
-        return c.origin.model_dump()
+        return venue(c)
     if j + 1 < len(places):
         return places[j + 1]
     if _evening(plan):
-        return c.origin.model_dump()
+        return venue(c)
     if c.return_home and c.home:
         return c.home.model_dump()
     return None
 
 
 def _previous_point(plan, c, j, places):
-    """j 번 장소로 오는 구간의 출발 지점. 첫 장소·코스 중간 축제 바로 뒤 장소면 출발지(= 행사장)."""
-    if j == 0 or _middle(plan) == j - 1:
+    """j 번 장소로 오는 구간의 출발 지점. 첫 장소면 출발지, 코스 중간 축제 바로 뒤 장소면 행사장(festival_time.venue —
+    출발지 = 행사장인 코스는 출발지 좌표 그대로)."""
+    from .festival_time import venue
+
+    if j == 0:
         return c.origin.model_dump()
+    if _middle(plan) == j - 1:
+        return venue(c)
     return places[j - 1]
 
 

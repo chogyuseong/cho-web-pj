@@ -32,6 +32,7 @@ PLAN_ROUTES = {
     ('POST', '/api/plans/{id}/leisure-select'): {'index': 0, 'replacement_id': 'x'},
     ('POST', '/api/plans/{pid}/locks'): {'locked': []},
     ('POST', '/api/plans/{pid}/meal-preview'): {'restaurant_id': 'x'},
+    ('POST', '/api/plans/{pid}/festival-preview'): {'festival_id': '1'},
     ('POST', '/api/plans/{pid}/draft-apply'): {'token': '0' * 32},
     ('POST', '/api/plans/{pid}/feedback'): {'kind': 'selection'},
     ('GET', '/api/plans/{pid}/feedback'): None,

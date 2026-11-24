@@ -113,7 +113,7 @@ function renderResults(result={}){
     card.dataset.option=String(i+1);
     card.setAttribute('aria-label',`선택한 코스 ${i+1} 요약`);
     card.append(node('h3',p.decision_summary?.title||courseTitle(p)));
-    if(p.conditions.festival)card.append(node('p',p.festival_visit?`‘${p.conditions.festival.title}’ ${p.festival_visit.arrival}~${p.festival_visit.departure} 축제${p.festival_visit.position==='last'?'로 마무리하는':festivalMiddleAfter(p)!==null?'를 장소 사이에 들르는':'부터 시작하는'} 코스`:`‘${p.conditions.festival.title}’ 축제 장소에서 출발하는 코스`,'festival-course-tag'));
+    if(p.conditions.festival)card.append(node('p',p.festival_visit?`‘${p.conditions.festival.title}’ ${p.festival_visit.arrival}~${p.festival_visit.departure} 축제${p.festival_visit.position==='last'?'로 마무리하는':festivalMiddleAfter(p)!==null?'를 장소 사이에 들르는':'부터 시작하는'} 코스`:festivalVenueApart(p)?`‘${p.conditions.festival.title}’ 축제는 지금 코스 시간에 맞지 않아 일정에서 빠졌어요`:`‘${p.conditions.festival.title}’ 축제 장소에서 출발하는 코스`,'festival-course-tag'));
     if(p.fresh_place)card.append(node('p',`새로운 곳: ${p.places[p.fresh_place.index]?.name}(${p.fresh_place.label}) · 최근 코스에 드물던 종류`,'hint fresh-place-note'));
     if(p.decision_summary){const summary=p.decision_summary;const fit=node('div',undefined,'fit-reasons');for(const reason of summary.fit_reasons||[summary.reason])fit.append(node('p',reason));card.append(fit);if(summary.unknown_prices||summary.assumed_prices)card.append(node('p',`가격 미확인 ${summary.unknown_prices}항목 · 계획용 가정 ${summary.assumed_prices}항목`,'hint'));}
     if(p.diversity_note)card.append(node('p',p.diversity_note,'hint'));

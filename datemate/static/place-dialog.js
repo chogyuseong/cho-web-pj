@@ -10,7 +10,9 @@ function drawMap(p) {
   const points = [p.conditions.origin, ...p.places, ...(p.conditions.return_home ? [p.conditions.home] : [])];
   // 보관 기간(21일)이 지나 좌표를 지운 장소(lat·lon 이 null)는 개략도에서 빼고, 그 장소에 닿는 구간 선도 그리지 않는다.
   const located = x => Number.isFinite(x?.lat) && Number.isFinite(x?.lon);
-  const known = points.filter(located);
+  // 출발지가 아닌 행사장을 들르는 코스(「+ 내 코스에 추가」, maps.js festivalVenueApart)는 행사장도 범위에 넣고 '축제' 점을 찍는다.
+  const venue = p.festival_visit && festivalVenueApart(p) ? festivalVenuePoint(p) : null;
+  const known = [...points, ...(venue ? [venue] : [])].filter(located);
   const lats = known.map(x => x.lat),
     lons = known.map(x => x.lon),
     minLat = Math.min(...lats),
@@ -54,6 +56,22 @@ function drawMap(p) {
     t.textContent = i === 0 ? '출발' : i > p.places.length ? '귀가' : String(i);
     svg.append(circle, t);
   });
+  if (venue) {
+    const [x, y] = at(venue);
+    const circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', x);
+    circle.setAttribute('cy', y);
+    circle.setAttribute('r', 17);
+    circle.setAttribute('fill', '#8a5a00');
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', x);
+    t.setAttribute('y', y + 5);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', 'white');
+    t.setAttribute('font-size', '12');
+    t.textContent = '축제';
+    svg.append(circle, t);
+  }
   wrap.append(svg, node('div', '좌표 개략도 · 직선 연결 · 실제 지도/경로 아님', 'map-caption'));
   return wrap;
 }

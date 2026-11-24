@@ -68,6 +68,20 @@ def meal_preview(pid:str,data:MealChange,request:Request):
     ensure_changeable(plan)
     return run(lambda:service.meal_draft(plan,request.state.owner,data.restaurant_id,data.after_index,data.replace_index,data.locked,data.menu_index))
 
+class FestivalAdd(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    # 축제 id 만 받는다. 제목·좌표·기간·운영 시간은 서버가 축제 목록·상세에서 정한다(app/festival_add.py).
+    festival_id:str=Field(min_length=1,max_length=240)
+
+@router.post('/plans/{pid}/festival-preview')
+def festival_preview(pid:str,data:FestivalAdd,request:Request):
+    """결과 화면 축제 카드의 「+ 내 코스에 추가」 미리보기(app/festival_add.py). 확정은 draft-apply."""
+    _,plan=load(pid,request.state.owner)
+    from .naver_terms import ensure_changeable
+    ensure_changeable(plan)
+    from .festival_add import festival_draft
+    return run(lambda:festival_draft(plan,request.state.owner,data.festival_id))
+
 @router.post('/plans/{pid}/draft-apply')
 def draft_apply(pid:str,data:DraftApply,request:Request):
     load(pid,request.state.owner)

@@ -26,8 +26,8 @@ function transitBasisNote(plan){
   const legs=(plan.legs||[]).filter(leg=>legMode(plan,leg)==='transit'&&leg.status!=='api');
   if(!legs.length)return null;
   const basis=legs.find(leg=>leg.transit_basis)?.transit_basis||'지하철·버스를 구분하지 않은 추정이에요.';
-  // 구간 줄마다 「네이버 지도 대중교통 길찾기」 링크가 있다(plan-actions.js naverDirectionsUrl). 가상 데모에는 없어 장소 카드 링크로 안내한다.
-  const where=plan.conditions?.mode==='demo'?'장소 카드의 「도착지 지도·길찾기 확인」':'구간마다 있는 「네이버 지도 대중교통 길찾기」';
+  // 구간 줄마다 「길찾기 ▾」(네이버 지도·카카오맵, plan-actions.js routeLine)가 있다. 체험 코스(가상 장소)에는 길찾기가 없어 일반 지도 앱으로 안내한다.
+  const where=plan.conditions?.mode==='demo'?'지도 앱':'구간마다 있는 「길찾기 ▾」';
   return node('p','대중교통: '+basis+' 실제 지하철·버스 노선과 요금은 '+where+'에서 확인해 주세요.','hint transit-basis-note');
 }
 function travelMinutes(plan){return plan.decision_summary?.travel_minutes??plan.legs.reduce((n,x)=>n+(x.minutes||0),0);}

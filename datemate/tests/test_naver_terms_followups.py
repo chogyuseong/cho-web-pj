@@ -176,7 +176,7 @@ def test_expired_plan_screen_hides_recalculation(audit_page):
     detail = page.locator('#plan-detail')
     assert detail.locator('.naver-expired-plan').count() == 1
     assert detail.locator('.naver-expired').count() == 1
-    changes = detail.get_by_role('button', name='↻ 다른 장소로 변경')
+    changes = detail.get_by_role('button', name='↻ 다른 장소로 바꾸기')
     assert changes.count() == page.evaluate('selected.places.length')
     assert all(changes.nth(i).is_disabled() for i in range(changes.count()))
     assert detail.locator('.route-mode-toggle, .transport-bulk, .parking-panel, .meal-suggestions').count() == 0

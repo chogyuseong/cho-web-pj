@@ -91,7 +91,7 @@ def test_lock_replace_undo_chat_review_feedback_and_delete(audit_page):
     original=page.evaluate('selected.id');locked=page.evaluate('selected.places[0].id')
     page.locator('#plan-detail .stop').first.get_by_role('button',name='○ 장소 고정',exact=True).click()
     page.wait_for_function('Object.keys(selected.conditions.locked).length===1')
-    page.locator('#plan-detail .stop').nth(1).get_by_role('button',name='↻ 다른 장소로 변경',exact=True).click()
+    page.locator('#plan-detail .stop').nth(1).get_by_role('button',name='↻ 다른 장소로 바꾸기',exact=True).click()
     dialog=page.locator('#dialog')
     dialog.locator('[name=replacement_reason]').select_option('taste')
     dialog.get_by_role('button',name='이 장소로 교체',exact=True).first.click()

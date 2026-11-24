@@ -38,7 +38,8 @@ def test_real_course_route_lines_open_naver_transit_directions(audit_page):
     links = page.locator('#plan-detail .route-directions-link')
     assert links.count() == page.evaluate('selected.legs.length')
     first = links.first
-    assert first.inner_text() == '네이버 지도 대중교통 길찾기 ↗'
+    # 링크는 「길찾기 ▾」 안에 있다(2026-11-24 UX P1) — 접혀 있어도 내용은 같다.
+    assert first.text_content() == '네이버 지도 대중교통 길찾기 ↗'
     assert first.get_attribute('target') == '_blank' and 'noopener' in first.get_attribute('rel')
     assert first.get_attribute('href').startswith('https://map.naver.com/p/directions/') and first.get_attribute('href').endswith('/-/transit')
     page.set_viewport_size({'width': 390, 'height': 844})

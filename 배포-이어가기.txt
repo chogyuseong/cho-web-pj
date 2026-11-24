@@ -7,6 +7,13 @@
 
 ★ 지금 상태 (2026-11-23 기준)
 ----------------------------------------------------------------------
+[브랜치, 병합 전] fix/delay-midnight (2026-11-24, worktree ..\cho-web-pj-delay-midnight): 점검 보고서 A5(자정 넘김).
+  · 영업시간 자료가 없는 곳의 가정 창을 [0,1440] → planner.ASSUMED_HOURS=(0,2880)(추천·지각 확인·지각 복구 같은 값).
+    지각으로 자정을 넘겨도 가정한 '영업 종료 24:00'을 문제로 잡지 않음(그 줄은 unchecked). 자료로 확인한 24:00 종료는 그대로 문제.
+  · 축제 방문 시각 저장을 장소 시각과 같은 표기로(festival_time._visit_clock — '00:30' 아닌 '24:30'). 운영 시간을 말하는 문장은 그대로 _clock.
+  · 옛 코스('00:30' 저장): delay_check.festival_minutes 가 코스 시작보다 이른 축제 시각을 다음 날로 읽음(지각 확인·지각 복구 _arrival_base).
+  · 하지 않은 것: 자정 뒤 시각을 '다음 날 00:30'으로 보여 주는 화면 표기(저장값을 다시 읽는 곳이 많아 표기만 바꾸면 같은 버그가 생김).
+  · 테스트: tests/test_delay_midnight.py 5개(고치기 전 4 실패), 관련 35개 파일 390 통과, format_sources --check 통과.
 여든세 번째 배포(2026-11-24) 완료: 전체 점검 docs/reviews/2026-11-24-full-review.md 의 수정을 세 브랜치로 동시 진행해 모두 병합·배포·운영 확인.
   · 운영 확인(요청 없이 14분 뒤 한 번): /api/status 200, /static/plan-actions.js 에 runPlanChange, /static/action-card.js 가 빈 체크도 저장(removeItem 없음).
     main 병합 뒤 CI Run 45222147820 5개 성공(sqlite·postgres 포함). 보지 못한 것(테스트로만): 실제 화면에서 지각 재확인·빼고 진행 뒤 교체·되돌린 뒤 공유 줄·제보 3곳 기준·IP 동시 2개.

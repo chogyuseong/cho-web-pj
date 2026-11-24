@@ -7,6 +7,20 @@
 
 ★ 지금 상태 (2026-11-24 기준)
 ----------------------------------------------------------------------
+여든여섯 번째 배포(2026-11-24) 완료: main 22d1881(병합 = feat/ux-p2 — feat/ux-p0·p1 포함), Worker 버전 6cd1b8ba-ae0d-48d9-b64b-15e25e1a0047.
+  사용자 'UX 개선 P0~P2' 요구(개발자 문구 제거·폼 2단계·코스 이후 동선·둘러보기 연결), '진행해' → '배포해'. 정적 파일 18개.
+  · P0: 첫 화면에서 'API 키'·'접속 IP'·'가상 장소 데모'·내부 수치 제거(index.html), 서비스 상태 배너는 장애·운영 키 누락 때만(#status, app.js showServiceNotice,
+    /api/status public_places_available — 공개 주소가 있는 서버에서 TOUR_API_KEY 가 없을 때만 false), 데모는 '서울 체험 코스'(?demo=1·빈 결과 단추),
+    IP·보관 안내는 피드백 폼의 접힌 안내로. 폼: '어떤 데이트를 꿈꾸나요?' 맨 위 + 예시 칩, '상세 조건 더보기'에 숨어 있던 피할 활동·예약·귀가·MBTI·체류 시간까지,
+    바꾼 상세 조건 요약 배지(simple-form.js detailSummary), MBTI 자동 비우기 없앰. 테마 카드: romance.js 와 겹치던 처리 하나로, 채운 조건 태그·'이 조건으로 바로 추천받기'.
+  · P1: 장소마다 '↻ 다른 장소로 바꾸기'·'네이버 지도 보기 ↗'(앱 전용 nmap 링크 대체), 구간마다 '길찾기 ▾' → 네이버·카카오맵(link/from/to, 우리 좌표, 수단은 카카오맵에서),
+    결과 머리 영업시간 확인 한 줄, 공유 줄 맨 앞 '카톡용 일정 복사'(api-client.js kakaoItineraryText — 날짜·시간·이동·비용·24시간 링크).
+  · P2: 둘러보기 카드 '이 장소 포함해서 코스 짜기'(explore.js includePlace → values() 의 locked), 고정 장소가 후보에 없으면 quality.pool 이 get_place 로 넣음.
+  · 하지 않은 것: 날씨 예보 구조(키가 없어 득이 적다고 판단, 사용자 동의), 축제·팝업 '내 코스에 추가'(기존 '주변 코스 추천받기'로 대신), 데이트 대분류를 기본 조건으로 꺼내기.
+  · CI: feat/ux-p0 첫 Run 45317539292 은 home.css !important 상한 초과로 실패 → ef11dc1 로 고침, feat/ux-p2 Run 45320341131 5개 성공. test:security 25 통과.
+  · 운영 확인(요청 없이 14분 뒤 한 번): /api/status 200·public_places_available true(점검 배너 안 뜸), 첫 화면 HTML 에 'API 키'·'접속 IP'·'가상 장소 데모'·'임베딩' 0건,
+    정적 파일 7개 해시가 로컬과 같음, /feedback 의 안내가 details. 보지 못한 것: 휴대폰에서 카카오맵·네이버 지도 앱으로 넘어가는지, 실제 둘러보기 장소로 만든 코스.
+  · 되돌리는 법: git revert -m 1 22d1881 후 재배포(DB 마이그레이션 없음).
 여든다섯 번째 배포(2026-11-24) 완료: main 1cec3b9(병합 7d3f678 = fix/ui-batch-1124, 병합 1cec3b9 = feat/popup-hub-photos — feat/public-data-1124 포함),
   Worker 버전 dfdf63f0-e2a2-4a6e-9d12-43d8eeb5a256. 사용자 신고 10건(2026-11-24) 처리. 사용자 '배포해'. 정적 파일 11개.
   · CI: fix/ui-batch-1124 Run 45307929814, feat/popup-hub-photos Run 45308695575 각 5개 성공(feat/public-data-1124 의 첫 Run 45307935288 은

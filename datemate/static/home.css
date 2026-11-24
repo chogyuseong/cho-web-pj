@@ -46,6 +46,9 @@
 .hero:before { content:''; position:absolute; inset:0 calc((1380px - 100vw)/2); z-index:-1; background:var(--platform); pointer-events:none; }
 .hero-pill { display:inline-block; border-radius:30px; font-weight:700; }
 .hero h1 em { -webkit-background-clip:text; }
+/* 서비스 안내 배너(#status, app.js showServiceNotice): 정상일 때는 hidden. 장애·점검 때만 보인다(2026-11-24 UX P0). */
+.service-alert[hidden] { display:none!important; }
+.service-alert { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:12px 0; padding:12px 16px; border-left:4px solid var(--hong); }
 .service-details>summary { font-size:11px; color:var(--muted); }
 .service-details summary span { float:right; }
 .workspace-intro { display:flex; align-items:end; justify-content:space-between; }

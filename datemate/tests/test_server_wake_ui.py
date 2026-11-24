@@ -107,7 +107,8 @@ def test_home_shows_a_calm_notice_and_runs_an_early_course_request_when_ready(se
         statuses[0].fulfill(status=503, content_type='text/html', body='<html>starting</html>')
         wait_until(page, lambda: len(statuses) == 2)
         assert WAITING in banner(page).inner_text()
-        assert page.locator('#status').text_content() == '서비스 상태를 확인하고 있어요.'
+        # 깨어나는 동안의 안내는 위 배너(#server-wake) 하나다. 서비스 상태 배너(#status)는 장애일 때만 보인다(2026-11-24 UX P0).
+        assert page.locator('#status').is_hidden()
         assert jobs == []
         # 서버가 준비되면 안내가 사라지고, 미뤄 둔 동네 선택과 추천 요청이 그대로 이어진다.
         statuses[1].continue_()
@@ -118,7 +119,7 @@ def test_home_shows_a_calm_notice_and_runs_an_early_course_request_when_ready(se
         assert body['region'] == '부산' and body['origin']['name'] == '부산 해운대역 지역 중심'
         Conditions.model_validate(body)
         page.wait_for_function('document.querySelector("#progress").textContent.includes("점검용 검색 중단")')
-        assert '전국 실제 장소 검색' in page.locator('#status').text_content()
+        assert page.locator('#status').is_hidden(), '정상이면 서비스 상태를 보여 주지 않는다'
         assert page.locator('#date-category-tabs button').count() > 0
 
 

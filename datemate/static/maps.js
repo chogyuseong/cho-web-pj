@@ -432,7 +432,7 @@ function drawPlanMap(plan){
       caption.textContent=actual===points.length-1
         ?'네이버 지도 · 자동차 실제 도로 경로 (조회 시점 기준)'
         :'네이버 지도 · 점선은 방문 순서의 직선 연결이며 실제 이동 경로가 아닙니다.';
-      if(plan.conditions.mode==='demo')caption.textContent+=' 가상 장소 데모입니다.';
+      if(plan.conditions.mode==='demo')caption.textContent+=' 서울 체험 코스(가상 장소)예요.';
       else if(actual)caption.textContent+=' 실선만 자동차 실제 경로입니다.';
       if(plan.conditions.mode==='real'){
         const originalCaption=caption.textContent;

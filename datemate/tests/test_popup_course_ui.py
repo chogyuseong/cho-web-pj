@@ -384,7 +384,7 @@ def test_popup_button_changes_only_the_origin_and_reverts(audit_page):
     assert sent["visit_date"] == "2026-10-24"
     note = page.locator("#popup-origin-note")
     assert note.is_visible() and "‘더현대 서울’ 주변 기준 코스" in note.inner_text()
-    assert "가상 장소 데모 대신 실제 장소로" in note.inner_text()
+    assert "서울 체험 코스 대신 실제 장소로" in note.inner_text()
     assert "지금 팝업이 열리는지는 알 수 없으니" in note.inner_text()
     assert page.locator("#festival-origin-note").is_hidden()
     # 다시 그린 구역: 고른 거점은 출발 기준이라 거리·버튼 대신 안내, 다른 거점은 새 출발지 기준 거리.

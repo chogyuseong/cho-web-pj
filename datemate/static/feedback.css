@@ -11,7 +11,10 @@
 .feedback-count,.feedback-note { font-size:14px; color:var(--muted); margin:0; }
 .feedback-trap { position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden; }
 .feedback-auto { background:var(--platform); padding:16px; margin:16px 0 8px; }
-.feedback-auto h2 { font-size:16px; margin:0 0 8px; }
+/* 2026-11-24 UX P0: 기술 안내(IP·세션·보관)는 기본으로 접어 둔다. 첫 화면 '데이터 및 이용 안내'에 있던 보관 안내도 여기로 옮겼다. */
+.feedback-auto>summary { font-size:16px; font-weight:750; cursor:pointer; min-height:44px; display:flex; align-items:center; }
+.feedback-auto[open]>summary { margin-bottom:8px; }
+.feedback-auto p+p { margin-top:8px; }
 .feedback-auto ul { margin:0 0 8px; padding-left:20px; }
 .feedback-auto :is(li,p) { font-size:14px; color:var(--ink); margin:0; }
 .feedback-form button[type=submit] { align-self:flex-start; min-height:44px; min-width:120px; font-size:16px; margin-top:8px; }

@@ -273,7 +273,7 @@ const PopupCourse = {
     const title = node('h3', '팝업스토어 글');
     title.id = 'popup-course-title';
     heading.append(title);
-    const demo = node('p', '코스는 서울 가상 장소 데모지만, 아래 글은 실제 네이버 블로그 검색 결과예요. 데모 출발점은 실제 위치가 아니라 거리를 적지 않고, 주변 코스 버튼을 누르면 실제 장소로 바꿔 추천해요.', 'hint popup-course-demo');
+    const demo = node('p', '코스는 서울 체험 코스(가상 장소)지만, 아래 글은 실제 네이버 블로그 검색 결과예요. 체험 코스 출발점은 실제 위치가 아니라 거리를 적지 않고, 주변 코스 버튼을 누르면 실제 장소로 바꿔 추천해요.', 'hint popup-course-demo');
     demo.id = 'popup-course-demo';
     demo.hidden = true;
     const status = node('p', '', 'popup-status');
@@ -581,7 +581,7 @@ const PopupCourse = {
     const area = this.chosen.hub.kind === 'area',
       fromDemo = this.previous && this.previous.mode === 'demo';
     note.append(node('strong', `‘${this.chosen.label}’ 주변 기준 코스`, 'popup-origin-title'),
-      node('span', `팝업이 자주 열리는 ${area ? '동네의 기준 장소' : '장소'}를 출발지로 바꿔 다시 추천했어요. ${fromDemo ? '가상 장소 데모 대신 실제 장소로 찾았고, ' : ''}날짜·시간·예산·교통·취향은 그대로예요. 지금 팝업이 열리는지는 알 수 없으니 방문 전에 확인해 주세요.`),
+      node('span', `팝업이 자주 열리는 ${area ? '동네의 기준 장소' : '장소'}를 출발지로 바꿔 다시 추천했어요. ${fromDemo ? '서울 체험 코스 대신 실제 장소로 찾았고, ' : ''}날짜·시간·예산·교통·취향은 그대로예요. 지금 팝업이 열리는지는 알 수 없으니 방문 전에 확인해 주세요.`),
       button(this.previous ? '원래 출발지로 다시 추천' : '팝업 기준 해제 · 조건 다시 고르기', () => this.clearChoice()));
   },
   // 되돌릴 출발지. 지금 출발지가 고른 축제 장소이면 축제를 고르기 전 출발지를 쓴다(축제 쪽이 기억하는 값).

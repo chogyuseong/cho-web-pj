@@ -72,7 +72,7 @@ def test_switching_all_legs_to_transit_shows_the_basis_once_above_the_schedule(a
     note = page.locator('#plan-detail .transit-basis-note')
     assert note.count() == 1
     text = note.inner_text()
-    assert text.startswith('대중교통: ' + routes.TRANSIT_BASIS) and '「도착지 지도·길찾기 확인」' in text, text
+    assert text.startswith('대중교통: ' + routes.TRANSIT_BASIS) and '지도 앱' in text, text
     # 안내는 첫 장소의 구간 줄보다 위(일정 위)에 있다.
     assert note.bounding_box()['y'] < page.locator('#plan-detail .route-line').first.bounding_box()['y']
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')

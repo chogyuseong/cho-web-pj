@@ -18,6 +18,35 @@ async function copyPlanShare(plan){
   if(typeof refreshShareStatus==='function')refreshShareStatus(plan);
 }
 
+// 카톡에 바로 붙여넣기 좋은 일정 글(2026-11-24 UX P1). 날짜 → 시간별 장소(축제 포함, day-of.js dayOfSteps 순서) → 구간 이동 → 예상 비용 → 공유 링크.
+// 공유 링크는 서버가 만든 24시간 링크(app/sharing.py)라 출발지·귀가지·입력 요청은 들어가지 않는다. 링크를 못 만들면 일정 글만 복사한다.
+// 글 모양을 바꾸면 tests/test_ux_p1_ui.py 의 기대 문구도 고친다. 공유 줄의 「카톡용 일정 복사」와 코스 카드 창의 「코스 요약 복사」가 함께 쓴다.
+function kakaoItineraryText(plan,url){
+  const c=plan.conditions||{},d=new Date((c.visit_date||'')+'T00:00');
+  const day=Number.isNaN(d.getTime())?(c.visit_date||''):`${d.getMonth()+1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
+  const lines=[`[데이트메이트] ${day} 데이트 코스`];
+  const legText=leg=>leg&&Number.isFinite(leg.minutes)?(typeof legModeLabel==='function'?legModeLabel(plan,leg):`${leg.minutes}분`):'';
+  const steps=typeof dayOfSteps==='function'?dayOfSteps(plan):plan.places.map((place,index)=>({place,index,time:plan.timeline[index],leg:plan.legs?.[index]}));
+  for(const step of steps){
+    const move=legText(step.leg);
+    if(move)lines.push(`  ↓ ${move}`);
+    if(step.festival)lines.push(`${step.festival.arrival} 축제 · ${step.festival.title}`);
+    else lines.push(`${step.time?.arrival||''} ${step.place.name}`.trim());
+  }
+  if(plan.total)lines.push('',`예상 비용 ${range(plan.total)} (${c.people||2}명, 확인 못 한 비용 제외)`);
+  if(url)lines.push(`코스 자세히 보기(24시간): ${url}`);
+  lines.push('영업시간은 방문 전 네이버 지도에서 확인해 주세요.');
+  return lines.join('\n');
+}
+async function copyKakaoItinerary(plan){
+  let url='';
+  try{const shared=await api('/plans/'+plan.id+'/shares',{});url=new URL(shared.url,location.origin).href;}catch{}
+  const text=kakaoItineraryText(plan,url);
+  try{await navigator.clipboard.writeText(text);toast(url?'카톡에 붙여넣을 일정과 24시간 공유 링크를 복사했어요.':'카톡에 붙여넣을 일정을 복사했어요. 공유 링크는 만들지 못했어요.');}
+  catch{const root=openDialog('카톡용 일정');const area=document.createElement('textarea');area.value=text;area.readOnly=true;area.rows=Math.min(16,text.split('\n').length+1);area.setAttribute('aria-label','카톡용 일정 글');root.append(area);area.select();}
+  if(url&&typeof refreshShareStatus==='function')refreshShareStatus(plan);
+}
+
 // 개선안 31: 같은 변경 계열 코스의 열린 공유 링크를 일정 화면 공유 구역에 알린다(app/sharing.share_status).
 // 이 코스 → 바뀌기 전 코스(earlier) → 되돌리기 전·따로 바꾼 코스(other, 2026-11-24 점검 F1). 링크와 상대 의견은 코스마다 따로라,
 // 다른 버전의 링크를 받은 사람은 그 코스를 보고 의견도 그 코스에 남는다(지금 코스의 합의에는 잡히지 않는다).

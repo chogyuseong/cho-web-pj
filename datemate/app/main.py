@@ -421,6 +421,11 @@ def _status():
         map_tile_attribution=os.getenv("MAP_TILE_ATTRIBUTION", "© OpenStreetMap contributors"),
         # DATEMATE_POPUPS_ENABLED=0 이면 화면이 팝업 전환을 그리지 않는다(API 는 404).
         popups_enabled=popups_enabled(),
+        # 공공 장소 자료(TourAPI·상가정보·인허가 — 키 하나 TOUR_API_KEY)를 쓸 수 있는지. False 면 첫 화면이 '실시간 장소 검색 점검 중 ·
+        # 서울 체험 코스로 둘러보기' 배너를 띄운다(static/app.js init, 2026-11-24 UX P0). 공개 주소가 있는 운영 서버에서 키가 빠졌을 때만
+        # False 다 — 개발·테스트는 키 없이도 로컬 실제 장소로 추천이 되므로 '점검 중'이 사실이 아니다. 키 값은 싣지 않는다.
+        public_places_available=bool(os.getenv("TOUR_API_KEY", "").strip())
+        or not os.getenv("DATEMATE_PUBLIC_ORIGIN"),
     )
 
 

@@ -149,19 +149,57 @@ function naverDirectionsUrl(plan, leg) {
   return from && to ? `https://map.naver.com/p/directions/${from}/${to}/-/${mode}` : null;
 }
 
+/* 같은 구간의 카카오맵 길찾기(2026-11-24 UX P1, 사용자 결정 '길찾기 ▾ 로 둘 다'). 우리 좌표를 그대로 넣어 이름이 같은 다른 곳으로 가지 않는다.
+   형식(2026-11-24 curl 로 확인, 302 → 출발·도착이 채워진 카카오맵): https://map.kakao.com/link/from/{이름},{위도},{경도}/to/{이름},{위도},{경도}
+   수단은 고를 수 없고 자동차로 열린다(/by/… 는 무시됨) — 링크 title 에 '수단은 카카오맵에서 고르세요'를 적는다.
+   이름의 쉼표·빗금은 주소를 깨뜨려 빈칸으로 바꾼다. 카카오의 자료를 받아 쓰지 않고 사용자를 보내기만 한다(카카오 로컬 API 는 쓰지 않음 — 2026-11-20 Q4). */
+function kakaoDirectionsUrl(plan, leg) {
+  if (plan.conditions?.mode === 'demo' || !leg?.link) return null;
+  let q;
+  try {
+    q = new URL(leg.link).searchParams;
+  } catch {
+    return null;
+  }
+  const point = (lat, lon, name) => {
+    const y = Number(q.get(lat)),
+      x = Number(q.get(lon));
+    const label = String(q.get(name) || '위치').replace(/[,/]/g, ' ').trim() || '위치';
+    return Number.isFinite(x) && Number.isFinite(y) && (x || y) ? `${encodeURIComponent(label)},${y},${x}` : null;
+  };
+  const from = point('slat', 'slng', 'sname'),
+    to = point('dlat', 'dlng', 'dname');
+  return from && to ? `https://map.kakao.com/link/from/${from}/to/${to}` : null;
+}
+
 function routeLine(plan, index, label) {
   const leg = plan.legs[index],
     // 노선 띠의 구간 선 모양은 지도 범례와 같다: 자동차 실제 경로 실선, 도보 짧은 점선, 그 밖 긴 점선.
     wrap = node('div', undefined, 'route-line-block route-leg-' + (typeof legLineStyle === 'function' ? legLineStyle(plan, leg) : 'long')),
     line = node('div', undefined, 'route-line');
   line.append(node('span', `${label} · ${legModeLabel(plan, leg)}`, 'route-line-text'));
-  const directions = naverDirectionsUrl(plan, leg);
-  if (directions) {
+  // 길찾기 ▾: 누르면 네이버 지도·카카오맵 중에서 고른다(2026-11-24 UX P1). 단추 수는 예전(네이버 링크 하나)과 같다.
+  const directions = naverDirectionsUrl(plan, leg),
+    kakao = kakaoDirectionsUrl(plan, leg);
+  if (directions || kakao) {
     const mode = legMode(plan, leg);
-    const anchor = link(mode === 'transit' ? '네이버 지도 대중교통 길찾기 ↗' : '네이버 지도 길찾기 ↗', directions);
-    anchor.className = 'route-directions-link';
-    anchor.title = `${leg.origin} → ${leg.destination} · 새 탭에서 네이버 지도 길찾기 열기`;
-    line.append(anchor);
+    const menu = node('details', undefined, 'route-directions');
+    menu.append(node('summary', '길찾기 ▾'));
+    const choices = node('div', undefined, 'route-directions-choices');
+    if (directions) {
+      const anchor = link(mode === 'transit' ? '네이버 지도 대중교통 길찾기 ↗' : '네이버 지도 길찾기 ↗', directions);
+      anchor.className = 'route-directions-link';
+      anchor.title = `${leg.origin} → ${leg.destination} · 새 탭에서 네이버 지도 길찾기 열기`;
+      choices.append(anchor);
+    }
+    if (kakao) {
+      const anchor = link('카카오맵 길찾기 ↗', kakao);
+      anchor.className = 'route-directions-kakao';
+      anchor.title = `${leg.origin} → ${leg.destination} · 새 탭에서 카카오맵 길찾기 열기(이동 수단은 카카오맵에서 골라 주세요)`;
+      choices.append(anchor);
+    }
+    menu.append(choices);
+    line.append(menu);
   }
   wrap.append(line);
   // 보관 기간(21일)이 지나 좌표를 지운 장소가 있는 코스는 수단을 바꿀 수 없다(서버 409, naver-attribution.js planHistoryExpired).

@@ -75,11 +75,12 @@ function topPendingCheck(deviations){
 }
 function emptyRecommendation(result){
   const box=node('div',undefined,'empty-state');
-  const titles={data_incomplete:'실제 장소의 운영정보가 아직 부족해요',origin_too_far:'출발지가 데모 시연 구역에서 멀어요',no_candidates:'선택한 조건에 맞는 장소가 없어요',constraints_unmet:'시간·예산·이동 조건에 맞는 일정이 없어요'};
+  const titles={data_incomplete:'실제 장소의 운영정보가 아직 부족해요',origin_too_far:'출발지가 서울 체험 코스 구역에서 멀어요',no_candidates:'선택한 조건에 맞는 장소가 없어요',constraints_unmet:'시간·예산·이동 조건에 맞는 일정이 없어요'};
   box.append(node('h3',titles[result.status]||'조건에 맞는 일정을 찾지 못했어요'));
   if(result.reasons?.length)box.append(node('p',result.reasons.join(' ')));
   if(result.suggestions?.length)box.append(node('p',result.suggestions.join(' '),'hint'));
-  if(['data_incomplete','origin_too_far'].includes(result.status))box.append(button('데모 기본 조건으로 시연하기',runDemoSample,'primary'));
+  // 실제 장소로 코스를 못 만들 때만 서울 체험 코스(가상 장소)를 권한다. '데모·시연' 같은 개발 말은 쓰지 않는다(2026-11-24 UX P0).
+  if(['data_incomplete','origin_too_far'].includes(result.status))box.append(button('서울 체험 코스 둘러보기',runDemoSample,'primary'));
   return box;
 }
 
@@ -90,7 +91,7 @@ function runDemoSample(){
   for(const [key,value] of Object.entries(defaults))form.elements[key].value=value;
   for(const key of ['reservation','return_home','use_mbti','budget_unlimited'])if(form.elements[key])form.elements[key].checked=false;
   setDateClassification('콘셉트별','');document.querySelectorAll('[name=themes]').forEach(input=>input.checked=false);
-  $('#mode-badge').textContent='가상 장소 데모';$('#parse-notice').textContent='가상 장소·출발지와 기본 조건으로 시연합니다. 실제 방문 일정이 아닙니다.';
+  $('#mode-badge').textContent='서울 체험 코스';$('#parse-notice').textContent='서울 체험 코스예요. 가상의 장소로 어떻게 추천되는지 보여 드리는 코스라 실제로 방문할 수는 없어요.';
   form.requestSubmit();
 }
 

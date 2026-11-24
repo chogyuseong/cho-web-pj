@@ -262,7 +262,13 @@
 
 /* 구간마다 「네이버 지도 (대중교통) 길찾기 ↗」 링크(plan-actions.js naverDirectionsUrl, 2026-11-19 TMAP 비교를 대신함).
    글 줄 끝에 붙고, 좁으면 다음 줄로 내려간다. 누르기 쉽게 높이 44px. 인쇄에서는 숨긴다(종이에서 누를 수 없다). */
-.detail .route-line .route-directions-link { flex:0 0 auto; display:inline-flex; align-items:center; min-height:44px; font-size:14px; font-weight:600;
+/* 길찾기 ▾(plan-actions.js routeLine, 2026-11-24 UX P1): 누르면 네이버 지도·카카오맵 링크 두 개가 펼쳐진다. */
+.detail .route-line .route-directions { flex:0 0 auto; position:relative; }
+.detail .route-line .route-directions>summary { display:inline-flex; align-items:center; min-height:44px; padding:0 12px; font-size:14px; font-weight:700;
+  color:var(--cheong); border:1px solid var(--line); border-radius:8px; cursor:pointer; list-style:none; }
+.detail .route-line .route-directions>summary::-webkit-details-marker { display:none; }
+.detail .route-line .route-directions-choices { display:flex; flex-wrap:wrap; gap:4px 14px; padding:4px 2px 0; }
+.detail .route-line :is(.route-directions-link,.route-directions-kakao) { flex:0 0 auto; display:inline-flex; align-items:center; min-height:44px; font-size:14px; font-weight:600;
   color:var(--cheong); text-decoration:underline; text-underline-offset:3px; }
 @media(forced-colors:active) { .route-line-block::before { forced-color-adjust:none; } }
 @media print {
@@ -831,6 +837,8 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 
 /* 구역 제목: 결과 수(#result-count)·보조 글(.small)은 오른쪽 */
 .section-heading { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:20px; }
+/* 결과 머리의 영업시간 확인 한 줄(index.html, 2026-11-24 UX P1): 제목 줄 아래 한 줄을 다 쓴다. 예전 긴 경고 문구를 대신한다. */
+.section-heading .visit-check-note { flex-basis:100%; order:3; margin:0; font-size:14px; }
 .section-heading h2 { min-width:0; margin:0; font-size:20px; letter-spacing:-.5px; color:var(--ink); overflow-wrap:anywhere; }
 @media(max-width:800px) { .section-heading h2 { font-size:22px; } }
 .results-area .section-heading h2 { margin:0; }

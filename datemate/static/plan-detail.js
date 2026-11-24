@@ -164,9 +164,14 @@ function renderDetail() {
       body.append(source);
     }
     const buttons = node('div', undefined, 'actions');
-    buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 변경', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)));
-    // 길찾기 링크가 없는 구간(보관 기간이 지나 좌표를 지운 장소)은 링크 자리를 두지 않는다.
-    if (p.legs[i].link) buttons.append(link('도착지 지도·길찾기 확인', p.legs[i].link));
+    buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 바꾸기', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)));
+    // 실제 장소는 「네이버 지도 보기」(오늘 영업시간·최근 리뷰 확인용, 2026-11-24 UX P1). 예전 「도착지 지도·길찾기 확인」은 앱 전용 주소(nmap://)라
+    // 컴퓨터에서는 열리지 않았다. 길찾기는 구간 줄의 「길찾기 ▾」(plan-actions.js routeLine)에 있다. 체험 코스(가상 장소)는 지도에 없는 곳이라 달지 않는다.
+    if (p.conditions.mode !== 'demo' && typeof placeMapLink === 'function') {
+      const map = placeMapLink('네이버 지도 보기 ↗', place);
+      map.classList.add('stop-map-link');
+      buttons.append(map);
+    }
     body.append(placeEvidencePanel(p, i));
     if (p.can_edit === false) {
       buttons.children[0].disabled = true;
@@ -273,7 +278,8 @@ function renderDetail() {
   printButton.addEventListener('click', () => {
     window.print();
   });
-  actions.append(button('코스 카드 저장', () => showShareCard(p)), button('공유 링크 복사', () => copyPlanShare(p)), button('공유 취소', () => revokePlanShares(p)), printButton);
+  // 공유 두 가지를 앞에(2026-11-24 UX P1): 카톡용 일정 글 복사(공유 링크 포함), 공유 링크만 복사. 그 뒤 이미지 카드·취소·인쇄.
+  actions.append(button('카톡용 일정 복사', () => copyKakaoItinerary(p), 'primary kakao-copy'), button('공유 링크 복사', () => copyPlanShare(p)), button('코스 카드 저장', () => showShareCard(p)), button('공유 취소', () => revokePlanShares(p)), printButton);
   // 공유 링크 현황(개선안 31·32): 이 코스와 바뀌기 전 코스의 열린 링크, 만료 시각. 상자가 문서에 붙은 뒤 채운다.
   const shareStatus = node('p', undefined, 'hint share-status');
   shareStatus.dataset.plan = p.id || '';

@@ -40,7 +40,8 @@ def test_writing_feedback_shows_success_and_blocks_resend(audit_page):
     page, base, errors = audit_page
     page.set_viewport_size({'width': 390, 'height': 844})
     page.goto(base + '/feedback', wait_until='networkidle')
-    assert page.locator('#feedback-width').inner_text() == '390px'
+    # 화면 폭 줄은 접힌 '함께 보내는 것' 안에 있다(2026-11-24 UX P0) — 보이는 글자가 아니라 내용으로 본다.
+    assert page.locator('#feedback-width').text_content() == '390px'
     page.locator('#feedback-message').fill('짧아')
     page.locator('#feedback-submit').click()
     assert page.locator('[role=alert]').inner_text() == '내용을 5자 이상 적어 주세요.'

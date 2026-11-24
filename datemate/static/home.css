@@ -46,6 +46,10 @@
 .hero:before { content:''; position:absolute; inset:0 calc((1380px - 100vw)/2); z-index:-1; background:var(--platform); pointer-events:none; }
 .hero-pill { display:inline-block; border-radius:30px; font-weight:700; }
 .hero h1 em { -webkit-background-clip:text; }
+/* 서비스 안내 배너(#status, app.js showServiceNotice): 정상일 때는 hidden. 장애·점검 때만 보인다(2026-11-24 UX P0). */
+/* display 를 :not([hidden]) 에만 주어 hidden 이 그대로 숨긴다(!important 를 늘리지 않는다 — tests/test_css_structure.py 상한). */
+.service-alert:not([hidden]) { display:flex; }
+.service-alert { flex-wrap:wrap; align-items:center; gap:8px 12px; margin:12px 0; padding:12px 16px; border-left:4px solid var(--hong); }
 .service-details>summary { font-size:11px; color:var(--muted); }
 .service-details summary span { float:right; }
 .workspace-intro { display:flex; align-items:end; justify-content:space-between; }
@@ -186,6 +190,21 @@
 .simple-plan-form .hint { margin:8px 0 0; }
 .simple-plan-form .simple-extra-options { margin:0; padding:14px 18px; }
 .simple-extra-options>summary { font-size:15px; }
+/* 상세 조건 요약 배지(simple-form.js detailSummary, 2026-11-24 UX P0): 바꾼 상세 조건이 있을 때만 보인다. 좁은 화면에서는 다음 줄로. */
+.simple-extra-summary { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; }
+.simple-extra-summary .detail-badge { font-size:13px; font-weight:700; color:var(--hong); overflow-wrap:anywhere; }
+.simple-extra-summary .detail-badge[hidden] { display:none; }
+.simple-extra-options>label,.simple-extra-options>.field-grid,.simple-extra-options>#home-location { margin-top:12px; }
+/* 테마 카드로 들어왔을 때 폼 맨 위의 채운 조건 태그(theme-cards.js presetTags, 2026-11-24 UX P0). */
+.preset-tags { display:grid; gap:8px; margin:0 0 16px; padding:14px 16px; border:1px solid var(--line); border-radius:10px; background:var(--platform); }
+.preset-tags[hidden] { display:none; }
+.preset-tags .hint { margin:0; }
+.preset-tag-list { display:flex; flex-wrap:wrap; gap:6px; }
+.preset-tags .preset-go { justify-self:start; min-height:44px; }
+@media(max-width:480px) { .preset-tags .preset-go { justify-self:stretch; } }
+/* 맨 위 '어떤 데이트를 꿈꾸나요?'(simple-form.js): 상황 예시 칩은 입력칸 위, 활동 칩은 아래. */
+.simple-dream-examples { margin:0 0 10px; }
+.simple-dream .simple-activity-ideas { margin:10px 0 14px; }
 .simple-extra-options[open]>.field-grid { margin-top:14px; }
 .simple-activity-ideas { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 14px; }
 .simple-activity-ideas button { font-size:14px; }

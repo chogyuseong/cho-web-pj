@@ -362,6 +362,13 @@ function values() {
   data.festival = FestivalPanel.anchorFor(data);
   if (selected && selected.conditions.mode === data.mode)
     for (const i of locks) data.locked[i] = selected.places[i].id;
+  // 둘러보기에서 「이 장소 포함해서 코스 짜기」로 고른 장소(explore.js includePlace, 2026-11-24 UX P2)를 비어 있는 첫 자리에 고정한다.
+  // 서버는 고정한 장소가 후보에 없으면 둘러보기 보관분에서 찾아 넣는다(app/quality.py pool). 체험 코스(가상 장소)에는 넣지 않는다.
+  if (typeof includedPlace !== 'undefined' && includedPlace && data.mode === 'real' && !Object.values(data.locked).includes(includedPlace.id)) {
+    let slot = 0;
+    while (slot in data.locked) slot += 1;
+    if (slot < data.count) data.locked[slot] = includedPlace.id;
+  }
   return data;
 }
 async function init() {
@@ -370,7 +377,11 @@ async function init() {
     statusData = await ServerWake.load(timeout => api('/status', null, 'GET', {
       timeout
     }));
-    $('#status').textContent = `전국 실제 장소 검색 · 서울 가상 장소 ${statusData.counts.demo.places}건 · 기존 장소 메타데이터 ${statusData.counts.real.places}건 / 색인 ${statusData.counts.real.indexed}건 · ${statusData.llm} · ${statusData.embedding==='demo'?'문자 해시 임베딩 데모 (의미 검색 아님)':'의미 임베딩 설정'} · 실제 운영정보 확인 필요`;
+    // 정상일 때는 서비스 상태를 보여 주지 않는다(2026-11-24 UX P0 — 예전에는 장소 수·색인·키 상태 같은 내부 정보를 적었다).
+    // 공공 장소 자료 키가 없을 때만 친절한 폴백 배너를 띄운다(서버 public_places_available, app/main.py _status). 장애는 아래 catch.
+    if (statusData.public_places_available === false) showServiceNotice('현재 실시간 장소 검색을 점검 중이에요. 지금은 서울 체험 코스로 먼저 둘러보실 수 있어요.', true);
+    // ?demo=1 로 들어오면 서울 체험 코스(가상 장소)로 시작한다. 일반 첫 화면에는 데모 선택지를 보여 주지 않는다.
+    if (new URLSearchParams(location.search).get('demo') === '1') useTourMode();
     for (const theme of statusData.themes) {
       const l = node('label'),
         i = node('input');
@@ -410,8 +421,25 @@ async function init() {
       navigateHomeSection(location.hash, false);
     } else await resumePlanSearch();
   } catch (e) {
-    $('#status').textContent = e.message;
+    // 장애일 때만 보이는 배너. 서버가 준 사용자용 문장(예: '요청이 많아요…')을 그대로 쓴다.
+    showServiceNotice(e.message || '지금 서비스에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.', false);
   }
+}
+
+// 첫 화면 맨 위의 서비스 안내 배너(#status, index.html). 정상일 때는 숨어 있다. tour 면 '서울 체험 코스 둘러보기' 단추를 단다.
+function showServiceNotice(text, tour) {
+  const box = $('#status');
+  box.replaceChildren(node('span', text));
+  if (tour) box.append(' ', button('서울 체험 코스 둘러보기', () => useTourMode(), 'secondary'));
+  box.hidden = false;
+}
+
+// 서울 체험 코스(가상 장소, mode=demo)로 바꾼다. ?demo=1, 폴백 배너 단추, 결과가 비었을 때 단추가 부른다.
+// 첫 화면에서는 이 선택지를 숨긴다(코스 종류 select 는 숨은 설정 영역에 있다, simple-form.js).
+function useTourMode() {
+  if (form.elements.mode.value === 'demo') return;
+  form.elements.mode.value = 'demo';
+  form.elements.mode.dispatchEvent(new Event('change'));
 }
 let parsedRequest = '';
 let pendingRequest = null;
@@ -625,7 +653,7 @@ form.elements.mode.addEventListener('change', () => {
   mode = form.elements.mode.value;
   clearLocationsForMode();
   if (mode === 'demo') form.elements.region.value = '서울';
-  $('#mode-badge').textContent = mode === 'demo' ? '가상 장소 데모' : '실제 장소';
+  $('#mode-badge').textContent = mode === 'demo' ? '서울 체험 코스' : '실제 장소';
   renderResults();
   renderDetail();
 });

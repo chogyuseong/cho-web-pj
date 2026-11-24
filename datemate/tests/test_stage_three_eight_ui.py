@@ -11,7 +11,7 @@ def test_buffer_feedback_and_nearby_replacements(audit_page):
     assert page.evaluate('selected.legs.every(r=>r.buffer_minutes===10)')
     assert '여유 10분' in page.locator('.execution-summary').inner_text()
     assert '시연 모드' in page.locator('.execution-summary').inner_text()
-    page.locator('#plan-detail .stop').first.get_by_role('button',name='↻ 다른 장소로 변경',exact=True).click()
+    page.locator('#plan-detail .stop').first.get_by_role('button',name='↻ 다른 장소로 바꾸기',exact=True).click()
     page.wait_for_function("document.querySelector('#dialog-content').textContent.includes('기존 장소에서 약')")
     assert '직선거리' in page.locator('#dialog-content').inner_text()
     page.locator('#close-dialog').click()

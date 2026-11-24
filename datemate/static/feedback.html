@@ -24,7 +24,7 @@
 <input id="feedback-contact" name="contact" type="text" maxlength="100" autocomplete="email" aria-describedby="feedback-contact-note" placeholder="이메일 등">
 <p id="feedback-contact-note" class="feedback-note">답변이 필요할 때만 적어 주세요. 연락처는 관리자만 봐요.</p>
 <div class="feedback-trap" aria-hidden="true"><label for="feedback-website">이 칸은 비워 두세요</label><input id="feedback-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-<div class="feedback-auto"><h2>함께 보내는 것</h2><ul><li>화면 폭: <span id="feedback-width">확인 중</span></li><li>브라우저 종류(예: Chrome, 모바일 여부. 버전은 보내지 않아요)</li></ul><p>코스 내용과 위치는 보내지 않아요. 브라우저 연결 정보(세션)와 접속 IP 는 글과 함께 저장하지 않고, IP 는 너무 자주 보내는 것을 막는 데에만 써요.</p></div>
+<details class="feedback-auto"><summary>함께 보내는 것 · 보관 안내</summary><ul><li>화면 폭: <span id="feedback-width">확인 중</span></li><li>브라우저 종류(예: Chrome, 모바일 여부. 버전은 보내지 않아요)</li></ul><p>코스 내용과 위치는 보내지 않아요. 브라우저 연결 정보(세션)와 접속 IP 는 글과 함께 저장하지 않고, IP 는 너무 자주 보내는 것을 막는 데에만 써요.</p><p>보낸 글과 연락처(선택)는 관리자만 보고, 관리자가 확인해 지울 때까지 보관해요. 함께 저장하지 않는 연결 정보·IP 는 첫 화면의 '이 브라우저의 저장 데이터 삭제'와 상관없어요.</p></details>
 <button type="submit" id="feedback-submit" class="primary">보내기</button>
 <p id="feedback-status" class="feedback-status" role="status" aria-live="polite"></p>
 <p id="feedback-error" class="feedback-error" role="alert"></p>

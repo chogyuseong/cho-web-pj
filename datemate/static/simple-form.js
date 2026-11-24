@@ -305,22 +305,39 @@ document.addEventListener('DOMContentLoaded',()=>{
     refresh();
   },true);
 
-  const preference=group('2. 어떤 하루를 원하세요? (선택)');
-  const request=take('request');request.firstChild.textContent='원하는 활동이나 피하고 싶은 것을 알려주세요';
-  form.elements.request.placeholder='예: 카페 투어 하고 싶어요 / 전시 보고 산책, 실내 위주로 / 매운 음식은 제외';
+  // 자연어 입력은 폼 맨 위(지역보다 앞)에 둔다(2026-11-24 UX P0 — '어떤 데이트를 꿈꾸나요?'로 시작해 10초 안에 끝나게).
+  // 선택 항목이라 비워 두고 지역만 골라도 추천된다. 상황 예시 칩은 그 문장으로 입력칸을 바꾸고, 활동 칩은 덧붙인다.
+  const preference=group('어떤 데이트를 꿈꾸나요? (선택)');preference.classList.add('simple-dream');
+  form.insertBefore(preference,region);
+  const request=take('request');request.firstChild.textContent='한 줄로 적어 주면 조건을 채워 드려요';
+  form.elements.request.placeholder='예: 비 오는 날 실내 위주로 / 전시 보고 산책 / 매운 음식은 제외';
+  const scenarios=node('div',undefined,'simple-dream-examples quick-chips');scenarios.setAttribute('role','group');scenarios.setAttribute('aria-label','이런 데이트는 어때요');
+  for(const text of ['비 오는 날 성수 실내 데이트','덜 걷고 분위기 좋은 저녁 코스','바다 보며 걷는 주말 오후']){
+    scenarios.append(button(text,()=>{const input=form.elements.request;input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();},'quick-chip'));
+  }
   const ideas=node('div',undefined,'simple-activity-ideas');ideas.setAttribute('aria-label','원하는 활동 입력 예시');
   for(const [label,text] of [['카페','카페 투어'],['맛집','맛집 탐방'],['산책','산책'],['전시','전시 관람'],['체험','공방 체험']]){
     ideas.append(button(label,()=>{const input=form.elements.request;input.value=input.value.trim()?input.value.trim()+', '+text:text;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();},'secondary'));
   }
   // 자주 쓰는 조건 칩은 입력칸 바로 위, ‘이렇게 이해했어요’는 해석 버튼 아래에 둔다(request-understanding.js).
-  preference.append(ideas,request);
+  preference.append(scenarios,request,ideas);
   const understanding=typeof RequestUnderstanding==='undefined'?[]:RequestUnderstanding.mount(preference,request);
-  const parse=document.getElementById('parse');parse.textContent='이렇게 이해했는지 확인하기';
+  const parse=document.getElementById('parse');parse.textContent='이 마음으로 조건 채우기';
   preference.append(parse,...understanding,document.getElementById('parse-notice'));
-  const optional=node('details',undefined,'simple-extra-options');optional.append(node('summary','식사·실내외·이동 세부 설정 (선택)'));
+  // 상세 조건 더보기(기본 접힘). 예전에 화면에서 숨어 있던 조건(테마 구성·피할 활동·예약·귀가·MBTI·체류 시간)도 여기로 모은다(2026-11-24 UX P0).
+  // 하나라도 기본값과 다르면 머리글에 '상세 조건 설정됨 · …' 요약을 붙인다(detailSummary). 요약 문구를 바꾸면 tests/test_ux_p0_form_ui.py 도 고친다.
+  const optional=node('details',undefined,'simple-extra-options');
+  const optionalSummary=node('summary',undefined,'simple-extra-summary'),optionalBadge=node('span','','detail-badge');
+  optionalSummary.append(node('span','상세 조건 더보기'),optionalBadge);optional.append(optionalSummary);
   const extras=node('div',undefined,'field-grid');
-  extras.append(take('setting'));
+  for(const name of ['setting','theme_mode','stay_minutes']){const label=take(name);if(label)extras.append(label);}
   optional.append(extras,take('include_meal'));
+  for(const name of ['avoid','reservation']){const label=take(name);if(label)optional.append(label);}
+  // 귀가: 체크하면 귀가지(지도·주소)를 고르는 칸이 함께 필요하다(app.js 가 return_home 이면 home 위치를 싣는다).
+  const home=take('return_home');if(home)optional.append(home);
+  const homeHost=document.getElementById('home-location');if(homeHost)optional.append(homeHost);
+  const mbtiBox=node('div',undefined,'field-grid');for(const name of ['mbti','use_mbti']){const label=take(name);if(label)mbtiBox.append(label);}
+  optional.append(mbtiBox);
   const feedback=take('use_feedback');if(feedback)optional.append(feedback);
   const fresh=take('fresh_one');if(fresh)optional.append(fresh);
   const buffer=node('label','이동 구간별 여유시간'),bufferSelect=node('select');bufferSelect.name='transition_buffer_minutes';
@@ -332,9 +349,31 @@ document.addEventListener('DOMContentLoaded',()=>{
   optional.append(limits);
   PlanningStudy.mount(optional);
   form.append(optional,document.getElementById('submit-plan'),node('p','조건에 맞는 후보가 부족하면 범위를 넓혀 찾고, 바뀐 조건을 알려드려요. 비용·이동 시간은 추정이 포함될 수 있어요.','hint'));
-  // These are automatic planning defaults, not additional choices the user has to make.
-  form.elements.trust_mode.value='balanced';form.elements.mbti.value='';form.elements.use_mbti.checked=false;
+  // 자동으로 정하는 값. MBTI 는 이제 상세 조건에서 사용자가 고르므로 비우지 않는다(2026-11-24 UX P0).
+  form.elements.trust_mode.value='balanced';
   retained.querySelectorAll('[required]').forEach(input=>input.required=false);
+  // 상세 조건 요약 배지. 기본값과 다른 것만 이 순서로 센다(앞 두 개를 보여 주고 나머지는 '외 N건').
+  const DETAIL_DEFAULTS={setting:'any',theme_mode:'mix',stay_minutes:'60',max_leg:'30',transition_buffer_minutes:'0'};
+  function detailSummary(){
+    const f=form.elements,parts=[];
+    if(f.max_walk?.value)parts.push(`도보 ${f.max_walk.value}분 제한`);
+    if(f.setting&&f.setting.value!==DETAIL_DEFAULTS.setting)parts.push({indoor:'실내만',outdoor:'실외만'}[f.setting.value]||f.setting.selectedOptions[0]?.textContent);
+    if(f.avoid?.value.trim())parts.push(`피할 활동 ${f.avoid.value.trim()}`);
+    if(f.max_leg&&f.max_leg.value!==DETAIL_DEFAULTS.max_leg)parts.push(`구간 이동 ${f.max_leg.value}분까지`);
+    if(f.theme_mode&&f.theme_mode.value!==DETAIL_DEFAULTS.theme_mode)parts.push(f.theme_mode.selectedOptions[0]?.textContent||'테마 집중');
+    if(f.stay_minutes&&f.stay_minutes.value!==DETAIL_DEFAULTS.stay_minutes)parts.push(`장소당 ${f.stay_minutes.value}분`);
+    if(f.transition_buffer_minutes&&f.transition_buffer_minutes.value!==DETAIL_DEFAULTS.transition_buffer_minutes)parts.push(`구간마다 ${f.transition_buffer_minutes.value}분 여유`);
+    if(f.reservation?.checked)parts.push('예약 필요한 곳 포함');
+    if(f.return_home?.checked)parts.push('귀가 포함');
+    if(f.use_mbti?.checked&&f.mbti?.value)parts.push(`MBTI ${f.mbti.value.toUpperCase()}`);
+    if(f.include_meal&&!f.include_meal.checked)parts.push('식사 빼기');
+    const shown=parts.slice(0,2).join(', ')+(parts.length>2?` 외 ${parts.length-2}건`:'');
+    optionalBadge.textContent=parts.length?'상세 조건 설정됨 · '+shown:'';
+    optionalBadge.hidden=!parts.length;
+  }
+  for(const type of ['input','change'])optional.addEventListener(type,detailSummary);
+  form.addEventListener('change',()=>setTimeout(detailSummary));
+  detailSummary();
 
   // 다시 온 사용자는 맨 위 ‘지난번처럼 추천’ 한 번으로 같은 조건(날짜는 오늘)으로 추천받는다.
   function savedText(saved){

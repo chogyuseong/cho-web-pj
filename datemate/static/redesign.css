@@ -69,20 +69,66 @@ header nav .nav.active,header nav a[aria-current=page] { color:#fff; background:
 }
 
 /* ---------- 5) 테마 카드(벤토) ---------- */
-/* 흰 둥근 카드(20px)를 간격 16px 격자로. 노선 동그라미·세로선(home.css ::before/::after)은 뺀다. 600px 이하 가로 넘김은 home.css 가 그대로 맡는다. */
-#curation .curation-grid { gap:16px; border-top:0; }
-#curation .curation-card { grid-template-columns:minmax(0,1fr); padding:20px; border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; box-shadow:0 1px 2px rgba(17,24,39,.04); transition:box-shadow .15s,border-color .15s; }
-#curation .curation-card:hover { border-color:var(--accent-border); box-shadow:0 10px 24px rgba(17,24,39,.08); }
-#curation .curation-card::before,#curation .curation-card::after { content:none; }
-#curation .curation-card>* { grid-column:1; }
-#curation .curation-card[aria-pressed=true] { border-color:var(--hong); box-shadow:0 0 0 3px var(--accent-soft); }
-#curation .curation-badge { padding:2px 10px; border-radius:var(--radius-pill); background:var(--platform); }
-#curation .curation-badge.is-season { background:var(--hong); color:#fff; }
-.curation-tabs { gap:6px; padding:4px; border:0; border-radius:var(--radius-pill); background:#fff; width:max-content; max-width:100%; }
+/* 2026-11-25 사용자 시안(Downloads/screencapture-gemini-*-09_02_25.png): 진한 그라데이션 카드에 흰 글자, 계절 카드(.is-feature)는 첫 줄 두 칸.
+   데스크톱 4열(계절 2칸 + 2장, 다음 줄 4장), 601~1000px 2열(계절 2칸), 600px 이하는 home.css 의 가로 넘김 그대로(카드 82%).
+   색: 카드마다 data-tone(theme-cards.js tone, 동네 카드는 index.html). 글자 대비는 그라데이션의 가장 밝은 곳에서도 흰 글자 4.5:1 이상이
+   되도록 어두운 막(::before, 아래쪽이 짙음)을 한 겹 깐다. 배지(흰 18% 알약)는 --tone-from 위에서 4.5:1 이상이 되게 시작 색을 골랐다 — 색을 밝게 바꾸면 tests/test_redesign_mockup_ui.py 의 대비 시험이 잡는다.
+   background-color 는 그라데이션을 못 그리는 경우(강제 색 모드·인쇄)의 바탕이자 대비 계산 기준(짙은 쪽)이다. */
+#curation .curation-heading { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px 24px; margin:0 0 20px; }
+#curation .curation-heading h2 { margin:0; font-size:30px; font-weight:800; }
+#curation .eyebrow { flex-basis:100%; margin:0 0 -6px; font-size:14px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--hong); }
+/* 탭은 머리말과 같은 줄 오른쪽(데스크톱). 마크업은 머리말 다음 형제라 음수 위 여백으로 올린다 — 머리말 높이(라벨+제목 ≈ 64px)에 맞춘 값. */
+@media(min-width:801px) {
+  #curation .curation-heading { padding-right:min(420px,45%); min-height:64px; }
+  #curation .curation-tabs { position:relative; margin:-70px 0 26px auto; }
+}
+#curation .curation-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; border-top:0; }
+#curation .curation-card { --tone:#1E1B4B; --tone-from:#312E81; --tone-to:#BE185D;
+  position:relative; isolation:isolate; display:flex; flex-direction:column; align-items:flex-start; gap:8px; min-height:184px; padding:22px 22px 20px; overflow:hidden;
+  border:0; border-radius:var(--radius-card); color:#fff; text-align:left;
+  background-color:var(--tone); background-image:radial-gradient(120% 140% at 100% 100%,var(--tone-to) 0%,transparent 60%),linear-gradient(135deg,var(--tone-from) 0%,var(--tone) 100%);
+  box-shadow:0 10px 24px rgba(17,24,39,.12); transition:box-shadow .2s,filter .2s; }
+/* home.css 의 예전 노선 동그라미(::before 22px·코랄 테두리)를 덮어쓰므로 크기·테두리·여백도 함께 지운다. */
+#curation .curation-card::before { content:''; position:absolute; inset:0; z-index:-1; width:auto; height:auto; margin:0; border:0; border-radius:0; background:linear-gradient(200deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.38) 100%); }
+#curation .curation-card::after { content:none; }
+#curation .curation-card:hover { filter:saturate(1.15) brightness(1.05); box-shadow:0 16px 32px rgba(17,24,39,.22); }
+#curation .curation-card:focus-visible { outline:3px solid var(--ink); outline-offset:3px; }
+#curation .curation-card[aria-pressed=true] { box-shadow:0 0 0 3px #fff,0 0 0 6px var(--ink); }
+/* 계절 카드: 두 칸 너비. 배지는 위, 제목부터는 아래로(제목의 margin-top:auto) — 배지를 겹쳐 놓으면 좁은 화면에서 제목과 겹쳤다. */
+#curation .curation-card.is-feature { grid-column:span 2; }
+#curation .curation-card.is-feature .curation-mood { font-size:26px; }
+/* 카드 안 글: 배지(반투명 흰 알약) → 제목(굵게) → 문구 → 태그(반투명 검은 알약). 모두 흰 글자. */
+#curation .curation-card .curation-badge { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:var(--radius-pill); background:rgba(255,255,255,.18); color:#fff; font-size:14px; font-weight:800; line-height:1.5; }
+#curation .curation-card .curation-badge.is-season::before { content:''; width:7px; height:7px; border-radius:50%; background:#FCD34D; }
+#curation .curation-card .curation-mood { margin-top:auto; padding-right:44px; font-size:21px; font-weight:800; line-height:1.35; letter-spacing:-.03em; color:#fff; text-decoration:none; }
+#curation .curation-card .curation-copy,#curation .curation-card .curation-area { margin:0; font-size:15px; line-height:1.55; color:rgba(255,255,255,.92); }
+#curation .curation-card .curation-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; color:#fff; }
+#curation .curation-card .curation-tags span { padding:3px 10px; border-radius:var(--radius-pill); background:rgba(0,0,0,.3); font-size:14px; font-weight:700; line-height:1.5; }
+#curation .curation-card .curation-icon { position:absolute; top:18px; right:18px; display:grid; place-items:center; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.18); color:#fff; }
+#curation .curation-card:hover .curation-mood,#curation .curation-card[aria-pressed=true] .curation-mood { color:#fff; text-decoration:none; }
+/* 그라데이션 색(시안의 카드 순서대로). --tone 은 가장 짙은 색(흰 글자 대비 기준). */
+#curation .curation-card[data-tone=aurora] { --tone:#1E1B4B; --tone-from:#3730A3; --tone-to:#BE185D; }
+#curation .curation-card[data-tone=ocean] { --tone:#1E3A8A; --tone-from:#075985; --tone-to:#6D28D9; }
+#curation .curation-card[data-tone=sunset] { --tone:#9F1239; --tone-from:#BE123C; --tone-to:#C2410C; }
+#curation .curation-card[data-tone=forest] { --tone:#064E3B; --tone-from:#065F46; --tone-to:#1D4ED8; }
+#curation .curation-card[data-tone=dusk] { --tone:#3B0764; --tone-from:#5B21B6; --tone-to:#BE185D; }
+#curation .curation-card[data-tone=berry] { --tone:#4A044E; --tone-from:#6B21A8; --tone-to:#A21CAF; }
+#curation .curation-card[data-tone=lagoon] { --tone:#134E4A; --tone-from:#115E59; --tone-to:#1D4ED8; }
+#curation .curation-card[data-tone=amber] { --tone:#7C2D12; --tone-from:#9A3412; --tone-to:#B45309; }
+#curation .curation-card[data-tone=bloom] { --tone:#831843; --tone-from:#9D174D; --tone-to:#7E22CE; }
+/* 탭: 흰 알약 안에 진한 알약(시안). */
+.curation-tabs { gap:4px; padding:4px; border:1px solid var(--line); border-radius:var(--radius-pill); background:#fff; width:max-content; max-width:100%; }
 .curation-tabs [role=tab] { border:0; border-radius:var(--radius-pill); padding:8px 18px; }
 .curation-tabs [role=tab][aria-selected=true] { color:#fff; background:var(--ink); }
+@media(max-width:1000px) { #curation .curation-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) {
+  #curation .curation-heading h2 { font-size:25px; }
+  #curation .curation-grid .curation-card { min-height:200px; padding:18px; }
+  #curation .curation-card.is-feature .curation-mood { font-size:22px; }
+}
 @media(max-width:480px) { .curation-tabs { width:100%; } .curation-tabs [role=tab] { padding:8px 6px; font-size:14px; } }
 @media(prefers-reduced-motion:reduce) { #curation .curation-card { transition:none; } }
+@media(forced-colors:active) { #curation .curation-card { border:1px solid CanvasText; } #curation .curation-card::before { content:none; } }
 
 /* ---------- 6) 모서리: 단추·입력·칩·패널 ---------- */
 .primary,.secondary { border-radius:var(--radius-control); }
@@ -156,3 +202,9 @@ header nav .nav.active,header nav a[aria-current=page] { color:#fff; background:
 .rail-share { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
 /* 글자 14px: readability.css 의 main button.primary(15px)보다 명시도를 높여 두 단추가 패널 폭 안에서 한두 줄에 들어가게 한다. */
 .plan-rail-summary .rail-share button { min-height:44px; padding:8px 10px; font-size:14px; line-height:1.35; white-space:normal; }
+/* 5-1) 동네 다섯 곳(#curation-areas): 6칸 격자에서 첫 줄 두 장(3칸씩), 둘째 줄 세 장(2칸씩) — 4열이면 마지막 줄에 한 장만 남았다. */
+@media(min-width:1001px) {
+  #curation #curation-areas { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  #curation #curation-areas .curation-card { grid-column:span 2; }
+  #curation #curation-areas .curation-card:nth-child(-n+2) { grid-column:span 3; }
+}

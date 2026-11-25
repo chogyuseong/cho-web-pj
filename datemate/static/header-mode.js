@@ -38,6 +38,9 @@
       home.classList.toggle('active', now === 'home');
       if (now === 'home') home.setAttribute('aria-current', 'true'); else home.removeAttribute('aria-current');
     }
+    // 휴대폰 하단 바의 '코스 결과'는 결과 화면(body.show-date-plan)에 있는 동안 눌린 상태.
+    const results = document.getElementById('nav-results');
+    if (results) { const on = body.classList.contains('show-date-plan'); results.classList.toggle('active', on); results.setAttribute('aria-pressed', String(on)); }
     for (const [button, key] of [[plan, 'plan'], [explore, 'explore']]) {
       if (!button) continue;
       button.classList.toggle('active', now === key);
@@ -52,6 +55,11 @@
   addEventListener('hashchange', () => requestAnimationFrame(window.syncHeaderNav));
   new MutationObserver(() => syncHeaderNav()).observe(body, { attributes: true, attributeFilter: ['class'] });
   window.syncHeaderNav();
+  // '코스 결과'(휴대폰 하단 바): 만든 코스가 있으면 결과 화면으로, 없으면 조건 화면으로 옮기고 알린다. plans 는 app.js 의 전역 목록.
+  document.getElementById('nav-results')?.addEventListener('click', () => {
+    if (typeof plans !== 'undefined' && plans.length) { setTab(false); showPlannerPage(true); }
+    else { navigateHomeSection('#planner-section'); if (typeof toast === 'function') toast('아직 만든 코스가 없어요. 조건을 고르고 3가지 코스를 비교해 보세요.'); }
+  });
 
   // ---------- 데이트 / 여행 ----------
   const COPY = {

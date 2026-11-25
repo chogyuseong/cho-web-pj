@@ -1,14 +1,17 @@
-/* One short needs form; keep defaults in the form for existing API integrations.
-   사용자가 꼭 정할 것은 지역뿐이다. 날짜·시간·예산·인원·장소 수·교통은 기본값을 요약 한 줄로 보여 주고 ‘바꾸기’ 안에서 칩으로 고친다. */
+/* 코스 만들기 폼(2026-11-25 사용자 시안 Downloads/screencapture-gemini-*-09_04_12.png, 가이드 datemate_2026.md §2.4).
+   한 장의 카드 안에 위에서부터: 어디로 갈까요?(인기 동네 칩 + 전국 17 시·도) → 방문 날짜·시작·종료 → 예산(1인 기준 칩)·이동 수단 →
+   원하는 활동 칩 → 상세 조건(접힘) → [3개 코스 비교하기]. 꼭 정할 것은 지역뿐이고 나머지는 기본값으로 채워 둔다.
+   예전의 '기본 조건 · 바꾸기' 요약 패널(날짜·시간대·전체 예산 칩)은 시안에 맞춰 없앴다 — 날짜·시간은 칸을 바로 보이고, 전체 예산(원)·인원·장소 수는
+   상세 조건 안에 있다. 한 줄 요청(자연어)은 카드 맨 위 접힘(.simple-dream)으로, 히어로 한 줄 입력(theme-cards.js)이 쓰면 펼친다.
+   기존 API 와 다른 화면(테마 카드·축제·지난번처럼)이 쓰는 입력 이름(form.elements.*)은 그대로다. */
 document.addEventListener('DOMContentLoaded',()=>{
   const form=document.getElementById('conditions');
   const retained=document.createElement('div');retained.hidden=true;retained.id='automatic-plan-settings';
   while(form.firstChild)retained.append(form.firstChild);
   form.append(retained);form.classList.add('simple-plan-form');
   const again=node('div',undefined,'last-conditions');again.hidden=true;
-  const intro=node('p','데이트할 지역만 고르면 바로 추천받을 수 있어요. 날짜·시간·예산은 기본값으로 채워 두었고, 필요하면 바꿀 수 있어요.','simple-form-intro');
-  form.append(again,intro,button('내가 결정한 코스 다시 보기',()=>PlanningStudy.showDecisions(),'secondary saved-decisions'));
-  function group(title,required=false){const section=node('fieldset',undefined,'simple-form-group'),legend=node('legend',title);if(required)legend.append(node('span','필수','field-requirement'));section.append(legend);form.append(section);return section;}
+  form.append(again);
+  function group(title,required=false,note=''){const section=node('fieldset',undefined,'simple-form-group'),legend=node('legend',title);if(note)legend.append(node('small',note,'legend-note'));if(required)legend.append(node('span','필수','field-requirement'));section.append(legend);form.append(section);return section;}
   function take(name){return form.elements[name]?.closest('label');}
   function chip(text,action){const item=button(text,action,'quick-chip');item.setAttribute('aria-pressed','false');return item;}
   function chipRow(label){const row=node('div',undefined,'quick-chips');row.setAttribute('role','group');row.setAttribute('aria-label',label);return row;}
@@ -22,8 +25,28 @@ document.addEventListener('DOMContentLoaded',()=>{
   const unlimited=form.elements.budget_unlimited;
   function setUnlimited(on){if(!unlimited||unlimited.checked===on)return;unlimited.checked=on;unlimited.dispatchEvent(new Event('change',{bubbles:true}));}
 
-  // 1. 지역: 홈 테마 카드의 동네를 그대로 칩으로 쓰고, 현재 위치·지역 칸 검색·지도에서 고르기를 함께 둔다.
-  const region=group('1. 어디에서 만날까요?',true);
+  // 1. 어디로 갈까요?: 인기 동네 칩(시안 순서) + 오른쪽 '전국 17 시·도' 고르기 + 현재 위치·지역 칸 검색·지도에서 고르기.
+  // 칩 가운데 preset 이 있는 것은 홈 '주말 떠나기 좋은 동네' 카드(index.html data-preset)를 그대로 쓴다(값을 한 곳에서 관리).
+  // 연남·서촌은 카드에 없어 기준 역 좌표를 여기 둔다(연남 = 2호선 홍대입구역, 서촌 = 3호선 경복궁역 — 서촌은 theme-cards.js
+  // HERO_QUICK_STARTS 와 같은 값). 출발지 이름은 시·도로 시작해야 서버의 지역 일치 검증을 통과한다.
+  const HOTSPOTS=[
+    {label:'서울 성수',preset:'서울 성수'},
+    {label:'서울 연남·홍대',state:'서울',origin:'서울 연남 홍대입구역 지역 중심',lat:37.5572,lon:126.9245},
+    {label:'서울 서촌·안국',state:'서울',origin:'서울 서촌 경복궁역 지역 중심',lat:37.5757,lon:126.9735},
+    {label:'부산 해운대',preset:'부산 해운대'},
+    {label:'강릉 안목',preset:'강릉 안목해변'},
+    {label:'경주 황리단길',preset:'경주 황리단길'},
+    {label:'제주 애월',preset:'제주 애월'}
+  ];
+  // '시·도 직접 선택'은 좌표를 지어내지 않는다: 고른 시·도의 중심가 이름으로 위치 검색(/locations/search)을 돌려 결과에서 고르게 한다.
+  // 검색어를 바꾸려면 여기만 고친다(첫 결과가 엉뚱하면 사용자가 칸에 다시 검색할 수 있다).
+  const REGION_HUBS={서울:'시청역',부산:'서면역',대구:'동성로',인천:'송도 센트럴파크',광주:'충장로',대전:'은행동',울산:'삼산동',세종:'나성동',경기:'수원역',
+    강원:'춘천역',충북:'청주 성안길',충남:'천안역',전북:'전주 한옥마을',전남:'여수 이순신광장',경북:'경주 황리단길',경남:'창원 상남동',제주:'제주시청'};
+  const region=group('지역 선택',true);region.classList.add('area-group');
+  const regionPick=node('label',undefined,'region-pick'),regionSelect=node('select');
+  regionPick.append(node('span','전국 17 시·도','region-pick-label'),regionSelect);regionSelect.setAttribute('aria-label','시·도 직접 선택');
+  regionSelect.append(Object.assign(node('option','시·도 직접 선택'),{value:''}),...Object.keys(REGION_HUBS).map(name=>Object.assign(node('option',name),{value:name})));
+  region.querySelector('legend').after(regionPick);
   const areaRow=chipRow('인기 동네'),areaStatus=node('p','','hint area-status');areaStatus.setAttribute('role','status');
   const areaCards=[...document.querySelectorAll('.curation-card[data-preset]')];
   function ready(){if(statusData)return true;toast('장소 정보를 준비 중이에요. 잠시 후 다시 눌러 주세요.');return false;}
@@ -39,11 +62,31 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(statusData)run();else areaStatus.textContent='장소 정보를 불러오지 못했어요. 새로고침한 뒤 다시 눌러 주세요.';
     });
   }
-  const areaChips=areaCards.map(card=>{const item=chip(card.dataset.preset,()=>whenReady(()=>{applyPresetArea(card);areaStatus.textContent=card.dataset.preset+'을(를) 데이트할 지역으로 골랐어요.';refresh();}));item.dataset.area=card.dataset.preset;return item;});
+  // 칩마다 출발지(state·origin·lat·lon). preset 칩은 동네 카드의 data-* 를 읽는다.
+  const spots=HOTSPOTS.map(spot=>{
+    if(!spot.preset)return spot;
+    const card=areaCards.find(c=>c.dataset.preset===spot.preset);
+    return card?{...spot,card,state:card.dataset.state,origin:card.dataset.origin,lat:Number(card.dataset.lat),lon:Number(card.dataset.lon)}:null;
+  }).filter(Boolean);
+  const areaChips=spots.map(spot=>{
+    const item=chip(spot.label,()=>whenReady(()=>{
+      if(spot.card)applyPresetArea(spot.card);else applyArea(spot.state,{name:spot.origin,lat:spot.lat,lon:spot.lon});
+      areaStatus.textContent=spot.label+'을(를) 데이트할 지역으로 골랐어요.';refresh();
+    }));
+    item.dataset.area=spot.label;item.spot=spot;return item;
+  });
   const here=button('현재 위치',useCurrentLocation,'quick-chip current-location');
   areaRow.append(...areaChips,here);
   const locationChoice=node('div',undefined,'location-choice');locationChoice.hidden=true;
   region.append(areaRow,areaStatus,locationChoice,document.getElementById('origin-location'),node('p','목록에 없는 곳은 위 칸에 동네·역·주소를 입력해 검색하거나 ‘지도에서 고르기’로 골라 주세요. 고른 위치가 코스의 시작 기준이 돼요.','hint'));
+  regionSelect.addEventListener('change',()=>{
+    const name=regionSelect.value;if(!name)return;
+    whenReady(()=>{
+      originInput.value=`${name} ${REGION_HUBS[name]}`;
+      areaStatus.textContent=`${name}에서 시작할 곳을 찾고 있어요. 아래 결과에서 하나를 고르거나, 칸에 동네·역을 다시 검색해 주세요.`;
+      searchOrigin();
+    });
+  });
 
   // 1-1. ‘데이트할 지역’ 칸에서 바로 검색한다. 입력 중 자동 호출은 하지 않는다(서버가 사용자별로 1초에 한 번만 받는다).
   const originInput=form.elements.origin_name,originHost=document.getElementById('origin-location');
@@ -214,20 +257,74 @@ document.addEventListener('DOMContentLoaded',()=>{
     }finally{here.disabled=false;refresh();}
   }
 
-  // 2. 나머지 조건은 요약 한 줄로 접는다. 날짜는 지나치기 쉬워 맨 앞에 요일과 함께 둔다.
-  const summary=node('div',undefined,'quick-summary'),summaryText=node('p',undefined,'quick-summary-text');
-  summaryText.id='quick-summary-text';
-  const toggle=button('바꾸기',()=>setOpen(panel.hidden),'secondary condition-toggle');
-  toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','condition-details');toggle.setAttribute('aria-describedby','quick-summary-text');
-  summary.append(summaryText,toggle);form.append(summary);
-  const panel=node('div',undefined,'condition-details');panel.id='condition-details';panel.hidden=true;form.append(panel);
+  // 2. 언제: 방문 날짜·시작·종료 칸을 바로 보인다(시안). 오늘인데 시작 시각이 지났으면 다음 시간대(없으면 내일)로 맞추고 아래 줄에 알린다.
+  const when=node('div',undefined,'field-grid when-grid');
+  when.append(take('visit_date'),take('start'),take('end'));
+  const whenNote=node('p','','hint choice-note date-note');whenNote.setAttribute('role','status');
+  form.append(when,whenNote);
+  // 지난 시작 시각을 맞출 때 고르는 다음 시간대(예전 시간대 칩과 같은 값).
+  const timeWindows=[['11:00','19:00'],['11:00','17:00'],['13:00','19:00'],['17:00','22:00']];
+  function fitTimeToToday(){
+    const from=form.elements.start.value;
+    if(!startPassed(from))return null;
+    const next=timeWindows.find(([start])=>!startPassed(start));
+    if(next){setValue('start',next[0]);setValue('end',next[1]);return {from,time:next.join('–')};}
+    setValue('visit_date',dayAfter(1));return {date:true};
+  }
+  function announceFit(adjustment){
+    if(!adjustment)return;
+    whenNote.textContent=adjustment.date?`오늘은 고를 수 있는 시간대가 모두 지나 ${dateText(form.elements.visit_date.value)}로 맞췄어요.`
+      :`오늘은 ${adjustment.from} 시작이 이미 지나 시간대를 ${adjustment.time}에 맞췄어요.`;
+    whenNote.classList.add('is-adjusted');
+  }
+  // 처음 열 때: 기본값(오늘 11:00–19:00)이 이미 지났으면 조용히 맞춘다(알림 없이 — 사용자가 고른 값이 아니다).
+  if(form.elements.visit_date.value===today()&&form.elements.start.value==='11:00'&&form.elements.end.value==='19:00'){
+    const next=timeWindows.find(([start])=>!startPassed(start));
+    if(startPassed('11:00')){if(next){form.elements.start.value=next[0];form.elements.end.value=next[1];}else form.elements.visit_date.value=dayAfter(1);}
+  }
+  form.elements.visit_date.addEventListener('change',()=>{whenNote.textContent='';whenNote.classList.remove('is-adjusted');announceFit(fitTimeToToday());});
+  function dateText(value){
+    if(!value)return '날짜를 정해 주세요';
+    const d=new Date(value+'T00:00');if(Number.isNaN(d.getTime()))return value;
+    const relative=value===today()?'오늘 ':value===dayAfter(1)?'내일 ':'';
+    return `${relative}${d.getMonth()+1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
+  }
 
-  // 3. 원하는 활동(여러 개, 2026-11-24 리디자인 2단계 — 가이드 2.4 '원하는 활동 대분류 복수 선택 칩').
+  // 3. 예산(1인 기준)과 이동 수단(시안: 한 줄에 나란히, 휴대폰은 위아래).
+  // 예산 칸(budget)은 일행 합계(원)라 칩은 '1인 상한 × 인원'을 넣는다(1인 3만·6만·10만·15만 원까지 — HTML 시안의 네 칸).
+  // 시안의 '15만원+'는 상한이 없는 것처럼 읽혀 '15만원'으로 적었다 — 상한 없이 찾으려면 오른쪽 '예산 무관'을 켠다.
+  // 인원을 바꾸면 고른 칩의 1인 상한으로 합계를 다시 맞춘다. 정확한 합계는 상세 조건의 '전체 예산 (원)'에 직접 넣는다
+  // — 그때는 어느 칩도 눌리지 않고 아래 줄에 합계·1인 금액을 보인다. 칩·상한을 바꾸면 theme-cards.js(기념일 budget_per_person)도 본다.
+  const BUDGET_TIERS=[['3만원',30000],['6만원',60000],['10만원',100000],['15만원',150000]];
+  const people=()=>Math.max(1,Number(form.elements.people.value)||2);
+  const won=n=>n>=10000&&n%10000===0?n/10000+'만 원':Number(n).toLocaleString('ko-KR')+'원';
+  const budgetTransport=node('div',undefined,'budget-transport');
+  const budgetGroup=node('fieldset',undefined,'simple-form-group budget-group'),budgetLegend=node('legend','1인 예상 예산');
+  budgetGroup.append(budgetLegend);
+  // '예산 무관'은 숨긴 체크박스(budget_unlimited)를 그대로 보이는 체크로 꺼낸다(제목 줄 오른쪽).
+  const freeLabel=take('budget_unlimited');if(freeLabel){freeLabel.hidden=false;freeLabel.classList.add('budget-free');budgetGroup.append(freeLabel);}
+  const budgetRow=chipRow('1인 예상 예산');budgetRow.classList.add('segmented');
+  let tier=null;  // 마지막으로 누른 1인 상한(인원이 바뀌면 이 값으로 합계를 다시 맞춘다). 직접 입력하면 null.
+  const budgetChips=BUDGET_TIERS.map(([label,per])=>{const item=chip(label,()=>{tier=per;setUnlimited(false);setValue('budget',per*people());refresh();});item.per=per;return item;});
+  budgetRow.append(...budgetChips);
+  unlimited?.addEventListener('change',()=>{if(unlimited.checked)tier=null;setTimeout(refresh);});
+  const budgetNote=node('p','','hint choice-note budget-note');budgetNote.setAttribute('role','status');
+  budgetGroup.append(budgetRow,budgetNote);
+  form.elements.people.addEventListener('change',()=>{if(tier&&!unlimited?.checked)setValue('budget',tier*people());});
+  form.elements.budget.addEventListener('input',()=>{tier=null;setUnlimited(false);});
+  // 이동 수단: 숨긴 select(transport)를 네 칸 선택 막대로.
+  const transportGroup=node('fieldset',undefined,'simple-form-group transport-group');transportGroup.append(node('legend','이동 수단'));
+  const transportRow=chipRow('이동 수단');transportRow.classList.add('segmented');
+  const transportChips=[...form.elements.transport.options].map(option=>{const item=chip(option.textContent,()=>{setValue('transport',option.value);refresh();});item.dataset.transport=option.value;return item;});
+  transportRow.append(...transportChips);transportGroup.append(transportRow);
+  budgetTransport.append(budgetGroup,transportGroup);form.append(budgetTransport);
+
+  // 4. 원하는 활동(여러 개, 가이드 2.4 '원하는 활동 대분류 복수 선택 칩').
   // 숨긴 분류 체크박스(name=themes, app.js 가 서버 /status 의 themes 로 만든다)를 누르기 쉬운 칩으로 꺼낸다. 값은 서버 분류 이름 그대로
   // (app/models.py THEMES), 칩 글자만 쉬운 말로. 고르면 그 분류의 장소로만 코스를 짜고(app/planner.py — 식사 시간대 식당은 예외),
   // 안 고르면 예전처럼 골고루. 상황 테마·자연어 해석이 체크박스를 바꿔도 refresh 가 칩 눌림을 맞춘다. 분류가 늘면 ACTIVITY_CHIPS 에 더한다.
   const ACTIVITY_CHIPS=[['카페·미식','카페·맛집'],['산책·풍경','산책·풍경'],['문화·예술','전시·문화'],['체험·제작','공방·체험'],['오락·놀이','놀거리'],['레저·활동','레저·스포츠'],['휴식·힐링','휴식·힐링']];
-  const activity=group('원하는 활동 (선택 · 여러 개)');activity.classList.add('activity-group');
+  const activity=group('선호 활동',false,'(복수 선택 가능)');activity.classList.add('activity-group');
   const activityRow=chipRow('원하는 활동');
   const activityChips=ACTIVITY_CHIPS.map(([value,label])=>{
     const item=chip(label,()=>{
@@ -240,144 +337,97 @@ document.addEventListener('DOMContentLoaded',()=>{
   });
   activityRow.append(...activityChips);
   activity.append(activityRow,node('p','고른 종류의 장소로만 코스를 짜요(식사 시간대 식당은 따로 넣어요). 고르지 않으면 골고루 섞어요.','hint'));
-  function setOpen(open){panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'접기':'바꾸기';}
-  function field(title){const section=node('fieldset',undefined,'quick-field');section.append(node('legend',title));panel.append(section);return section;}
-  // ‘직접’을 누르거나 값이 칩과 맞지 않을 때만 기존 입력칸을 보여 준다.
-  const manual={date:false,time:false,budget:false};
-  // 마지막으로 누른 칩. 값이 같은 칩이 둘이면(금요일의 ‘내일’과 ‘이번 토요일’) 누른 쪽을 눌린 상태로 둔다.
-  const pressed={date:null,time:null,budget:null};
-  // 칩을 누르는 즉시 정해진 값을 바로 아래(role=status)에 알린다. 다른 날·시간대로 맞춘 경우는 눈에 띄게 표시한다.
-  function announce(set,text,adjusted=false){set.note.textContent=text;set.note.classList.toggle('is-adjusted',adjusted);}
-  function choices(kind,section,label,items,box,input,describe,onDirect){
-    const row=chipRow(label),note=node('p','','hint choice-note '+kind+'-note');note.setAttribute('role','status');
-    const set={box,note};
-    set.chips=items.map(item=>{const own=chip(item.label,()=>{manual[kind]=false;pressed[kind]=own;const adjustment=item.apply();refresh();const [text,adjusted]=describe(adjustment);announce(set,text,adjusted);});own.item=item;return own;});
-    set.direct=chip('직접',()=>{manual[kind]=true;pressed[kind]=null;onDirect?.();refresh();announce(set,'아래 칸에 직접 입력해 주세요.');input.focus();});
-    row.append(...set.chips,set.direct);section.append(row,note,box);
-    return set;
-  }
-  const dateField=field('날짜');
-  const dates=choices('date',dateField,'방문 날짜',[['오늘',0],['내일',1],['이번 토요일',null]].map(([label,offset])=>({label,value:()=>dayAfter(offset??(6-new Date().getDay()+7)%7),apply(){setValue('visit_date',this.value());return fitTimeToToday();}})),take('visit_date'),form.elements.visit_date,adjustment=>{
-    const day=dateText(form.elements.visit_date.value);
-    if(adjustment?.date)return [`오늘은 고를 수 있는 시간대가 모두 지나 ${day}로 맞췄어요.`,true];
-    if(adjustment?.time)return [`${day}로 정했어요. 오늘은 ${adjustment.from} 시작이 이미 지나 시간대를 ${adjustment.time}에 맞췄어요.`,true];
-    return [`${day}로 정했어요.`,false];
-  });
-  form.elements.visit_date.addEventListener('change',()=>{if(manual.date)announce(dates,form.elements.visit_date.value?`${dateText(form.elements.visit_date.value)}로 정했어요.`:'날짜를 정해 주세요.');});
-  const timeField=field('시간대'),timeBox=node('div',undefined,'field-grid');timeBox.append(take('start'),take('end'));
-  const timeWindows=[['하루 종일 11–19','11:00','19:00'],['점심부터 11–17','11:00','17:00'],['오후 13–19','13:00','19:00'],['저녁 17–22','17:00','22:00']].map(([label,start,end])=>({label,start,end,value:()=>start+'–'+end,apply(){setValue('start',start);setValue('end',end);}}));
-  const times=choices('time',timeField,'시간대',timeWindows,timeBox,form.elements.start,()=>[`시간대를 ${form.elements.start.value}–${form.elements.end.value}에 맞췄어요.`,false]);
-  const budgetField=field('전체 예산');
-  const budgetItems=[...[30000,50000,100000,150000].map(amount=>({label:amount/10000+'만',value:()=>String(amount),apply(){setUnlimited(false);setValue('budget',amount);}})),
-    {label:'예산 무관',value:()=>'unlimited',apply(){setUnlimited(true);}}];
-  const budgets=choices('budget',budgetField,'전체 예산',budgetItems,take('budget'),form.elements.budget,()=>[unlimited?.checked?'예산 무관으로 정했어요. 예산 상한 없이 코스를 찾아요.':`전체 예산을 ${budgetText(form.elements.budget.value)}에 맞췄어요.`,false],()=>setUnlimited(false));
-  budgetField.append(node('p','두 사람 합계예요. 인원을 바꾸면 해당 인원 전체의 예산으로 계산해요.','hint'));
-  const preview=document.querySelector('.price-input-preview');if(preview)budgetField.append(preview);
-  const rest=field('인원 · 장소 수 · 이동'),restGrid=node('div',undefined,'field-grid');
-  for(const name of ['people','count','transport'])restGrid.append(take(name));
-  rest.append(restGrid);
-  // 오늘인데 기본(또는 고른) 시작 시각이 지났으면 아직 가능한 다음 시간대로, 없으면 내일로 맞춘다. 맞춘 내용을 돌려준다.
-  function fitTimeToToday(){
-    const from=form.elements.start.value;
-    if(!startPassed(from))return null;
-    const next=timeWindows.find(item=>!startPassed(item.start));
-    if(next){next.apply();manual.time=false;return {from,time:next.value()};}
-    setValue('visit_date',dayAfter(1));return {date:true};
-  }
-  if(form.elements.visit_date.value===today()&&form.elements.start.value==='11:00'&&form.elements.end.value==='19:00'){
-    const next=timeWindows.find(item=>!startPassed(item.start));
-    if(startPassed('11:00')){if(next){form.elements.start.value=next.start;form.elements.end.value=next.end;}else form.elements.visit_date.value=dayAfter(1);}
-  }
-  function dateText(value){
-    if(!value)return '날짜를 정해 주세요';
-    const d=new Date(value+'T00:00');if(Number.isNaN(d.getTime()))return value;
-    const relative=value===today()?'오늘 ':value===dayAfter(1)?'내일 ':'';
-    return `${relative}${d.getMonth()+1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
-  }
-  function budgetText(value,free=false){if(free)return '예산 무관';const n=Number(value);if(value===''||!Number.isFinite(n))return '예산 미정';return n>=10000&&n%10000===0?n/10000+'만 원':n.toLocaleString('ko-KR')+'원';}
-  const transportText=value=>[...form.elements.transport.options].find(option=>option.value===value)?.textContent||value;
-  function sync(set,kind,current){
-    const last=pressed[kind];
-    const match=last&&set.chips.includes(last)&&last.item.value()===current?last:set.chips.find(item=>item.item.value()===current);
-    for(const item of set.chips)item.setAttribute('aria-pressed',String(item===match&&!manual[kind]));
-    const direct=manual[kind]||!match;
-    set.direct.setAttribute('aria-pressed',String(direct));set.box.hidden=!direct;
-  }
-  function refresh(){
-    const f=form.elements,origin=locationState.origin;
-    syncOrigin();
-    for(const item of areaChips){const card=areaCards.find(c=>c.dataset.preset===item.dataset.area);
-      item.setAttribute('aria-pressed',String(Boolean(origin&&origin.name===card.dataset.origin&&Math.abs(origin.lat-Number(card.dataset.lat))<1e-6&&Math.abs(origin.lon-Number(card.dataset.lon))<1e-6)));}
-    // 예산 무관을 켠 채 금액을 직접 고치면 금액이 우선이다.
-    if(unlimited?.checked&&manual.budget)setUnlimited(false);
-    for(const item of activityChips)item.setAttribute('aria-pressed',String(Boolean(form.querySelector(`[name=themes][value="${item.dataset.theme}"]`)?.checked)));
-    sync(dates,'date',f.visit_date.value);sync(times,'time',f.start.value+'–'+f.end.value);sync(budgets,'budget',unlimited?.checked?'unlimited':f.budget.value);
-    for(const item of times.chips){const passed=startPassed(item.item.start);item.disabled=passed;item.title=passed?'오늘은 이미 시작 시각이 지났어요':'';}
-    const parts=[`${f.start.value}–${f.end.value}`,`${f.people.value}명`,budgetText(f.budget.value,unlimited?.checked),`${f.count.value}곳`,transportText(f.transport.value)];
-    const text=dateText(f.visit_date.value)+' · '+parts.join(' · ');
-    if(summaryText.dataset.text!==text){summaryText.dataset.text=text;summaryText.replaceChildren(node('span','기본 조건','quick-summary-label'),node('strong',dateText(f.visit_date.value)),document.createTextNode(' · '+parts.join(' · ')));}
-  }
-  // 숨긴 입력칸 값이 잘못되면 펼쳐서 바로 고칠 수 있게 한다.
-  form.addEventListener('invalid',event=>{
-    if(!panel.contains(event.target))return;
-    setOpen(true);
-    for(const [kind,set] of [['date',dates],['time',times],['budget',budgets]])if(set.box.contains(event.target))manual[kind]=true;
-    refresh();
-  },true);
 
-  // 자연어 입력은 폼 맨 위(지역보다 앞)에 둔다(2026-11-24 UX P0 — '어떤 데이트를 꿈꾸나요?'로 시작해 10초 안에 끝나게).
-  // 선택 항목이라 비워 두고 지역만 골라도 추천된다. 상황 예시 칩은 그 문장으로 입력칸을 바꾸고, 활동 칩은 덧붙인다.
-  const preference=group('어떤 데이트를 꿈꾸나요? (선택)');preference.classList.add('simple-dream');
+  // 5. 한 줄 요청(자연어, 선택): 카드 맨 위 접힘. 히어로 한 줄 입력(theme-cards.js)이 이 칸에 넣고 해석할 때 펼친다.
+  const preference=node('details',undefined,'simple-dream');
+  preference.append(node('summary','한 줄로 적어서 조건 채우기 (선택)','simple-dream-summary'));
   form.insertBefore(preference,region);
-  const request=take('request');request.firstChild.textContent='한 줄로 적어 주면 조건을 채워 드려요';
+  const request=take('request');request.firstChild.textContent='어떤 데이트를 꿈꾸나요?';
   form.elements.request.placeholder='예: 비 오는 날 실내 위주로 / 전시 보고 산책 / 매운 음식은 제외';
   const scenarios=node('div',undefined,'simple-dream-examples quick-chips');scenarios.setAttribute('role','group');scenarios.setAttribute('aria-label','이런 데이트는 어때요');
   for(const text of ['비 오는 날 성수 실내 데이트','덜 걷고 분위기 좋은 저녁 코스','바다 보며 걷는 주말 오후']){
     scenarios.append(button(text,()=>{const input=form.elements.request;input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();},'quick-chip'));
   }
-  const ideas=node('div',undefined,'simple-activity-ideas');ideas.setAttribute('aria-label','원하는 활동 입력 예시');
-  for(const [label,text] of [['카페','카페 투어'],['맛집','맛집 탐방'],['산책','산책'],['전시','전시 관람'],['체험','공방 체험']]){
-    ideas.append(button(label,()=>{const input=form.elements.request;input.value=input.value.trim()?input.value.trim()+', '+text:text;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();},'secondary'));
-  }
   // 자주 쓰는 조건 칩은 입력칸 바로 위, ‘이렇게 이해했어요’는 해석 버튼 아래에 둔다(request-understanding.js).
-  preference.append(scenarios,request,ideas);
+  preference.append(scenarios,request);
   const understanding=typeof RequestUnderstanding==='undefined'?[]:RequestUnderstanding.mount(preference,request);
   const parse=document.getElementById('parse');parse.textContent='이 마음으로 조건 채우기';
-  preference.append(parse,...understanding,document.getElementById('parse-notice'));
-  // 상세 조건 더보기(기본 접힘). 예전에 화면에서 숨어 있던 조건(테마 구성·피할 활동·예약·귀가·MBTI·체류 시간)도 여기로 모은다(2026-11-24 UX P0).
+  preference.append(parse,...understanding);
+  // 해석 결과 안내(#parse-notice)는 접힘 밖에 둔다 — 테마 카드·지난번처럼도 이 줄에 쓰므로 접혀 있어도 보여야 한다.
+  form.insertBefore(document.getElementById('parse-notice'),region);
+
+  // 6. 상세 조건(기본 접힘). 인원·장소 수·전체 예산(원)과 예전부터 있던 조건(실내외·테마 구성·체류·피할 활동·예약·귀가·MBTI·여유·이동 제한)을 모은다.
   // 하나라도 기본값과 다르면 머리글에 '상세 조건 설정됨 · …' 요약을 붙인다(detailSummary). 요약 문구를 바꾸면 tests/test_ux_p0_form_ui.py 도 고친다.
   const optional=node('details',undefined,'simple-extra-options');
   const optionalSummary=node('summary',undefined,'simple-extra-summary'),optionalBadge=node('span','','detail-badge');
-  optionalSummary.append(node('span','상세 조건 더보기'),optionalBadge);optional.append(optionalSummary);
-  const extras=node('div',undefined,'field-grid');
-  for(const name of ['setting','theme_mode','stay_minutes']){const label=take(name);if(label)extras.append(label);}
-  optional.append(extras,take('include_meal'));
-  for(const name of ['avoid','reservation']){const label=take(name);if(label)optional.append(label);}
-  // 귀가: 체크하면 귀가지(지도·주소)를 고르는 칸이 함께 필요하다(app.js 가 return_home 이면 home 위치를 싣는다).
-  const home=take('return_home');if(home)optional.append(home);
-  const homeHost=document.getElementById('home-location');if(homeHost)optional.append(homeHost);
-  const mbtiBox=node('div',undefined,'field-grid');for(const name of ['mbti','use_mbti']){const label=take(name);if(label)mbtiBox.append(label);}
-  optional.append(mbtiBox);
-  const feedback=take('use_feedback');if(feedback)optional.append(feedback);
-  const fresh=take('fresh_one');if(fresh)optional.append(fresh);
+  optionalSummary.append(node('span','상세 조건 더보기','simple-extra-title'),node('span','도보 제한 · 실내외 · 귀가 동선 · MBTI','simple-extra-hint'),optionalBadge);optional.append(optionalSummary);
+  // 줄 1: 인원 · 방문 장소 수 · 실내·실외(숨긴 select setting 을 세 칸 막대로).
+  const row1=node('div',undefined,'field-grid detail-row detail-row-3');
+  for(const name of ['people','count']){const label=take(name);if(label)row1.append(label);}
+  const settingBox=node('div',undefined,'detail-setting'),settingTitle=node('span','실내 · 실외 비중','detail-label');settingTitle.id='detail-setting-label';
+  const settingRow=chipRow('실내 · 실외 비중');settingRow.classList.add('segmented','detail-segmented');
+  const settingChips=[...form.elements.setting.options].map(option=>{const item=chip({any:'모두',indoor:'실내만',outdoor:'실외만'}[option.value]||option.textContent,()=>{setValue('setting',option.value);refresh();});item.dataset.setting=option.value;return item;});
+  settingRow.append(...settingChips);settingBox.append(settingTitle,settingRow);row1.append(settingBox);
+  // 줄 2: 전체 도보 제한 슬라이더(10~60분, 60 = 제한 없음 → max_walk 빈칸) · 구간당 최대 이동(분).
+  const row2=node('div',undefined,'field-grid detail-row');
+  const walkCard=node('div',undefined,'detail-card walk-card'),walkHead=node('div',undefined,'detail-card-head');
+  const walkValue=node('span','','walk-value');walkValue.setAttribute('aria-hidden','true');
+  const walkRange=node('input');walkRange.type='range';walkRange.min='10';walkRange.max='60';walkRange.step='5';walkRange.id='walk-range';walkRange.setAttribute('aria-label','전체 도보 제한(분), 60은 제한 없음');
+  walkHead.append(Object.assign(node('label','전체 도보 제한'),{htmlFor:'walk-range'}),walkValue);
+  const walkScale=node('div',undefined,'walk-scale');walkScale.setAttribute('aria-hidden','true');for(const t of ['10분','20분','35분','60분 (무관)'])walkScale.append(node('span',t));
+  walkCard.append(walkHead,walkRange,walkScale);
+  walkRange.addEventListener('input',()=>{const v=Number(walkRange.value);setValue('max_walk',v>=60?'':v);});
+  const legCard=node('div',undefined,'detail-card');const legLabel=take('max_leg');if(legLabel){legLabel.firstChild.textContent='구간당 최대 이동 시간 (분)';legCard.append(legLabel);}
+  row2.append(walkCard,legCard);
+  const walkInput=take('max_walk');  // 숫자 칸은 '더 많은 조건'으로(슬라이더가 못 고르는 값 — 예: 12분 — 을 직접 넣을 때).
+  // 줄 3: 귀가 · 예약 토글 카드. 귀가를 켜면 귀가지(지도·주소)를 고르는 칸이 함께 필요하다(app.js 가 return_home 이면 home 위치를 싣는다).
+  const row3=node('div',undefined,'field-grid detail-row detail-toggles');
+  for(const [name,title,sub] of [['return_home','귀가 시간 · 교통비 포함','종료 시각 기준 귀가 동선까지 계산해요'],['reservation','예약 필요 장소 허용','인기 다이닝·원데이 클래스를 포함해요']]){
+    const label=take(name);if(!label)continue;
+    const input=label.querySelector('input');label.replaceChildren(node('span',undefined,'toggle-text'),input);
+    label.firstChild.append(node('strong',title),node('small',sub));label.classList.add('toggle-card');row3.append(label);
+  }
+  const homeHost=document.getElementById('home-location');
+  // 줄 4: 피할 활동 · MBTI.
+  const row4=node('div',undefined,'field-grid detail-row');
+  const avoid=take('avoid');if(avoid)row4.append(avoid);
+  const mbtiBox=node('div',undefined,'detail-mbti');for(const name of ['mbti','use_mbti']){const label=take(name);if(label)mbtiBox.append(label);}
+  row4.append(mbtiBox);
+  optional.append(row1,row2,row3);if(homeHost)optional.append(homeHost);optional.append(row4);
+  // 더 많은 조건: 정확한 전체 예산(원)·테마 구성·체류·식사·여유·지난 반응·새 장소·필수 조건·가격 추정.
+  const more=node('details',undefined,'detail-more');more.append(node('summary','더 많은 조건'));
+  const moreGrid=node('div',undefined,'field-grid');
+  const budgetLabel=take('budget');if(budgetLabel){budgetLabel.firstChild.textContent='전체 예산 (원, 일행 합계)';moreGrid.append(budgetLabel);}
+  for(const name of ['theme_mode','stay_minutes']){const label=take(name);if(label)moreGrid.append(label);}
+  if(walkInput){walkInput.firstChild.textContent='전체 도보 제한 (분, 직접 입력)';moreGrid.append(walkInput);}
+  more.append(moreGrid);
+  const preview=document.querySelector('.price-input-preview');if(preview)more.append(preview);
+  more.append(take('include_meal'));
+  const feedback=take('use_feedback');if(feedback)more.append(feedback);
+  const fresh=take('fresh_one');if(fresh)more.append(fresh);
   const buffer=node('label','이동 구간별 여유시간'),bufferSelect=node('select');bufferSelect.name='transition_buffer_minutes';
-  for(const [value,title] of [[0,'기본 · 추가 여유 없음'],[5,'구간마다 5분 여유'],[10,'느긋하게 · 구간마다 10분 여유']]){const option=node('option',title);option.value=value;bufferSelect.append(option);}buffer.append(bufferSelect);optional.append(buffer);
+  for(const [value,title] of [[0,'기본 · 추가 여유 없음'],[5,'구간마다 5분 여유'],[10,'느긋하게 · 구간마다 10분 여유']]){const option=node('option',title);option.value=value;bufferSelect.append(option);}buffer.append(bufferSelect);more.append(buffer);
   const hard=retained.querySelector('.experience-controls details');
-  if(hard)optional.append(hard);
-  const limits=node('details');limits.append(node('summary','이동 제한·가격 추정 설정'));
-  for(const name of ['max_leg','max_walk','allow_price_estimates']){const label=take(name);if(label)limits.append(label);}
-  optional.append(limits);
-  PlanningStudy.mount(optional);
-  form.append(optional,document.getElementById('submit-plan'),node('p','조건에 맞는 후보가 부족하면 범위를 넓혀 찾고, 바뀐 조건을 알려드려요. 비용·이동 시간은 추정이 포함될 수 있어요.','hint'));
-  // 자동으로 정하는 값. MBTI 는 이제 상세 조건에서 사용자가 고르므로 비우지 않는다(2026-11-24 UX P0).
+  if(hard)more.append(hard);
+  const estimates=take('allow_price_estimates');if(estimates)more.append(estimates);
+  optional.append(more);
+  PlanningStudy.mount(more);
+  const submit=document.getElementById('submit-plan');submit.textContent='3가지 맞춤 코스 비교하기 →';
+  form.append(optional,submit,node('p','조건에 맞는 후보가 부족하면 범위를 넓혀 찾고, 바뀐 조건을 알려드려요. 비용·이동 시간은 추정이 포함될 수 있어요.','hint'),
+    button('내가 결정한 코스 다시 보기',()=>PlanningStudy.showDecisions(),'secondary saved-decisions'));
+  // 자동으로 정하는 값. MBTI 는 상세 조건에서 사용자가 고르므로 비우지 않는다(2026-11-24 UX P0).
   form.elements.trust_mode.value='balanced';
   retained.querySelectorAll('[required]').forEach(input=>input.required=false);
+  // 상세 조건 안의 칸이 잘못되면(예: 인원 0) 접힘을 펼쳐 바로 고칠 수 있게 한다.
+  form.addEventListener('invalid',event=>{if(optional.contains(event.target))optional.open=true;},true);
   // 상세 조건 요약 배지. 기본값과 다른 것만 이 순서로 센다(앞 두 개를 보여 주고 나머지는 '외 N건').
-  const DETAIL_DEFAULTS={setting:'any',theme_mode:'mix',stay_minutes:'60',max_leg:'30',transition_buffer_minutes:'0'};
+  const DETAIL_DEFAULTS={setting:'any',theme_mode:'mix',stay_minutes:'60',max_leg:'30',transition_buffer_minutes:'0',people:'2',count:'3'};
   function detailSummary(){
     const f=form.elements,parts=[];
     if(f.max_walk?.value)parts.push(`도보 ${f.max_walk.value}분 제한`);
     if(f.setting&&f.setting.value!==DETAIL_DEFAULTS.setting)parts.push({indoor:'실내만',outdoor:'실외만'}[f.setting.value]||f.setting.selectedOptions[0]?.textContent);
+    if(f.people&&f.people.value!==DETAIL_DEFAULTS.people)parts.push(`${f.people.value}명`);
+    if(f.count&&f.count.value!==DETAIL_DEFAULTS.count)parts.push(`${f.count.value}곳`);
     if(f.avoid?.value.trim())parts.push(`피할 활동 ${f.avoid.value.trim()}`);
     if(f.max_leg&&f.max_leg.value!==DETAIL_DEFAULTS.max_leg)parts.push(`구간 이동 ${f.max_leg.value}분까지`);
     if(f.theme_mode&&f.theme_mode.value!==DETAIL_DEFAULTS.theme_mode)parts.push(f.theme_mode.selectedOptions[0]?.textContent||'테마 집중');
@@ -387,7 +437,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(f.return_home?.checked)parts.push('귀가 포함');
     if(f.use_mbti?.checked&&f.mbti?.value)parts.push(`MBTI ${f.mbti.value.toUpperCase()}`);
     if(f.include_meal&&!f.include_meal.checked)parts.push('식사 빼기');
-    // 상황 테마가 채운 분류(숨긴 체크박스 themes, theme-cards.js)도 배지에 보인다 — 화면에 체크박스가 없어 여기서만 알 수 있다.
+    // 상황 테마가 채운 분류(숨긴 체크박스 themes, theme-cards.js)도 배지에 보인다 — 활동 칩과 같은 값이다.
     const themes=[...form.querySelectorAll('[name=themes]:checked')].map(input=>input.value);
     if(themes.length)parts.push('분류 '+themes.join('·'));
     const shown=parts.slice(0,2).join(', ')+(parts.length>2?` 외 ${parts.length-2}건`:'');
@@ -397,6 +447,30 @@ document.addEventListener('DOMContentLoaded',()=>{
   for(const type of ['input','change'])optional.addEventListener(type,detailSummary);
   form.addEventListener('change',()=>setTimeout(detailSummary));
   detailSummary();
+
+  function budgetText(value,free=false){if(free)return '예산 무관';const n=Number(value);if(value===''||!Number.isFinite(n))return '예산 미정';return won(n);}
+  const transportText=value=>[...form.elements.transport.options].find(option=>option.value===value)?.textContent||value;
+  function refresh(){
+    const f=form.elements,origin=locationState.origin;
+    syncOrigin();
+    for(const item of areaChips){const spot=item.spot;
+      item.setAttribute('aria-pressed',String(Boolean(origin&&origin.name===spot.origin&&Math.abs(origin.lat-spot.lat)<1e-6&&Math.abs(origin.lon-spot.lon)<1e-6)));}
+    if(origin&&regionSelect.value&&regionSelect.value!==f.region.value)regionSelect.value=f.region.value;
+    for(const item of activityChips)item.setAttribute('aria-pressed',String(Boolean(form.querySelector(`[name=themes][value="${item.dataset.theme}"]`)?.checked)));
+    for(const item of transportChips)item.setAttribute('aria-pressed',String(item.dataset.transport===f.transport.value));
+    for(const item of settingChips)item.setAttribute('aria-pressed',String(item.dataset.setting===f.setting.value));
+    // 도보 슬라이더 ↔ max_walk(빈칸 = 제한 없음). 슬라이더가 못 고르는 값(예: 12)은 가장 가까운 칸에 두고 글자는 실제 값.
+    const walk=f.max_walk.value===''?60:Math.min(60,Math.max(10,Math.round(Number(f.max_walk.value)/5)*5));
+    if(document.activeElement!==walkRange)walkRange.value=String(walk);
+    walkValue.textContent=f.max_walk.value===''?'제한 없음':`${f.max_walk.value}분 이하`;
+    // 예산 칩: 합계가 '1인 상한 × 인원'과 같은 칩. 마지막으로 누른 칩이 있으면 그 칩(합계가 같은 칩이 둘일 수 있다).
+    const free=Boolean(unlimited?.checked),total=Number(f.budget.value),count=people();
+    const match=free?null:(budgetChips.find(item=>item.per===tier&&item.per*count===total)||budgetChips.find(item=>item.per*count===total));
+    for(const item of budgetChips){item.setAttribute('aria-pressed',String(item===match));item.disabled=free;}
+    const note=free?'예산 상한 없이 코스를 찾아요.':match?`1인 ${won(match.per)}까지 · ${count}명 합계 ${won(total)}으로 찾아요.`
+      :Number.isFinite(total)&&f.budget.value!==''?`전체 예산 ${won(total)}(직접 입력) · 1인 약 ${won(Math.round(total/count/1000)*1000)}`:'예산을 골라 주세요.';
+    if(budgetNote.textContent!==note)budgetNote.textContent=note;
+  }
 
   // 다시 온 사용자는 맨 위 ‘지난번처럼 추천’ 한 번으로 같은 조건(날짜는 오늘)으로 추천받는다.
   function savedText(saved){
@@ -422,18 +496,17 @@ document.addEventListener('DOMContentLoaded',()=>{
     applyArea(saved.region,saved.origin);
     setValue('visit_date',today());
     for(const name of ['start','end','budget','people','count','transport'])setValue(name,saved[name]);
-    setUnlimited(saved.budget_unlimited===true);
+    setUnlimited(saved.budget_unlimited===true);tier=null;
     let note='';
     if(startPassed(saved.start)){setValue('visit_date',dayAfter(1));note=' 오늘은 시작 시각이 지나 내일로 맞췄어요.';}
-    manual.date=manual.time=manual.budget=false;
-    for(const set of [dates,times,budgets])announce(set,'');
+    whenNote.textContent='';
     refresh();
     document.getElementById('parse-notice').textContent='지난번 조건으로 추천해요.'+note;
     form.requestSubmit();
   }
   LastConditions.changed=renderAgain;renderAgain();
 
-  // 다른 화면(테마 카드·지도 창·축제)이 값을 바꾼 뒤에도 요약과 칩 상태를 맞춘다.
+  // 다른 화면(테마 카드·지도 창·축제)이 값을 바꾼 뒤에도 칩 상태를 맞춘다.
   for(const type of ['input','change','submit'])form.addEventListener(type,()=>setTimeout(refresh));
   document.addEventListener('click',()=>setTimeout(refresh));
   document.getElementById('dialog').addEventListener('close',()=>setTimeout(refresh));

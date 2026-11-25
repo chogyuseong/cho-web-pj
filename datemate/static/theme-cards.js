@@ -35,7 +35,7 @@ const SITUATION_THEMES=[
   {key:'after-work',badge:'평일 저녁',icon:'moon',tone:'dusk',title:'퇴근 후 3시간 · 저녁 & 야경',copy:'짧지만 알차게, 분위기 좋은 식사와 야경 산책',tags:['#18:30~21:30','#저녁·야경'],
     values:{start:'18:30',end:'21:30',count:2,themes:['카페·미식','산책·풍경']}},
   {key:'anniversary',badge:'기념일 · 스페셜',icon:'star',tone:'berry',title:'오늘은 특별하게 · 기념일',copy:'예약 가능한 다이닝과 전시로 완성하는 근사한 하루',tags:['#예약 가능','#10만원대'],
-    values:{reservation:true,count:3,meeting_type:'anniversary',budget_per_person:200000,themes:['카페·미식','문화·예술']}},
+    values:{reservation:true,count:3,meeting_type:'anniversary',budget_per_person:100000,themes:['카페·미식','문화·예술']}},
   {key:'rest',badge:'저체력 힐링',icon:'clock',tone:'lagoon',title:'최소 도보 · 느긋한 휴식',copy:'구두 신어도 편하게, 한 공간에서 오래 쉬는 코스',tags:['#도보 10분 제한','#여유 체류'],
     values:{max_walk:10,stay_minutes:120,count:2,themes:['휴식·힐링','카페·미식','산책·풍경','문화·예술']}}
 ];
@@ -312,6 +312,8 @@ const ThemePresets=(()=>{
     if(!text){input.focus();toast('원하는 데이트를 한 줄로 적어 주세요.');return;}
     if(!ready())return;
     const request=form.elements.request;request.value=text;request.dispatchEvent(new Event('input',{bubbles:true}));
+    // 조건 화면의 한 줄 요청은 접힘(simple-form.js .simple-dream) 안에 있다 — 해석 결과(이렇게 이해했어요)가 보이게 펼친다.
+    const dreamBox=document.querySelector('details.simple-dream');if(dreamBox)dreamBox.open=true;
     document.getElementById('nav-plan').click();
     document.getElementById('parse').click();
     requestAnimationFrame(()=>{

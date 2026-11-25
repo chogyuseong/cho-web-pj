@@ -62,6 +62,8 @@ def test_real_plan_assets_and_map_fallback():
             photo=page.locator('.timeline-card .place-photo img').first
             playwright.expect(photo).to_be_visible(timeout=15000)
             assert photo.evaluate('img=>img.naturalWidth>0')
+            # 2026-11-25 시안: 추천 이유·메뉴·블로그는 장소 카드의 접힌 '방문 팁 & 블로그 요약'(.stop-tips) 안에 있다.
+            page.locator('.timeline-card .stop-tips>summary').first.click()
             menu=page.locator('.timeline-card .restaurant-menu').first
             menu.scroll_into_view_if_needed()
             playwright.expect(menu.locator('.menu-price-row')).to_have_count(1)

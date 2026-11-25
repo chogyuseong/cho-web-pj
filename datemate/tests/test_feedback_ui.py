@@ -157,6 +157,8 @@ def test_source_urls_become_named_buttons_and_print_keeps_address(audit_page):
 def test_place_evidence_uses_plain_words_and_status_badges(audit_page):
     page, base, errors = audit_page
     generate(page)
+    # 2026-11-25 시안: 추천 이유·메뉴·블로그는 장소 카드의 접힌 '방문 팁 & 블로그 요약'(.stop-tips) 안에 있다.
+    page.locator('#plan-detail .stop-tips>summary').first.click()
     evidence = page.locator('#plan-detail .place-evidence').first
     evidence.locator('summary').click()
     items = evidence.locator('.evidence-item')

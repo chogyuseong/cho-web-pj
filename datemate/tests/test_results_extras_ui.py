@@ -203,6 +203,8 @@ def test_blog_panel_loading_and_results(audit_page, width):
     page.route('**/api/places/*/blogs?*', lambda route: held.append(route))
     real_results(page, base)
     # 일정 카드의 첫 번째 블로그 패널
+    # 2026-11-25 시안: 추천 이유·메뉴·블로그는 장소 카드의 접힌 '방문 팁 & 블로그 요약'(.stop-tips) 안에 있다.
+    page.locator('.timeline-card .stop-tips>summary').first.click()
     panel = page.locator('.timeline-card .place-blogs').first
     panel.locator('summary').click()
     content = panel.locator('.place-blog-content')
@@ -268,6 +270,8 @@ def test_blog_panel_empty_and_error_states(audit_page):
         return route.fulfill(json={'posts': [], 'message': '관련 후기를 찾지 못했어요.'})
     page.route('**/api/places/*/blogs?*', blogs)
     real_results(page, base)
+    # 2026-11-25 시안: 추천 이유·메뉴·블로그는 장소 카드의 접힌 '방문 팁 & 블로그 요약'(.stop-tips) 안에 있다.
+    page.locator('.timeline-card .stop-tips>summary').first.click()
     panel = page.locator('.timeline-card .place-blogs').first
     panel.locator('summary').click()
     content = panel.locator('.place-blog-content')

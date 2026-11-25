@@ -41,6 +41,8 @@ PLAN_ROUTES = {
     ('GET', '/api/plans/{pid}/agreement'): None,
     ('POST', '/api/plans/{pid}/agreement'): {'choices': {}},
     ('POST', '/api/plans/{pid}/agreement-preview'): {},
+    # 점검 S4: 주인이 상대 자리를 비운다(experience_api.reset_partner — load 로 소유자만).
+    ('DELETE', '/api/plans/{pid}/agreement/partner'): None,
     ('GET', '/api/plans/{pid}/delay-check'): None,
     ('POST', '/api/plans/{pid}/delay-recovery'): {'index': 0, 'minutes': 10, 'target': 0},
     ('GET', '/api/plans/{pid}/decision'): None,

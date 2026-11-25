@@ -183,7 +183,7 @@
    공통 규칙을 이기던 값을 그대로 둔 것이다(5-5 에서 공통 규칙을 정리하면 뗄 수 있다). */
 .detail .stop-number { position:absolute; top:0; right:auto; left:calc(var(--time) + var(--rail) / 2 - 17px); z-index:1; order:0;
   display:grid; place-items:center; width:34px; height:34px; box-sizing:border-box; border:3px solid var(--hong); border-radius:50%; box-shadow:none;
-  font-family:var(--font-head); font-size:15px; font-weight:800; background:#fff!important; color:var(--hong)!important; }
+  font-family:var(--font-head); font-size:15px; font-weight:800; background:#fff; color:var(--hong); }
 @media(max-width:800px) { .detail .stop-number { top:0; left:calc(var(--rail) / 2 - 17px); } }
 
 /* 내용 칸 */

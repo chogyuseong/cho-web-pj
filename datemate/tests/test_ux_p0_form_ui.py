@@ -1,7 +1,7 @@
 """P0-2 코스 만들기 폼 다듬기 (2026-11-24 사용자 요구 'UX 개선 P0').
 
 - 맨 위: '어떤 데이트를 꿈꾸나요?' 자연어 입력 + 상황 예시 칩(누르면 그 문장으로 채움) + '이 마음으로 조건 채우기'.
-- 그 아래 지역(필수) → 기본 조건 한 줄(날짜·시간·예산·교통, '바꾸기') → '상세 조건 더보기'(접힘).
+- 그 아래 지역(필수) → 날짜·시간·예산·교통(칸이 바로 보임, 2026-11-25 시안) → '상세 조건 더보기'(접힘).
 - 상세 조건에는 예전에 화면에서 숨어 있던 것까지 모두: 테마 구성, 실내·실외, 피할 활동, 예약, 귀가 포함, MBTI, 체류 시간, 구간당 최대 이동, 전체 도보 제한.
 - 상세 조건을 하나라도 바꾸면 머리글에 '상세 조건 설정됨 · …' 요약이 붙는다.
 """
@@ -9,18 +9,22 @@ import pytest
 
 from test_functional_audit import audit_page, generate  # noqa: F401  (fixture)
 
-DETAIL_FIELDS = ('theme_mode', 'setting', 'avoid', 'reservation', 'return_home', 'mbti', 'use_mbti', 'stay_minutes', 'max_leg', 'max_walk')
+# 2026-11-25 시안: 실내·실외(setting)는 숨은 select 를 세 칸 칩 막대로 꺼내 보이므로 아래에서 칩 묶음으로 따로 확인한다.
+DETAIL_FIELDS = ('theme_mode', 'avoid', 'reservation', 'return_home', 'mbti', 'use_mbti', 'stay_minutes', 'max_leg', 'max_walk')
 
 
 def test_dream_box_comes_first_with_scenario_chips(audit_page):  # noqa: F811
     page, _, _ = audit_page
     page.locator('#nav-plan').click()
     order = page.evaluate("""()=>{
-      const dream=document.querySelector('#conditions .simple-dream'),area=[...document.querySelectorAll('#conditions .simple-form-group')].find(g=>g.textContent.includes('어디에서 만날까요'));
+      const dream=document.querySelector('#conditions .simple-dream'),area=[...document.querySelectorAll('#conditions .simple-form-group')].find(g=>g.textContent.includes('지역 선택'));
       return [!!dream,!!area,!!(dream&&area&&(dream.compareDocumentPosition(area)&Node.DOCUMENT_POSITION_FOLLOWING))];
     }""")
     assert order == [True, True, True], order
     dream = page.locator('#conditions .simple-dream')
+    # 2026-11-25 시안: 한 줄 요청은 접힘(요약 '한 줄로 적어서 조건 채우기 (선택)') 안에 있어 먼저 펼친다.
+    assert dream.evaluate('d=>!d.open') and '한 줄로 적어서 조건 채우기' in dream.locator(':scope>summary').inner_text()
+    dream.locator(':scope>summary').click()
     assert '어떤 데이트를 꿈꾸나요?' in dream.inner_text()
     assert page.locator('#parse').inner_text() == '이 마음으로 조건 채우기'
     dream.get_by_role('button', name='비 오는 날 성수 실내 데이트', exact=True).click()
@@ -41,6 +45,7 @@ def test_details_hold_every_advanced_filter_and_summarise_changes(audit_page):  
     inside = page.evaluate(f"""()=>{list(DETAIL_FIELDS)}.map(n=>{{const el=form.elements[n];const d=el&&el.closest('details.simple-extra-options');
       return [n,!!d,!!el&&el.getClientRects().length>0||(el&&el.closest('details:not([open])')!==null)];}})""")
     assert all(row[1] for row in inside), inside
+    assert details.get_by_role('group', name='실내 · 실외 비중').get_by_role('button', name='실내만', exact=True).is_visible()
     page.evaluate("""()=>{
       const set=(n,v)=>{const el=form.elements[n];if(el.type==='checkbox')el.checked=v;else el.value=v;el.dispatchEvent(new Event('change',{bubbles:true}));};
       set('max_walk','30');set('setting','indoor');set('avoid','클라이밍');

@@ -29,7 +29,9 @@ def test_phone_header_compacts_and_buttons_line_up(audit_page):
     page.wait_for_function("document.querySelector('body>header').classList.contains('is-compact')")
     page.wait_for_timeout(200)
     short = page.evaluate("document.querySelector('body>header').getBoundingClientRect().height")
-    assert short < tall
+    # 2026-11-25 시안 머리글: 휴대폰에서는 메뉴가 하단 바로 빠져 머리글이 처음부터 한 줄(71px)이라 더 낮아지지 않는다.
+    # 낮아지지 않아도 되지만 커지면 안 되고, 높이 변수는 실제 높이와 맞아야 한다.
+    assert short <= tall <= 80, (short, tall)
     assert page.evaluate("parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--site-header-height'))") == round(short + .49)
     # 같은 폭 2열: 장소 단추 줄의 첫 두 단추와 당일 도구 두 단추.
     for selector in ('#plan-detail .stop .actions', '#plan-detail .day-of-actions'):

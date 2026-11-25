@@ -341,19 +341,19 @@ main .hero .hero-pill { font-size:14px!important; }
 .line-name { font-family:var(--font-head); font-weight:800; letter-spacing:0; color:var(--ink); }
 #parse { background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; border-radius:10px; font-weight:600; box-shadow:none!important; }
 #parse:hover { border-color:var(--ink)!important; background:#fff!important; }
-.quick-chip { border-radius:999px!important; }
+.quick-chip { border-radius:999px; }
 .simple-activity-ideas button { border-radius:999px!important; }
 .conditions .simple-activity-ideas button { border-radius:999px!important; }
 .date-subcategories span { border-radius:999px!important; }
 .field-requirement { border-radius:999px!important; }
-.quick-chip { background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; font-weight:600; }
+.quick-chip { background:#fff; color:var(--ink); border:1px solid var(--line); font-weight:600; }
 .simple-activity-ideas button { background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; font-weight:600; }
 .conditions .simple-activity-ideas button { background:#fff!important; color:var(--ink)!important; border:1px solid var(--line)!important; font-weight:600; }
-.quick-chip:hover { border-color:var(--ink)!important; }
+.quick-chip:hover { border-color:var(--ink); }
 .simple-activity-ideas button:hover { border-color:var(--ink)!important; }
-.quick-chip[aria-pressed=true] { background:var(--hong)!important; border-color:var(--hong)!important; color:#fff!important; text-decoration:underline; text-underline-offset:4px; box-shadow:none; }
-.quick-chip:disabled { background:var(--platform)!important; color:var(--muted)!important; border-style:dashed!important; }
-.quick-chip.current-location { border-style:dashed!important; }
+.quick-chip[aria-pressed=true] { background:var(--hong); border-color:var(--hong); color:#fff; text-decoration:underline; text-underline-offset:4px; box-shadow:none; }
+.quick-chip:disabled { background:var(--platform); color:var(--muted); border-style:dashed; }
+.quick-chip.current-location { border-style:dashed; }
 .date-category-tabs { background:var(--platform); border-radius:10px; }
 .date-category-tab[aria-pressed=true] { background:var(--hong)!important; color:#fff!important; border-color:var(--hong)!important; box-shadow:none; }
 .date-subcategories input:checked+span { background:var(--hong)!important; color:#fff!important; border-color:var(--hong)!important; box-shadow:none; }

@@ -35,10 +35,9 @@ def test_input_result_share_and_mobile_flow(tmp_path):
             assert page.locator('.conditions').is_visible()
             assert not page.locator('.results-area').is_visible()
             page.evaluate("form.elements.mode.value='demo';form.elements.mode.dispatchEvent(new Event('change',{bubbles:true}));form.elements.visit_date.value='2026-10-24';form.elements.max_leg.value=180;")
+            # 2026-11-25 시안: 한 줄 요청은 접힘(.simple-dream), 전체 예산 칸은 ‘상세 조건 더보기’ → ‘더 많은 조건’ 안에 있어 모두 펼친다.
+            page.evaluate("document.querySelector('.simple-dream').open=true;document.querySelector('details.simple-extra-options').open=true;document.querySelector('details.detail-more').open=true")
             page.locator('[name=request]').fill('2명 5만원')
-            # 예산 입력칸은 ‘바꾸기’ → 예산 ‘직접’을 눌러야 보인다.
-            page.locator('.condition-toggle').click()
-            page.locator('#condition-details').get_by_role('group',name='전체 예산').get_by_role('button',name='직접',exact=True).click()
             page.locator('[name=budget]').fill('80000')
             page.locator('[name=budget]').press('Tab')
             page.locator('#submit-plan').click()

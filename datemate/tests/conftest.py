@@ -45,6 +45,33 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import pytest
 from app import store
 
+
+# 2026-11-25 상세 결과 시안: 시안에 없는 기능(수단 바꾸기·지각 확인·순서 제안·비용표·결정·공유·레저·질문·후기)은 접힌 칸 두 개
+# (static/plan-detail.js planMoreFold, 키 PLAN_MORE_KEY·PLAN_EXTRAS_KEY)에 모였다. 펼침 여부는 브라우저 localStorage 에 기억한다.
+# 예전 화면 테스트 수백 개가 그 안의 단추를 바로 누르므로, 모든 브라우저 페이지에 '펼침'을 미리 넣는다.
+# 기본(접힘)을 보는 테스트는 sessionStorage 'datemate-test-folds' 를 'default' 로 두면 이 값을 넣지 않는다(tests/test_plan_more_ui.py).
+# 피드백 화면(/feedback…)은 저장소를 쓰지 않는지 시험하므로 넣지 않는다(test_user_feedback_ui).
+PLAN_FOLDS_OPEN = """try{if(sessionStorage.getItem('datemate-test-folds')!=='default'&&!location.pathname.startsWith('/feedback')){
+localStorage.setItem('datemate:plan-more','open');localStorage.setItem('datemate:plan-extras-more','open');}}catch(e){}"""
+try:
+    from playwright.sync_api import Browser as _Browser
+
+    _new_context, _new_page = _Browser.new_context, _Browser.new_page
+
+    def _context_with_folds(self, *args, **kwargs):
+        context = _new_context(self, *args, **kwargs)
+        context.add_init_script(PLAN_FOLDS_OPEN)
+        return context
+
+    def _page_with_folds(self, *args, **kwargs):
+        page = _new_page(self, *args, **kwargs)
+        page.add_init_script(PLAN_FOLDS_OPEN)
+        return page
+
+    _Browser.new_context, _Browser.new_page = _context_with_folds, _page_with_folds
+except ImportError:  # 브라우저 도구가 없는 환경(단위 테스트만)
+    pass
+
 @pytest.fixture(autouse=True)
 def storage():
     store.init()

@@ -9,16 +9,20 @@ def test_stop_card_reads_name_then_one_summary_line(audit_page):
     generate(page)
     card = page.evaluate("""()=>{const c=document.querySelector('#plan-detail .timeline-card');
       const kids=[...c.children].map(e=>e.tagName+(e.className?'.'+e.className.split(' ')[0]:''));
-      const meta=c.querySelector('.stop-meta');
-      return {first:kids[0],second:kids[1],meta:meta.innerText,source:!!c.querySelector('details.stop-source:not([open]) p.hint'),
+      const head=c.querySelector(':scope>.stop-head');
+      return {kids:kids.slice(0,4),head:head.innerText,tags:[...head.querySelectorAll('.stop-tag')].map(t=>t.innerText),
+        price:c.querySelector(':scope>.stop-price')?.innerText||'',source:!!c.querySelector('details.stop-tips:not([open]) details.stop-source p.hint'),
         nameSize:parseFloat(getComputedStyle(c.querySelector('h4')).fontSize),
         dupTime:[...c.querySelectorAll(':scope > .small')].length};}""")
-    assert card['first'] == 'H4' and card['second'] == 'P.stop-meta', card
-    assert '분 머묾' in card['meta'] and '2인' in card['meta'], card
+    # 2026-11-25 상세 결과 시안: 위 줄(.stop-head: 번호 · 시각 '도착 – 떠남' · (머무는 분) · 분류·실내/실외 태그) → 아이콘 타일 → 이름 → 주소,
+    # 비용은 오른쪽 가격(.stop-price). 근거 문장(정보 출처)은 접힌 '방문 팁 & 블로그 요약' 안.
+    assert card['kids'] == ['DIV.stop-head', 'SPAN.stop-kind', 'H4', 'P.stop-address'], card
+    assert '– ' in card['head'] and '분)' in card['head'] and card['tags'][0], card
+    assert '2인' in card['price'], card
     assert card['source'] and card['dupTime'] == 0, card
     assert card['nameSize'] >= 20, card
-    # 비용·머무는 시간은 줄 중간에서 끊기지 않는다.
-    assert page.evaluate("getComputedStyle(document.querySelector('#plan-detail .stop-meta .stop-cost')).whiteSpace") == 'nowrap'
+    # 비용은 줄 중간에서 끊기지 않는다.
+    assert page.evaluate("getComputedStyle(document.querySelector('#plan-detail .stop-price .stop-cost')).whiteSpace") == 'nowrap'
     assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
 
 
@@ -100,12 +104,13 @@ def test_selected_course_card_keeps_only_what_the_tabs_do_not_show(audit_page):
 
 
 def test_phone_header_is_one_compact_block(audit_page):
-    """가독성 3단계: 휴대폰 헤더는 여백을 줄이고 메뉴를 한 줄로 둬 120px 아래(전 390px 124px, 320px 172px). 보조 문구는 남긴다."""
+    """가독성 3단계: 휴대폰 헤더는 여백을 줄이고 메뉴를 한 줄로 둬 120px 아래(전 390px 124px, 320px 172px). 보조 문구는 남긴다.
+    2026-11-25 시안: 숨겨진 메뉴 칸(휴대폰의 피드백)은 줄 수에서 뺀다. 보조 문구는 .brand-sub(DATEMATE)."""
     page, base, errors = audit_page
     for width in (390, 320):
         page.set_viewport_size({'width': width, 'height': 700})
-        state = page.evaluate("""()=>{const h=document.querySelector('body > header'),n=h.querySelector('nav'),items=[...n.children];
-          return {height:h.getBoundingClientRect().height,tagline:getComputedStyle(h.querySelector('.brand-tagline')).display,
+        state = page.evaluate("""()=>{const h=document.querySelector('body > header'),n=h.querySelector('nav'),items=[...n.children].filter(i=>i.getClientRects().length);
+          return {height:h.getBoundingClientRect().height,tagline:getComputedStyle(h.querySelector('.brand-name')).display,
             rows:new Set(items.map(i=>Math.round(i.getBoundingClientRect().top))).size,overflow:document.documentElement.scrollWidth>innerWidth};}""")
         assert state['height'] <= 120 and state['tagline'] != 'none' and state['rows'] == 1 and not state['overflow'], (width, state)
 

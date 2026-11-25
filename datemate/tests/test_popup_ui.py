@@ -160,12 +160,13 @@ def test_popup_browse_shows_one_untouched_naver_block_and_its_states(audit_page)
     )
     open_popups(page)
     page.wait_for_selector(".popup-post")
-    # 처음 열면 장소 둘러보기의 시·도로 한 번 찾는다. 헤더 메뉴는 그대로 4개.
+    # 처음 열면 장소 둘러보기의 시·도로 한 번 찾는다. 헤더 메뉴 칸 수는 그대로(2026-11-25 시안: 코스 만들기·테마·둘러보기·코스 결과·피드백 5개 —
+    # 결과·피드백은 화면 폭에 따라 하나만 보인다). 팝업이 메뉴 칸을 새로 만들지 않는지 본다.
     assert api.requests[0] == dict(region="부산", q="")
     assert page.locator("#explore-places").is_hidden()
     assert page.locator("#explore-switch-popups").get_attribute("aria-pressed") == "true"
     assert page.locator("#explore-section h2").inner_text() == "팝업스토어 둘러보기"
-    assert page.locator("body>header nav>*").count() == 4
+    assert page.locator("body>header nav>*").count() == 5
     # 어떤 검색어의 결과인지와 받은 건수를 그대로 적는다.
     assert page.locator("#popup-status").inner_text() == f"네이버 블로그 검색 ‘{QUERY}’ · 정확도순 4건"
     # 왜 기간·장소가 없는지는 블록 밖 한 줄로.

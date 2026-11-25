@@ -23,8 +23,12 @@ def test_desktop_header_is_a_centered_pill_menu(audit_page):
     # 가운데 정렬(브랜드 쪽으로 치우치지 않는다), 고른 메뉴는 진한 알약.
     center = box['x'] + box['width'] / 2
     assert abs(center - 640) < 120, box
-    active = page.locator('#nav-plan')
-    assert active.evaluate("e=>getComputedStyle(e).backgroundColor") == 'rgb(17, 24, 39)'
+    # 2026-11-25 시안: 데스크톱 메뉴는 코스 만들기·테마 추천·장소 둘러보기·피드백(코스 결과 칸은 휴대폰 하단 바에서만 보인다).
+    # 첫 화면은 '테마 추천'(#nav-home)이 고른 메뉴이고, 고른 메뉴는 흰 알약 + 그림자다(redesign.css 2-1).
+    assert page.locator('body > header nav > :is(a,button)').evaluate_all("l=>l.filter(e=>e.getClientRects().length).map(e=>e.textContent.trim())") == ['코스 만들기', '테마 추천', '장소 둘러보기', '피드백']
+    active = page.locator('#nav-home')
+    assert active.get_attribute('aria-current') == 'true'
+    assert active.evaluate("e=>getComputedStyle(e).backgroundColor") == 'rgb(255, 255, 255)'
     assert float(active.evaluate("e=>parseFloat(getComputedStyle(e).borderTopLeftRadius)")) >= 20
     assert page.locator('body > header').evaluate("e=>getComputedStyle(e).position") == 'sticky'
 
@@ -34,9 +38,14 @@ def test_phone_menu_is_a_bottom_bar(audit_page, width):
     page, _, _ = audit_page
     page.set_viewport_size({'width': width, 'height': 740})
     ready(page)
-    items = page.locator('body > header nav > :is(a,button)')
-    assert items.count() == 4
-    boxes = [item.bounding_box() for item in items.all()]
+    # 2026-11-25 시안: 하단 바 네 칸은 코스 만들기·테마 추천·코스 결과·장소 둘러보기(DOM 순서는 결과가 마지막이고 CSS order 로 셋째 칸). 피드백은 바닥글.
+    all_items = page.locator('body > header nav > :is(a,button)')
+    visible = [item for item in all_items.all() if item.is_visible()]
+    assert len(visible) == 4
+    visible.sort(key=lambda item: item.bounding_box()['x'])
+    assert [item.inner_text().strip() for item in visible] == ['코스 만들기', '테마 추천', '코스 결과', '장소 둘러보기']
+    items = page.locator('body > header nav > :is(a,button):visible')
+    boxes = [item.bounding_box() for item in visible]
     # 네 칸이 한 줄로 화면 아래에, 터치 높이 44px 이상.
     assert len({round(b['y']) for b in boxes}) == 1
     assert all(b['height'] >= 44 for b in boxes)
@@ -44,7 +53,7 @@ def test_phone_menu_is_a_bottom_bar(audit_page, width):
     # 스크롤해도 같은 자리.
     page.mouse.wheel(0, 1500)
     page.wait_for_timeout(300)
-    assert abs(items.first.bounding_box()['y'] - boxes[0]['y']) < 2
+    assert abs(visible[0].bounding_box()['y'] - boxes[0]['y']) < 2
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
     # 메뉴가 바에서도 동작한다.
     page.get_by_role('button', name='장소 둘러보기', exact=True).click()
@@ -101,8 +110,9 @@ def test_theme_cards_are_rounded_cards(audit_page):
     page, _, _ = audit_page
     page.set_viewport_size({'width': 1280, 'height': 900})
     card = page.locator('#curation-situation .curation-card').first
-    style = card.evaluate("e=>{const s=getComputedStyle(e);return [s.borderTopLeftRadius,s.backgroundColor,getComputedStyle(e,'::before').content]}")
-    assert style == ['20px', 'rgb(255, 255, 255)', 'none'], style
+    # 2026-11-25 시안: 진한 그라데이션 카드(흰 글자). ::before 는 글자 대비용 어두운 막(예전 노선 동그라미 크기·테두리는 지움).
+    style = card.evaluate("e=>{const s=getComputedStyle(e),b=getComputedStyle(e,'::before');return [s.borderTopLeftRadius,s.color,s.backgroundImage.includes('gradient'),b.borderTopWidth,b.width===s.width]}")
+    assert style == ['20px', 'rgb(255, 255, 255)', True, '0px', True], style
 
 
 @pytest.mark.parametrize('width', [375, 1280])

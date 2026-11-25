@@ -31,10 +31,12 @@ ALLOWED_PRINT_SHARED = {'#festival-origin-note', '#festival-section', '#plan-det
                         '.parking-panel', '.plan-card .stats'}
 # 2026-11-19 5-7 기준 파일별 !important 개수 상한(주석 안 글자는 세지 않음). 합계 318, 정리 전 326. 늘리지 말 것.
 IMPORTANT_LIMITS = {
-    'style.css': 4, 'shell.css': 32, 'readability.css': 1, 'line.css': 36, 'home.css': 88, 'results.css': 114,
+    'style.css': 4, 'shell.css': 32, 'readability.css': 1, 'line.css': 36, 'home.css': 76, 'results.css': 112,
     'place-photos.css': 27, 'plan-map.css': 9, 'popups.css': 1, 'shared.css': 3, 'location-picker.css': 0, 'feedback.css': 0,
     'server-wake.css': 0,
     # 리디자인 층(2026-11-24): !important 없이 뒤에 읽어 덮는다. line.css 는 휴대폰 메뉴 규칙 3개를 지워 39 → 36.
+    # 2026-11-25 시안 결과 화면: results.css 장소 번호 동그라미의 !important 2개를 빼 112(색은 redesign.css 10)).
+    # 2026-11-25 시안 코스 만들기 폼: home.css 의 빠른 칩(.quick-chip) 규칙 12개를 !important 없이 고쳐(칩 색은 redesign.css 9) 88 → 76.
     'redesign.css': 0,
 }
 NEW_FILES = ('results.css', 'home.css', 'place-photos.css', 'plan-map.css', 'shell.css', 'shared.css', 'redesign.css')

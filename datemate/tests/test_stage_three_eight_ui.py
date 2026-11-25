@@ -5,6 +5,8 @@ def test_buffer_feedback_and_nearby_replacements(audit_page):
     page,base,errors=audit_page
     page.evaluate("form.elements.count.value='2';form.elements.include_meal.checked=false;form.elements.request.value='';FormState.edited.clear()")
     page.locator('.simple-extra-options>summary').click()
+    # 2026-11-25 시안: 여유시간은 '세부 조건' 안의 '더 많은 조건'(details.detail-more) 안에 있다.
+    page.locator('.simple-extra-options .detail-more>summary').click()
     page.locator('[name=transition_buffer_minutes]').select_option('10')
     page.locator('[name=use_feedback]').check()
     generate(page)

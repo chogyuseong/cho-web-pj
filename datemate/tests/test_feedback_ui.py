@@ -17,13 +17,19 @@ def route_festivals(page, hours=None):
     page.route('**/api/festivals/*/detail', lambda route: route.fulfill(json=dict(status='available', fee='무료', hours=hours, place=None, checked_at='2026-10-24', message='')))
 
 
-def test_header_tagline_fits_mobile_without_overlapping_navigation(audit_page):
+def test_header_brand_fits_mobile_without_overlapping_navigation(audit_page):
+    # 2026-11-25 시안: 로고 글자는 '데이트메이트' + 작은 'DATEMATE'(.brand-sub, 스크린리더에는 숨김). 로고·메뉴·데이트/여행 스위치가 겹치지 않는다.
     page, base, errors = audit_page
-    assert page.locator('header .brand-tagline').inner_text() == '당신의 시간과 피로를 위해'
+    assert page.locator('header .brand-name').text_content() == '데이트메이트DateMate'
+    assert page.locator('header .brand-sub').get_attribute('aria-hidden') == 'true'
+    assert page.locator('header .brand').get_attribute('aria-label') == '데이트메이트 처음 화면'
     for width in (360, 390, 768, 1440):
         page.set_viewport_size({'width': width, 'height': 800})
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), width
-        boxes = page.evaluate('''()=>{const t=document.querySelector('header .brand-tagline').getBoundingClientRect(),n=document.querySelector('header nav').getBoundingClientRect();
+        switch = page.evaluate('''()=>{const t=document.querySelector('header .brand').getBoundingClientRect(),s=document.querySelector('#mode-switch').getBoundingClientRect();
+            return !(t.right<=s.left||s.right<=t.left||t.bottom<=s.top||s.bottom<=t.top)}''')
+        assert not switch, width
+        boxes = page.evaluate('''()=>{const t=document.querySelector('header .brand').getBoundingClientRect(),n=document.querySelector('header nav').getBoundingClientRect();
             return {overlap:!(t.right<=n.left||n.right<=t.left||t.bottom<=n.top||n.bottom<=t.top),right:t.right,width:innerWidth,visible:t.width>0}}''')
         assert boxes['visible'] and not boxes['overlap'] and boxes['right'] <= boxes['width'], (width, boxes)
 
@@ -151,6 +157,8 @@ def test_source_urls_become_named_buttons_and_print_keeps_address(audit_page):
 def test_place_evidence_uses_plain_words_and_status_badges(audit_page):
     page, base, errors = audit_page
     generate(page)
+    # 2026-11-25 시안: 추천 이유·메뉴·블로그는 장소 카드의 접힌 '방문 팁 & 블로그 요약'(.stop-tips) 안에 있다.
+    page.locator('#plan-detail .stop-tips>summary').first.click()
     evidence = page.locator('#plan-detail .place-evidence').first
     evidence.locator('summary').click()
     items = evidence.locator('.evidence-item')

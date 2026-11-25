@@ -37,8 +37,12 @@ SCREENS = {
     "explore": "장소 둘러보기",
     "other": "기타",
 }
-# The exact menu tab in static/index.html; removed from the home page when switched off.
-NAV_LINK = '<a id="nav-feedback" href="/feedback">피드백</a>'
+# The exact menu tab and footer link in static/index.html; both are removed from the home page when switched off.
+# 2026-11-25: the mockup header gave the tab an icon and class, and the old marker no longer matched, so switching off
+# left the tab in place. If either link's markup in index.html changes, change it here and in cloudflare/edge.mjs
+# (FEEDBACK_NAV_LINK, FEEDBACK_FOOTER_LINK) too; tests/test_user_feedback.py and test_edge_headers.py check all three match.
+NAV_LINK = '<a id="nav-feedback" class="nav-feedback" href="/feedback"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14v10H9l-4 4z"/></svg><span>피드백</span></a>'
+FOOTER_LINK = '<a class="footer-feedback" href="/feedback">의견 보내기</a>'
 NOT_FOUND = "Not Found"  # FastAPI's own body for unknown paths
 
 
@@ -52,7 +56,7 @@ def admin_key():
 
 
 def home_page(html):
-    return html if enabled() else html.replace(NAV_LINK, "")
+    return html if enabled() else html.replace(NAV_LINK, "").replace(FOOTER_LINK, "")
 
 
 # Bidirectional overrides and zero-width marks can disguise text in the admin list.

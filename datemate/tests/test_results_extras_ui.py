@@ -29,19 +29,23 @@ def test_theme_cards_show_theme_first(audit_page, width):
     page.set_viewport_size({'width': width, 'height': 900})
     section = page.locator('#curation')
     assert section.locator('#curation-title').inner_text() == '테마로 고르는 하루'
-    assert '테마를 고르면' in section.locator('.curation-heading p').inner_text()
+    # 설명 문장은 화면 읽기용으로 남는다(2026-11-25 시안은 라벨 + 제목만 보인다).
+    assert '테마를 고르면' in section.locator('.curation-heading p.visually-hidden').inner_text()
+    assert section.locator('.curation-heading .eyebrow').inner_text().lower() == 'curated for today'
     cards = section.locator('#curation-situation .curation-card')
     assert cards.count() == 7
     first = cards.first
-    # 배지 → 제목(크게) → 문구 → 조건 태그.
-    assert first.evaluate('c=>[...c.children].map(e=>e.className.split(" ")[0])') == ['curation-badge', 'curation-mood', 'curation-copy', 'curation-tags']
+    # 배지 → 제목(크게) → 문구 → 조건 태그 → 그림(오른쪽 위에 겹쳐 놓음, 화면 읽기에서는 숨김).
+    assert first.evaluate('c=>[...c.children].map(e=>e.className.split(" ")[0])') == ['curation-badge', 'curation-mood', 'curation-copy', 'curation-tags', 'curation-icon']
     sizes = first.evaluate("c=>['.curation-mood','.curation-badge'].map(s=>parseFloat(getComputedStyle(c.querySelector(s)).fontSize))")
-    assert sizes == [19, 14]
+    assert sizes == ([26, 14] if width == 1440 else [22, 14])
     for card in cards.all():
         assert 2 <= card.locator('.curation-tags span').count() <= 3
     if width == 1440:
+        # 벤토 4열: 계절 카드가 첫 줄 두 칸, 나머지는 한 칸씩.
         lefts = {round(card.bounding_box()['x']) for card in cards.all()}
-        assert len(lefts) == 3
+        assert len(lefts) == 4
+        assert round(cards.first.bounding_box()['width']) > round(cards.nth(1).bounding_box()['width']) * 2
         for card in cards.all():
             assert card.evaluate('c=>[...c.children].every(s=>s.scrollWidth<=s.clientWidth+1)')
     else:
@@ -50,8 +54,8 @@ def test_theme_cards_show_theme_first(audit_page, width):
         assert len(tops) == 1
         assert section.locator('#curation-situation').evaluate('g=>g.scrollWidth>g.clientWidth')
     assert no_overflow(page)
-    # 조건 화면 동네 칩은 그대로 동네 이름(data-preset)을 쓴다.
-    assert page.get_by_role('group', name='인기 동네').get_by_role('button').all_inner_texts()[:2] == ['서울 성수', '부산 해운대']
+    # 조건 화면 동네 칩은 그대로 동네 이름(data-preset)을 쓴다. 2026-11-25 시안: 둘째 칩이 '서울 연남·홍대'(부산 해운대는 넷째).
+    assert page.get_by_role('group', name='인기 동네').get_by_role('button').all_inner_texts()[:4] == ['서울 성수', '서울 연남·홍대', '서울 서촌·안국', '부산 해운대']
     section.get_by_role('tab', name='주말 떠나기 좋은 동네').click()
     areas = section.locator('#curation-areas .curation-card')
     assert areas.count() == 5 and not cards.first.is_visible()
@@ -199,6 +203,8 @@ def test_blog_panel_loading_and_results(audit_page, width):
     page.route('**/api/places/*/blogs?*', lambda route: held.append(route))
     real_results(page, base)
     # 일정 카드의 첫 번째 블로그 패널
+    # 2026-11-25 시안: 추천 이유·메뉴·블로그는 장소 카드의 접힌 '방문 팁 & 블로그 요약'(.stop-tips) 안에 있다.
+    page.locator('.timeline-card .stop-tips>summary').first.click()
     panel = page.locator('.timeline-card .place-blogs').first
     panel.locator('summary').click()
     content = panel.locator('.place-blog-content')
@@ -264,6 +270,8 @@ def test_blog_panel_empty_and_error_states(audit_page):
         return route.fulfill(json={'posts': [], 'message': '관련 후기를 찾지 못했어요.'})
     page.route('**/api/places/*/blogs?*', blogs)
     real_results(page, base)
+    # 2026-11-25 시안: 추천 이유·메뉴·블로그는 장소 카드의 접힌 '방문 팁 & 블로그 요약'(.stop-tips) 안에 있다.
+    page.locator('.timeline-card .stop-tips>summary').first.click()
     panel = page.locator('.timeline-card .place-blogs').first
     panel.locator('summary').click()
     content = panel.locator('.place-blog-content')

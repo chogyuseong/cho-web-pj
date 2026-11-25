@@ -12,9 +12,12 @@ NAV = """[...document.querySelectorAll('body>header nav>*')].filter(e=>e.getClie
   height:r.height,left:r.left,right:r.right}})"""
 
 
-def header_fits(page, width):
+def header_fits(page, width, feedback_page=False):
     items = page.evaluate(NAV)
-    assert [i['text'] for i in items] == ['코스 만들기', '장소 둘러보기', '테마별 추천', '피드백'], (width, items)
+    # 2026-11-25 시안: 데스크톱 메뉴는 코스 만들기·테마 추천·장소 둘러보기·피드백. 휴대폰 하단 바(홈 화면)는 피드백 대신 코스 결과가
+    # 있다(DOM 순서로는 마지막, CSS order 로 셋째 칸). 피드백 화면 메뉴는 폭과 관계없이 피드백까지 넷.
+    expected = ['코스 만들기', '테마 추천', '장소 둘러보기', '코스 결과' if width <= 720 and not feedback_page else '피드백']
+    assert [i['text'] for i in items] == expected, (width, items)
     assert len({i['top'] for i in items}) == 1, (width, items)  # 한 줄
     assert all(44 <= i['height'] < 60 for i in items), (width, items)  # 낱말이 두 줄로 깨지지 않음
     assert all(i['left'] >= 0 and i['right'] <= width for i in items), (width, items)
@@ -28,10 +31,10 @@ def test_feedback_tab_fits_the_header_on_home_and_feedback_page(audit_page):
         page.goto(base + '/', wait_until='networkidle')
         header_fits(page, width)
         page.goto(base + '/feedback', wait_until='networkidle')
-        header_fits(page, width)
+        header_fits(page, width, feedback_page=True)
         assert page.locator('header nav a[aria-current=page]').inner_text() == '피드백'
     page.goto(base + '/', wait_until='networkidle')
-    page.locator('#nav-feedback').click()
+    page.locator('footer .footer-feedback').click()
     page.wait_for_url(base + '/feedback')
     assert page.locator('h1').inner_text() == '피드백'
 
@@ -83,8 +86,11 @@ def test_admin_lists_script_text_as_plain_text(audit_page, monkeypatch):
         assert page.evaluate('typeof window.__xss') == 'undefined'
         assert page.locator('#admin-entries img, #admin-entries script').count() == 0
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-        # 키는 브라우저 저장소에 남지 않는다.
-        assert page.evaluate('localStorage.length+sessionStorage.length') == 0
+        # 키는 브라우저 저장소에 남지 않는다. 같은 주소의 첫 화면(audit_page 가 먼저 연 '/')이 남긴 접힘 기억
+        # (datemate:plan-*, conftest PLAN_FOLDS_OPEN)만 있을 수 있고, 관리 화면이 넣은 것은 없어야 한다.
+        stored = page.evaluate("[...Object.keys(localStorage),...Object.keys(sessionStorage)]")
+        assert all(key.startswith('datemate:plan-') for key in stored), stored
+        assert FAKE_KEY not in page.evaluate("JSON.stringify({...localStorage})+JSON.stringify({...sessionStorage})")
     page.locator('.admin-entry button', has_text='처리함으로 표시').click()
     page.wait_for_selector('.admin-entry.handled')
     page.on('dialog', lambda dialog: dialog.accept())

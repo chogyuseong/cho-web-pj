@@ -1,0 +1,99 @@
+/* 머리글(2026-11-25 사용자 시안 Downloads/screencapture-gemini-*.png, 가이드 datemate_2026.md §2.1).
+   1) 메뉴 표시: '홈 · 테마'·'코스 만들기'·'장소 둘러보기' 가운데 지금 보는 곳 하나만 진한 알약으로.
+      - 장소 둘러보기: body.show-explore(app.js setTab).
+      - 코스 만들기: 결과 화면(body.show-date-plan)이거나, 조건 화면(#planner-section) 위쪽이 화면 가운데보다 위로 올라왔을 때.
+      - 나머지(히어로·테마 구역)는 홈 · 테마.
+      화면 읽기 프로그램에는 단추는 aria-pressed, 홈 링크는 aria-current 로 알린다. app.js setTab 이 끝에 syncHeaderNav() 를 부른다.
+   2) 데이트 / 여행 스위치: body.mode-travel 로 포인트 색(redesign.css 8)), 히어로 제목·설명·입력 예시, 바로 시작 칩(theme-cards.js
+      renderHeroQuick), 테마 구역의 첫 탭을 바꾼다. 추천 계산(서버 조건)은 바꾸지 않는다 — 여행 모드는 '여행지 고르기'를 앞에 두는 보기 전환이다.
+      고른 모드는 이 브라우저에만 기억한다(localStorage 'datemate-mode', 못 쓰면 매번 데이트로 시작).
+   바꿀 때 함께 볼 곳: index.html 머리글·히어로 문구, redesign.css 2)·8), tests/test_redesign_mockup_ui.py. */
+(() => {
+  const body = document.body;
+  const home = document.getElementById('nav-home'), plan = document.getElementById('nav-plan'), explore = document.getElementById('nav-explore');
+  const planner = document.getElementById('planner-section');
+
+  // 메뉴를 눌러 옮겨 가는 중에는 누른 메뉴를 바로 표시한다(스크롤은 다음 그림 때 일어나 위치로 판단하면 한 박자 늦다).
+  // 사용자가 직접 스크롤하면(휠·터치·키) 다시 위치로 판단한다.
+  let intent = null;
+  home?.addEventListener('click', () => { intent = 'home'; window.syncHeaderNav(); });
+  plan?.addEventListener('click', () => { intent = 'plan'; window.syncHeaderNav(); });
+  for (const type of ['wheel', 'touchmove', 'keydown']) addEventListener(type, () => { intent = null; }, { passive: true });
+  function current() {
+    if (body.classList.contains('show-explore')) return 'explore';
+    if (body.classList.contains('show-date-plan')) return 'plan';
+    if (intent) return intent;
+    if (planner && !planner.hidden) {
+      const top = planner.getBoundingClientRect().top;
+      if (top < innerHeight * 0.5) return 'plan';
+    }
+    return 'home';
+  }
+  let last = '';
+  function syncHeaderNav() {
+    const now = current();
+    if (now === last) return;
+    last = now;
+    if (home) {
+      home.classList.toggle('active', now === 'home');
+      if (now === 'home') home.setAttribute('aria-current', 'true'); else home.removeAttribute('aria-current');
+    }
+    // 휴대폰 하단 바의 '코스 결과'는 결과 화면(body.show-date-plan)에 있는 동안 눌린 상태.
+    const results = document.getElementById('nav-results');
+    if (results) { const on = body.classList.contains('show-date-plan'); results.classList.toggle('active', on); results.setAttribute('aria-pressed', String(on)); }
+    for (const [button, key] of [[plan, 'plan'], [explore, 'explore']]) {
+      if (!button) continue;
+      button.classList.toggle('active', now === key);
+      button.setAttribute('aria-pressed', String(now === key));
+    }
+  }
+  // 강제로 다시 맞춘다(app.js setTab 이 클래스를 바꾼 뒤 부른다 — 같은 상태라도 단추 클래스를 되돌려 놓는다).
+  window.syncHeaderNav = () => { last = ''; syncHeaderNav(); };
+  let frame = 0;
+  addEventListener('scroll', () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; syncHeaderNav(); }); }, { passive: true });
+  addEventListener('resize', () => syncHeaderNav());
+  addEventListener('hashchange', () => requestAnimationFrame(window.syncHeaderNav));
+  new MutationObserver(() => syncHeaderNav()).observe(body, { attributes: true, attributeFilter: ['class'] });
+  window.syncHeaderNav();
+  // '코스 결과'(휴대폰 하단 바): 만든 코스가 있으면 결과 화면으로, 없으면 조건 화면으로 옮기고 알린다. plans 는 app.js 의 전역 목록.
+  document.getElementById('nav-results')?.addEventListener('click', () => {
+    if (typeof plans !== 'undefined' && plans.length) { setTab(false); showPlannerPage(true); }
+    else { navigateHomeSection('#planner-section'); if (typeof toast === 'function') toast('아직 만든 코스가 없어요. 조건을 고르고 3가지 코스를 비교해 보세요.'); }
+  });
+
+  // ---------- 데이트 / 여행 ----------
+  const COPY = {
+    date: { title: ['어디서', '만날까요?'], description: '원하는 하루를 한 줄로 적거나 아래에서 골라 보세요. 지역·시간·예산에 맞는 코스 3개를 비교해요.',
+      placeholder: '예: 비 오는 날 성수에서 덜 걷고 분위기 좋은 저녁 코스' },
+    travel: { title: ['어디로', '떠날까요?'], description: '가고 싶은 여행지를 한 줄로 적거나 아래에서 골라 보세요. 이동 수단·시간·예산에 맞는 코스 3개를 비교해요.',
+      placeholder: '예: 강릉에서 바다 보며 드라이브하고 저녁은 시장에서' }
+  };
+  const KEY = 'datemate-mode';
+  const switcher = document.getElementById('mode-switch');
+  function saved() { try { return localStorage.getItem(KEY) === 'travel' ? 'travel' : 'date'; } catch { return 'date'; } }
+  function apply(mode, fromUser) {
+    body.classList.toggle('mode-travel', mode === 'travel');
+    switcher?.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    const copy = COPY[mode];
+    const h1 = document.querySelector('.hero-copy h1');
+    if (h1) h1.replaceChildren(copy.title[0], document.createElement('br'), copy.title[1]);
+    const description = document.querySelector('.hero-copy .hero-description');
+    if (description) description.textContent = copy.description;
+    const input = document.getElementById('hero-command-input');
+    if (input) input.placeholder = copy.placeholder;
+    if (typeof window.renderHeroQuick === 'function') window.renderHeroQuick(mode);
+    // 테마 구역: 여행은 '주말 떠나기 좋은 동네'부터, 데이트는 '오늘의 상황으로 고르기'부터. 사용자가 스위치를 누를 때만 탭을 옮긴다
+    // (처음 열 때 여행으로 기억돼 있어도 탭은 옮긴다 — 같은 규칙). 탭 단추 click 은 theme-cards.js 의 탭 동작을 그대로 탄다.
+    const tab = document.getElementById(mode === 'travel' ? 'curation-tab-areas' : 'curation-tab-situation');
+    if (tab && tab.getAttribute('aria-selected') !== 'true') tab.click();
+    if (fromUser) {
+      try { localStorage.setItem(KEY, mode); } catch { /* 저장 못 하면 이번 화면에만 */ }
+      if (typeof toast === 'function') toast(mode === 'travel' ? '여행 모드로 바꿨어요. 떠나기 좋은 동네부터 보여 드려요.' : '데이트 모드로 바꿨어요.');
+    }
+  }
+  switcher?.addEventListener('click', event => {
+    const button = event.target.closest('[data-mode]');
+    if (button && button.getAttribute('aria-pressed') !== 'true') apply(button.dataset.mode, true);
+  });
+  if (saved() === 'travel') apply('travel', false);
+})();

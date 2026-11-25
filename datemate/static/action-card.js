@@ -153,6 +153,21 @@ function actionCard(plan) {
     items = actionCardItems(plan),
     checked = actionCardChecked(plan);
   box.append(node('h3', '할 일 순서'), node('p', '확인할 것을 언제 할지 순서대로 모았어요. ' + (actionCardStorable() ? '체크 표시는 이 브라우저에만 남아요.' : '이 브라우저에선 체크 표시가 저장되지 않아요.'), 'hint'));
+  // 진행 막대(2026-11-25 상세 결과 시안 '1 / 4 완료'). 체크를 바꿀 때마다 다시 센다. 막대는 장식, 글자가 같은 내용을 말한다.
+  const progress = node('div', undefined, 'action-card-progress'),
+    count = node('span', '', 'action-card-count'),
+    track = node('span', undefined, 'action-card-track'),
+    fill = node('i');
+  track.setAttribute('aria-hidden', 'true');
+  track.append(fill);
+  progress.append(count, track);
+  box.append(progress);
+  const total = items.length;
+  const syncProgress = () => {
+    const done = items.filter(item => checked.has(item.id)).length;
+    count.textContent = `${done} / ${total} 완료`;
+    fill.style.width = total ? Math.round(done / total * 100) + '%' : '0%';
+  };
   for (const [when, title] of ACTION_CARD_WHEN) {
     const rows = items.filter(item => item.when === when);
     if (!rows.length) continue;
@@ -167,11 +182,13 @@ function actionCard(plan) {
         if (input.checked) checked.add(item.id);
         else checked.delete(item.id);
         saveActionCardChecked(plan, checked);
+        syncProgress();
       });
       label.append(input, node('span', item.text));
       group.append(label);
     }
     box.append(group);
   }
+  syncProgress();
   return box;
 }

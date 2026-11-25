@@ -446,3 +446,59 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 #catalog .place-card>.tag { justify-self:start; align-self:flex-start; width:fit-content; }
 @media(max-width:600px) { .explore-heading h2 { font-size:25px; } }
 @media(prefers-reduced-motion:reduce) { #catalog .place-card { transition:none; } }
+
+/* ---------- 13) 상세 결과(2026-11-25 상세 결과 시안 Downloads/screencapture-gemini-*-09_51~09_52.png) ---------- */
+/* 머리말 조건 칩 줄(#results-meta, plan-results.js resultsConditionChips) · 조건 충족 칩(.results-checks) · 오른쪽 '실시간 예산 · 도보 피로도'
+   카드(.rail-bars·.rail-spend) · 장소 카드 태그·주소 · 구간 '✓ 구간 제한 충족' · 출발 전 체크리스트 진행 막대 · 코스 비교 표 카드. */
+.results-heading .results-meta { display:flex; flex-wrap:wrap; gap:6px; }
+.condition-chip { display:inline-flex; align-items:center; min-height:32px; padding:4px 12px; border:1px solid var(--line); border-radius:var(--radius-pill); background:#fff; font-size:14px; font-weight:700; color:var(--ink); }
+.condition-chip.is-area { border-color:var(--ink); background:var(--ink); color:#fff; }
+.condition-chip.is-safe { border-color:#A7F3D0; background:#ECFDF5; color:var(--accent-safe); }
+.results-checks { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 16px; margin:12px 0 18px; padding:10px 14px; border:1px solid var(--line); border-radius:16px; background:#fff; }
+.results-check-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.check-chip { padding:3px 12px; border-radius:var(--radius-pill); font-size:14px; font-weight:700; }
+.check-chip.is-met { border:1px solid #A7F3D0; background:#ECFDF5; color:var(--accent-safe); }
+.check-chip.is-unmet { border:1px solid #FDE68A; background:#FFFBEB; color:#92400E; }
+.results-checks-note { margin:0; }
+@media(min-width:801px) { .results-kpis { display:none; } }
+/* 오른쪽 패널 카드 */
+.rail-head { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 8px; margin:0 0 10px; }
+.rail-head h3 { margin:0; font-size:16px; font-weight:800; }
+.rail-badge { padding:2px 10px; border-radius:var(--radius-pill); background:var(--accent-soft); color:var(--hong); font-size:14px; font-weight:700; white-space:nowrap; }
+.rail-bars { display:grid; gap:10px; margin:0 0 6px; }
+.rail-bar-top { display:flex; flex-wrap:wrap; justify-content:space-between; gap:0 8px; font-size:14px; font-weight:600; color:var(--muted); }
+.rail-bar-top strong { color:var(--ink); font-variant-numeric:tabular-nums; }
+.rail-bar.is-safe .rail-bar-top strong { color:var(--accent-safe); }
+.rail-bar-track { position:relative; display:block; height:8px; margin-top:6px; border-radius:var(--radius-pill); background:#E2E8F0; overflow:hidden; }
+.rail-bar-track i { position:absolute; inset:0 auto 0 0; border-radius:inherit; background:var(--hong); }
+.rail-bar.is-safe .rail-bar-track i { background:var(--accent-safe); }
+.rail-bar.is-over .rail-bar-track i { background:#B45309; }
+.rail-spend { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+.rail-spend-title { margin:0 0 6px; font-size:14px; font-weight:700; color:var(--muted); }
+/* 패널 폭(약 280px)에서 두 칸이면 분류 이름이 두 줄로 깨져 한 칸 목록으로 둔다. */
+.rail-spend-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:4px; margin:0; }
+.rail-spend-grid>div { display:flex; justify-content:space-between; gap:6px; padding:6px 10px; border-radius:10px; background:#fff; font-size:14px; }
+.rail-spend-grid dt { color:var(--muted); }
+.rail-spend-grid dd { margin:0; font-weight:800; font-variant-numeric:tabular-nums; }
+/* 장소 카드 태그·주소 */
+.detail .timeline-card { position:relative; }
+.detail .stop-tags { float:right; display:flex; gap:4px; margin:0 0 4px 8px; }
+.stop-tag { padding:2px 8px; border-radius:8px; font-size:14px; font-weight:700; background:var(--platform); color:var(--muted); }
+.stop-tag.is-indoor { background:#ECFDF5; color:var(--accent-safe); }
+.stop-tag.is-outdoor { background:#EFF6FF; color:#1D4ED8; }
+.stop-tag.is-reserve { background:#FFF1F2; color:#BE123C; }
+.detail .stop-address { margin:-2px 0 6px; font-size:14px; color:var(--muted); }
+.detail .stop-address::before { content:'📍 '; }
+.detail .route-line-ok { font-size:14px; font-weight:700; color:var(--accent-safe); }
+/* 출발 전 체크리스트 진행 막대 */
+.action-card { padding:18px 20px; border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; }
+.action-card-progress { display:flex; align-items:center; gap:12px; margin:4px 0 12px; }
+.action-card-count { flex:0 0 auto; padding:2px 10px; border-radius:var(--radius-pill); background:var(--platform); font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
+.action-card-track { position:relative; flex:1; height:8px; border-radius:var(--radius-pill); background:#E2E8F0; overflow:hidden; }
+.action-card-track i { position:absolute; inset:0 auto 0 0; border-radius:inherit; background:var(--accent-safe); transition:width .2s; }
+.action-card-item { padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+.action-card-item:has(input:checked) { border-color:#A7F3D0; background:#ECFDF5; }
+.action-card-item:has(input:checked) span { text-decoration:line-through; color:var(--muted); }
+/* 코스 비교 표: 흰 카드 */
+#results .comparison-details { padding:14px 18px; border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; }
+@media(prefers-reduced-motion:reduce) { .action-card-track i { transition:none; } }

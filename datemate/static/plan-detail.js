@@ -159,7 +159,13 @@ function renderDetail() {
     const body = node('div', undefined, 'timeline-card');
     // 읽는 순서: 장소 이름 → 한 줄 요약(분류 · 2인 비용 · 머무는 시간) → 후기에서 읽은 정보. 도착·떠나는 시각은 왼쪽 도장에 있다.
     // 분류·체류·확인 방법·근거 링크를 이은 긴 문장(reasons)은 '정보 출처' 접기 안으로 옮긴다(2026-11-17 가독성 정리).
+    // 2026-11-25 상세 결과 시안: 이름 줄 오른쪽 위 태그(실내·실외, 예약 권장)와 이름 아래 주소 한 줄. 값은 장소 자료 그대로(없으면 안 단다).
+    const tags = node('div', undefined, 'stop-tags');
+    if (place.setting === 'indoor' || place.setting === 'outdoor') tags.append(node('span', place.setting === 'indoor' ? '실내' : '실외', 'stop-tag is-' + place.setting));
+    if (place.reservation === true) tags.append(node('span', '예약 권장', 'stop-tag is-reserve'));
+    if (tags.children.length) body.append(tags);
     body.append(node('h4', place.name));
+    if (place.address) body.append(node('p', place.address, 'stop-address'));
     // 네이버 지역 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2). 21일이 지나 지운 장소는 안내만.
     if (place.naver_expired) body.append(naverExpiredNote());
     else if (isNaverResult(place)) body.append(naverAttribution('지역 검색', place.place_source || place.source));

@@ -388,7 +388,7 @@ def rail_values(page):
 def expected_rail(page):
     return page.evaluate('''()=>{const p=selected,n=plans.findIndex(x=>x.id===p.id)+1,w=knownWalking(p);
       return {budget:rangeLines(p.total).textContent.replace(/\\s+/g,' ').trim(),walk:w===null?'모름':w+'분',time:durationText(p.minutes),
-        label:`코스 ${n} 요약과 공유`,buttons:[['카톡용 일정 복사',`카톡용 일정 복사 · 코스 ${n}`],['공유 티켓 보기',`공유 티켓 보기 · 코스 ${n}`]]};}''')
+        label:`코스 ${n} 요약과 공유`,buttons:[['공유 티켓 보기',`공유 티켓 보기 · 코스 ${n}`],['카톡용 일정 복사',`카톡용 일정 복사 · 코스 ${n}`]]};}''')
 
 
 def test_rail_summary_and_share_on_desktop_only(audit_page):

@@ -178,6 +178,9 @@ function routeLine(plan, index, label) {
     wrap = node('div', undefined, 'route-line-block route-leg-' + (typeof legLineStyle === 'function' ? legLineStyle(plan, leg) : 'long')),
     line = node('div', undefined, 'route-line');
   line.append(node('span', `${label} · ${legModeLabel(plan, leg)}`, 'route-line-text'));
+  // 2026-11-25 상세 결과 시안: 구간 이동 제한(max_leg)을 정했고 이 구간이 그 안이면 '✓ 구간 제한 충족'(서버 판정과 같은 비교 — minutes ≤ max_leg).
+  const limit = Number(plan.conditions?.max_leg);
+  if (limit && limit < 180 && Number.isFinite(leg?.minutes) && leg.minutes <= limit) line.append(node('span', '✓ 구간 제한 충족', 'route-line-ok'));
   // 길찾기 ▾: 누르면 네이버 지도·카카오맵 중에서 고른다(2026-11-24 UX P1). 단추 수는 예전(네이버 링크 하나)과 같다.
   const directions = naverDirectionsUrl(plan, leg),
     kakao = kakaoDirectionsUrl(plan, leg);

@@ -71,11 +71,12 @@ function renderPlanMapCard(){
   // 휴대폰에서는 지도가 상세('우리 하루, 자세히 보기', h2) 안에 들어가므로 한 단계 낮은 h3. 그래야 뒤의 '비용은 투명하게'가 지도에 속한 것처럼 읽히지 않는다(구역 표시줄·화면 읽기 목차).
   const mapTitle=node(mobile?'h3':'h2','우리 코스 지도','plan-map-title');
   card.append(mapTitle,tabs,node('p',courseTitle(selected),'map-course-title'));
-  // 데스크톱 오른쪽 패널에만 코스 요약·공유(plan-results.js planRailSummary). 휴대폰은 같은 값이 위 코스 카드·아래 공유 구역에 있어 넣지 않는다.
-  if(!mobile&&typeof planRailSummary==='function')card.append(planRailSummary(selected));
   // 지도를 이동 수단·선 모양 설명보다 앞에 둔다(리디자인 3단계). 설명 문단이 길어(4~5줄) 1440×900 패널에서 지도가 화면 아래로 밀렸다.
   // 선 모양·확대 안내는 지도 바로 아래 범례 자리에 둔다. 「코스 지도에서 보기」 안내 줄(mapFocusNote)은 지도 바로 위.
   card.append(mapFocusNote(),drawPlanMap(selected),node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),mapLegend(selected),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'));
+  // 데스크톱 오른쪽 패널에만 '실시간 예산 · 도보 피로도'·공유 카드(plan-results.js planRailSummary). 2026-11-25 상세 결과 시안대로 지도 아래에 둔다
+  // (예전에는 지도 위 — 지도가 첫 화면에서 밀렸다). 휴대폰은 같은 값이 위 핵심 수치(.results-kpis)·아래 공유 구역에 있어 넣지 않는다.
+  if(!mobile&&typeof planRailSummary==='function')card.append(planRailSummary(selected));
   // 지도 아래 장소 목록: 한 줄에 네이버 지도 링크('1. 이름')와 「일정에서 보기」 단추(2026-11-18 가독성 8단계).
   // 단추는 지도 번호 표시와 같은 focusPlanStop(일정의 그 장소 카드로 스크롤 + 제목 포커스). 지도 표시는 키보드 Tab 으로 닿지 않아
   // 키보드·화면 읽기 사용자가 일정으로 가는 길이 이 단추다. 링크는 test_map_links_ui 가 '.map-place-list a' 로 확인한다.

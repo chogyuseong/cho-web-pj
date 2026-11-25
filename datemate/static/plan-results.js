@@ -79,9 +79,11 @@ function renderResults(result={}){
   const wasOpen=selector=>{const box=root.querySelector(selector);return box?box.open:!RESULTS_MOBILE.matches;};
   const compareOpen=wasOpen('.comparison-details'),photosOpen=wasOpen('.plan-photo-details');
   root.replaceChildren();$('#result-count').textContent=`추천 일정 ${plans.length}개`;
-  // 머리말 아래 한 줄(2026-11-25 HTML 시안): 지역 · 방문일 · 시작~끝 · 이동 수단 기준. 첫 코스의 조건(세 코스가 같은 조건으로 나온다).
-  const meta=$('#results-meta'),c=(selected||plans[0])?.conditions;
-  if(meta)meta.textContent=c?[(c.origin?.name||c.region||'').split(' · ')[0].replace(/ 지역 중심$/,''),c.visit_date,`${c.start}~${c.end}`,`${({walk:'도보',transit:'대중교통',car:'자가용',bicycle:'자전거'})[c.transport]||''} 기준`].filter(Boolean).join(' · '):'';
+  // 머리말(2026-11-25 상세 결과 시안): '{지역} 맞춤 데이트 코스 N가지를 찾았어요' + 조건 칩 줄. 세 코스가 같은 조건으로 나온다.
+  const c=(selected||plans[0])?.conditions;
+  const title=$('#results-title');
+  if(title)title.textContent=c&&plans.length?`${resultsArea(c)} 맞춤 ${document.body.classList.contains('mode-travel')?'여행':'데이트'} 코스 ${plans.length}가지를 찾았어요`:'맞춤 코스 비교';
+  const meta=$('#results-meta');if(meta)meta.replaceChildren(...(c?resultsConditionChips(c):[]));
   // 탭을 누르면 탭 표시만 바로 바꿔 화면에 내보내고(INP), 결과 전체·상세·지도는 다음 화면 갱신 뒤에 그린다.
   // 전에는 누른 순간 결과 전체와 지도를 다시 만들고 장소마다 패널을 붙여, 중급 휴대폰에서 누른 뒤 화면이 멈춰 보였다.
   // 상세가 어느 코스를 그린 것인지는 #plan-detail 의 data-plan-id 로 알 수 있다(renderDetail).
@@ -107,7 +109,7 @@ function renderResults(result={}){
   if(plans.length&&result.reasons?.length)root.append(node('p',result.reasons.join(' · '),'hint'));
   if(plans.length&&result.suggestions?.length)root.append(node('p',result.suggestions.join(' '),'hint'));
   // 3. 코스 카드
-  if(plans.length){const tabs=node('div',undefined,'plan-option-tabs');tabs.setAttribute('aria-label','데이트 코스 옵션');plans.forEach((p,i)=>{const active=selected?.id===p.id,tab=button('',()=>choose(p),active?'primary':'secondary');tab.append(...optionTabContent(p,i,active));tab.dataset.option=String(i+1);tab.setAttribute('aria-pressed',String(active));tabs.append(tab);});root.append(tabs);}
+  if(plans.length){const tabs=node('div',undefined,'plan-option-tabs');tabs.setAttribute('aria-label','데이트 코스 옵션');plans.forEach((p,i)=>{const active=selected?.id===p.id,tab=button('',()=>choose(p),active?'primary':'secondary');tab.append(...optionTabContent(p,i,active));tab.dataset.option=String(i+1);tab.setAttribute('aria-pressed',String(active));tabs.append(tab);});root.append(tabs);const checks=current?resultsCheckChips(current):null;if(checks)root.append(checks);}
   // 4. 비교 표
   if(plans.length){const compare=node('details',undefined,'comparison-details');compare.append(node('summary',`코스 ${plans.length}개 비용·이동 시간 비교 표`),optionComparison(plans));compare.open=compareOpen;root.append(compare);}
   // 5. 선택한 코스 카드: 수치와 태그
@@ -149,6 +151,39 @@ function durationText(minutes){
   const h=Math.floor(minutes/60),m=minutes%60;
   return h?(m?`${h}시간 ${m}분`:`${h}시간`):`${m}분`;
 }
+// 머리말 조건 칩에 쓰는 지역 이름: 출발지 이름의 앞부분(' · 현재 위치'·' 지역 중심' 뗌), 없으면 시·도.
+function resultsArea(c){return (c.origin?.name||c.region||'').split(' · ')[0].replace(/ 지역 중심$/,'').replace(/ (?:\S+역)$/,'')||c.region||'';}
+// 조건 칩: [지역] [날짜(요일) 시작~끝] [N인] [예산 N원|예산 무관] [도보 N분 제한](도보 제한을 정했을 때만, 초록).
+function resultsConditionChips(c){
+  const d=c.visit_date?new Date(c.visit_date+'T00:00'):null,day=d&&!Number.isNaN(d.getTime())?`${d.getMonth()+1}.${d.getDate()}(${'일월화수목금토'[d.getDay()]}) `:'';
+  const won=n=>n>=10000&&n%10000===0?`${n/10000}만원`:Number(n).toLocaleString('ko-KR')+'원';
+  const chips=[[resultsArea(c),'is-area'],[`${day}${c.start}~${c.end}`,''],[`${c.people||2}인`,''],[c.budget_unlimited?'예산 무관':`예산 ${won(Number(c.budget)||0)}`,'']];
+  if(c.max_walk)chips.push([`도보 ${c.max_walk}분 제한`,'is-safe']);
+  return chips.filter(([t])=>t).map(([text,cls])=>node('span',text,'condition-chip '+cls));
+}
+// 조건 충족 칩(시안 '예산 12만원 이내 충족 · 전체 도보 25분 제한 충족 · 식사 1회 균형 배치'): 서버 판정(condition_checks)만 옮긴다.
+// met·estimated 는 충족(초록), unmet 은 '확인 필요'(주황). 판정이 없으면 칩을 만들지 않는다.
+function resultsCheckChips(p){
+  const checks=p.condition_checks||[],by=k=>checks.filter(x=>x.condition===k),ok=x=>x&&['met','estimated'].includes(x.state);
+  const won=n=>n>=10000&&n%10000===0?`${n/10000}만원`:Number(n).toLocaleString('ko-KR')+'원';
+  const out=[],c=p.conditions||{};
+  const budget=by('budget')[0];
+  if(budget&&!c.budget_unlimited)out.push(ok(budget)?[`예산 ${won(Number(c.budget)||0)} 이내 충족`,true]:['예산 확인 필요',false]);
+  const walk=by('max_walk')[0];
+  if(walk&&c.max_walk)out.push(ok(walk)?[`전체 도보 ${c.max_walk}분 제한 충족`,true]:[`전체 도보 ${c.max_walk}분 제한 확인 필요`,false]);
+  const legs=by('max_leg');
+  if(legs.length&&c.max_leg&&c.max_leg<180)out.push(legs.every(ok)?[`구간 이동 ${c.max_leg}분 이내`,true]:['구간 이동 시간 확인 필요',false]);
+  const end=by('end')[0];
+  if(end)out.push(ok(end)?[`${c.end} 이내 종료`,true]:['종료 시간 확인 필요',false]);
+  const meals=(p.places||[]).filter(x=>x.meal||x.is_meal).length;
+  if(meals)out.push([`식사 ${meals}회 배치`,true]);
+  if(!out.length)return null;
+  const box=node('div',undefined,'results-checks');box.setAttribute('aria-label','조건 확인');
+  const list=node('div',undefined,'results-check-chips');
+  for(const [text,good] of out)list.append(node('span',(good?'✓ ':'! ')+text,'check-chip '+(good?'is-met':'is-unmet')));
+  box.append(list,node('p','영업시간·휴무는 방문 전 각 카드의 네이버 지도 버튼에서 확인해 주세요.','hint results-checks-note'));
+  return box;
+}
 // 예산 사용률: 예상 비용 상한(total[1]) ÷ 예산(conditions.budget). 예산 무관이면 막대 없이 금액만. 가격 미확인 항목이 있으면 '제외'라고 적는다.
 // 상한이 예산을 넘으면 막대를 주황(is-over)으로. 막대는 장식이라 숫자 글자가 같은 내용을 말한다.
 function resultsKpis(p){
@@ -168,10 +203,39 @@ function resultsKpis(p){
   box.append(meter,node('div',walk===null?'총 도보 모름':`총 도보 ${walk}분`,'kpi kpi-walk'),node('div',durationText(p.minutes)?`총 ${durationText(p.minutes)}`:'총 소요 모름','kpi kpi-time'));
   return box;
 }
+// 막대: [이름, 값 글자, 비율(0~1, 모르면 null), 넘침 여부, 초록 여부]. 막대는 장식(aria-hidden) — 값 글자가 같은 내용을 말한다.
+function railBars(p){
+  const box=node('div',undefined,'rail-bars'),c=p.conditions||{},won=n=>Number(n).toLocaleString('ko-KR')+'원';
+  const hi=Array.isArray(p.total)?p.total[1]:null,budget=Number(c.budget),walk=knownWalking(p),limit=Number(c.max_walk);
+  const rows=[[`${c.people||2}인 예상 비용 합계`,hi==null?'모름':c.budget_unlimited||!budget?won(hi):`${won(hi)} / ${won(budget)}`,hi!=null&&!c.budget_unlimited&&budget?hi/budget:null,hi!=null&&budget&&hi>budget,false],
+    ['전체 도보 이동 시간',walk===null?'모름':limit?`${walk}분 / ${limit}분 제한`:`${walk}분 · 제한 없음`,walk!==null&&limit?walk/limit:null,walk!==null&&limit&&walk>limit,true]];
+  for(const [label,value,ratio,over,safe] of rows){
+    const row=node('div',undefined,'rail-bar'+(safe?' is-safe':'')+(over?' is-over':''));
+    const top=node('div',undefined,'rail-bar-top');top.append(node('span',label),node('strong',value));row.append(top);
+    if(ratio!==null){const bar=node('span',undefined,'rail-bar-track'),fill=node('i');bar.setAttribute('aria-hidden','true');fill.style.width=Math.min(100,Math.round(ratio*100))+'%';bar.append(fill);row.append(bar);}
+    box.append(row);
+  }
+  return box;
+}
+// 항목별 예상 지출(시안 '식사 · 카페 · 전시·체험 · 교통'): 코스 비용 줄(p.costs)을 분류로 묶어 상한끼리 더한다. 금액을 모르는 줄은 빼고 '미확인'으로 센다.
+function railSpend(p){
+  const groups=new Map(),label=c=>/음식|식당|맛집/.test(c)?'식사':c==='카페·미식'?'카페·식사':/문화|체험|오락|레저/.test(c)?'전시·체험':/교통|주차|귀가|택시/.test(c)?'교통':c||'기타';
+  let unknown=0;
+  for(const row of p.costs||[]){if(!Array.isArray(row.amount)){unknown++;continue;}const key=label(row.category||'');groups.set(key,(groups.get(key)||0)+(row.amount[1]||0));}
+  if(!groups.size)return null;
+  const box=node('div',undefined,'rail-spend');box.append(node('p',`항목별 예상 지출 (${p.conditions?.people||2}인 기준, 상한)`,'rail-spend-title'));
+  const grid=node('dl',undefined,'rail-spend-grid');
+  for(const [key,sum] of groups){const row=node('div');row.append(node('dt',key),node('dd',sum?Number(sum).toLocaleString('ko-KR')+'원':'무료'));grid.append(row);}
+  box.append(grid);if(unknown)box.append(node('p',`가격 미확인 ${unknown}항목은 빼고 더했어요.`,'hint'));
+  return box;
+}
 function planRailSummary(p){
   const index=plans.findIndex(item=>item.id===p.id),number=index+1;
   const box=node('section',undefined,'plan-rail-summary');
   box.setAttribute('aria-label',`코스 ${number} 요약과 공유`);
+  // 2026-11-25 상세 결과 시안: '실시간 예산 · 도보 피로도' 카드 — 막대 두 개(예산 대비 비용 상한, 도보 제한 대비 총 도보)와 항목별 예상 지출.
+  const head=node('div',undefined,'rail-head');head.append(node('h3','실시간 예산 · 도보 피로도'),node('span',`코스 ${number}${p.option_purpose?' · '+p.option_purpose:''}`,'rail-badge'));
+  box.append(head,railBars(p));
   // 영수증처럼 [이름 · 덧말 | 값] 세 줄. 덧말: 인원(또는 합계에서 빠진 미확인 항목 수), 도보를 모르는 구간, 출발–끝 시각.
   const stats=node('dl',undefined,'rail-stats');
   const stat=(label,note,value,kind)=>{const row=node('div',undefined,'rail-stat'),dt=node('dt',label),dd=node('dd');row.dataset.stat=kind;
@@ -181,9 +245,10 @@ function planRailSummary(p){
   stat('총 도보',walk===null?'일부 구간 모름':'',walk===null?'모름':`${walk}분`,'walk');
   stat('총 소요',p.conditions?.start&&p.finish?`${p.conditions.start}–${p.finish}`:'',durationText(p.minutes)||'모름','time');
   box.append(stats);
+  const spend=railSpend(p);if(spend)box.append(spend);
   if(p.id){
     const share=node('div',undefined,'rail-share'),label=(text,cls,action)=>{const b=button(text,action,cls);b.setAttribute('aria-label',`${text} · 코스 ${number}`);return b;};
-    share.append(label('카톡용 일정 복사','primary rail-kakao-copy',()=>copyKakaoItinerary(p)),label('공유 티켓 보기','secondary rail-ticket',()=>showPlanTicket(p)));
+    share.append(label('공유 티켓 보기','primary rail-ticket',()=>showPlanTicket(p)),label('카톡용 일정 복사','secondary rail-kakao-copy',()=>copyKakaoItinerary(p)));
     // 한 줄로 둔다: 1440×900 에서 패널 아래 지도가 첫 화면에 다 들어와야 한다(tests/test_redesign_results_ui.py scrollTop 0).
     box.append(node('p','이 코스가 마음에 드셨나요?','rail-share-title'),share);
   }

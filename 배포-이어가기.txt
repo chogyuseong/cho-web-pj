@@ -7,7 +7,18 @@
 
 ★ 지금 상태 (2026-11-25 기준)
 ----------------------------------------------------------------------
-브랜치 fix/qa-2026-11-25(2026-11-25 밤, 8616f96 + 1e733d3): 운영 QA 보고서의 '중간' 5건 수정 — main 병합·wrangler deploy 전.
+아흔여덟 번째 배포(2026-11-25 23:10경) 완료: main f78f4a3(병합 = fix/qa-2026-11-25 d92dbb2), Worker 버전 9d9d4702-8fa5-47c1-9b3a-3ea5c05b6468.
+  사용자 '진행해' + '통과하면 병합하고 배포까지' + '끝나면 배포-이어하기랑 README도 수정해'. 내용은 바로 아래 브랜치 기록.
+  · 검증: 브랜치 CI Run 45624279277 성공 → main 병합·push → test:security 25 통과 → wrangler deploy(파일 8개: app·explore·header-mode·maps·plan-results.js,
+    http-client.mjs, index.html, redesign.css). Docker Desktop 은 %LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe 에 있음(Program Files 아님).
+  · 운영 확인: /api/status 200, server-timing 있음, app·explore·header-mode·maps·plan-results.js·redesign.css ?v= = 로컬 sha256 앞 12자리,
+    첫 화면 textarea maxlength="4000", /static/http-client.mjs 에 validationMessage 있음. 화면에서 QA-01~05 동작을 직접 눌러 보지는 않음(테스트로만 확인).
+  · 참고: 그 전 main CI(2726a2d, Run 45608977996) 실패는 test_travel_mode_ui 시각 의존 실패 — 이번 header-mode.js 수정으로 해결.
+  · main CI Run 45630197753(f78f4a3) 결과는 이 기록 커밋 시점에 진행 중.
+  · 되돌리는 법: git revert -m 1 f78f4a3 후 재배포. DB 변경 없음.
+  · 정리: 병합된 브랜치 fix/qa-2026-11-25(로컬·원격) 삭제.
+  · 남은 것: QA 낮음 11건(QA-06~16), shared.js 자체 fetch 의 'Failed to fetch' 원문, QA_REPORT '4) 수정 결과' 칸 채우기, 실기기 확인.
+브랜치 fix/qa-2026-11-25(2026-11-25 밤, 8616f96 + 1e733d3): 운영 QA 보고서의 '중간' 5건 수정 — 98차로 배포됨.
   · QA-01 app.js timeRangeInvalid: 종료 ≤ 시작이면 plan-jobs 를 보내지 않고 종료 칸 아래 안내(#end-time-error)·aria-invalid·포커스·토스트. 고치면 바로 지움.
   · QA-01~03 http-client.mjs: 422 목록은 한국어만(서버 ValueError 문구는 'Value error, '·loc 떼고, 영문 검증 오류는 '입력값을 확인해 주세요…',
     글자 수 초과는 'N자 이하로 줄여 주세요'). fetch 연결 실패는 한 문구('연결이 끊겨 서버에 닿지 못했어요…') + error.network, status 없음
@@ -19,7 +30,7 @@
     (test_travel_mode_ui 가 브라우저 시각 11~17시에만 실패, main 에서도 같음) → 처음 여행으로 바꿀 때 읽게 고침.
   · 테스트 tests/test_qa_2026_11_25.py 7개(시계 14:30 고정 1개 포함). 로컬 전체 1624 통과·1 건너뜀·1 오류(포트 6000 ERR_UNSAFE_PORT — 임의 포트가
     브라우저 금지 포트에 걸린 기존 고정장치 문제, 따로 돌리면 통과). 첫 CI Run 45618287585 실패(위 시각 의존 테스트) → CI Run 45624279277 성공(5개, sqlite 1625·postgres 1621 통과).
-  · 남은 일: main 병합 → test:security → wrangler deploy → 운영 확인. QA_REPORT '4) 수정 결과'는 아직 비워 둠.
+  · (98차로 병합·배포 완료. QA_REPORT '4) 수정 결과'는 아직 비워 둠.)
 운영 QA 점검(2026-11-25 20:30~21:00, 97차 운영 대상, 보고 전용 — 코드 수정 없음): datemate/docs/QA_REPORT-2026-11-25.ko.md,
   시트 https://claude.ai/artifact/14MjGcxgXVSy3dzX46wGst. 판정 '출시 가능', 16건(치명·높음 0, 중간 5, 낮음 11).
   · 중간: QA-01 종료<시작을 화면에서 안 막고 422 원문('body: Value error, …') 노출 추정, QA-02 요청 글 4000자 초과 시 영문 오류(textarea maxlength 없음),

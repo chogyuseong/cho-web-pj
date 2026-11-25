@@ -262,6 +262,14 @@ def test_delay_badges_use_the_server_judgement(audit_page):
     assert '라스트오더' not in page.locator('#plan-detail').inner_text()
     page.locator('#plan-detail .delay-sim').scroll_into_view_if_needed()
     save(page, 'redesign-delay-desktop.png')
+    # 2026-11-25 Gemini Canvas 시안: 문제가 생기면 「대신 갈 곳 찾기」 → 접힌 '더 할 수 있는 것'과 지각 확인 상자를 같은 장소·같은 분으로 열고 확인한다.
+    page.evaluate("document.querySelector('#plan-detail .plan-more').open=false")
+    status.get_by_role('button', name='대신 갈 곳 찾기').click()
+    page.wait_for_function("document.querySelector('#plan-detail .plan-more').open&&document.querySelector('#plan-detail details.delay-check').open")
+    assert page.locator('#plan-detail .delay-check-form select').input_value() == '0'
+    assert page.locator('#plan-detail .delay-check-form input').input_value() == '30'
+    page.wait_for_function("document.querySelector('#plan-detail .delay-check-result').textContent.trim().length>0")
+    assert names[1] in page.locator('#plan-detail .delay-check-result').inner_text()
 
     # 일정 종료 초과(kind 'end')·영업 종료·자료 없음.
     pill(page, 0).click()
@@ -272,6 +280,8 @@ def test_delay_badges_use_the_server_judgement(audit_page):
     pill(page, 30).click()
     page.wait_for_function("document.querySelector('#plan-detail .delay-sim-status').textContent.includes('종료 시간')")
     assert page.locator('#plan-detail .delay-sim-status').inner_text() == '30분 늦으면 일정이 22:30에 끝나 정한 종료 시간(22:00)보다 30분 늦어요.'
+    # 종료 시각 문제는 바꿀 장소가 없어 「대신 갈 곳 찾기」가 없다.
+    assert page.locator('#plan-detail .delay-sim-recover').count() == 0
     assert delay_rows(page)[0]['badges'] == [['unknown', '영업시간·휴무일 자료 없음 · 연다고 보고 계산']]
     pill(page, 0).click()
     page.evaluate('delaySim.cache.clear()')

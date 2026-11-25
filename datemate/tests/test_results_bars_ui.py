@@ -69,3 +69,16 @@ def test_print_hides_the_bar_buttons(audit_page):
     page.emulate_media(media='print')
     assert page.evaluate(SHOWN, '#results-actionbar') == 0
     assert page.evaluate(SHOWN, '#results-bar button') == 0
+
+
+def test_jumping_to_a_section_is_not_hidden_under_the_desktop_bar(audit_page):
+    # 고정 윗줄 밑으로 내용이 숨지 않는다(scroll-padding-top 을 윗줄만큼 늘림, redesign.css 12)).
+    page, base, errors = audit_page
+    page.set_viewport_size({'width': 1440, 'height': 900})
+    generate(page)
+    wait_for_selected_detail(page)
+    page.locator('#plan-detail .stop').nth(2).evaluate("e=>e.scrollIntoView({block:'start'})")
+    page.wait_for_timeout(300)
+    bar = page.evaluate("document.querySelector('#results-bar').getBoundingClientRect().bottom")
+    top = page.locator('#plan-detail .stop').nth(2).bounding_box()['y']
+    assert top >= bar - 1, (top, bar)

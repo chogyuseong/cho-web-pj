@@ -298,7 +298,9 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 /* 날짜·시작·종료: 세 칸 한 줄(휴대폰은 날짜 한 줄 + 시각 두 칸). */
 #conditions .when-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
 #conditions .when-grid label,#conditions .simple-extra-options label,#conditions .detail-label { margin:0; font-size:14px; font-weight:700; color:var(--muted); }
-#conditions :is(.when-grid,.simple-extra-options) :is(input:not([type=checkbox]):not([type=range]),select) { min-height:46px; background:var(--platform); border-color:#E2E8F0; font-size:15px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
+/* 입력 칸 테두리: 시안의 #E2E8F0 은 흰 바탕 대비 1.2:1 이라 칸이 어디까지인지 보이지 않는다(WCAG 1.4.11 은 3:1).
+   #7C879A = 흰 바탕 3.6:1, 연회색 칸 바탕(--platform) 3.3:1 (2026-11-25, tests/test_a11y_mobile_polish.py). 더 옅게 바꾸면 그 테스트가 잡는다. */
+#conditions :is(.when-grid,.simple-extra-options) :is(input:not([type=checkbox]):not([type=range]),select) { min-height:46px; background:var(--platform); border-color:#7C879A; font-size:15px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
 #conditions .date-note:empty,#conditions .budget-note:empty { display:none; }
 /* 예산·이동 수단: 두 칸 나란히. 예산은 같은 폭 네 칸, 이동 수단은 옅은 바탕 위 흰 칸이 고른 것. */
 #conditions .budget-transport { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }

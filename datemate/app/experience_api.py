@@ -144,6 +144,12 @@ def vote(pid:str,data:Votes,request:Request):
     row,plan=load(pid,request.state.owner)
     return run(lambda:service.save_votes(plan,request.state.owner,row['owner'],data.choices))
 
+@router.delete('/plans/{pid}/agreement/partner')
+def reset_partner(pid:str,request:Request):
+    # 만든 브라우저만(load 가 소유자만 연다 — 상대방 브라우저는 404). 점검 S4: 엉뚱한 브라우저가 차지한 상대 자리를 비운다.
+    row,plan=load(pid,request.state.owner)
+    return dict(**service.clear_partner_votes(plan,row['owner']),can_replan=True)
+
 @router.post('/plans/{pid}/agreement-preview')
 def replan_agreement(pid:str,request:Request,data:dict|None=None):
     _,plan=load(pid,request.state.owner)

@@ -367,6 +367,14 @@ function partnerAgreementPanel(plan) {
         }, 'secondary');
         replan.disabled = status.participants < 2 || Boolean(status.conflicts?.length);
         content.append(replan);
+        // 점검 S4: 상대 자리는 처음 의견을 저장한 다른 브라우저 하나가 차지한다. 링크가 엉뚱한 사람에게 먼저 닿았거나
+        // 상대가 다른 브라우저로 다시 열어 막혔을 때 만든 쪽이 자리를 비운다(내 의견은 그대로). 서버: DELETE /agreement/partner.
+        if (status.answered?.others?.length) content.append(button('상대 의견 지우기', async () => {
+          if (!confirm('상대방 자리에 저장된 의견을 지울까요? 내 의견은 그대로 남고, 상대방은 같은 링크로 다시 의견을 남길 수 있어요.')) return;
+          await api('/plans/' + plan.id + '/agreement/partner', null, 'DELETE');
+          await loadAgreement();
+          toast('상대방 의견을 지웠어요. 상대방에게 다시 의견을 남겨 달라고 알려 주세요.');
+        }));
       } else content.append(node('p', '코스를 만든 브라우저에서 변경안을 계산·확정할 수 있어요.', 'hint'));
     } catch (e) {
       content.replaceChildren(node('p', e.message, 'warning'), button('다시 확인', loadAgreement));

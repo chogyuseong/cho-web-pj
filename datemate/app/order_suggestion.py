@@ -34,13 +34,8 @@ class Refused(ValueError):
     pass
 
 
-def travel_minutes(plan):
-    """코스의 이동 시간 합(분): 장소로 가는 구간 + 귀가 + 행사장으로 가는 축제 구간(festival_visit.leg — plan['legs'] 밖)."""
-    total = sum(leg.get("minutes") or 0 for leg in plan.get("legs") or [])
-    visit = plan.get("festival_visit")
-    if isinstance(visit, dict) and isinstance(visit.get("leg"), dict):
-        total += visit["leg"].get("minutes") or 0
-    return total
+# 이동 합계는 화면 카드·지도와 같은 정의(점검 보고서 F9). 이 모듈 이름으로도 부를 수 있게 그대로 둔다(테스트·main 이 씀).
+from .recommendation_summary import travel_minutes  # noqa: E402,F401
 
 
 def _fixed(plan, c):

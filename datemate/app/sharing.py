@@ -117,7 +117,9 @@ def revoke_shares(plan_id: str, request: Request):
     owned(plan_id, request.state.owner)
     with store.connect() as db:
         db.execute('DELETE FROM plan_shares WHERE plan_id=?', (plan_id,))
-    return {'revoked': True}
+        # 상대 의견은 지우지 않는다(링크만 새로 만드는 경우가 있다 — experience.clear_partner_votes). 남아 있으면 화면이 지우는 곳을 알린다(점검 S4).
+        opinions = partner_opinions(db, plan_id, request.state.owner)
+    return {'revoked': True, 'opinions': opinions}
 
 
 @router.get('/api/shared-plan')

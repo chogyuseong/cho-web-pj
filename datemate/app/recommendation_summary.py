@@ -57,11 +57,22 @@ def festival_context(plan):
     return dict(id=f['id'],title=f['title'],hours=hours,notes=notes)
 
 
+def travel_minutes(plan):
+    """코스의 이동 시간 합(분) — 화면·비교·순서 제안이 모두 이 값을 쓴다(점검 보고서 F9).
+    장소로 가는 구간·귀가(plan['legs']) + 행사장으로 가는 축제 구간(festival_visit.leg — legs 밖, app/festival_time.visit_record).
+    축제를 중간·끝에 둔 코스는 legs 만 더하면 행사장까지 가는 시간이 빠져 카드·지도와 순서 제안의 '이동 N분'이 서로 달랐다.
+    바꿀 때 함께 볼 곳: static/plan-evidence.js travelMinutes(decision_summary 가 없을 때의 같은 계산)."""
+    total=sum(leg.get('minutes') or 0 for leg in plan.get('legs') or [])
+    visit=plan.get('festival_visit')
+    if isinstance(visit,dict) and isinstance(visit.get('leg'),dict):total+=visit['leg'].get('minutes') or 0
+    return total
+
+
 def enrich(plan):
     kinds=Counter(p.get('category','기타') for p in plan['places'])
     category=kinds.most_common(1)[0][0] if kinds else '데이트'
     names={'카페·미식':'카페와 미식을 즐기는 하루','문화·예술':'전시와 문화를 만나는 하루','산책·풍경':'풍경을 따라 걷는 하루','체험·제작':'함께 만들고 경험하는 하루'}
-    travel=sum(x.get('minutes') or 0 for x in plan.get('legs',[]))
+    travel=travel_minutes(plan)
     mode=travel_mode(plan)
     changes=(plan.get('search_adjustments') or {}).get('messages',[])
     plan['decision_summary']=dict(title=names.get(category,category+' 중심의 하루')+' · '+(plan.get('option_purpose') or '추천 코스'),travel_minutes=travel,travel_mode=mode,

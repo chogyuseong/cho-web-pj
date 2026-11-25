@@ -7,6 +7,24 @@
 
 ★ 지금 상태 (2026-11-25 기준)
 ----------------------------------------------------------------------
+아흔여섯 번째 배포(2026-11-25 16:53) 완료: main 1ceae32(병합 = feat/mockup-remaining 5a4363a), Worker 버전 df20d552-048b-47cc-a5a5-a4d985fded0c.
+  사용자 '남은 시안 기능도 진행해' + '통과하면 배포'. Gemini Canvas 시안의 남은 것 중 할 수 있는 네 가지:
+  · 비교 표 마지막 칸 '선택'(plan-evidence.js optionComparison): 지금 코스는 '현재 보고 있는 코스', 다른 코스는 「이 코스 보기」(코스 탭 단추 click 과 같음).
+  · 축제 구역 필터 탭 전체/축제·행사/팝업스토어(index.html .event-filter, plan-results.js 끝, redesign.css 13)): 팝업 구역(#popup-course)이 보일 때만 탭을 보이고,
+    구역을 통째로 숨김(팝업 블로그 글은 받은 그대로 — 카드로 섞지 않음, 특약 2.2).
+  · 일정 끝 '귀가 동선 포함' 카드(plan-detail.js returnHomeCard·openReturnHomeCondition, redesign.css 14)): 귀가가 있으면 켜진 스위치 + '{끝 시각} 출발 마지막 장소 → 귀가지 · 수단'.
+    스위치는 그 자리에서 다시 계산하지 않고 조건 화면으로 가서 '귀가 시간 · 교통비 포함'을 바꿔 두고 다시 찾기 안내(서버 재계산·귀가지 필요). 공유·보관 기한 지난 코스엔 없음.
+  · 지각 미리 보기에서 문제(종료 시각 외)가 나오면 「대신 갈 곳 찾기」(delay-check.js openDelayRecovery): 접힌 '더 할 수 있는 것'과 지각 확인 상자를 같은 장소·분으로 열고 확인.
+    시안의 자동 대체는 하지 않음(서버 지각 복구가 영업시간·구간·예산을 다시 맞춘 후보만 고르게).
+  · 95차 보완: 데스크톱 고정 윗줄 밑으로 '…로 이동'한 내용이 숨던 것 → 윗줄이 있을 때 scroll-padding-top +80px.
+  · 테스트: tests/test_mockup_remaining_ui.py 3, test_redesign_results_ui 지각 테스트 보강, test_results_bars_ui +1, test_results_flow_ui 표 칸 6.
+    로컬 전체 1615 통과·1 건너뜀, 브랜치 CI Run 45567283040 성공 → main 병합·push → test:security 25 → wrangler deploy(파일 6개).
+  · 운영 확인(17:06): /api/status 200, server-timing 있음, plan-results·plan-detail·plan-evidence·delay-check.js·redesign.css ?v= = 로컬 sha256, 첫 화면에 .event-filter.
+    운영 체험 코스로 1440 캡처(바탕화면 datemate-스크린샷-1125 9·10번): 귀가 카드·비교 표 선택 칸·축제 탭(팝업 구역이 있어 탭 보임), 「이 코스 보기」로 코스 2 전환, 페이지 오류 0.
+    보지 못한 것: 실제 장소 코스에서 「대신 갈 곳 찾기」로 복구까지(테스트는 가짜 응답), 귀가를 켠 실제 코스의 카드, 실기기.
+  · 되돌리는 법: git revert -m 1 1ceae32 후 재배포. DB 변경 없음.
+  · 시안에서 끝내 안 한 것: 날씨 줄·비 오는 날 시뮬레이션(자료 없음), 블로그 요약·태그 카드(네이버 특약), 그림 지도(실제 지도 유지), 지각 자동 대체.
+    병합된 브랜치 feat/results-action-bars·feat/mockup-remaining(로컬·원격)도 정리는 사용자가(94차 명령에 이름만 더하면 됨).
 아흔다섯 번째 배포(2026-11-25 15:15) 완료: main 0a85170(병합 = feat/results-action-bars 789e249), Worker 버전 af122c73-4689-463f-ab47-9c85d70aa912.
   사용자가 Gemini Canvas 시안(https://share.gemini.google/NMTZYFdUBrws — 결과 화면 시안 4장의 클릭되는 버전, 헤드리스 브라우저로 읽음)을 확인하라고 함.
   시안에만 있는 것 중 사용자 선택: '휴대폰 아래 막대'·'고정 윗줄', 테스트 통과하면 배포.

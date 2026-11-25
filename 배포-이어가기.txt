@@ -24,7 +24,9 @@
     보지 못한 것: 실제 장소 코스에서 「대신 갈 곳 찾기」로 복구까지(테스트는 가짜 응답), 귀가를 켠 실제 코스의 카드, 실기기.
   · 되돌리는 법: git revert -m 1 1ceae32 후 재배포. DB 변경 없음.
   · 시안에서 끝내 안 한 것: 날씨 줄·비 오는 날 시뮬레이션(자료 없음), 블로그 요약·태그 카드(네이버 특약), 그림 지도(실제 지도 유지), 지각 자동 대체.
-    병합된 브랜치 feat/results-action-bars·feat/mockup-remaining(로컬·원격)도 정리는 사용자가(94차 명령에 이름만 더하면 됨).
+  · 정리(사용자 '지워', 96차 뒤): 작업 폴더 cho-web-pj-mockup·cho-web-pj-review-s4, 브랜치 feat/redesign-mockup·fix/review-s4-f9-f10·fix/input-border-contrast·
+    feat/results-action-bars·feat/mockup-remaining(로컬·원격) 삭제(모두 main 병합 확인 뒤). .playwright-mcp/(도구 캡처) 삭제.
+    11/19 기획 문서 3개(datemate/docs/product-*.ko.md)는 사용자 선택으로 커밋(cde3d9e). 작업 트리 깨끗함.
 아흔다섯 번째 배포(2026-11-25 15:15) 완료: main 0a85170(병합 = feat/results-action-bars 789e249), Worker 버전 af122c73-4689-463f-ab47-9c85d70aa912.
   사용자가 Gemini Canvas 시안(https://share.gemini.google/NMTZYFdUBrws — 결과 화면 시안 4장의 클릭되는 버전, 헤드리스 브라우저로 읽음)을 확인하라고 함.
   시안에만 있는 것 중 사용자 선택: '휴대폰 아래 막대'·'고정 윗줄', 테스트 통과하면 배포.

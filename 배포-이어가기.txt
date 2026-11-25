@@ -7,6 +7,19 @@
 
 ★ 지금 상태 (2026-11-25 기준)
 ----------------------------------------------------------------------
+브랜치 fix/qa-2026-11-25(2026-11-25 밤, 8616f96 + 1e733d3): 운영 QA 보고서의 '중간' 5건 수정 — main 병합·wrangler deploy 전.
+  · QA-01 app.js timeRangeInvalid: 종료 ≤ 시작이면 plan-jobs 를 보내지 않고 종료 칸 아래 안내(#end-time-error)·aria-invalid·포커스·토스트. 고치면 바로 지움.
+  · QA-01~03 http-client.mjs: 422 목록은 한국어만(서버 ValueError 문구는 'Value error, '·loc 떼고, 영문 검증 오류는 '입력값을 확인해 주세요…',
+    글자 수 초과는 'N자 이하로 줄여 주세요'). fetch 연결 실패는 한 문구('연결이 끊겨 서버에 닿지 못했어요…') + error.network, status 없음
+    (plan-jobs no_job 분기·ServerWake 재시도 그대로). QA-02 index.html textarea[name=request] maxlength=4000.
+  · QA-04 plan-results.js choose: 다시 그린 뒤 고른 코스 탭에 포커스(탭에 있었거나 BODY 로 빠졌을 때, preventScroll). maps.js 지도 탭은 다시 그린 직후에도 바로 포커스.
+    로컬 Chromium 실제 클릭은 원래도 유지됐고, 단추가 포커스를 받지 않는 클릭(Safari·자동화 도구)에서 BODY 가 됐다.
+  · QA-05 explore.js: '더 보기' 뒤 새로 붙은 첫 장소 제목(h3, tabindex=-1)으로 포커스.
+  · 덤(브랜치 CI 로 발견): header-mode.js 가 데이트 기본값을 시간대 맞추기 전에 읽어, 오후에 연 화면에서 여행 → 데이트가 지난 11:00~19:00 으로 되돌림
+    (test_travel_mode_ui 가 브라우저 시각 11~17시에만 실패, main 에서도 같음) → 처음 여행으로 바꿀 때 읽게 고침.
+  · 테스트 tests/test_qa_2026_11_25.py 7개(시계 14:30 고정 1개 포함). 로컬 전체 1624 통과·1 건너뜀·1 오류(포트 6000 ERR_UNSAFE_PORT — 임의 포트가
+    브라우저 금지 포트에 걸린 기존 고정장치 문제, 따로 돌리면 통과). 첫 CI Run 45618287585 실패(위 시각 의존 테스트) → CI Run 45624279277 성공(5개, sqlite 1625·postgres 1621 통과).
+  · 남은 일: main 병합 → test:security → wrangler deploy → 운영 확인. QA_REPORT '4) 수정 결과'는 아직 비워 둠.
 운영 QA 점검(2026-11-25 20:30~21:00, 97차 운영 대상, 보고 전용 — 코드 수정 없음): datemate/docs/QA_REPORT-2026-11-25.ko.md,
   시트 https://claude.ai/artifact/14MjGcxgXVSy3dzX46wGst. 판정 '출시 가능', 16건(치명·높음 0, 중간 5, 낮음 11).
   · 중간: QA-01 종료<시작을 화면에서 안 막고 422 원문('body: Value error, …') 노출 추정, QA-02 요청 글 4000자 초과 시 영문 오류(textarea maxlength 없음),

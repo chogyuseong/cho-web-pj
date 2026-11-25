@@ -589,6 +589,38 @@ function beginPlanSearch() {
     toast('검색을 취소했어요.');
   }));
 }
+// 종료 시간이 시작 시간과 같거나 이르면 보내기 전에 막는다. 서버도 같은 규칙으로 거부한다(app/models.py Conditions.valid).
+// 2026-11-25 운영 QA-01: 전에는 그대로 보내 422 를 받았다. 종료 칸 바로 아래에 안내를 두고 aria-invalid 로 표시하며,
+// 시작·종료를 고치면 다시 확인해 안내를 지운다.
+const TIME_RANGE_TEXT = '종료 시간은 시작 시간보다 늦게 골라 주세요.';
+
+function timeRangeInvalid() {
+  const {
+    start,
+    end
+  } = form.elements;
+  let note = document.getElementById('end-time-error');
+  // type=time 값은 'HH:MM' 이라 글자 비교가 곧 시각 비교다.
+  const bad = Boolean(start.value && end.value && end.value <= start.value);
+  if (!bad) {
+    note?.remove();
+    end.removeAttribute('aria-invalid');
+    if (end.getAttribute('aria-describedby') === 'end-time-error') end.removeAttribute('aria-describedby');
+    return false;
+  }
+  if (!note) {
+    note = node('span', TIME_RANGE_TEXT, 'warning field-error');
+    note.id = 'end-time-error';
+    end.after(note);
+  }
+  end.setAttribute('aria-invalid', 'true');
+  end.setAttribute('aria-describedby', note.id);
+  return true;
+}
+for (const name of ['start', 'end'])
+  for (const type of ['input', 'change']) form.elements[name].addEventListener(type, () => {
+    if (form.elements.end.hasAttribute('aria-invalid')) timeRangeInvalid();
+  });
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const submit = $('#submit-plan');
@@ -602,6 +634,11 @@ form.addEventListener('submit', async e => {
     }
     await applyRequest();
     if (!form.reportValidity()) return;
+    if (timeRangeInvalid()) {
+      toast(TIME_RANGE_TEXT);
+      form.elements.end.focus();
+      return;
+    }
     const data = values();
     data.explicit_fields = [...FormState.edited];
     await PlanningStudy.prepare(data);

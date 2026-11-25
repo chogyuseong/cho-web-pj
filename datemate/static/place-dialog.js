@@ -116,12 +116,35 @@ async function showAlternatives(index) {
   ]);
   reason.querySelector('select').required = true;
   root.append(reason);
-  root.append(node('p', '앞뒤 이동과 전체 시간·비용을 다시 확인하고 있어요.', 'hint'));
-  const result = await api('/plans/' + planId + '/alternatives', {
-    index,
-    locked: [...locks]
-  });
+  // 후보 조회는 실패할 수 있다(서버 깨우는 중·429·네트워크). 예전에는 '다시 확인하고 있어요'가 그대로 남고 재시도 단추가 없었다(점검 F10).
+  // 실패하면 그 한 줄을 까닭 + 「다시 불러오기」로 바꾼다. 다시 불러와도 고른 변경 이유(reason)는 그대로 둔다 — 대화상자를 새로 열지 않는다.
+  // 늦게 온 응답은 예전처럼 버린다(다른 대화상자·다른 코스로 바뀌었으면 generation·planId 가 다르다).
+  const status = node('p', '앞뒤 이동과 전체 시간·비용을 다시 확인하고 있어요.', 'hint alternatives-status');
+  root.append(status);
+  let result;
+  while (!result) {
+    try {
+      result = await api('/plans/' + planId + '/alternatives', {
+        index,
+        locked: [...locks]
+      });
+    } catch (error) {
+      if (generation !== dialogGeneration || !$('#dialog').open || selected?.id !== planId) return;
+      const retry = new Promise(resolve => {
+        status.replaceChildren(
+          node('span', (error?.message || '대신 갈 곳을 불러오지 못했어요.') + ' '),
+          button('다시 불러오기', resolve)
+        );
+      });
+      status.className = 'warning alternatives-status';
+      await retry;
+      if (generation !== dialogGeneration || !$('#dialog').open || selected?.id !== planId) return;
+      status.className = 'hint alternatives-status';
+      status.replaceChildren('앞뒤 이동과 전체 시간·비용을 다시 확인하고 있어요.');
+    }
+  }
   if (generation !== dialogGeneration || !$('#dialog').open || selected?.id !== planId) return;
+  status.textContent = '앞뒤 이동과 전체 시간·비용을 다시 계산한 후보예요.';
   if (!result.alternatives.length) root.append(node('p', '현재 조건을 충족하는 대체 장소가 없습니다. 시간·예산·테마 조건을 직접 수정해 주세요.', 'warning'));
   let replacing = false;
   for (const option of result.alternatives) {

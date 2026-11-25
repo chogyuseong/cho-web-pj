@@ -592,6 +592,9 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 .results-bar-actions button { min-height:44px; padding:8px 16px; border-radius:var(--radius-pill); font-weight:700; }
 @media(min-width:801px) {
   .results-bar { position:sticky; top:var(--site-header-height,88px); z-index:20; margin:0 -12px 20px; padding:10px 12px; border-bottom:1px solid var(--line); }
+  /* 고정 윗줄(약 66px)이 있는 동안 '…로 이동'(scrollIntoView·앵커)이 내용을 윗줄 밑에 숨기지 않게 스크롤 여백을 그만큼 늘린다
+     (readability.css 의 html scroll-padding-top = 머리글 + 16px). 윗줄 높이를 바꾸면 80px 도 같이 고친다. */
+  html:has(body.show-date-plan .results-area:not([hidden]) .results-bar) { scroll-padding-top:calc(var(--site-header-height,88px) + 80px); }
 }
 @media(max-width:800px) { .results-bar-actions { display:none; } }
 .results-actionbar { display:none; }
@@ -607,3 +610,33 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 }
 @media(max-width:360px) { .results-actionbar button { font-size:14px; gap:4px; } .results-actionbar svg { display:none; } }
 @media print { .results-bar .results-bar-actions,body.show-date-plan .results-area:not([hidden]) .results-actionbar:not([hidden]) { display:none; } .results-bar { position:static; border:0; } }
+
+/* 13) 축제 구역 필터 탭(plan-results.js 맨 끝, index.html .event-filter). '축제·행사'를 고르면 팝업 구역을, '팝업스토어'를 고르면 축제 카드·안내를 숨긴다(머리말과 탭은 남김).
+   팝업 구역(#popup-course)이 없거나 숨어 있으면 탭을 숨기고 필터도 풀린 것처럼 보이게 한다(축제만 있는데 '팝업스토어'를 눌러 빈 화면이 되지 않게). */
+.event-filter { display:inline-flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:var(--radius-pill); background:#fff; }
+.event-filter button { min-height:44px; padding:6px 14px; border:0; border-radius:var(--radius-pill); background:none; color:var(--muted); font-size:15px; font-weight:700; }
+.event-filter button[aria-pressed=true] { background:var(--ink); color:#fff; }
+.event-filter button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+.results-area:not(:has(#popup-course:not([hidden]))) .event-filter { display:none; }
+.results-area[data-event-filter=festival]:has(#popup-course:not([hidden])) #popup-course { display:none; }
+.results-area[data-event-filter=popup]:has(#popup-course:not([hidden])) #festival-section>:not(.section-heading) { display:none; }
+@media print { .event-filter { display:none; } }
+
+/* 14) 일정 끝 '귀가 동선 포함' 카드(plan-detail.js returnHomeCard). 스위치는 조건 화면으로 가는 단추(role=switch, aria-checked = 지금 코스에 귀가가 있는지). */
+.return-home-card { margin:4px 0 16px; padding:16px 18px; border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; }
+.return-home-head { display:flex; align-items:center; gap:12px; }
+.return-home-icon { display:grid; place-items:center; flex:0 0 40px; width:40px; height:40px; border-radius:12px; background:var(--platform); font-size:20px; color:var(--ink); }
+.return-home-text { flex:1 1 auto; min-width:0; }
+.return-home-text h3 { margin:0; font-size:16px; color:var(--ink); }
+.return-home-text .hint { margin:2px 0 0; font-size:14px; }
+/* 단추는 44px(누르기 기준), 보이는 막대(::before)는 32px. */
+.return-home-switch { position:relative; flex:0 0 56px; width:56px; height:44px; min-height:44px; padding:0; border:0; background:none; cursor:pointer; }
+.return-home-switch::before { content:''; position:absolute; left:2px; right:2px; top:6px; height:32px; border-radius:999px; background:#64748B; }
+.return-home-switch[aria-checked=true]::before { background:var(--ink); }
+.return-home-knob { position:absolute; top:10px; left:6px; width:24px; height:24px; border-radius:50%; background:#fff; transition:transform .15s; }
+.return-home-switch[aria-checked=true] .return-home-knob { transform:translateX(20px); }
+.return-home-switch:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+.return-home-route { margin:12px 0 0; padding:10px 12px; border-radius:12px; background:var(--platform); font-size:15px; overflow-wrap:anywhere; }
+.return-home-route strong { margin-right:6px; }
+@media(prefers-reduced-motion:reduce) { .return-home-knob { transition:none; } }
+@media print { .return-home-switch { display:none; } }

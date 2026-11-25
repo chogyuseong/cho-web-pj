@@ -207,7 +207,8 @@ async function showPlace(id, placeMode) {
       ['휴무', p.closed_days === null ? '미확인' : p.closed_days.length ? p.closed_days.map(n => ['월', '화', '수', '목', '금', '토', '일'][n]).join(', ') + '요일' : '없음 (데모 가정)'],
       ['체류 시간', p.stay ? `${p.stay}분 / ${p.stay_basis}` : '미확인'],
       ['예약', p.reservation === null ? '미확인' : p.reservation ? '필요' : '불필요'],
-      ['확인 시점', p.checked_at],
+      // 서버 원문(UTC ISO)이 아니라 한국 시각으로(app.js koreaTimeText, 2026-11-25 운영 QA-09).
+      ['확인 시점', koreaTimeText(p.checked_at) || '미확인'],
       ['자료 유형', p.source_type],
       ['외부 평점', p.rating ? JSON.stringify(p.rating) : '확보한 자료 없음'],
       ['권리', p.license]

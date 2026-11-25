@@ -5,8 +5,27 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
-★ 지금 상태 (2026-11-25 기준)
+★ 지금 상태 (2026-11-26 기준)
 ----------------------------------------------------------------------
+브랜치 fix/qa-low-2026-11-25(2026-11-25 밤~26 새벽, f251044 + 이 기록 커밋): 운영 QA 보고서의 '낮음' 10건(QA-06~13·15·16) + shared.js — 병합·배포 전.
+  · QA-06 둘러보기 검색: 관광공사 searchKeyword2 가 '<script>'·'javascript:'·'onerror=' 에 HTTP 400(INVALID_REQUEST_PARAMETER_ERROR, 사유 10)으로 답하는 것을
+    실제 호출로 확인(원인). public_places.keyword_text 가 기호를 빼고 보내고, 400·사유 10 은 rejected(하루 보관), 두 글자 미만은 too_short(부르지 않음) →
+    explore 는 '결과 없음 + 입력 안내'(KEYWORD_HINT). 5xx·키 오류는 그대로 '불러오지 못했어요'.
+  · QA-07 main.py http_error: /api/ 밖 + Accept text/html 인 404 는 static/not-found.html(처음 화면 링크). API·JSON 은 그대로 JSON.
+    Worker 도 같은 규칙(edge.mjs wantsPage·notFound, build-edge-pages.mjs 가 "404" 키로 함께 빌드). 잠든 컨테이너에서 없는 주소(/foo)는 전처럼 컨테이너가 답함.
+  · QA-08 index.html head: description·og(제목·설명·seoul-evening.jpg)·twitter:card·canonical. 주소는 {{PUBLIC_ORIGIN}} 자리표시 → 앱(static_pages.with_public_origin,
+    DATEMATE_PUBLIC_ORIGIN)·Worker(edge.mjs withPublicOrigin, PUBLIC_ORIGIN)가 같은 규칙으로 바꿈, 공개 주소 없으면 그 태그를 뺌. 엣지·앱 결과가 같은지 node 로 비교하는 테스트 있음.
+  · QA-09 app.js koreaTimeText(Asia/Seoul) → 장소 정보 '확인 시점'·사진 '자료 확인'. QA-10 place-photos.js photoOpenLabel('성수노루 사진 크게 보기').
+  · QA-11 header-mode.js: 머리글 메뉴 현재 위치는 aria-current="true" 하나(aria-pressed 제거, 데이트/여행 스위치는 그대로 aria-pressed).
+  · QA-12 /api/status today(한국 날짜, planning_now — 60초 보관 밖) → app.js applyVisitDateMin 이 visit_date min. QA-13 style.css .chips span 11→12px.
+  · QA-15 「일정·링크 복사」·「카톡용 일정·링크 복사」 + title(24시간 공유 링크). QA-16 /api/status 에서 llm·embedding 삭제(counts 는 check_cloud_containers 가 읽어 유지).
+  · shared.js: 응답 없는 fetch 실패는 http-client.mjs NETWORK_ERROR_TEXT·TIMEOUT_ERROR_TEXT(status 없음 → ServerWake 재시도 유지).
+  · 테스트: tests/test_qa_low_2026_11_25.py 18개(수정 전 17개 실패 확인), edge.test.mjs +3. 기존 테스트 파일 8개와 css_snapshot.py 를 새 이름·속성에 맞춤(aria-current,
+    일정·링크 복사, 사진 단추 이름, status 칸). npm run test:security 27 통과. 로컬 전체 1차 1641 통과·2 실패(옛 사진 단추 이름을 기대 — 고침) → 2차 1642 통과·1 건너뜀·1 오류
+    (test_hero_photo… 고정장치 단계 오류, 단독 재실행 통과 — 원인 기록 못 함, 전처럼 임의 포트 문제로 추정). CI Run 45641786450 성공(5개, sqlite 1643·postgres 1639 통과).
+  · 손대지 않음: QA-14(파일 묶기·미디어쿼리), 공유 화면 og 태그, tour_places 사진 검색의 같은 400 처리, 기존 ruff 경고(main.py carried_delays·public_places math 미사용 import).
+  · QA_REPORT '4) 수정 결과' 채움(QA-01~05 = 98차, 이번 항목, QA-14 보류). 시트는 그대로.
+  · 배포 때 볼 것: 운영 / 의 canonical·og:url 이 https://datemate.guseong-family.workers.dev/, /nope(브라우저) 404 화면, /api/status 에 llm 없음·today 있음.
 아흔여덟 번째 배포(2026-11-25 23:10경) 완료: main f78f4a3(병합 = fix/qa-2026-11-25 d92dbb2), Worker 버전 9d9d4702-8fa5-47c1-9b3a-3ea5c05b6468.
   사용자 '진행해' + '통과하면 병합하고 배포까지' + '끝나면 배포-이어하기랑 README도 수정해'. 내용은 바로 아래 브랜치 기록.
   · 검증: 브랜치 CI Run 45624279277 성공 → main 병합·push → test:security 25 통과 → wrangler deploy(파일 8개: app·explore·header-mode·maps·plan-results.js,

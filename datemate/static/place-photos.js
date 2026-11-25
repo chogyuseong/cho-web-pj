@@ -13,11 +13,14 @@ function probePhoto(url){
 }
 // 자료 확인 시각: 서버가 주는 ISO 시각(2026-11-17T00:22:24.22+00:00)을 이 기기 시간대의 '2026-11-17 09:22'로 보여 준다.
 // 날짜만 있는 값(위키미디어)이나 읽을 수 없는 값은 그대로 둔다.
-function photoCheckedAt(value){
-  const text=String(value||'');if(!/^\d{4}-\d{2}-\d{2}T/.test(text))return text||'시점 미확인';
-  const at=new Date(text);if(Number.isNaN(at.getTime()))return text;
-  const two=n=>String(n).padStart(2,'0');
-  return `${at.getFullYear()}-${two(at.getMonth()+1)}-${two(at.getDate())} ${two(at.getHours())}:${two(at.getMinutes())}`;
+// 사진 자료 확인 시점도 장소 정보 창과 같이 한국 시각(app.js koreaTimeText). 전에는 브라우저 시간대로 바꿨다.
+function photoCheckedAt(value){return koreaTimeText(value)||'시점 미확인';}
+// 사진 크게 보기 단추 이름. 사진 제목이 이미 '… 장소 사진'·'… 사진'이면 그 꼬리를 떼고 붙인다(2026-11-25 운영 QA-10 — 예전에는
+// '성수노루 장소 사진 사진 크게 보기'처럼 겹쳤다). 서버 제목의 순번('… 장소 사진 2', app/tour_places.py)은 남긴다. 제목이 비면 장소 이름을 쓴다.
+function photoOpenLabel(title,placeName){
+  const text=String(title||'').trim(),match=text.match(/^(.*?)\s*(?:장소\s*)?사진(?:\s+(\d+))?$/);
+  const name=(match?match[1]:text).trim()||String(placeName||'').trim()||'장소';
+  return name+' 사진'+(match?.[2]?' '+match[2]:'')+' 크게 보기';
 }
 // 촬영·확인 시점, 변경 여부, 이용 조건은 '사진 정보' 접기 안에 둔다(전에는 사진마다 본문 크기 4줄, 2026-11-17 가독성 정리).
 // 네이버 사진의 구분(업체 등록 / 방문자 후기 / 업체 연결 공개 사진 · 등록 주체 미확인, 내용 미검사)도 2026-11-18 부터 여기 첫 줄이다
@@ -216,7 +219,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
     // 사진을 받기 전(화면 근처를 기다리는 동안)에는 src 없는 img 의 대체 글자가 보이지 않게 숨겨 둔다. 자리는 .photo-viewport 가 잡는다.
     img.referrerPolicy='no-referrer';img.hidden=true;
     // 사진을 누르면 같은 페이지 안의 큰 보기 창이 열린다(원문은 아래 출처 줄의 링크로 연다).
-    const imageLink=node('button',undefined,'photo-open');imageLink.type='button';imageLink.setAttribute('aria-label',photo.title+' 사진 크게 보기');imageLink.append(img);
+    const imageLink=node('button',undefined,'photo-open');imageLink.type='button';imageLink.setAttribute('aria-label',photoOpenLabel(photo.title,place.name));imageLink.append(img);
     imageLink.addEventListener('click',()=>{if(Date.now()>=suppressClickUntil)PhotoViewer.open(data.photos,current,place.name,imageLink);});
     const credits=photoCredits(photo);
     const viewport=node('div',undefined,'photo-viewport');viewport.append(imageLink);figure.append(viewport,credits);
@@ -233,7 +236,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
     const updatePhoto=(next,loadedUrl)=>{
       const index=data.photos.indexOf(next);if(index>=0)current=index;
       if(counter)counter.textContent=`${current+1} / ${data.photos.length}`;
-      imageLink.setAttribute('aria-label',next.title+' 사진 크게 보기');
+      imageLink.setAttribute('aria-label',photoOpenLabel(next.title,place.name));
       // 머리 글자는 사진의 역할만(예: '외관 · 제목 기준'). 사진 구분(업체 등록 등)은 아래 photoMeta 의 '사진 구분' 줄에 한 번만 둔다.
       copy.replaceChildren(node('span',next.image_role?next.image_role+' · 제목 기준':'장소 사진','photo-eyebrow'),node('h5',next.title),node('p',next.caption||place.description||''));
       if(place.description&&place.description!==next.caption)copy.append(node('p',place.description,'hint'));
@@ -274,7 +277,7 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
       viewport.addEventListener('touchcancel',()=>{touch=null;},{passive:true});
     }
     if(data.photos.length>1&&!full){const more=button('장소 사진 '+data.photos.length+'장 보기',()=>showPlace(place.id,photoMode));copy.append(more);}
-    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(NAVER_PHOTO_KINDS.includes(item.kind))credit.append(node('span','네이버 공개 사진 · '),photoSourceLink(item,'원본'));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',item.title+' 사진 크게 보기');open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')),{thumb:true});}panel.append(extra);}
+    if(full&&data.photos.length>1){const extra=node('div',undefined,'photo-extra');for(const [offset,item] of data.photos.slice(1,5).entries()){const f=node('figure',undefined,'place-photo'),image=node('img');image.alt=item.title;image.decoding='async';const credit=node('figcaption');if(NAVER_PHOTO_KINDS.includes(item.kind))credit.append(node('span','네이버 공개 사진 · '),photoSourceLink(item,'원본'));else credit.append(node('span',item.author+' · '),link(item.license,item.license_url),node('span',' · '),link('사진 원문',item.source));const open=node('button',undefined,'photo-open');open.type='button';open.setAttribute('aria-label',photoOpenLabel(item.title,place.name));open.append(image);open.addEventListener('click',()=>PhotoViewer.open(data.photos,offset+1,place.name,open));f.append(open,credit);extra.append(f);loadSafePhoto(image,[item],null,()=>image.replaceWith(node('p','추가 사진을 표시할 수 없어요. 원문에서 확인해 주세요.','hint')),{thumb:true});}panel.append(extra);}
   }catch(error){panel.replaceChildren(emptyBody(node('p','사진 정보를 불러오지 못했습니다. 다시 시도해 주세요.','photo-status'),retry()));}}
   // 목록 전체를 한 번에 조회하지 않고 화면 근처의 장소만 불러온다.
   if(eager)load();else if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){observer.disconnect();load();}},{rootMargin:'150px'});observer.observe(panel);}else load();

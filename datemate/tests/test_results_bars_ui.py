@@ -1,7 +1,7 @@
 """결과 화면 고정 윗줄·휴대폰 아래 막대(2026-11-25 Gemini Canvas 시안, static/plan-results.js syncResultsBars · redesign.css 12)).
 
-- 데스크톱: 윗줄(#results-bar)에 조건 수정하기·조건 칩·공유 티켓·일정 복사가 있고, 내려 읽어도 머리글 바로 아래에 붙어 있다.
-- 휴대폰: 코스가 있으면 메뉴 바 대신 '지도 보기 / 일정 복사 / 공유 티켓'. 지도 보기 → 지도로 가고 '일정 보기'로 바뀐다. 처음 화면에서는 메뉴 바 그대로.
+- 데스크톱: 윗줄(#results-bar)에 조건 수정하기·조건 칩·공유 티켓·일정·링크 복사가 있고, 내려 읽어도 머리글 바로 아래에 붙어 있다.
+- 휴대폰: 코스가 있으면 메뉴 바 대신 '지도 보기 / 일정·링크 복사 / 공유 티켓'. 지도 보기 → 지도로 가고 '일정 보기'로 바뀐다. 처음 화면에서는 메뉴 바 그대로.
 - 인쇄에는 두 막대의 단추가 나오지 않는다."""
 import pytest
 
@@ -18,7 +18,7 @@ def test_desktop_bar_sticks_under_the_header_with_share_and_copy(audit_page):
     bar = page.locator('#results-bar')
     assert bar.locator('#edit-conditions').is_visible()
     assert bar.locator('#results-meta > *').count() >= 3
-    assert [b.inner_text() for b in bar.locator('.results-bar-actions button').all()] == ['공유 티켓', '일정 복사']
+    assert [b.inner_text() for b in bar.locator('.results-bar-actions button').all()] == ['공유 티켓', '일정·링크 복사']
     # 내려 읽어도 머리글 바로 아래(같은 자리)에 붙어 있다.
     page.locator('#plan-detail .stop').nth(2).evaluate("e=>e.scrollIntoView({block:'center'})")
     page.wait_for_timeout(300)
@@ -44,7 +44,7 @@ def test_phone_shows_map_copy_ticket_bar_instead_of_the_menu_on_results(audit_pa
     bar = page.locator('#results-actionbar')
     assert bar.is_visible()
     assert page.evaluate("getComputedStyle(document.querySelector('body>header nav')).display") == 'none'
-    assert [b.inner_text() for b in bar.locator('button').all()] == ['지도 보기', '일정 복사', '공유 티켓']
+    assert [b.inner_text() for b in bar.locator('button').all()] == ['지도 보기', '일정·링크 복사', '공유 티켓']
     boxes = [b.bounding_box() for b in bar.locator('button').all()]
     assert len({round(b['y']) for b in boxes}) == 1 and all(b['height'] >= 44 for b in boxes)
     # 윗줄의 공유·복사는 휴대폰에서 숨긴다(아래 막대와 겹치지 않게).

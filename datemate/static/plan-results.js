@@ -252,7 +252,7 @@ function planRailSummary(p){
   const spend=railSpend(p);if(spend)box.append(spend);
   if(p.id){
     const share=node('div',undefined,'rail-share'),label=(text,cls,action)=>{const b=button(text,action,cls);b.setAttribute('aria-label',`${text} · 코스 ${number}`);return b;};
-    share.append(label('공유 티켓 보기','primary rail-ticket',()=>showPlanTicket(p)),label('카톡용 일정 복사','secondary rail-kakao-copy',()=>copyKakaoItinerary(p)));
+    share.append(label('공유 티켓 보기','primary rail-ticket',()=>showPlanTicket(p)),linkCopyHint(label('카톡용 일정·링크 복사','secondary rail-kakao-copy',()=>copyKakaoItinerary(p))));
     // 한 줄로 둔다: 1440×900 에서 패널 아래 지도가 첫 화면에 다 들어와야 한다(tests/test_redesign_results_ui.py scrollTop 0).
     box.append(node('p','이 코스가 마음에 드셨나요?','rail-share-title'),share);
   }
@@ -282,8 +282,8 @@ function showPlanTicket(p){
 }
 
 /* 결과 화면 고정 윗줄·휴대폰 아래 막대(2026-11-25 Gemini Canvas 시안 share.gemini.google/NMTZYFdUBrws, 사용자 선택 두 가지).
-   ① 윗줄(#results-bar, index.html): 「← 조건 수정하기」·조건 칩(#results-meta)·「공유 티켓」·「일정 복사」. 머리글 바로 아래에 붙는다(redesign.css 12)).
-   ② 휴대폰(720px 이하) 아래 막대(#results-actionbar): 코스가 있으면 메뉴 바 대신 「지도 보기 / 일정 복사 / 공유 티켓」.
+   ① 윗줄(#results-bar, index.html): 「← 조건 수정하기」·조건 칩(#results-meta)·「공유 티켓」·「일정·링크 복사」. 머리글 바로 아래에 붙는다(redesign.css 12)).
+   ② 휴대폰(720px 이하) 아래 막대(#results-actionbar): 코스가 있으면 메뉴 바 대신 「지도 보기 / 일정·링크 복사 / 공유 티켓」.
       메뉴 바는 처음 화면·둘러보기에서는 그대로다(결과가 보일 때만 바꾼다 — CSS 가 #results-actionbar 가 보이는지로 정한다).
       「지도 보기」는 일정 뒤 휴대폰 지도 자리(#plan-map-slot)로 가고, 지도가 화면에 보이는 동안은 「일정 보기」(첫 장소로)로 바뀐다.
    공유·복사는 오른쪽 패널과 같은 함수(showPlanTicket·copyKakaoItinerary)를 부른다 — 새로 만들지 않는다.
@@ -296,7 +296,7 @@ function syncResultsBars(p = selected) {
     bar = document.getElementById('results-actionbar');
   if (actions) {
     actions.replaceChildren();
-    if (p?.id) actions.append(button('공유 티켓', () => showPlanTicket(p), 'secondary results-bar-ticket'), button('일정 복사', () => copyKakaoItinerary(p), 'primary results-bar-copy'));
+    if (p?.id) actions.append(button('공유 티켓', () => showPlanTicket(p), 'secondary results-bar-ticket'), linkCopyHint(button('일정·링크 복사', () => copyKakaoItinerary(p), 'primary results-bar-copy')));
   }
   if (!bar) return;
   bar.replaceChildren();
@@ -318,7 +318,7 @@ function syncResultsBars(p = selected) {
   });
   mapButton.dataset.view = 'map';
   bar.append(mapButton,
-    make('일정 복사', 'results-actionbar-copy', '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>', () => copyKakaoItinerary(p)),
+    linkCopyHint(make('일정·링크 복사', 'results-actionbar-copy', '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>', () => copyKakaoItinerary(p))),
     make('공유 티켓', 'results-actionbar-ticket', '<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"/>', () => showPlanTicket(p)));
   // 지도가 보이면 단추를 「일정 보기」로. 지도 자리는 상세를 다시 그릴 때마다 새로 생기므로 관찰도 다시 건다.
   resultsMapObserver?.disconnect();

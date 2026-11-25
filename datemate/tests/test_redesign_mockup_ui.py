@@ -89,8 +89,9 @@ def test_mode_switch_changes_color_copy_chips_and_tab_and_is_remembered(audit_pa
 def test_menu_follows_the_section_on_screen(audit_page):
     page, _, _ = audit_page
     page.set_viewport_size({'width': 1440, 'height': 900})
-    state = "[document.querySelector('#nav-home').classList.contains('active'),document.querySelector('#nav-plan').getAttribute('aria-pressed')]"
-    assert page.evaluate(state) == [True, 'false']
+    # 현재 위치는 aria-current(2026-11-25 운영 QA-11). 현재가 아니면 속성이 없다.
+    state = "[document.querySelector('#nav-home').classList.contains('active'),document.querySelector('#nav-plan').getAttribute('aria-current')]"
+    assert page.evaluate(state) == [True, None]
     # 사용자가 조건 화면까지 스크롤하면 '코스 만들기'로, 다시 위로 가면 '홈 · 테마'로.
     page.evaluate("document.getElementById('planner-section').scrollIntoView()")
     page.mouse.wheel(0, 10)
@@ -100,4 +101,4 @@ def test_menu_follows_the_section_on_screen(audit_page):
     page.wait_for_function(f"{state}[0]===true")
     # 장소 둘러보기는 그 화면에 있는 동안.
     page.click('#nav-explore')
-    assert page.evaluate("[document.querySelector('#nav-explore').getAttribute('aria-pressed'),document.querySelector('#nav-home').classList.contains('active')]") == ['true', False]
+    assert page.evaluate("[document.querySelector('#nav-explore').getAttribute('aria-current'),document.querySelector('#nav-home').classList.contains('active')]") == ['true', False]

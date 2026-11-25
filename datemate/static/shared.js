@@ -19,8 +19,19 @@ function link(text,url){
     dirty.textContent=!Object.keys(saved).length&&!changed?'아직 전달한 의견이 없어요. 원하는 곳만 골라도 돼요.':changed?`바꿨지만 아직 전달하지 않은 곳이 ${changed}곳 있어요. '내 의견 전달하기'를 눌러야 전해져요.`:'전달한 의견과 지금 선택이 같아요.';
   }
   form.addEventListener('change',showDirty);
+  // 응답 없이 실패한 fetch(연결 끊김 'Failed to fetch', 시간 초과 'signal timed out')는 브라우저 원문 대신 코스 화면과 같은
+  // 한국어 문구로(http-client.mjs, 2026-11-25 운영 QA 덧붙임). status 를 붙이지 않아 서버 깨우기(server-wake.js)는 전처럼 다시 묻는다.
+  async function noAnswer(cause){
+    // 문구 모듈마저 받지 못했으면(첫 화면 직후 끊김) 짧은 한국어 문구로 대신한다.
+    const texts=await httpClient.catch(()=>({}));
+    const timedOut=cause?.name==='TimeoutError'||cause?.name==='AbortError';
+    const text=(timedOut?texts.TIMEOUT_ERROR_TEXT:texts.NETWORK_ERROR_TEXT)||'서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    const error=Error(text);error.network=!timedOut;error.cause=cause;return error;
+  }
   async function request(path,body,timeout=15000){
-    const response=await fetch(path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(timeout)});
+    let response;
+    try{response=await fetch(path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(timeout)});}
+    catch(cause){throw await noAnswer(cause);}
     let data;try{data=await response.json();}catch{const error=Error('연결하지 못했어요.');error.status=response.status;error.unreadable=true;throw error;}
     if(!response.ok){const error=Error(data.detail||'연결하지 못했어요.');error.status=response.status;throw error;}return data;
   }

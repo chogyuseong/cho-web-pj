@@ -464,6 +464,12 @@ def _tour_fetch(kind, url, key, params, ttl=TOUR_SECONDS, pages=1):
                 ),
                 timeout=TOUR_TIMEOUT,
             )
+            if kind == "tour_keyword" and _rejected_parameter(response):
+                # 검색어를 관광공사 앞단이 받지 않았다(장애가 아님). 같은 검색어는 늘 같은 답이라 목록처럼 보관한다.
+                STATS[kind + "_rejected"] += 1
+                rejected = dict(status="rejected", rows=[])
+                store.cache(key, rejected, ttl)
+                return rejected
             response.raise_for_status()
             if len(response.content) > 4_000_000:
                 raise ValueError("oversized_response")
@@ -682,12 +688,44 @@ def tour_area(region, content_type=None, lcls=None, rows=60):
     )
 
 
+def _rejected_parameter(response):
+    """관광공사 앞단이 요청 값을 거절한 답인지(HTTP 400 + OpenAPI_ServiceResponse 사유 10 INVALID_REQUEST_PARAMETER_ERROR).
+
+    2026-11-25 운영 QA-06 에서 확인: searchKeyword2 는 검색어가 '<script>'·'javascript:'·'onerror=' 처럼 보이면 이 답을 준다
+    ('a<b'·'성수;'·'(성수)' 는 정상 200 + 0건). 예전에는 이를 장애로 읽어 둘러보기가 '공공 자료를 불러오지 못했어요'를 보였다."""
+    if response.status_code != 400:
+        return False
+    try:
+        header = response.json()["OpenAPI_ServiceResponse"]["cmmMsgHeader"]
+    except (ValueError, TypeError, KeyError):
+        return False
+    return (
+        str(header.get("returnReasonCode") or "") == "10"
+        or str(header.get("errMsg") or "") == "INVALID_REQUEST_PARAMETER_ERROR"
+    )
+
+
+# 둘러보기 검색어에서 지우는 글자: 글자·숫자·공백과 장소 이름에 쓰이는 몇 기호(· & ( ) - . , / ')만 남기고 나머지는 띄어쓰기로.
+# 관광공사 이름 검색은 제목에 검색어가 그대로 든 곳만 찾아 '"성수"' 같은 기호는 결과만 없앤다. '<>=:' 등을 빼면 위의 거절도 대부분 피한다.
+_KEYWORD_DROP = re.compile(r"[^\w\s·&()\-.,/']|_")
+
+
+def keyword_text(text):
+    """둘러보기 검색어를 관광공사에 보낼 모양으로(기호 정리, 공백 하나, 60자)."""
+    return " ".join(_KEYWORD_DROP.sub(" ", str(text or "")).split())[:60]
+
+
 def tour_keyword(region, keyword, rows=60):
-    """시·도 안에서 이름에 keyword 가 든 관광공사 항목(수정일 최신순). 둘러보기 검색어."""
+    """시·도 안에서 이름에 keyword 가 든 관광공사 항목(수정일 최신순). 둘러보기 검색어.
+
+    status: available · too_short(정리한 검색어가 두 글자 미만, 부르지 않음) · rejected(관광공사가 검색어를 거절) · unavailable · limited · key_missing.
+    """
     code = REGION_CODES.get(region)
-    keyword = " ".join(str(keyword or "").split())[:60]
-    if not code or len(keyword) < 2:
+    keyword = keyword_text(keyword)
+    if not code:
         return dict(status="unavailable", rows=[])
+    if len(keyword) < 2:
+        return dict(status="too_short", rows=[])
     digest = hashlib.sha256(keyword.casefold().encode()).hexdigest()[:24]
     params = dict(lDongRegnCd=code, keyword=keyword, arrange="Q", numOfRows=rows)
     return _tour_fetch(

@@ -34,6 +34,7 @@ STORE_CAPS={kind:12 for kind in public_places.STORE_CAPS}
 RANKING='공공 자료(한국관광공사 관광정보·소상공인 상가정보)를 사진이 있는 곳 먼저 정리했어요. 인기·별점 순위가 아니에요.'
 DATA_NOTE='공공 자료에는 사진·영업시간·후기가 없는 곳이 많아요. 장소를 열면 네이버 지도에서 확인하는 링크가 있어요.'
 CENTER_HINT='동네 이름(예: 성수, 해운대)으로 검색하면 그 주변 가게(소상공인 상가정보)도 함께 보여 드려요.'
+KEYWORD_HINT='이 검색어로는 장소를 찾지 못했어요. 장소나 동네 이름을 글자·숫자로 두 글자 이상 입력해 주세요(예: 성수, 서울숲).'
 
 # 활동 → (관광공사 목록 조건들 (관광 타입 또는 None, 새 분류 lclsSystm 앞부분 또는 None), 상가정보 묶음들, 장소 판별).
 def _tag(*tags):return lambda p:any(t in p['tags'] for t in tags)
@@ -116,6 +117,8 @@ def public_list(region,activity='',q=''):
     statuses=[s['status'] for s in sources]
     if places:status,message='ready',None if all(s=='available' for s in statuses) else '일부 자료를 받지 못해 받은 곳만 보여 드려요.'
     elif 'key_missing' in statuses:status,message='key_missing','공공데이터포털 키가 필요해요.'
+    # 검색어 문제(기호뿐·한 글자, 관광공사가 거절한 '<script>' 같은 글)는 장애가 아니라 결과 없음과 입력 안내다(2026-11-25 운영 QA-06).
+    elif q and statuses[:1] in (['too_short'],['rejected']):status,message='empty',KEYWORD_HINT
     elif statuses and all(s in ('unavailable','limited') for s in statuses):status,message='unavailable','공공 자료를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
     else:status,message='empty','공공 자료에서 조건에 맞는 장소를 찾지 못했어요. 다른 활동이나 동네 이름으로 찾아보세요.'
     return dict(status=status,places=places,message=message,sources=sources,center=center,

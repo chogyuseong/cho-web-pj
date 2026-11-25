@@ -3,7 +3,7 @@
       - 장소 둘러보기: body.show-explore(app.js setTab).
       - 코스 만들기: 결과 화면(body.show-date-plan)이거나, 조건 화면(#planner-section) 위쪽이 화면 가운데보다 위로 올라왔을 때.
       - 나머지(히어로·테마 구역)는 홈 · 테마.
-      화면 읽기 프로그램에는 단추는 aria-pressed, 홈 링크는 aria-current 로 알린다. app.js setTab 이 끝에 syncHeaderNav() 를 부른다.
+      화면 읽기 프로그램에는 링크·단추 모두 aria-current="true" 로 알린다(QA-11). app.js setTab 이 끝에 syncHeaderNav() 를 부른다.
    2) 데이트 / 여행 스위치: body.mode-travel 로 포인트 색(redesign.css 8)), 히어로 제목·설명·입력 예시, 바로 시작 칩(theme-cards.js
       renderHeroQuick), 테마 구역의 첫 탭을 바꾼다.
       2026-11-25 사용자 결정('여행 기본 조건 적용'): 여행을 고르면 조건 화면의 기본값도 하루 여행에 맞춘다(TRIP_DEFAULTS — 10:00~20:00,
@@ -38,17 +38,14 @@
     const now = current();
     if (now === last) return;
     last = now;
-    if (home) {
-      home.classList.toggle('active', now === 'home');
-      if (now === 'home') home.setAttribute('aria-current', 'true'); else home.removeAttribute('aria-current');
-    }
-    // 휴대폰 하단 바의 '코스 결과'는 결과 화면(body.show-date-plan)에 있는 동안 눌린 상태.
+    // 휴대폰 하단 바의 '코스 결과'는 결과 화면(body.show-date-plan)에 있는 동안 현재 위치.
     const results = document.getElementById('nav-results');
-    if (results) { const on = body.classList.contains('show-date-plan'); results.classList.toggle('active', on); results.setAttribute('aria-pressed', String(on)); }
-    for (const [button, key] of [[plan, 'plan'], [explore, 'explore']]) {
-      if (!button) continue;
-      button.classList.toggle('active', now === key);
-      button.setAttribute('aria-pressed', String(now === key));
+    for (const [item, on] of [[home, now === 'home'], [plan, now === 'plan'], [explore, now === 'explore'], [results, body.classList.contains('show-date-plan')]]) {
+      if (!item) continue;
+      item.classList.toggle('active', on);
+      // 현재 위치는 링크·단추 모두 aria-current 하나로 알린다(2026-11-25 운영 QA-11 — 예전에는 단추만 aria-pressed 였다).
+      if (on) item.setAttribute('aria-current', 'true'); else item.removeAttribute('aria-current');
+      item.removeAttribute('aria-pressed');
     }
   }
   // 강제로 다시 맞춘다(app.js setTab 이 클래스를 바꾼 뒤 부른다 — 같은 상태라도 단추 클래스를 되돌려 놓는다).

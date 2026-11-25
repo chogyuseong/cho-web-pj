@@ -355,7 +355,7 @@ function renderDetail() {
     window.print();
   });
   // 공유 두 가지를 앞에(2026-11-24 UX P1): 카톡용 일정 글 복사(공유 링크 포함), 공유 링크만 복사. 그 뒤 이미지 카드·취소·인쇄.
-  actions.append(button('카톡용 일정 복사', () => copyKakaoItinerary(p), 'primary kakao-copy'), button('공유 링크 복사', () => copyPlanShare(p)), button('코스 카드 저장', () => showShareCard(p)), button('공유 취소', () => revokePlanShares(p)), printButton);
+  actions.append(linkCopyHint(button('카톡용 일정·링크 복사', () => copyKakaoItinerary(p), 'primary kakao-copy')), button('공유 링크 복사', () => copyPlanShare(p)), button('코스 카드 저장', () => showShareCard(p)), button('공유 취소', () => revokePlanShares(p)), printButton);
   // 공유 링크 현황(개선안 31·32): 이 코스와 바뀌기 전 코스의 열린 링크, 만료 시각. 상자가 문서에 붙은 뒤 채운다.
   const shareStatus = node('p', undefined, 'hint share-status');
   shareStatus.dataset.plan = p.id || '';

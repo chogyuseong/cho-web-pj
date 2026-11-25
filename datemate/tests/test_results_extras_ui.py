@@ -115,7 +115,8 @@ def test_explore_photo_opens_large_viewer(audit_page, width):
     mount_photo_routes(page, base)
     page.get_by_role('button', name='장소 둘러보기', exact=True).click()
     card = page.locator('#catalog .place-card').first
-    opener = card.get_by_role('button', name='사진 1 사진 크게 보기', exact=True)
+    # 사진 제목 '사진 1' 에 ' 사진 크게 보기'를 그대로 붙이지 않는다(2026-11-25 운영 QA-10, place-photos.js photoOpenLabel).
+    opener = card.get_by_role('button', name='사진 큰보기 카페 사진 1 크게 보기', exact=True)
     opener.wait_for()
     page.wait_for_function("[...document.querySelectorAll('#catalog .place-photo img')].some(i=>!i.hidden&&i.complete&&i.naturalWidth>0)")
     thumb = card.locator('.place-photo img').first.bounding_box()

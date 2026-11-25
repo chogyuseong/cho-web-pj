@@ -12,7 +12,8 @@ def test_full_api_flow(client):
     index_places(places(),'demo')
     assert client.get('/').status_code==200
     assert client.get('/static/app.js').headers['content-type'].startswith('text/javascript')
-    assert client.get('/api/status').json()['llm']=='GMS 키 없음'
+    # 공개 상태 응답에는 내부 설정 문구(llm 'GMS 키 없음' 등)를 싣지 않는다(2026-11-25 운영 QA-16).
+    assert 'llm' not in client.get('/api/status').json()
     p=client.post('/api/plans',json={'visit_date':'2026-10-24'}).json()['plans'][0]
     assert client.get('/api/plans/'+p['id']).json()['id']==p['id']
     options=client.post('/api/plans/'+p['id']+'/alternatives',json={'index':1,'locked':[0]}).json()['alternatives']

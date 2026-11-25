@@ -13,7 +13,9 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const DATEMATE_ROOT = path.join(HERE, "..", "datemate");
 export const OUTPUT = path.join(HERE, "generated", "edge-pages.mjs");
 // Request path -> file in datemate/static, as the app routes them (main.py, sharing.py).
-export const EDGE_PAGE_FILES = Object.freeze({ "/": "index.html", "/shared": "shared.html" });
+// "404" is not a route: it is the HTML not-found page (static_pages.NOT_FOUND_PAGE) that edge.mjs notFound() sends
+// to browser page requests, as the app's http_error handler does.
+export const EDGE_PAGE_FILES = Object.freeze({ "/": "index.html", "/shared": "shared.html", "404": "not-found.html" });
 
 export function versionedPage(name, root = DATEMATE_ROOT) {
   // Python's read_text() turns \r\n and \r into \n; the hashes use the raw bytes.

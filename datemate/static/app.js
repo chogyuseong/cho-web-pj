@@ -313,6 +313,33 @@ function today() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 form.elements.visit_date.value = today();
+// 방문 날짜 칸의 가장 이른 날 = 오늘(한국 날짜, 2026-11-25 운영 QA-12). 서버의 지난 날짜 검사(app/service_time.past_visit_message)와 같은
+// 시계를 쓰도록 /api/status 의 today 를 받는다(브라우저 시간대와 무관). 지금 값이 그보다 이르면(한국보다 늦은 시간대) 그날로 맞춘다.
+function applyVisitDateMin(day) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(day || ''))) return;
+  const input = form.elements.visit_date;
+  input.min = day;
+  if (input.value && input.value < day) input.value = day;
+}
+// 서버가 준 시각 글(ISO, 대개 UTC)을 한국 시각 'YYYY-MM-DD HH:MM' 으로(2026-11-25 운영 QA-09). 날짜만 있거나 읽을 수 없는 글은 그대로 둔다.
+const KOREA_TIME = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23'
+});
+
+function koreaTimeText(value) {
+  const text = String(value ?? '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(text)) return text;
+  const at = new Date(text);
+  if (Number.isNaN(at.getTime())) return text;
+  const part = Object.fromEntries(KOREA_TIME.formatToParts(at).map(p => [p.type, p.value]));
+  return `${part.year}-${part.month}-${part.day} ${part.hour}:${part.minute}`;
+}
 
 function values() {
   const f = new FormData(form),
@@ -392,6 +419,7 @@ async function init() {
       $('#themes').append(l);
     }
     form.elements.region.value = statusData.region;
+    applyVisitDateMin(statusData.today);
     mountDateCategories(statusData.date_categories);
     // 팝업 둘러보기 전환은 서버 스위치(DATEMATE_POPUPS_ENABLED)가 켜져 있을 때만 그린다.
     if (typeof PopupView !== 'undefined') PopupView.mount(statusData.popups_enabled === true);
@@ -717,10 +745,7 @@ function setTab(explore) {
   $('#explore-section').hidden = !explore;
   $('#nav-plan').classList.toggle('active', !explore);
   $('#nav-explore').classList.toggle('active', explore);
-  // 지금 화면을 색만이 아니라 화면 읽기 프로그램에도 알린다.
-  $('#nav-plan').setAttribute('aria-pressed', String(!explore));
-  $('#nav-explore').setAttribute('aria-pressed', String(explore));
-  // 머리글 메뉴의 최종 표시는 header-mode.js 가 정한다(홈 · 테마 / 코스 만들기 / 장소 둘러보기 셋 중 하나 — 스크롤 위치까지 본다).
+  // 머리글 메뉴의 최종 표시(색과 화면 읽기용 aria-current)는 header-mode.js 가 정한다(홈 · 테마 / 코스 만들기 / 장소 둘러보기 셋 중 하나 — 스크롤 위치까지 본다).
   if (typeof window.syncHeaderNav === 'function') window.syncHeaderNav();
   if (explore) {
     if (location.hash !== '#explore-section') history.pushState(null, '', '#explore-section');

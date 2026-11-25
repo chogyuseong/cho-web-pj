@@ -2,6 +2,7 @@
 // 화면에 나가는 오류 문구는 모두 한국어다(2026-11-25 운영 QA-01~03). 브라우저·검증 라이브러리의 원문(영문, 칸 위치)은 보이지 않는다.
 export const NETWORK_ERROR_TEXT='연결이 끊겨 서버에 닿지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.';
 export const INVALID_INPUT_TEXT='입력값을 확인해 주세요. 허용 범위를 벗어난 값이 있어요.';
+export const TIMEOUT_ERROR_TEXT='요청 대기 시간이 끝났거나 취소됐어요. 연결 상태를 확인해 주세요.';
 const HANGUL=/[가-힣]/;
 // 422 검증 오류 목록 → 사용자 문구. 서버 검사(ValueError)의 한국어 문구는 'Value error, ' 접두어만 떼고 쓰고,
 // 영문으로만 된 검증 오류(글자 수·숫자 범위·형식)는 칸 이름 없이 일반 안내로 바꾼다.
@@ -30,7 +31,7 @@ export async function apiRequest(path,body,method,options={}){
     // 구조화된 오류(detail 이 {code,message,...})는 message 를 보이고 code·detail 을 붙여 화면이 경우별로 다르게 안내할 수 있게 한다.
     if(!response.ok){const structured=data.detail&&typeof data.detail==='object'&&!Array.isArray(data.detail)&&typeof data.detail.message==='string';const error=Error(typeof data.detail==='string'?data.detail:structured?data.detail.message:Array.isArray(data.detail)?validationMessage(data.detail):'요청에 실패했습니다.');error.status=response.status;if(Array.isArray(data.detail))error.validation=true;if(structured){error.code=data.detail.code;error.detail=data.detail;}error.requestId=response.headers.get('X-Request-ID');throw error;}
     return data;
-  }catch(error){if(error.name==='AbortError')throw Error('요청 대기 시간이 끝났거나 취소됐어요. 연결 상태를 확인해 주세요.');throw error;}
+  }catch(error){if(error.name==='AbortError')throw Error(TIMEOUT_ERROR_TEXT);throw error;}
   finally{clearTimeout(timeout);options.signal?.removeEventListener('abort',abort);}
 }
 

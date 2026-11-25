@@ -3,7 +3,7 @@
 - 장소마다 「↻ 다른 장소로 바꾸기」·「○ 장소 고정」·「네이버 지도 보기 ↗」(실제 장소만).
 - 구간마다 「길찾기 ▾」 → 네이버 지도·카카오맵 길찾기(우리 좌표 그대로, 새 탭).
 - 결과 머리에 '방문 전 … 오늘 영업시간을 확인해 주세요.' 한 줄.
-- 공유 줄 맨 앞 「카톡용 일정 복사」: 날짜·시간별 장소·이동·예상 비용·24시간 공유 링크.
+- 공유 줄 맨 앞 「카톡용 일정·링크 복사」: 날짜·시간별 장소·이동·예상 비용·24시간 공유 링크.
 """
 import pytest
 
@@ -73,8 +73,8 @@ def test_kakao_itinerary_copy(audit_page):  # noqa: F811
     # 단추: 공유 줄 맨 앞, 누르면 링크를 만들어 함께 복사한다.
     page.evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async t=>{window.copied=t;}}})")
     actions = page.locator('#plan-detail .share-actions')
-    assert actions.locator('button').first.inner_text() == '카톡용 일정 복사'
-    actions.get_by_role('button', name='카톡용 일정 복사').click()
+    assert actions.locator('button').first.inner_text() == '카톡용 일정·링크 복사'
+    actions.get_by_role('button', name='카톡용 일정·링크 복사').click()
     page.wait_for_function('!!window.copied')
     copied = page.evaluate('window.copied')
     assert '/shared#' in copied and names[0] in copied

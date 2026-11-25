@@ -75,6 +75,8 @@ async function refreshShareStatus(plan){
   }
 }
 async function revokePlanShares(plan){
-  await api('/plans/'+plan.id+'/shares',null,'DELETE');toast('이 일정의 공유 링크를 모두 취소했어요.');
+  // 공유를 취소해도 상대 의견은 남는다(app/sharing.revoke_shares). 남았으면 지우는 곳을 함께 알린다(점검 S4).
+  const done=await api('/plans/'+plan.id+'/shares',null,'DELETE');
+  toast('이 일정의 공유 링크를 모두 취소했어요.'+(done?.opinions?' 상대방 의견은 남아 있어요. 지우려면 「둘이 함께 코스 고르기」의 「상대 의견 지우기」를 누르세요.':''));
   if(typeof refreshShareStatus==='function')refreshShareStatus(plan);
 }

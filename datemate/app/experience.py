@@ -229,6 +229,19 @@ def save_votes(plan,viewer,plan_owner,choices,share_token=None):
     event(viewer,plan['id'],'vote',dict(place_count=len(choices)))
     return vote_status(plan,viewer)
 
+def clear_partner_votes(plan,plan_owner):
+    """만든 브라우저가 상대방 자리를 비운다(점검 보고서 S4). 상대 자리는 처음 의견을 저장한 다른 브라우저 하나가 차지해서(save_votes),
+    링크가 엉뚱한 사람에게 먼저 닿거나 상대가 다른 브라우저로 다시 열면 진짜 상대는 409 로 막혔다. 공유 취소로도 풀리지 않았다.
+    - 지우는 것: 이 코스에 남은 다른 브라우저의 의견 전부. 만든 브라우저 자신의 의견은 그대로 둔다.
+    - 공유 취소(sharing.revoke_shares)에서 같이 지우지 않은 까닭: 링크만 새로 만들려는 경우 상대가 남긴 진짜 의견까지 사라진다 — 지우기는 따로 고른다.
+    - 그 의견으로 만든 합의 초안은 적용할 때 vote_snapshot 이 달라 거절된다(apply_draft 의 VotesChanged) — 지운 의견으로 코스가 바뀌지 않는다."""
+    with store.connect() as db:
+        # 지운 수는 DELETE 의 rowcount 대신 먼저 센다(SQLite·PostgreSQL 연결 둘 다에서 같은 값).
+        removed=db.execute('SELECT COUNT(*) FROM partner_votes WHERE plan_id=? AND owner!=?',(plan['id'],plan_owner)).fetchone()[0]
+        db.execute('DELETE FROM partner_votes WHERE plan_id=? AND owner!=?',(plan['id'],plan_owner))
+    event(plan_owner,plan['id'],'vote_reset',dict(removed=removed))
+    return vote_status(plan,plan_owner)
+
 def _with_carried_delay(plan,candidates):
     """합의 코스에 지각 기록(delay_recovery)의 지연을 이어 간다. (고른 코스, 안내 문장 끝에 붙일 글).
     합의 코스는 장소를 새로 골라 하루를 다시 짠다. 지연은 '그 장소의 도착 예정보다 N분 늦음'이라 장소 id 로 새 번호를 찾아 옮긴다.

@@ -7,6 +7,18 @@
 
 ★ 지금 상태 (2026-11-25 기준)
 ----------------------------------------------------------------------
+아흔네 번째 배포(2026-11-25 13:40) 완료: main 5d685b5(병합 = fix/input-border-contrast 5a731ef), Worker 버전 e09f2f76-b68e-4c8e-912b-4bc4e21d4ae1. 93차 바로 뒤, 같은 지시.
+  · 조건 화면의 날짜·시작·종료·추가 옵션 입력 칸 테두리: 시안 #E2E8F0(흰 바탕 1.2:1) → #7C879A(3.6:1, 연회색 칸 바탕 3.3:1). redesign.css 9) 의 한 줄.
+    결정이 필요했던 일(시안대로 둘지 진하게 할지)은 사용자 지시 '가장 완성도 있고 효과적인 것'에 따라 접근성 기준(WCAG 1.4.11 3:1)을 택함.
+    test_a11y_mobile_polish.py 의 임시 제외 삭제(이제 모든 입력 칸 3:1). 시안 색으로 돌리려면 이 커밋을 되돌린다(git revert -m 1 5d685b5).
+  · 브랜치 CI Run 45545148106 성공 → main 병합·push → test:security 25 통과 → npx wrangler@4.160.1 deploy(정적 파일 1개: redesign.css).
+    93차 main CI Run 45544748065(48df88c) 성공.
+  · 운영 확인(13:53): /api/status 200, server-timing 있음, 첫 화면 redesign.css ?v=840c9366f429 = 로컬 sha256, 운영 조건 화면 입력 칸 테두리 rgb(124,135,154) 캡처로 확인.
+  · 정리 못 한 것(Claude Code 자동 권한 검사가 삭제를 막음 — 사용자가 직접): 작업 폴더 ../cho-web-pj-mockup·../cho-web-pj-review-s4,
+    브랜치 feat/redesign-mockup·fix/review-s4-f9-f10·fix/input-border-contrast(로컬·원격). 셋 다 main 에 병합됐고 작업 폴더에 남은 변경 없음.
+    명령: git worktree remove ../cho-web-pj-mockup; git worktree remove ../cho-web-pj-review-s4;
+          git branch -d feat/redesign-mockup fix/review-s4-f9-f10 fix/input-border-contrast;
+          git push origin --delete feat/redesign-mockup fix/review-s4-f9-f10 fix/input-border-contrast
 아흔세 번째 배포(2026-11-25 13:09) 완료: main 48df88c(병합 2개 = fix/review-s4-f9-f10 2674023 + feat/redesign-mockup 48df88c), Worker 버전 282b2583-9363-43ca-8798-86f0b6ad518d.
   사용자 '모든 권한 줄테니까 혼자 진행 … 배포진행, 배포-이어하기, README 수정한후 커밋 푸쉬'(자리 비움). 오전에 컴퓨터가 꺼져 멈춘 두 브랜치를 이어 마무리.
   · feat/redesign-mockup: 사용자 시안(Downloads screencapture-gemini-*.png — 테마·코스 만들기·결과 4장 + 결과 상세 4장 09_51~09_52)대로 머리글·조건 입력·테마 카드·결과 화면.
@@ -33,10 +45,8 @@
     보지 못한 것: 실제 장소 코스의 사진·메뉴·블로그가 접기 안에서 잘 열리는지(테스트로만), 실기기, 인쇄 실물.
     참고: 실제 지도에서는 지도 아래 설명(점선·축제·팝업 표시) 뒤에 예산 카드가 와서 1440×900 첫 화면에서는 카드 위쪽만 보임(지도 카드 안 스크롤로 보임).
   · 되돌리는 법: git revert -m 1 48df88c(리디자인), git revert -m 1 2674023(S4·F9·F10) 후 재배포. DB 스키마 변경 없음.
-  · 이어서: 날짜·추가 옵션 입력 칸 테두리 대비 1.2:1 → '가장 완성도 있게' 지시에 따라 #7C879A(흰 바탕 3.6:1)로 진하게, 테스트 예외 삭제 —
-    브랜치 fix/input-border-contrast(5a731ef, 작업 폴더 cho-web-pj-mockup) CI 통과하면 94차로 배포.
+  · 이어서 94차: 입력 칸 테두리 대비(위).
   · 남은 것: '안 N'/'코스 N' 용어 통일, 4단계 데이트/여행 모드 정의. 대기: 네이버 세 번째 문의 답, 공공데이터포털 운영계정 승인.
-  · 작업 폴더 cho-web-pj-mockup·cho-web-pj-review-s4 와 두 브랜치(로컬·원격)는 확인 뒤 정리.
 아흔두 번째 배포(2026-11-25) 완료: main dac7817(병합 = fix/review-f6-f8), Worker 버전 4ff809a8-523d-4806-8182-3eccbf894a30. 사용자 자리 비움 중 메인이 골라 진행.
   · 병합 때 이 파일만 충돌(91차 기록과 브랜치 기록) → 둘 다 남김. 병합 뒤 test:security 25 통과 → wrangler deploy. main CI Run 45450772222 성공.
   · 운영 확인(배포 14분 뒤): /api/status 200, delay-check.js delayCheckMemo·order-suggestion.js orderSuggestionMemo·plan-detail.js change_kind 있음.

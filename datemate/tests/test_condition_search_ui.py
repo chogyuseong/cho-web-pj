@@ -1,4 +1,6 @@
-"""조건 화면 개선: 지역 칸 바로 검색(1), 날짜·시간대·예산 칩 즉시 반응(2), 예산 무관(4), 현재 위치 정확도·실패 안내(6).
+"""조건 화면 개선: 지역 칸 바로 검색(1), 날짜·시간·예산 즉시 반응(2), 예산 무관(4), 현재 위치 정확도·실패 안내(6).
+
+2026-11-25 시안: 날짜·시간대·전체 예산 칩과 '바꾸기' 패널은 없어졌다. 날짜·시작·종료 칸이 항상 보이고, 예산은 1인 칩 + '예산 무관' 체크다.
 
 외부 API는 부르지 않는다. 주소 검색(/api/locations/search)·시·도 확인(/api/locations/region)·추천 요청은 가로채 응답한다.
 시계는 브라우저 안에서만 2026-11-13(금) 서울 시각으로 고정한다."""
@@ -7,8 +9,8 @@ import json
 import pytest
 
 from app.models import Conditions
-from test_quick_conditions_ui import (DAY, STORE_KEY, area_chip, details_chip, intercept_jobs, load, opened, region_reply,
-                                      server, summary, wait_job)  # noqa: F401  (server 는 fixture)
+from test_quick_conditions_ui import (DAY, STORE_KEY, area_chip, form_chip, intercept_jobs, load, open_details, opened,
+                                      region_reply, server, set_budget_total, wait_job)  # noqa: F401  (server 는 fixture)
 
 GWANGAN = {'name': '부산광역시 수영구 광안해변로 219', 'road_address': '부산광역시 수영구 광안해변로 219',
            'jibun_address': '부산광역시 수영구 광안동 192-20', 'lat': 35.1532, 'lon': 129.1187}
@@ -131,7 +133,8 @@ def test_search_messages_escape_and_other_sources_keep_field_in_sync(server):
         page.wait_for_function('document.querySelector("#origin-search-results").hidden')
         # 고르지 않은 검색어는 칸을 벗어나면 지금 고른 지역으로 돌아간다.
         field.fill('아무거나')
-        page.locator('.condition-toggle').focus()
+        # 2026-11-25 시안: 칸을 벗어나는 곳은 방문 날짜 칸(예전 '바꾸기' 단추 자리).
+        page.locator('[name=visit_date]').focus()
         page.wait_for_function('form.elements.origin_name.value==="제주 애월 한담해변 지역 중심"')
         # 축제 주변 추천처럼 다른 코드가 출발지를 바꿔도 칸 표시가 맞는다.
         page.evaluate("applyArea('부산',{name:'부산 해운대구 · 점검 축제 행사장 주변',lat:35.1,lon:129.1});document.body.click()")
@@ -181,72 +184,68 @@ def test_place_name_results_show_name_and_address(server):
         assert no_overflow(page)
 
 
-def test_date_chip_pressed_immediately_even_when_same_day_as_tomorrow(server):
-    # 2026-11-13 은 금요일: ‘내일’과 ‘이번 토요일’이 같은 날이다.
+def test_date_time_and_budget_react_immediately(server):
+    # 2026-11-25 시안: 날짜·시작·종료 칸을 바로 고치고, 예산 칩은 누르는 즉시 정한 값을 알린다. 오늘이 아니면 시각 보정 알림은 없다.
     with opened(server) as (page, errors):
-        page.locator('.condition-toggle').click()
-        today, tomorrow, saturday = (details_chip(page, '방문 날짜', name) for name in ('오늘', '내일', '이번 토요일'))
         note = page.locator('.date-note')
-        saturday.click()
-        assert saturday.get_attribute('aria-pressed') == 'true'
-        assert tomorrow.get_attribute('aria-pressed') == 'false' and today.get_attribute('aria-pressed') == 'false'
-        assert note.inner_text() == '내일 11월 14일 (토)로 정했어요.' and note.get_attribute('role') == 'status'
-        assert '내일 11월 14일 (토)' in summary(page)
-        tomorrow.click()
-        assert tomorrow.get_attribute('aria-pressed') == 'true' and saturday.get_attribute('aria-pressed') == 'false'
-        today.click()
-        assert today.get_attribute('aria-pressed') == 'true'
-        assert note.inner_text() == '오늘 11월 13일 (금)로 정했어요.'
-        assert 'is-adjusted' not in note.get_attribute('class')
-        # 시간대·예산 칩도 누르는 즉시 정한 값을 알린다.
-        details_chip(page, '시간대', '저녁 17–22').click()
-        assert page.locator('.time-note').inner_text() == '시간대를 17:00–22:00에 맞췄어요.'
-        details_chip(page, '전체 예산', '5만').click()
-        assert page.locator('.budget-note').inner_text() == '전체 예산을 5만 원에 맞췄어요.'
-        details_chip(page, '방문 날짜', '직접').click()
+        assert note.get_attribute('role') == 'status' and note.inner_text() == ''
         page.locator('[name=visit_date]').fill('2026-11-20')
-        page.wait_for_function('document.querySelector(".date-note").textContent==="11월 20일 (금)로 정했어요."')
+        page.locator('[name=start]').fill('17:00')
+        page.locator('[name=end]').fill('22:00')
+        assert note.inner_text() == ''
+        assert (page.locator('[name=visit_date]').input_value(), page.locator('[name=start]').input_value(),
+                page.locator('[name=end]').input_value()) == ('2026-11-20', '17:00', '22:00')
+        form_chip(page, '1인 예상 예산', '3만원').click()
+        assert page.locator('.budget-note').inner_text() == '1인 3만 원까지 · 2명 합계 6만 원으로 찾아요.'
+        assert form_chip(page, '1인 예상 예산', '3만원').get_attribute('aria-pressed') == 'true'
+        # 직접 입력은 전체 예산 칸에서: 칩은 모두 풀리고 합계·1인 금액을 알린다.
+        set_budget_total(page, 85000)
+        page.wait_for_function('document.querySelector(".budget-note").textContent.includes("직접 입력")')
+        assert form_chip(page, '1인 예상 예산', '3만원').get_attribute('aria-pressed') == 'false'
 
 
-def test_today_chip_explains_moved_time_or_day(server):
+def test_today_note_explains_moved_time_or_day(server):
     with opened(server, clock='12:30') as (page, errors):
-        page.locator('.condition-toggle').click()
         note = page.locator('.date-note')
-        details_chip(page, '방문 날짜', '내일').click()
-        details_chip(page, '시간대', '하루 종일 11–19').click()
-        details_chip(page, '방문 날짜', '오늘').click()
-        assert note.inner_text() == '오늘 11월 13일 (금)로 정했어요. 오늘은 11:00 시작이 이미 지나 시간대를 13:00–19:00에 맞췄어요.'
+        # 처음 열 때는 알림 없이 조용히 13:00–19:00 로 맞춘다.
+        assert note.inner_text() == '' and page.locator('[name=start]').input_value() == '13:00'
+        # 다른 날로 바꿔 11:00 시작을 고른 뒤 방문 날짜를 오늘로 돌리면, 지난 시작 시각을 다음 시간대로 맞추고 알린다.
+        page.locator('[name=visit_date]').fill('2026-11-14')
+        page.locator('[name=start]').fill('11:00')
+        page.locator('[name=end]').fill('19:00')
+        page.locator('[name=visit_date]').fill(DAY)
+        assert note.inner_text() == '오늘은 11:00 시작이 이미 지나 시간대를 13:00–19:00에 맞췄어요.'
         assert 'is-adjusted' in note.get_attribute('class')
-        assert details_chip(page, '방문 날짜', '오늘').get_attribute('aria-pressed') == 'true'
-        assert details_chip(page, '시간대', '오후 13–19').get_attribute('aria-pressed') == 'true'
+        assert (page.locator('[name=start]').input_value(), page.locator('[name=end]').input_value()) == ('13:00', '19:00')
+        # 날짜를 다시 바꾸면 알림은 사라진다.
+        page.locator('[name=visit_date]').fill('2026-11-15')
+        assert note.inner_text() == ''
     with opened(server, clock='18:10') as (page, errors):
-        page.locator('.condition-toggle').click()
-        today = details_chip(page, '방문 날짜', '오늘')
-        today.click()
+        # 처음 열 때 이미 내일로 맞춰져 있다(알림 없음).
+        assert page.locator('[name=visit_date]').input_value() == '2026-11-14'
+        page.locator('[name=visit_date]').fill(DAY)
         note = page.locator('.date-note')
         assert note.inner_text() == '오늘은 고를 수 있는 시간대가 모두 지나 내일 11월 14일 (토)로 맞췄어요.'
         assert 'is-adjusted' in note.get_attribute('class')
-        # 칩 상태는 실제 값(내일)과 맞춘다.
-        assert today.get_attribute('aria-pressed') == 'false'
-        assert details_chip(page, '방문 날짜', '내일').get_attribute('aria-pressed') == 'true'
         assert page.locator('[name=visit_date]').input_value() == '2026-11-14'
         assert note.evaluate('el=>getComputedStyle(el).backgroundColor') == 'rgb(255, 243, 196)'
 
 
-def test_budget_unlimited_chip_request_summary_and_last_conditions(server):
+def test_budget_unlimited_checkbox_request_and_last_conditions(server):
     with opened(server) as (page, errors):
         bodies = intercept_jobs(page)
         area_chip(page, '제주 애월').click()
-        page.locator('.condition-toggle').click()
-        free = details_chip(page, '전체 예산', '예산 무관')
-        free.click()
-        assert free.get_attribute('aria-pressed') == 'true'
-        assert details_chip(page, '전체 예산', '10만').get_attribute('aria-pressed') == 'false'
-        assert '예산 무관' in summary(page) and '10만 원' not in summary(page)
-        assert page.locator('.budget-note').inner_text() == '예산 무관으로 정했어요. 예산 상한 없이 코스를 찾아요.'
+        # 2026-11-25 시안: '예산 무관'은 예산 칩 묶음 오른쪽의 보이는 체크박스다. 켜면 1인 예산 칩은 모두 풀리고 disabled.
+        free = page.get_by_label('예산 무관', exact=True)
+        assert free.is_visible() and free.get_attribute('name') == 'budget_unlimited'
+        free.check()
+        page.wait_for_function('document.querySelector(".budget-note").textContent==="예산 상한 없이 코스를 찾아요."')  # 칩 상태는 change 직후 한 틱 뒤에 맞춰진다
+        chips = page.get_by_role('group', name='1인 예상 예산').get_by_role('button')
+        assert all(chip.is_disabled() and chip.get_attribute('aria-pressed') == 'false' for chip in chips.all())
+        assert page.locator('.budget-note').inner_text() == '예산 상한 없이 코스를 찾아요.'
         page.locator('#submit-plan').click()
         body = wait_job(page, bodies, 1)
-        assert body['budget_unlimited'] is True and body['budget'] == 100000
+        assert body['budget_unlimited'] is True and body['budget'] == 120000
         assert Conditions.model_validate(body).budget_unlimited is True
         # 진행 안내의 ‘적용 조건’ 줄도 금액 대신 예산 무관.
         assert '· 예산 무관 ·' in page.evaluate('FormState.summary(values())')
@@ -260,24 +259,25 @@ def test_budget_unlimited_chip_request_summary_and_last_conditions(server):
         again.click()
         body = wait_job(page, bodies, 2)
         assert body['budget_unlimited'] is True
-        # 금액 칩을 고르면 다시 false.
+        # 체크를 끄고 금액 칩을 고르면 다시 false.
         page.locator('#edit-conditions').click()
         page.wait_for_function('!document.querySelector(".conditions").hidden')
-        page.locator('.condition-toggle').click()
-        assert details_chip(page, '전체 예산', '예산 무관').get_attribute('aria-pressed') == 'true'
-        details_chip(page, '전체 예산', '5만').click()
-        assert '5만 원' in summary(page)
+        assert free.is_checked()
+        free.uncheck()
+        form_chip(page, '1인 예상 예산', '3만원').click()
+        assert page.locator('.budget-note').inner_text() == '1인 3만 원까지 · 2명 합계 6만 원으로 찾아요.'
         page.locator('#submit-plan').click()
         body = wait_job(page, bodies, 3)
-        assert body['budget_unlimited'] is False and body['budget'] == 50000
+        assert body['budget_unlimited'] is False and body['budget'] == 60000
         saved = json.loads(page.evaluate(f'localStorage.getItem("{STORE_KEY}")'))
         assert 'budget_unlimited' not in saved
-        # ‘직접’도 예산 무관을 끈다.
+        # 전체 예산 칸에 금액을 직접 넣어도 예산 무관이 꺼진다.
         page.locator('#edit-conditions').click()
         page.wait_for_function('!document.querySelector(".conditions").hidden')
-        details_chip(page, '전체 예산', '예산 무관').click()
-        details_chip(page, '전체 예산', '직접').click()
+        free.check()
+        set_budget_total(page, 85000)
         assert page.evaluate('form.elements.budget_unlimited.checked') is False
+        assert free.is_checked() is False
 
 
 def fake_geolocation(page, outcomes):

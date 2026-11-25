@@ -1,6 +1,8 @@
 """‘이렇게 이해했어요’ 칩·반영하지 못한 표현·자주 쓰는 조건 칩(390px·320px, 키보드).
 
-외부 API는 부르지 않는다. 추천 요청(/api/plan-jobs)은 가로채 본문만 확인한다."""
+외부 API는 부르지 않는다. 추천 요청(/api/plan-jobs)은 가로채 본문만 확인한다.
+
+2026-11-25 시안: 한 줄 요청·자주 쓰는 조건 칩·이해 칩은 접힘 '한 줄로 적어서 조건 채우기 (선택)' 안에 있어 먼저 펼친다(open_dream)."""
 import os
 import socket
 import threading
@@ -13,6 +15,7 @@ import uvicorn
 from app.main import app
 from app.models import Conditions
 from app.request_intent import normalize
+from test_quick_conditions_ui import open_dream
 
 
 @pytest.fixture
@@ -70,6 +73,7 @@ def no_overflow(page):
 
 def test_understanding_chips_show_evidence_estimates_and_gaps(server):
     with opened(server) as (page, errors):
+        open_dream(page)
         box = page.locator('#request-understanding')
         assert box.is_hidden()
         page.locator('[name=request]').fill('조용하고 비 와도 괜찮은 곳, 분위기 좋은 데')
@@ -105,6 +109,7 @@ def test_understanding_chips_show_evidence_estimates_and_gaps(server):
 
 def test_removed_chip_is_left_out_of_the_form_and_the_plan_request(server):
     with opened(server) as (page, errors):
+        open_dream(page)
         bodies = []
 
         def create(route):
@@ -156,6 +161,7 @@ def test_removed_chip_is_left_out_of_the_form_and_the_plan_request(server):
 
 def test_quick_chips_add_supported_phrases_and_can_be_turned_off(server):
     with opened(server) as (page, errors):
+        open_dream(page)
         quick = page.get_by_role('group', name='자주 쓰는 조건')
         assert quick.get_by_role('button').all_inner_texts() == ['조용한 곳', '비 와도 OK', '걷기 적게', '사진 잘 나오는 곳', '가성비', '기념일']
         page.locator('[name=request]').fill('전시 보고 싶어')

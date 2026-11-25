@@ -5,6 +5,8 @@ def test_optional_measurement_decision_restore_and_saved_list(audit_page):
     page,base,errors=audit_page
     assert not page.locator('[name=measure_planning]').is_checked()
     page.locator('.simple-extra-options>summary').click()
+    # 2026-11-25 시안: 계획 과정 측정 칸은 상세 조건 안의 '더 많은 조건'에 들어갔다.
+    page.locator('.simple-extra-options .detail-more>summary').click()
     page.locator('.planning-study>summary').click()
     page.locator('[name=measure_planning]').check()
     generate(page)

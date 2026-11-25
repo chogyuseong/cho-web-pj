@@ -1,4 +1,7 @@
-"""조건 화면 간소화: 지역 칩·현재 위치(B), 요약 한 줄(A), 조건 칩(C), 지난번처럼 추천(D).
+"""조건 화면 간소화: 지역 칩·현재 위치(B), 날짜·시간·예산 칸과 칩(A·C), 지난번처럼 추천(D).
+
+2026-11-25 시안: '기본 조건' 요약 줄·'바꾸기'·날짜/시간대/전체 예산 칩은 없어졌다. 날짜·시작·종료 칸이 항상 보이고,
+예산은 '1인 예상 예산' 칩(3·6·10·15만원 × 인원)과 '예산 무관' 체크, 정확한 합계는 상세 조건 > 더 많은 조건의 '전체 예산' 칸이다.
 
 외부 API는 부르지 않는다. 추천 요청(/api/plan-jobs)과 시·도 확인(/api/locations/region)은 가로채 응답한다.
 시계는 브라우저 안에서만 2026-11-13(금) 서울 시각으로 고정한다."""
@@ -93,12 +96,33 @@ def area_chip(page, name):
     return page.get_by_role('group', name='인기 동네').get_by_role('button', name=name, exact=True)
 
 
-def details_chip(page, group, name):
-    return page.locator('#condition-details').get_by_role('group', name=group).get_by_role('button', name=name, exact=True)
+def form_chip(page, group, name):
+    # 2026-11-25 시안: 칩 묶음이 폼 카드에 바로 있다(예전 #condition-details 패널은 없어짐).
+    return page.get_by_role('group', name=group).get_by_role('button', name=name, exact=True)
 
 
-def summary(page):
-    return page.locator('.quick-summary-text').inner_text().replace('\n', ' ')
+def open_details(page, more=False):
+    """'상세 조건 더보기'(more=True 면 안의 '더 많은 조건'까지)를 요약을 눌러 펼친다."""
+    extra = page.locator('details.simple-extra-options')
+    if extra.evaluate('d=>!d.open'):
+        extra.locator(':scope>summary').click()
+    if more:
+        detail_more = extra.locator('details.detail-more')
+        if detail_more.evaluate('d=>!d.open'):
+            detail_more.locator(':scope>summary').click()
+
+
+def open_dream(page):
+    """카드 맨 위 접힘 '한 줄로 적어서 조건 채우기 (선택)'을 펼친다."""
+    dream = page.locator('#conditions .simple-dream')
+    if dream.evaluate('d=>!d.open'):
+        dream.locator(':scope>summary').click()
+
+
+def set_budget_total(page, value):
+    """'더 많은 조건'의 전체 예산(원, 일행 합계) 칸에 직접 넣는다(예전 '전체 예산 > 직접' 칩 대신)."""
+    open_details(page, more=True)
+    page.locator('[name=budget]').fill(str(value))
 
 
 def back_to_conditions(page):
@@ -121,13 +145,17 @@ def region_reply(page, reply):
 def test_area_chip_is_one_tap_and_map_choice_clears_it(server):
     with opened(server) as (page, errors):
         bodies = intercept_jobs(page)
-        # 꼭 정할 것은 지역뿐: '필수'는 하나, 나머지는 요약 한 줄로 접혀 있다.
+        # 꼭 정할 것은 지역뿐: '필수'는 하나. 날짜·시간 칸은 바로 보이고 예산은 1인 칩(기본 6만원), 인원·장소 수·전체 예산 칸은 상세 조건 안에 접혀 있다.
         assert page.locator('.field-requirement').count() == 1
-        for name in ('visit_date', 'start', 'budget', 'people', 'count', 'transport'):
+        for name in ('visit_date', 'start', 'end'):
+            assert page.locator(f'[name={name}]').is_visible(), name
+        for name in ('budget', 'people', 'count'):
             assert not page.locator(f'[name={name}]').is_visible(), name
-        assert summary(page) == '기본 조건 오늘 11월 13일 (금) · 11:00–19:00 · 2명 · 10만 원 · 3곳 · 도보'
+        assert [page.locator(f'[name={n}]').input_value() for n in ('visit_date', 'start', 'end')] == [DAY, '11:00', '19:00']
+        assert form_chip(page, '1인 예상 예산', '6만원').get_attribute('aria-pressed') == 'true'
+        assert page.locator('.budget-note').inner_text() == '1인 6만 원까지 · 2명 합계 12만 원으로 찾아요.'
         chips = page.get_by_role('group', name='인기 동네').get_by_role('button')
-        assert chips.all_inner_texts()[:5] == ['서울 성수', '부산 해운대', '강릉 안목해변', '경주 황리단길', '제주 애월']
+        assert chips.all_inner_texts() == ['서울 성수', '서울 연남·홍대', '서울 서촌·안국', '부산 해운대', '강릉 안목', '경주 황리단길', '제주 애월', '현재 위치']
         for chip in chips.all():
             box = chip.bounding_box()
             assert box['height'] >= 44
@@ -145,7 +173,7 @@ def test_area_chip_is_one_tap_and_map_choice_clears_it(server):
         page.locator('#submit-plan').click()
         body = wait_job(page, bodies, 1)
         assert body['region'] == '부산' and body['origin'] == {'name': '부산 해운대역 지역 중심', 'lat': 35.1631, 'lon': 129.1636}
-        assert body['visit_date'] == DAY and (body['start'], body['end'], body['budget']) == ('11:00', '19:00', 100000)
+        assert body['visit_date'] == DAY and (body['start'], body['end'], body['budget']) == ('11:00', '19:00', 120000)
         assert Conditions.model_validate(body).region == '부산'
         # 지도 창(다른 곳 찾기)으로 다른 곳을 고르면 칩 선택 표시가 풀린다.
         back_to_conditions(page)
@@ -197,59 +225,48 @@ def test_current_location_denied_points_to_search(server):
         assert seen == [] and page.locator('[name=origin_name]').input_value() == ''
 
 
-def test_condition_chips_update_inputs_and_summary(server):
+def test_condition_inputs_and_budget_chips_update_values(server):
+    # 2026-11-25 시안: 날짜·시작·종료 칸이 항상 보이고, 예산은 1인 칩 · 직접 입력은 '더 많은 조건'의 전체 예산 칸.
     with opened(server, clock='12:30') as (page, errors):
-        # 오늘 11시는 이미 지나 기본 시간대가 아직 가능한 오후로 옮겨진다.
-        assert summary(page) == '기본 조건 오늘 11월 13일 (금) · 13:00–19:00 · 2명 · 10만 원 · 3곳 · 도보'
-        toggle = page.locator('.condition-toggle')
-        assert toggle.get_attribute('aria-expanded') == 'false'
-        toggle.click()
-        assert toggle.get_attribute('aria-expanded') == 'true'
-        lunch, afternoon = details_chip(page, '시간대', '점심부터 11–17'), details_chip(page, '시간대', '오후 13–19')
-        assert lunch.is_disabled() and afternoon.get_attribute('aria-pressed') == 'true'
-        assert details_chip(page, '방문 날짜', '오늘').get_attribute('aria-pressed') == 'true'
-        assert details_chip(page, '전체 예산', '10만').get_attribute('aria-pressed') == 'true'
-        assert page.locator('[name=people]').is_visible()
-        for name in ('visit_date', 'start', 'end', 'budget'):
-            assert not page.locator(f'[name={name}]').is_visible(), name
-        details_chip(page, '시간대', '저녁 17–22').click()
-        assert (page.locator('[name=start]').input_value(), page.locator('[name=end]').input_value()) == ('17:00', '22:00')
-        details_chip(page, '전체 예산', '5만').click()
-        assert page.locator('[name=budget]').input_value() == '50000'
-        # 칩도 직접 입력과 같이 change 이벤트를 보낸다.
+        # 오늘 11시는 이미 지나 기본 시간대가 아직 가능한 오후로 조용히 옮겨진다(알림 없이).
+        assert [page.locator(f'[name={n}]').input_value() for n in ('visit_date', 'start', 'end')] == [DAY, '13:00', '19:00']
+        assert page.locator('.date-note').inner_text() == ''
+        assert page.locator('[name=budget]').input_value() == '120000'
+        # 1인 예산 칩은 '1인 상한 × 인원'을 전체 예산 칸에 넣고 change 이벤트도 보낸다.
+        form_chip(page, '1인 예상 예산', '3만원').click()
+        assert page.locator('[name=budget]').input_value() == '60000'
         assert page.evaluate('FormState.edited.has("budget")')
-        page.wait_for_function('document.querySelector(".quick-summary-text").textContent.includes("17:00–22:00")')
-        assert '5만 원' in summary(page)
-        details_chip(page, '방문 날짜', '내일').click()
-        assert page.locator('[name=visit_date]').input_value() == '2026-11-14'
-        assert not lunch.is_disabled()
-        page.wait_for_function('document.querySelector(".quick-summary-text").textContent.includes("내일 11월 14일 (토)")')
-        # '직접'은 기존 입력칸을 보여 준다.
-        details_chip(page, '방문 날짜', '직접').click()
-        assert page.locator('[name=visit_date]').is_visible()
-        page.locator('[name=visit_date]').fill('2026-11-20')
-        page.wait_for_function('document.querySelector(".quick-summary-text").textContent.includes("11월 20일 (금)")')
-        details_chip(page, '전체 예산', '직접').click()
-        page.locator('[name=budget]').fill('85000')
-        page.wait_for_function('document.querySelector(".quick-summary-text").textContent.includes("85,000원")')
-        details_chip(page, '시간대', '직접').click()
-        assert page.locator('[name=start]').is_visible() and page.locator('[name=end]').is_visible()
-        # 오늘로 되돌리면 이미 지난 시간대는 다시 고를 수 없다.
-        details_chip(page, '방문 날짜', '오늘').click()
-        assert lunch.is_disabled()
-        # 접힌 칸의 값이 잘못되면 펼쳐서 그 입력칸을 보여 준다.
-        toggle.click()
-        assert not page.locator('[name=budget]').is_visible()
-        details_budget = page.evaluate("form.elements.budget.value='-1';form.elements.budget.dispatchEvent(new Event('input',{bubbles:true}));form.reportValidity()")
-        assert details_budget is False
-        assert page.locator('[name=budget]').is_visible() and toggle.get_attribute('aria-expanded') == 'true'
+        assert form_chip(page, '1인 예상 예산', '3만원').get_attribute('aria-pressed') == 'true'
+        assert form_chip(page, '1인 예상 예산', '6만원').get_attribute('aria-pressed') == 'false'
+        assert page.locator('.budget-note').inner_text() == '1인 3만 원까지 · 2명 합계 6만 원으로 찾아요.'
+        # 시작·종료 칸을 바로 고친다.
+        page.locator('[name=start]').fill('17:00')
+        page.locator('[name=end]').fill('22:00')
+        assert (page.locator('[name=start]').input_value(), page.locator('[name=end]').input_value()) == ('17:00', '22:00')
+        open_details(page)
+        # 날짜를 내일로 바꾸면 오늘 기준 보정 알림은 없다.
+        page.locator('[name=visit_date]').fill('2026-11-14')
+        assert page.locator('.date-note').inner_text() == ''
+        # 직접 입력(전체 예산 칸): 어느 칩도 눌리지 않고 합계와 1인 금액을 보인다.
+        set_budget_total(page, 85000)
+        page.wait_for_function('document.querySelector(".budget-note").textContent.includes("85,000원")')
+        assert page.locator('.budget-note').inner_text() == '전체 예산 85,000원(직접 입력) · 1인 약 43,000원'
+        assert all(chip.get_attribute('aria-pressed') == 'false' for chip in page.get_by_role('group', name='1인 예상 예산').get_by_role('button').all())
+        # 상세 조건 안의 칸이 잘못되면 상세 조건을 펼쳐 보여 준다.
+        page.locator('details.simple-extra-options>summary').click()
+        assert page.evaluate("document.querySelector('details.simple-extra-options').open") is False
+        invalid = page.evaluate("form.elements.budget.value='-1';form.elements.budget.dispatchEvent(new Event('input',{bubbles:true}));form.reportValidity()")
+        assert invalid is False
+        assert page.evaluate("document.querySelector('details.simple-extra-options').open") is True
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
 
 
 def test_evening_visit_moves_default_to_tomorrow(server):
     with opened(server, clock='18:10') as (page, errors):
-        assert summary(page) == '기본 조건 내일 11월 14일 (토) · 11:00–19:00 · 2명 · 10만 원 · 3곳 · 도보'
+        # 처음 열 때 오늘 시간대가 모두 지났으면 알림 없이 내일로 맞춘다.
         assert page.locator('[name=visit_date]').input_value() == '2026-11-14'
+        assert (page.locator('[name=start]').input_value(), page.locator('[name=end]').input_value()) == ('11:00', '19:00')
+        assert page.locator('.date-note').inner_text() == ''
 
 
 def test_last_conditions_repeat_and_privacy_delete(server):
@@ -257,18 +274,20 @@ def test_last_conditions_repeat_and_privacy_delete(server):
         bodies = intercept_jobs(page)
         assert page.locator('.last-conditions').is_hidden()
         area_chip(page, '제주 애월').click()
-        page.locator('.condition-toggle').click()
-        details_chip(page, '시간대', '오후 13–19').click()
-        details_chip(page, '전체 예산', '15만').click()
+        page.locator('[name=start]').fill('13:00')
+        open_details(page)
         page.locator('[name=people]').fill('3')
-        page.locator('[name=transport]').select_option('transit')
+        page.locator('[name=people]').dispatch_event('change')
+        form_chip(page, '1인 예상 예산', '15만원').click()
+        form_chip(page, '이동 수단', '대중교통').click()
+        open_dream(page)
         page.locator('[name=request]').fill('바다 보면서 쉬고 싶어요')
         page.locator('#submit-plan').click()
         wait_job(page, bodies, 1)
         saved = json.loads(page.evaluate(f'localStorage.getItem("{STORE_KEY}")'))
         # 자유 입력 문장과 날짜는 저장하지 않는다.
         assert saved == {'region': '제주', 'origin': {'name': '제주 애월 한담해변 지역 중심', 'lat': 33.4621, 'lon': 126.3104},
-                         'start': '13:00', 'end': '19:00', 'budget': 150000, 'people': 3, 'count': 3, 'transport': 'transit'}
+                         'start': '13:00', 'end': '19:00', 'budget': 450000, 'people': 3, 'count': 3, 'transport': 'transit'}
         # 축제를 골라 바뀐 출발지(축제 장소)는 지난 지역으로 남기지 않는다.
         back_to_conditions(page)
         page.evaluate("""()=>{
@@ -286,13 +305,13 @@ def test_last_conditions_repeat_and_privacy_delete(server):
         load(page, server)
         again = page.locator('.last-conditions .again-button')
         assert again.is_visible()
-        assert again.inner_text().replace('\n', ' ') == '지난번처럼 추천 제주 애월 한담해변 · 13:00–19:00 · 3명 · 15만 원 · 3곳 · 대중교통'
+        assert again.inner_text().replace('\n', ' ') == '지난번처럼 추천 제주 애월 한담해변 · 13:00–19:00 · 3명 · 45만 원 · 3곳 · 대중교통'
         first = page.evaluate('document.querySelector("#conditions").firstElementChild.nextElementSibling.className')
         assert first == 'last-conditions'
         again.click()
         body = wait_job(page, bodies, 3)
         assert body['region'] == '제주' and body['origin']['name'] == '제주 애월 한담해변 지역 중심'
-        assert (body['visit_date'], body['start'], body['end'], body['budget'], body['people'], body['transport']) == (DAY, '13:00', '19:00', 150000, 3, 'transit')
+        assert (body['visit_date'], body['start'], body['end'], body['budget'], body['people'], body['transport']) == (DAY, '13:00', '19:00', 450000, 3, 'transit')
         assert body['request'] == '' and body['festival'] is None
         Conditions.model_validate(body)
         # 브라우저 데이터 삭제는 이 저장값도 지운다.

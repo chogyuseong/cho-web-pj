@@ -74,7 +74,7 @@ def test_switching_themes_leaves_nothing_behind_and_clear_restores(audit_page):
     assert page.evaluate(CHECKS)['reservation'] is True
     assert page.evaluate('form.elements.meeting_type.value') == 'anniversary'
     # '#10만원대'(1인): 예산 칸은 일행 합계라 인원(2명)을 곱해 넣는다.
-    assert page.evaluate('[form.elements.budget.value, form.elements.budget_unlimited.checked]') == ['400000', False]
+    assert page.evaluate('[form.elements.budget.value, form.elements.budget_unlimited.checked]') == ['200000', False]
     # 다른 상황 테마로: 기념일의 예약·만남 종류가 남지 않는다.
     situation(page, 'rest')
     fields, checks = page.evaluate(FIELDS), page.evaluate(CHECKS)
@@ -115,7 +115,8 @@ def test_situation_theme_without_area_points_to_the_area_step(audit_page, width)
     group = page.locator('.simple-form-group.needs-area')
     group.wait_for()
     page.wait_for_function("document.activeElement?.classList.contains('needs-area')")
-    assert '어디에서 만날까요' in group.inner_text()
+    # 2026-11-25 시안: 지역 묶음 제목이 '지역 선택'(+필수)이다.
+    assert '지역 선택' in group.inner_text()
     banner = page.locator('#preset-tags')
     assert not banner.get_by_role('button', name='이 조건으로 바로 추천받기').is_visible()
     fields = page.evaluate(FIELDS)

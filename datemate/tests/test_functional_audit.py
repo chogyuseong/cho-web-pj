@@ -142,9 +142,8 @@ def test_address_keyboard_navigation_and_invalid_input(audit_page):
     page.locator('#dialog [name=location_region]').select_option('서울')
     page.locator('#dialog').get_by_role('button',name='이 지역에서 데이트하기',exact=True).click()
     assert page.locator('[name=origin_name]').input_value()
-    # 예산 입력칸은 ‘바꾸기’ → 예산 ‘직접’을 눌러야 보인다.
-    page.locator('.condition-toggle').click()
-    page.locator('#condition-details').get_by_role('group',name='전체 예산').get_by_role('button',name='직접',exact=True).click()
+    # 2026-11-25 시안: 전체 예산 칸은 ‘상세 조건 더보기’ → ‘더 많은 조건’ 안에 있다(예전 ‘바꾸기’ → 예산 ‘직접’ 칩 대신).
+    page.evaluate("document.querySelector('details.simple-extra-options').open=true;document.querySelector('details.detail-more').open=true")
     page.locator('[name=budget]').fill('-1')
     page.locator('#submit-plan').click()
     assert page.locator('[name=budget]').evaluate('element=>!element.validity.valid')

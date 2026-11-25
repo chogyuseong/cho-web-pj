@@ -54,8 +54,8 @@ def test_theme_cards_show_theme_first(audit_page, width):
         assert len(tops) == 1
         assert section.locator('#curation-situation').evaluate('g=>g.scrollWidth>g.clientWidth')
     assert no_overflow(page)
-    # 조건 화면 동네 칩은 그대로 동네 이름(data-preset)을 쓴다.
-    assert page.get_by_role('group', name='인기 동네').get_by_role('button').all_inner_texts()[:2] == ['서울 성수', '부산 해운대']
+    # 조건 화면 동네 칩은 그대로 동네 이름(data-preset)을 쓴다. 2026-11-25 시안: 둘째 칩이 '서울 연남·홍대'(부산 해운대는 넷째).
+    assert page.get_by_role('group', name='인기 동네').get_by_role('button').all_inner_texts()[:4] == ['서울 성수', '서울 연남·홍대', '서울 서촌·안국', '부산 해운대']
     section.get_by_role('tab', name='주말 떠나기 좋은 동네').click()
     areas = section.locator('#curation-areas .curation-card')
     assert areas.count() == 5 and not cards.first.is_visible()

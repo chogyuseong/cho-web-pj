@@ -47,7 +47,7 @@ def test_season_card_text_and_tags_match_the_filled_conditions(audit_page):
     values = page.evaluate("Object.fromEntries(SITUATION_THEMES.map(t=>[t.key,[t.tags,t.values]]))")
     assert values['activity'][1]['reservation'] is True and '#예약 가능' in values['activity'][0]
     assert values['rest'][1]['max_walk'] == 10 and '#도보 10분 제한' in values['rest'][0]
-    assert values['anniversary'][1]['budget_per_person'] == 200000 and '#10만원대' in values['anniversary'][0]
+    assert values['anniversary'][1]['budget_per_person'] == 100000 and '#10만원대' in values['anniversary'][0]
     assert values['after-work'][1]['start'] == '18:30' and values['after-work'][1]['end'] == '21:30'
 
 

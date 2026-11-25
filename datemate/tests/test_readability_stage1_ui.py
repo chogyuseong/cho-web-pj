@@ -10,10 +10,12 @@ def test_stop_card_reads_name_then_one_summary_line(audit_page):
     card = page.evaluate("""()=>{const c=document.querySelector('#plan-detail .timeline-card');
       const kids=[...c.children].map(e=>e.tagName+(e.className?'.'+e.className.split(' ')[0]:''));
       const meta=c.querySelector('.stop-meta');
-      return {first:kids[0],second:kids[1],meta:meta.innerText,source:!!c.querySelector('details.stop-source:not([open]) p.hint'),
+      return {first:kids[0],second:kids[1],third:kids[2],fourth:kids[3],meta:meta.innerText,source:!!c.querySelector('details.stop-source:not([open]) p.hint'),
         nameSize:parseFloat(getComputedStyle(c.querySelector('h4')).fontSize),
         dupTime:[...c.querySelectorAll(':scope > .small')].length};}""")
-    assert card['first'] == 'H4' and card['second'] == 'P.stop-meta', card
+    # 2026-11-25 시안(결과 화면 상세, 9535314): 장소 태그 줄(.stop-tags)이 이름 위에 오고, 이름 아래에 주소 줄(.stop-address)이 붙는다.
+    # 순서는 태그 → 이름 → 주소 → 한 줄 요약. 상세 화면을 시안 카드 모양으로 다시 짜면 이 순서도 함께 고친다.
+    assert (card['first'], card['second'], card['third'], card['fourth']) == ('DIV.stop-tags', 'H4', 'P.stop-address', 'P.stop-meta'), card
     assert '분 머묾' in card['meta'] and '2인' in card['meta'], card
     assert card['source'] and card['dupTime'] == 0, card
     assert card['nameSize'] >= 20, card
@@ -100,11 +102,12 @@ def test_selected_course_card_keeps_only_what_the_tabs_do_not_show(audit_page):
 
 
 def test_phone_header_is_one_compact_block(audit_page):
-    """가독성 3단계: 휴대폰 헤더는 여백을 줄이고 메뉴를 한 줄로 둬 120px 아래(전 390px 124px, 320px 172px). 보조 문구는 남긴다."""
+    """가독성 3단계: 휴대폰 헤더는 여백을 줄이고 메뉴를 한 줄로 둬 120px 아래(전 390px 124px, 320px 172px). 보조 문구는 남긴다.
+    2026-11-25 시안: 숨겨진 메뉴 칸(휴대폰의 피드백)은 줄 수에서 뺀다. 보조 문구는 .brand-sub(DATEMATE)."""
     page, base, errors = audit_page
     for width in (390, 320):
         page.set_viewport_size({'width': width, 'height': 700})
-        state = page.evaluate("""()=>{const h=document.querySelector('body > header'),n=h.querySelector('nav'),items=[...n.children];
+        state = page.evaluate("""()=>{const h=document.querySelector('body > header'),n=h.querySelector('nav'),items=[...n.children].filter(i=>i.getClientRects().length);
           return {height:h.getBoundingClientRect().height,tagline:getComputedStyle(h.querySelector('.brand-name')).display,
             rows:new Set(items.map(i=>Math.round(i.getBoundingClientRect().top))).size,overflow:document.documentElement.scrollWidth>innerWidth};}""")
         assert state['height'] <= 120 and state['tagline'] != 'none' and state['rows'] == 1 and not state['overflow'], (width, state)

@@ -18,9 +18,10 @@ def route_festivals(page, hours=None):
 
 
 def test_header_brand_fits_mobile_without_overlapping_navigation(audit_page):
-    # 2026-11-25 시안: 보조 문구 없이 'DateMate'. 로고·메뉴·데이트/여행 스위치가 겹치지 않는다.
+    # 2026-11-25 시안: 로고 글자는 '데이트메이트' + 작은 'DATEMATE'(.brand-sub, 스크린리더에는 숨김). 로고·메뉴·데이트/여행 스위치가 겹치지 않는다.
     page, base, errors = audit_page
-    assert page.locator('header .brand-name').inner_text() == 'DateMate'
+    assert page.locator('header .brand-name').text_content() == '데이트메이트DateMate'
+    assert page.locator('header .brand-sub').get_attribute('aria-hidden') == 'true'
     assert page.locator('header .brand').get_attribute('aria-label') == '데이트메이트 처음 화면'
     for width in (360, 390, 768, 1440):
         page.set_viewport_size({'width': width, 'height': 800})

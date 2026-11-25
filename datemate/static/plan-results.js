@@ -32,17 +32,18 @@ function optionDeltaBadges(p,i){
   if(!i){box.append(node('span','비교 기준','delta-badge delta-base'));return box;}
   const deltas=optionDeltas(p,plans[0]);
   if(!deltas.length)return null;
-  // 화면 읽기: '안 1 대비 도보 −10분, 예산 상한 −1.4만원'. 예산은 상한끼리 비교했다는 것을 함께 읽는다.
-  box.append(node('span','안 1 대비 ','visually-hidden'));
+  // 화면 읽기: '코스 1 대비 도보 −10분, 예산 상한 −1.4만원'. 예산은 상한끼리 비교했다는 것을 함께 읽는다.
+  box.append(node('span','코스 1 대비 ','visually-hidden'));
   deltas.forEach(d=>{const badge=node('span',d.text,`delta-badge is-${d.less?'less':'more'}`);badge.dataset.delta=d.kind;
     if(d.kind==='budget'){badge.title='예상 비용 범위의 최대 금액끼리 비교했어요';badge.append(node('span',' (최대 금액 기준)','visually-hidden'));}
     box.append(badge);});
   return box;
 }
 // 코스 카드(탭 버튼) 안의 요약. 서버가 준 값으로만 계산하고 없는 차이를 지어내지 않는다.
-// 탭 이름은 '안 N · {서버가 붙인 option_purpose}'(리디자인 3단계). 고정 이름('밸런스'·'최소 도보')은 실제 코스와 다를 수 있어 쓰지 않는다.
+// 탭 이름은 '코스 N · {서버가 붙인 option_purpose}'. 고정 이름('밸런스'·'최소 도보')은 실제 코스와 다를 수 있어 쓰지 않는다.
+// 2026-11-25 사용자 결정: 예전 '안 N' 을 지도 탭·비교 표·서버 문구(option_description)·시안과 같은 '코스 N' 으로 맞췄다.
 function optionTabContent(p,i,active){
-  const label=node('span',`안 ${i+1}`,'option-label');
+  const label=node('span',`코스 ${i+1}`,'option-label');
   if(p.option_purpose)label.append(node('span','· '+p.option_purpose,'option-purpose'));
   if(active)label.append(node('span','선택됨','selection-indicator'));
   if(p.best_effort||p.search_adjustments)label.append(node('span','조건 넓힘','option-relaxed'));

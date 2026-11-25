@@ -1,6 +1,6 @@
 """리디자인 3단계(2026-11-24, 사용자 가이드 datemate_2026.md §2.5 스플릿 뷰 코스 결과)를 실제 화면에서 눌러 본다.
 
-1. 코스 탭: 이름 '안 N · {서버 option_purpose}', 1안 대비 델타 배지(도보·예산·이동). 배지 값은 코스 JSON 에서 따로 계산한 값과 같아야 하고,
+1. 코스 탭: 이름 '코스 N · {서버 option_purpose}'(2026-11-25 '안 N' 에서 통일), 1안 대비 델타 배지(도보·예산·이동). 배지 값은 코스 JSON 에서 따로 계산한 값과 같아야 하고,
    차이가 0 이거나 값을 모르면 배지가 없다(static/plan-results.js optionDeltas).
 2. '혹시 늦어지셨나요?' 알약(정시·+15·+30·+60, 2026-11-25 시안): 고르면 GET /api/plans/{id}/delay-check?index=0&minutes=N 결과를 장소 칸에 겹치고, 끄면 원래대로.
    코스 탭을 바꾸면 새 코스로 다시 계산한다(static/delay-check.js delaySim*).
@@ -98,7 +98,7 @@ def test_tab_names_and_delta_badges_follow_the_course_json(audit_page):
     tabs = page.evaluate(TAB_BADGES)
     assert len(tabs) == len(plans) >= 2
     for i, (tab, plan) in enumerate(zip(tabs, plans)):
-        assert tab['label'] == f'안 {i + 1}', tab
+        assert tab['label'] == f'코스 {i + 1}', tab
         assert tab['purpose'] == ('· ' + plan['option_purpose'] if plan.get('option_purpose') else ''), tab
         if i == 0:
             # 1안은 '비교 기준' 배지 하나, 차이 설명 줄은 없다.
@@ -107,7 +107,7 @@ def test_tab_names_and_delta_badges_follow_the_course_json(audit_page):
             assert not tab['base'] and tab['badges'] == expected_deltas(plan, plans[0]), (tab, plan.get('walking'), plan.get('total'))
             assert tab['difference'] and '이동 +' not in tab['difference'] and '이동 −' not in tab['difference'], tab
             if tab['badges']:
-                assert tab['hidden'] == '안 1 대비 ', tab
+                assert tab['hidden'] == '코스 1 대비 ', tab
     assert any(tab['badges'] for tab in tabs[1:]), '데모 코스는 1안과 수치가 달라 배지가 하나 이상 있어야 한다'
 
     # 경계: 값을 모르거나 같으면 배지가 없다. 예산은 상한끼리, 범위가 서로를 감싸면 없다.

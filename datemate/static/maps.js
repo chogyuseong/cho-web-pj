@@ -73,11 +73,12 @@ function renderPlanMapCard(){
   card.append(mapTitle,tabs,node('p',courseTitle(selected),'map-course-title'));
   // 지도를 이동 수단·선 모양 설명보다 앞에 둔다(리디자인 3단계). 설명 문단이 길어(4~5줄) 1440×900 패널에서 지도가 화면 아래로 밀렸다.
   // 선 모양·확대 안내는 지도 바로 아래 범례 자리에 둔다. 「코스 지도에서 보기」 안내 줄(mapFocusNote)은 지도 바로 위.
-  card.append(mapFocusNote(),drawPlanMap(selected));
-  // 데스크톱 오른쪽 패널에만 '실시간 예산 · 도보 피로도'·공유 카드(plan-results.js planRailSummary). 2026-11-25 상세 결과 시안대로 지도 바로 아래에 둔다
-  // (예전에는 지도 위 — 지도가 첫 화면에서 밀렸다. 그다음엔 이동·범례·확대 안내 뒤였는데, 그러면 1440×900 에서 카드가 첫 화면 아래로 밀렸다).
+  // 데스크톱 오른쪽 패널에만 '실시간 예산 · 도보 피로도'·공유 카드(plan-results.js planRailSummary). 2026-11-25 상세 결과 시안대로 지도 바로 아래에 둔다.
+  // 지도 묶음(.plan-map) 안에서 지도 그림 바로 다음 칸으로 넣는다(drawPlanMap 의 afterCanvas) — 예전에는 묶음 뒤에 붙여서, 실제 네이버 지도에서는
+  // 지도 아래 설명 세 줄(점선·축제·팝업 표시) 뒤로 밀려 1440×900 첫 화면에 카드 윗부분만 보였다(2026-11-25 운영 캡처).
   // 휴대폰은 같은 값이 위 핵심 수치(.results-kpis)·아래 공유 구역에 있어 넣지 않는다.
-  if(!mobile&&typeof planRailSummary==='function')card.append(planRailSummary(selected));
+  const summary=!mobile&&typeof planRailSummary==='function'?planRailSummary(selected):null;
+  card.append(mapFocusNote(),drawPlanMap(selected,summary));
   card.append(node('p',`이동 ${travelMinutes(selected)}분 · ${travelMode(selected).label}`,'hint map-travel-mode'),mapLegend(selected),node('p','지도 위에서 마우스 휠로 확대·축소할 수 있어요.','hint map-zoom-hint'));
   // 지도 아래 장소 목록: 한 줄에 네이버 지도 링크('1. 이름')와 「일정에서 보기」 단추(2026-11-18 가독성 8단계).
   // 단추는 지도 번호 표시와 같은 focusPlanStop(일정의 그 장소 카드로 스크롤 + 제목 포커스). 지도 표시는 키보드 Tab 으로 닿지 않아
@@ -353,7 +354,9 @@ function planStopGroups(places,offsetOf){
   return groups;
 }
 
-function drawPlanMap(plan){
+// afterCanvas: 지도 그림(.naver-plan-map) 바로 아래에 둘 요소(데스크톱 예산 카드). 지도를 다시 그리거나 공개 지도로 바꿔도 그 자리를 지킨다.
+function drawPlanMap(plan,afterCanvas=null){
+  const below=afterCanvas?[afterCanvas]:[];
   let activeMap=null,resizeObserver=null,disposed=false,festivalMarkers=[],popupMarkers=[],parkingMarkers=[];
   const wrap=node('section',undefined,'plan-map');
   // 네이버 인증 실패 알림이 표시를 올린 뒤에 오면 SDK 의 setMap(null) 이 SDK 내부 오류(capitalize)를 낸다(실제 SDK·로컬 주소 401 에서 확인).
@@ -394,7 +397,7 @@ function drawPlanMap(plan){
   caption.setAttribute('role','status');
   const festivalNote=node('p','','hint map-festival-note');festivalNote.hidden=true;
   const popupNote=node('p','','hint map-popup-note');popupNote.hidden=true;
-  wrap.append(canvas,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+  wrap.append(canvas,...below,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
   wrap.showMapFallback=()=>fallback('네이버 지도 인증에 실패했습니다. Dynamic Map 권한과 등록 웹 주소를 확인해 주세요.');
   requestAnimationFrame(()=>render());
   async function render(force=false){
@@ -405,7 +408,7 @@ function drawPlanMap(plan){
     dropMap();applyFocus=null;wrap.dataset.mapState='loading';
     if(!statusData?.map_js_key){fallback('네이버 지도 클라이언트 ID가 설정되지 않았습니다.');return;}
     canvas.textContent='네이버 지도를 불러오는 중…';
-    wrap.replaceChildren(canvas,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+    wrap.replaceChildren(canvas,...below,caption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
     try{
       await loadNaverMaps(statusData.map_js_key,force);
       if(window.naverMapAuthFailed)throw Error('지도 인증 실패');
@@ -582,11 +585,11 @@ function drawPlanMap(plan){
       button('지도 다시 연결',()=>render(true),'primary'));
     const schematic=node('details',undefined,'map-schematic');
     schematic.append(node('summary','방문 순서 개략도 보기 (실제 지도 아님)'),drawMap(plan));
-    wrap.replaceChildren(notice,schematic);
+    wrap.replaceChildren(...below,notice,schematic);
     loadLeaflet().then(()=>{if(disposed||!wrap.isConnected)return;
       const mapCanvas=node('div',undefined,'naver-plan-map fallback-plan-map');mapCanvas.setAttribute('role','region');mapCanvas.setAttribute('aria-label','데이트 코스 공개 지도');
       const mapCaption=node('p','공개 지도 · 점선은 방문 순서이며 실제 이동 경로가 아닙니다.','map-caption');
-      wrap.prepend(mapCanvas,mapCaption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
+      wrap.prepend(mapCanvas,...below,mapCaption,parkingNote,festivalNote,popupNote,popupHubs.list,popupHubs.panel);
       const points=[plan.conditions.origin,...plan.places,...(plan.conditions.return_home?[plan.conditions.home]:[])].filter(point=>Number.isFinite(point?.lat)&&Number.isFinite(point?.lon));
       if(!points.length){wrap.dataset.mapState='none';return;}
       try{

@@ -82,3 +82,16 @@ def test_jumping_to_a_section_is_not_hidden_under_the_desktop_bar(audit_page):
     bar = page.evaluate("document.querySelector('#results-bar').getBoundingClientRect().bottom")
     top = page.locator('#plan-detail .stop').nth(2).bounding_box()['y']
     assert top >= bar - 1, (top, bar)
+
+
+def test_rail_budget_card_sits_right_under_the_map(audit_page):
+    # 오른쪽 패널의 '실시간 예산 · 도보 피로도' 카드는 지도 그림 바로 다음(지도 설명·축제/팝업 안내보다 위) — maps.js drawPlanMap(afterCanvas).
+    # 테스트 서버에는 네이버 지도 키가 없어 공개 지도(Leaflet)로 바뀌는데, 그때도 같은 자리를 지킨다.
+    page, base, errors = audit_page
+    page.set_viewport_size({'width': 1440, 'height': 900})
+    generate(page)
+    wait_for_selected_detail(page)
+    page.wait_for_function("document.querySelector('#plan-map-rail .plan-map .fallback-plan-map, #plan-map-rail .plan-map .naver-plan-map')")
+    page.wait_for_function("""(()=>{const s=document.querySelector('#plan-map-rail .plan-rail-summary');
+      return s&&s.previousElementSibling?.matches('.naver-plan-map')})()""")
+    assert page.locator('#plan-map-rail .plan-rail-summary').count() == 1

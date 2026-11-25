@@ -482,12 +482,20 @@ function openReturnHomeCondition(wanted) {
         bubbles: true
       }));
     }
-    box.scrollIntoView({
+    // 「조건 수정하기」가 조건 화면으로 옮기는 스크롤(app.js showPlannerPage)과 겹치면 귀가 칸이 화면 밖에 남을 수 있어(전체 테스트에서 가끔 재현),
+    // 보이는 카드(label)를 가운데로 옮긴 뒤 잠시 후 한 번 더 확인해 화면 밖이면 다시 옮긴다.
+    const target = box.closest('label') || box;
+    const show = () => target.scrollIntoView({
       block: 'center'
     });
+    show();
     box.focus({
       preventScroll: true
     });
+    setTimeout(() => {
+      const r = target.getBoundingClientRect();
+      if (r.bottom <= 0 || r.top >= innerHeight) show();
+    }, 400);
     if (typeof toast === 'function') toast(wanted ? '귀가를 켰어요. 귀가지를 고른 뒤 코스를 다시 찾아 주세요.' : '귀가를 껐어요. 코스를 다시 찾으면 귀가 구간 없이 계산해요.');
   });
 }

@@ -5,7 +5,11 @@
       - 나머지(히어로·테마 구역)는 홈 · 테마.
       화면 읽기 프로그램에는 단추는 aria-pressed, 홈 링크는 aria-current 로 알린다. app.js setTab 이 끝에 syncHeaderNav() 를 부른다.
    2) 데이트 / 여행 스위치: body.mode-travel 로 포인트 색(redesign.css 8)), 히어로 제목·설명·입력 예시, 바로 시작 칩(theme-cards.js
-      renderHeroQuick), 테마 구역의 첫 탭을 바꾼다. 추천 계산(서버 조건)은 바꾸지 않는다 — 여행 모드는 '여행지 고르기'를 앞에 두는 보기 전환이다.
+      renderHeroQuick), 테마 구역의 첫 탭을 바꾼다.
+      2026-11-25 사용자 결정('여행 기본 조건 적용'): 여행을 고르면 조건 화면의 기본값도 하루 여행에 맞춘다(TRIP_DEFAULTS — 10:00~20:00,
+      장소 5곳, 구간 이동 60분, 장소당 75분, 식사 포함). 데이트로 돌아가면 처음 화면의 값(dateDefaults)으로 되돌린다.
+      사용자가 직접 바꾼 칸(touched)은 어느 쪽으로도 건드리지 않는다. 오늘 날짜인데 10시가 이미 지났으면 시작·종료는 그대로 둔다(지난 시각 금지).
+      서버 조건 이름·계산은 그대로다 — 기본값만 바뀌므로 데이트 모드에서도 같은 값을 직접 넣으면 같은 코스가 나온다.
       고른 모드는 이 브라우저에만 기억한다(localStorage 'datemate-mode', 못 쓰면 매번 데이트로 시작).
    바꿀 때 함께 볼 곳: index.html 머리글·히어로 문구, redesign.css 2)·8), tests/test_redesign_mockup_ui.py. */
 (() => {
@@ -69,6 +73,46 @@
       placeholder: '예: 강릉에서 바다 보며 드라이브하고 저녁은 시장에서' }
   };
   const KEY = 'datemate-mode';
+  // 여행 기본값. 칸 이름은 index.html·simple-form.js 의 form 칸(name). 값을 바꾸면 tests/test_travel_mode_ui.py 도 함께 고친다.
+  const TRIP_DEFAULTS = { start: '10:00', end: '20:00', count: '5', max_leg: '60', stay_minutes: '75', include_meal: true };
+  const tripForm = document.getElementById('conditions'); // 조건 화면 form(id=conditions)
+  const fieldOf = name => tripForm?.elements?.[name];
+  const valueOf = el => el?.type === 'checkbox' ? el.checked : el?.value;
+  // 데이트 기본값: 이 스크립트가 돌 때(조건 화면을 다 그린 뒤, 사용자가 손대기 전)의 값.
+  const dateDefaults = Object.fromEntries(Object.keys(TRIP_DEFAULTS).map(name => [name, valueOf(fieldOf(name))]));
+  const touched = new Set();
+  let applyingDefaults = false;
+  for (const type of ['input', 'change']) tripForm?.addEventListener(type, event => {
+    if (!applyingDefaults && event.target?.name in TRIP_DEFAULTS) touched.add(event.target.name);
+  });
+  function tenPassedToday() {
+    const date = fieldOf('visit_date')?.value, now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return date === today && now.getHours() * 60 + now.getMinutes() >= 10 * 60;
+  }
+  // 바꾼 칸의 이름 목록을 돌려준다(알림 문구용). 값을 넣은 뒤 input·change 를 보내 simple-form.js 의 칩·요약이 따라 바뀌게 한다.
+  // 그 이벤트로 FormState.edited('사용자가 고른 조건', 자연어 해석보다 우선)에 들어가지 않게 원래 상태로 되돌린다.
+  function applyDefaults(mode) {
+    if (!tripForm) return [];
+    const target = mode === 'travel' ? TRIP_DEFAULTS : dateDefaults, changed = [];
+    const before = typeof FormState !== 'undefined' ? new Set(FormState.edited) : null;
+    applyingDefaults = true;
+    try {
+      for (const [name, value] of Object.entries(target)) {
+        const el = fieldOf(name);
+        if (!el || touched.has(name) || value === undefined || valueOf(el) === value) continue;
+        if ((name === 'start' || name === 'end') && mode === 'travel' && tenPassedToday()) continue;
+        if (el.type === 'checkbox') el.checked = Boolean(value); else el.value = value;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        changed.push(name);
+      }
+    } finally {
+      applyingDefaults = false;
+      if (before) { FormState.edited.clear(); before.forEach(name => FormState.edited.add(name)); }
+    }
+    return changed;
+  }
   const switcher = document.getElementById('mode-switch');
   function saved() { try { return localStorage.getItem(KEY) === 'travel' ? 'travel' : 'date'; } catch { return 'date'; } }
   function apply(mode, fromUser) {
@@ -86,9 +130,11 @@
     // (처음 열 때 여행으로 기억돼 있어도 탭은 옮긴다 — 같은 규칙). 탭 단추 click 은 theme-cards.js 의 탭 동작을 그대로 탄다.
     const tab = document.getElementById(mode === 'travel' ? 'curation-tab-areas' : 'curation-tab-situation');
     if (tab && tab.getAttribute('aria-selected') !== 'true') tab.click();
+    const changed = applyDefaults(mode);
     if (fromUser) {
       try { localStorage.setItem(KEY, mode); } catch { /* 저장 못 하면 이번 화면에만 */ }
-      if (typeof toast === 'function') toast(mode === 'travel' ? '여행 모드로 바꿨어요. 떠나기 좋은 동네부터 보여 드려요.' : '데이트 모드로 바꿨어요.');
+      const note = changed.length ? (mode === 'travel' ? ' 조건도 하루 여행에 맞췄어요(10:00~20:00 · 5곳 · 구간 60분 · 식사 포함, 직접 바꾼 칸은 그대로).' : ' 조건은 데이트 기본값으로 돌렸어요(직접 바꾼 칸은 그대로).') : '';
+      if (typeof toast === 'function') toast((mode === 'travel' ? '여행 모드로 바꿨어요. 떠나기 좋은 동네부터 보여 드려요.' : '데이트 모드로 바꿨어요.') + note);
     }
   }
   switcher?.addEventListener('click', event => {

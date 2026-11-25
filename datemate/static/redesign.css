@@ -415,3 +415,34 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 .ticket-actions button { min-height:48px; }
 @media(max-width:600px) { .results-heading h2 { font-size:25px; } .results-kpis .kpi { flex:1 1 100%; } }
 @media(prefers-reduced-motion:reduce) { .detail .stop .timeline-card { transition:none; } }
+
+/* ---------- 11) 축제·행사(2026-11-25 상세 결과 시안 'Same-day events') ---------- */
+/* 결과 화면 아래 축제 카드: 흰 둥근 카드 3열 격자(시안의 최신 그림 — 처음 그림의 가로 띠에서 바꿨다). 카드 안 내용(포스터·기간·주소·요금·
+   운영 시간·단추)은 그대로. 공유 화면(shared.html)은 이 파일을 읽지 않아 예전 격자 그대로다. 포스터는 세로가 많아 4:3 틀 안에 contain. */
+.festival-heading { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:2px 16px; }
+.festival-heading .eyebrow { flex-basis:100%; margin:0; font-size:14px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--hong); }
+.festival-heading h3 { margin:0; font-size:21px; font-weight:800; }
+.festival-heading .festival-strip-hint { margin:0; }
+#festival-section #festival-results { grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr)); gap:16px; }
+#festival-section .festival-card { align-content:start; padding:18px; border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px -6px rgba(15,23,42,.06); }
+#festival-section .festival-card .festival-photo-frame { border-radius:14px; overflow:hidden; background:var(--platform); }
+#festival-section .festival-card>strong { font-size:17px; }
+#festival-section .festival-card>button { justify-self:stretch; min-height:44px; border-radius:var(--radius-control); }
+
+/* ---------- 12) 장소 둘러보기(2026-11-25 HTML 시안 'Curated Directory') ---------- */
+/* 영문 라벨 + 제목, 검색 줄은 회색 상자 대신 둥근 칸들(시·도·활동 고르기는 select 그대로 — 17개 시·도·15개 활동이라 칩으로 펴면 너무 길다).
+   장소 카드는 흰 둥근 카드(20px, 그림자). 실제 사진·공공 자료 출처는 그대로 둔다(시안의 종류 그림 대신 실제 사진). */
+.explore-heading { display:flex; flex-wrap:wrap; align-items:flex-end; gap:2px 16px; }
+.explore-heading .eyebrow { flex-basis:100%; margin:0; font-size:14px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--hong); }
+.explore-heading h2 { margin:0; font-size:30px; font-weight:800; }
+#explore-places .searchbar { padding:0; border:0; background:none; box-shadow:none; gap:12px; }
+#explore-places .searchbar :is(select,input) { min-height:48px; border-color:var(--line); border-radius:var(--radius-pill); background:#fff; padding-inline:18px; }
+#explore-places .searchbar select { padding-right:36px; }
+#explore-places .searchbar #search-button { min-height:48px; border-radius:var(--radius-pill); padding-inline:24px; }
+#catalog .place-card { border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px -6px rgba(15,23,42,.06); transition:box-shadow .2s; }
+#catalog .place-card:hover { box-shadow:0 4px 10px rgba(15,23,42,.05),0 18px 34px -10px rgba(15,23,42,.11); }
+#catalog .place-card .place-photo-panel { border-radius:16px; overflow:hidden; }
+#catalog .place-card .include-place { border-radius:var(--radius-control); }
+#catalog .place-card>.tag { justify-self:start; align-self:flex-start; width:fit-content; }
+@media(max-width:600px) { .explore-heading h2 { font-size:25px; } }
+@media(prefers-reduced-motion:reduce) { #catalog .place-card { transition:none; } }

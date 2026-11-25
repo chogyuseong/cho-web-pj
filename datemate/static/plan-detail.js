@@ -152,37 +152,59 @@ function renderDetail() {
     // 코스 중간에 둔 축제: 앞 장소 칸(과 주차·식사 칸) 뒤, 행사장 → 다음 장소 구간 줄 앞.
     if (middle !== null && i === middle + 1) box.append(festivalVisitBlock(p, p.festival_visit));
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
+    // 2026-11-25 상세 결과 시안(Downloads screencapture-gemini-…-09_51_31·09_51_44.png)의 장소 카드. 카드 하나(.timeline-card) 안에
+    //   ① 위 줄(.stop-head): 번호 동그라미 · 빨간 시각 '도착 – 떠남' · (머무는 분) · 오른쪽 태그(분류·실내/실외·예약 권장)
+    //   ② 아이콘 타일(.stop-kind) | 이름(h4) · 주소 · 한 줄 요약 | 오른쪽 가격(.stop-price)  ← redesign.css 10) 의 grid 로 배치
+    //   ③ 사진 · 접힌 '방문 팁 & 블로그 요약'(추천 이유·확인, 후기에서 읽은 정보, 정보 출처, 메뉴, 블로그) · 단추 줄
+    // 예전에는 시각·번호가 카드 왼쪽 세로줄(.timeline-stamp 가 .stop 의 첫 칸)에 있었다. 지금은 그 도장을 카드 안 위 줄로 옮겼다.
+    // 꼭 남길 것: .timeline-card>h4(지도·대화상자·지각 표시가 찾음, maps.js focusPlanStop·place-dialog.js·delay-check.js)와
+    // .timeline-stamp(지각 미리 보기가 밀린 시각을 붙임, delay-check.js delaySimRefresh). 둘 다 이름·위치(카드 안)를 바꾸면 그 파일도 고친다.
     const stop = node('article', undefined, 'stop');
-    const stamp = node('div', undefined, 'timeline-stamp');
-    stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'), stopKindIcon(place));
-    stop.append(stamp);
     const body = node('div', undefined, 'timeline-card');
-    // 읽는 순서: 장소 이름 → 한 줄 요약(분류 · 2인 비용 · 머무는 시간) → 후기에서 읽은 정보. 도착·떠나는 시각은 왼쪽 도장에 있다.
-    // 분류·체류·확인 방법·근거 링크를 이은 긴 문장(reasons)은 '정보 출처' 접기 안으로 옮긴다(2026-11-17 가독성 정리).
-    // 2026-11-25 상세 결과 시안: 이름 줄 오른쪽 위 태그(실내·실외, 예약 권장)와 이름 아래 주소 한 줄. 값은 장소 자료 그대로(없으면 안 단다).
+    const head = node('div', undefined, 'stop-head');
+    const stamp = node('div', undefined, 'timeline-stamp');
+    const stay = p.timeline[i]?.stay;
+    stamp.append(node('strong', p.timeline[i].arrival), node('small', '– ' + p.timeline[i].departure));
+    if (Number.isFinite(stay)) stamp.append(node('span', `(${stay}분)`, 'stamp-stay'));
+    head.append(node('span', String(i + 1), 'stop-number'), stamp);
+    // 태그는 장소 자료 그대로(없으면 안 단다): 분류, 실내·실외, 예약 권장.
     const tags = node('div', undefined, 'stop-tags');
+    tags.append(node('span', placeKind(place), 'stop-tag step-category'));
     if (place.setting === 'indoor' || place.setting === 'outdoor') tags.append(node('span', place.setting === 'indoor' ? '실내' : '실외', 'stop-tag is-' + place.setting));
     if (place.reservation === true) tags.append(node('span', '예약 권장', 'stop-tag is-reserve'));
-    if (tags.children.length) body.append(tags);
-    body.append(node('h4', place.name));
+    head.append(tags);
+    body.append(head, stopKindIcon(place), node('h4', place.name));
     if (place.address) body.append(node('p', place.address, 'stop-address'));
     // 네이버 지역 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2). 21일이 지나 지운 장소는 안내만.
     if (place.naver_expired) body.append(naverExpiredNote());
     else if (isNaverResult(place)) body.append(naverAttribution('지역 검색', place.place_source || place.source));
-    const meta = node('p', undefined, 'stop-meta');
-    meta.append(node('span', placeKind(place), 'step-category'));
+    // 예전 한 줄 요약(.stop-meta: 분류 · 비용 · 머무는 시간)은 나눠 옮겼다 — 분류는 위 태그, 머무는 시간은 위 줄 '(N분)', 비용은 오른쪽 가격.
+    // 남은 것은 '새로운 곳' 표시뿐이라 그때만 이 줄을 단다.
     // 한 곳만 새로운 곳으로(app/fresh_place.py): 최근 코스에 드물던 종류로 넣은 장소.
-    if (p.fresh_place?.index === i) meta.append(node('span', `새로운 곳 · ${p.fresh_place.label}`, 'fresh-place-tag'));
+    if (p.fresh_place?.index === i) {
+      const meta = node('p', undefined, 'stop-meta');
+      meta.append(node('span', `새로운 곳 · ${p.fresh_place.label}`, 'fresh-place-tag'));
+      body.append(meta);
+    }
+    // 오른쪽 가격: 일행 전체 금액(비용표와 같은 값). 무료(0원)면 '무료'.
     const cost = p.costs.find(c => c.name === place.name);
-    if (cost) meta.append(node('span', `${p.conditions.people}인 ${range(cost.amount)}`, 'stop-cost'));
-    const stay = p.timeline[i]?.stay;
-    // 구분점 없이 간격으로 나눈다(비용이 길어 줄이 바뀌면 점이 새 줄 맨 앞에 홀로 남았다).
-    if (Number.isFinite(stay)) meta.append(node('span', `${stay}분 머묾`, 'stop-stay'));
-    body.append(meta, reviewFactsLine(place, p.conditions.mode));
+    if (cost) {
+      const free = Array.isArray(cost.amount) ? cost.amount.every(v => !v) : !cost.amount;
+      const price = node('p', undefined, 'stop-price');
+      price.append(node('span', `${p.conditions.people}인`, 'stop-price-people'), node('span', free ? '무료' : range(cost.amount), 'stop-cost'));
+      body.append(price);
+    }
+    // 후기에서 읽은 영업시간·가격(review-facts.js)은 짧고 방문 판단에 바로 쓰여 접기 밖에 둔다(화면에 올 때 불러온다).
+    body.append(reviewFactsLine(place, p.conditions.mode));
+    // 접힌 '방문 팁 & 블로그 요약': 카드에 늘 보이던 긴 내용을 모은다. 안의 순서는 예전 카드 순서 그대로.
+    const tips = node('details', undefined, 'stop-tips');
+    tips.append(node('summary', '방문 팁 & 블로그 요약'));
+    const tipsBody = node('div', undefined, 'stop-tips-body');
+    tips.append(tipsBody);
     if (p.reasons[i]) {
       const source = node('details', undefined, 'stop-source');
       source.append(node('summary', '정보 출처'), linkedText('p', p.reasons[i], 'hint'));
-      body.append(source);
+      tipsBody.append(source);
     }
     const buttons = node('div', undefined, 'actions');
     buttons.append(button(locks.has(i) ? '● 고정됨' : '○ 장소 고정', () => togglePlanLock(p, i)), button('↻ 다른 장소로 바꾸기', () => showAlternatives(i)), button('장소 정보 · 질문', () => showPlace(place.id, p.conditions.mode)));
@@ -208,7 +230,8 @@ function renderDetail() {
       show.setAttribute('aria-label', `${i + 1}번 ${place.name} 코스 지도에서 보기`);
       buttons.append(show);
     }
-    body.append(placeEvidencePanel(p, i));
+    // 추천 이유·정보 확인은 '방문 팁' 접기의 맨 앞(사진·단추는 접기 밖).
+    tipsBody.prepend(placeEvidencePanel(p, i));
     if (p.can_edit === false) {
       buttons.children[0].disabled = true;
       buttons.children[1].disabled = true;
@@ -217,13 +240,15 @@ function renderDetail() {
     if (expired) buttons.children[1].disabled = true;
     // 보관 기간이 지난 네이버 검색 장소는 장소 정보(사진·블로그·메뉴)를 다시 찾지 않는다(이름·주소가 지워짐).
     if (place.naver_expired) {
-      body.append(buttons);
+      body.append(tips, buttons);
       stop.append(body);
       box.append(stop);
       return;
     }
-    if (p.conditions.mode === 'real' && hasPlaceMenu(place)) body.append(restaurantMenuPanel(place));
-    body.append(placePhotoPanel(place, p.conditions.mode, false, true), placeBlogPanel(place, p.conditions.mode), buttons);
+    if (p.conditions.mode === 'real' && hasPlaceMenu(place)) tipsBody.append(restaurantMenuPanel(place));
+    tipsBody.append(placeBlogPanel(place, p.conditions.mode));
+    // 사진은 시안에 없지만 실제 장소에서는 고르는 데 중요해 접기 밖에 둔다(체험 코스는 '가상 장소 · 사진 없음' 한 줄).
+    body.append(placePhotoPanel(place, p.conditions.mode, false, true), tips, buttons);
     stop.append(body);
     // 자동차로 도착하는 장소는 바로 아래에 근처 주차장을 둔다(일정·비용에는 넣지 않음).
     box.append(stop, parkingPanel(p, i), mealSuggestionPanel(p, i));

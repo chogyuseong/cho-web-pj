@@ -510,3 +510,44 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 /* 코스 비교 표: 흰 카드 */
 #results .comparison-details { padding:14px 18px; border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; }
 @media(prefers-reduced-motion:reduce) { .action-card-track i { transition:none; } }
+
+/* 10) 장소 카드 — 2026-11-25 상세 결과 시안(Downloads screencapture-gemini-…-09_51_31·09_51_44.png).
+   만드는 곳: plan-detail.js renderDetail 의 장소 반복. 카드(.timeline-card) 하나 안에
+     위 줄 .stop-head(번호 · .timeline-stamp 시각 · 태그) / 아이콘 타일 .stop-kind | h4 · .stop-address · .stop-meta | 가격 .stop-price / 그 아래 전부(사진·방문 팁·단추).
+   예전 배치(results.css '시각 도장'·'순번 동그라미'·'내용 칸': .stop 이 시각|레일|내용 세 칸 grid, 굵은 세로 레일 ::before)를 여기서 덮는다.
+   예전으로 돌리려면 이 10) 블록을 지우고 plan-detail.js 의 카드 순서를 이 커밋 전으로 되돌린다.
+   아이콘 타일 열 폭(56px)을 바꾸면 휴대폰 규칙의 44px 도 같이 본다. */
+.detail .stop { display:block; padding:0 0 14px; }
+.detail .stop::before { content:none; }
+.detail .stop .timeline-card { display:grid; grid-template-columns:56px minmax(0,1fr) auto; column-gap:14px; align-items:start; padding:18px 20px; }
+.detail .stop .timeline-card>* { grid-column:1 / -1; min-width:0; }
+.detail .stop-head { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin:0 0 12px; }
+.detail .stop-head .stop-number { position:static; width:26px; height:26px; border-width:0; font-size:14px; }
+.detail .stop-head .timeline-stamp { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 6px; padding:0; }
+.detail .stop-head .timeline-stamp strong,.detail .stop-head .timeline-stamp small { display:inline; padding:0; font-family:var(--font-head); font-size:17px; font-weight:800; line-height:1.4; color:var(--hong); }
+.detail .stop-head .timeline-stamp .stamp-stay { font-size:14px; font-weight:600; color:var(--muted); }
+.detail .stop-head .stop-tags { float:none; display:flex; flex-wrap:wrap; gap:4px; margin:0 0 0 auto; }
+.detail .stop-tags .step-category { margin:0; padding:2px 8px; border:0; border-radius:8px; font-size:14px; }
+/* 아이콘 타일 | 이름·주소·요약 | 가격 */
+.detail .stop .timeline-card>.stop-kind { grid-column:1; grid-row:2 / span 3; display:grid; place-items:center; width:56px; height:56px; border-radius:16px; }
+.detail .stop .timeline-card>.stop-kind svg { width:26px; height:26px; }
+.detail .stop .timeline-card>h4 { grid-column:2; grid-row:2; margin:0 0 2px; font-size:20px; }
+.detail .stop .timeline-card>.stop-address { grid-column:2; grid-row:3; margin:0 0 2px; }
+.detail .stop .timeline-card>.stop-meta { grid-column:2; grid-row:4; margin:0 0 12px; font-size:14px; color:var(--muted); }
+.detail .stop .timeline-card>.stop-price { grid-column:3; grid-row:2 / span 3; display:flex; flex-direction:column; align-items:flex-end; margin:0; text-align:right; }
+.detail .stop-price .stop-price-people { font-size:14px; color:var(--muted); }
+.detail .stop-price .stop-cost { font-size:17px; font-weight:800; white-space:nowrap; color:var(--ink); }
+/* 접힌 '방문 팁 & 블로그 요약' */
+.detail .stop-tips { margin:10px 0 0; padding:0; border-top:1px solid var(--line); }
+.detail .stop-tips>summary { display:flex; align-items:center; gap:6px; min-height:44px; padding:8px 0; font-size:15px; font-weight:700; color:var(--ink); cursor:pointer; }
+.detail .stop-tips>summary::before { content:'✦'; color:var(--hong); }
+.detail .stop-tips-body { display:grid; gap:10px; padding:4px 0 6px; }
+/* 단추 줄: 고정·바꾸기·정보(왼쪽) / 네이버·카카오(오른쪽) */
+.detail .stop .timeline-card>.actions { margin-top:8px; padding-top:12px; border-top:1px solid var(--line); }
+.detail .stop .actions>a.stop-map-link { margin-left:auto; }
+@media(max-width:800px) {
+  .detail .stop .timeline-card { grid-template-columns:44px minmax(0,1fr); padding:16px; }
+  .detail .stop .timeline-card>.stop-kind { display:grid; width:44px; height:44px; border-radius:14px; }
+  .detail .stop .timeline-card>.stop-price { grid-column:2; grid-row:5; flex-direction:row; align-items:baseline; gap:6px; margin:-6px 0 10px; }
+  .detail .stop .actions>a.stop-map-link { margin-left:0; }
+}

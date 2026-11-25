@@ -571,7 +571,7 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 @media(min-width:801px) { #results .plan-card .stats,#results .plan-card.selected>.inspect-plan { display:none; } }
 @media print {
   /* 인쇄에는 선택한 코스만: 비교 표와 접힌 칸의 제목·테두리는 빼고, 접힌 칸 안의 합계·네 가지 확인은 그대로 둔다(plan-detail.js beforeprint 가 펼침). */
-  .detail>.comparison-details,.plan-more>summary { display:none!important; }
+  .detail>.comparison-details,.plan-more>summary { display:none; }
   .plan-more { border:0; }
   .plan-more-body { padding:0; }
 }

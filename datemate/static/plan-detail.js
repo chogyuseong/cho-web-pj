@@ -266,6 +266,8 @@ function renderDetail() {
     const r = p.legs.at(-1);
     box.append(routeLine(p, p.legs.length - 1, `귀가: ${r.origin} → ${r.destination}`));
   }
+  // 일정 끝 '귀가 동선 포함' 카드(2026-11-25 Gemini Canvas 시안). 공유 화면·보관 기한 지난 코스는 조건을 바꿀 수 없어 두지 않는다.
+  if (p.can_edit !== false && !expired) box.append(returnHomeCard(p));
   // 휴대폰 지도 자리: 일정을 먼저 읽고 지도를 보도록 일정 바로 뒤에 둔다(2026-11-17 가독성 정리, 전에는 일정 앞).
   // 데스크톱은 오른쪽 패널(#plan-map-rail)에 그린다. 지도는 상세를 문서에 붙인 뒤 renderPlanMapCard 가 채운다.
   const slot = node('div', undefined, 'plan-map-slot');
@@ -436,6 +438,59 @@ addEventListener('afterprint', () => {
     fold.open = false;
   });
 });
+
+/* '귀가 동선 포함' 카드. 귀가는 추천 조건(return_home + 귀가지 home)이라 서버가 시간표·종료 시각·예산을 처음부터 다시 맞춰야 한다.
+   그래서 시안처럼 이 자리에서 켜고 끄며 바로 다시 계산하지 않고, 스위치를 누르면 조건 화면으로 가서 '귀가 시간 · 교통비 포함'을 바꿔 두고
+   다시 찾기를 안내한다(켤 때는 귀가지 칸도 채워야 한다). 켜져 있으면 귀가 구간(마지막 장소 → 귀가지, 수단·분)을 한 줄로 보여 준다.
+   스위치 동작을 바꾸려면 toggle 안의 openReturnHomeCondition 만 고치면 된다. */
+function returnHomeCard(p) {
+  const on = Boolean(p.conditions.return_home && p.legs.length > p.places.length);
+  const card = node('section', undefined, 'return-home-card');
+  card.setAttribute('aria-label', '귀가 동선');
+  const head = node('div', undefined, 'return-home-head');
+  const text = node('div', undefined, 'return-home-text');
+  text.append(node('h3', '귀가 동선 포함'), node('p', on ? '마지막 장소에서 귀가지까지 이동 시간을 일정에 함께 계산했어요.' : '켜면 마지막 장소에서 집까지 이동 시간과 교통비를 함께 계산해요. 조건에서 귀가지를 고른 뒤 다시 찾아요.', 'hint'));
+  const toggle = node('button', undefined, 'return-home-switch');
+  toggle.type = 'button';
+  toggle.setAttribute('role', 'switch');
+  toggle.setAttribute('aria-checked', String(on));
+  toggle.setAttribute('aria-label', on ? '귀가 동선 빼고 다시 찾기 (조건 화면으로)' : '귀가 동선 넣고 다시 찾기 (조건 화면으로)');
+  toggle.append(node('span', undefined, 'return-home-knob'));
+  toggle.addEventListener('click', () => openReturnHomeCondition(!on));
+  head.append(node('span', '⌂', 'return-home-icon'), text, toggle);
+  card.append(head);
+  if (on) {
+    const leg = p.legs.at(-1),
+      row = node('p', undefined, 'return-home-route');
+    row.append(node('strong', `${p.finish} 출발`), document.createTextNode(` ${leg.origin} → ${leg.destination} · ${legModeLabel(p, leg)}`));
+    card.append(row);
+  }
+  return card;
+}
+
+// 조건 화면으로 가서 귀가 칸을 원하는 값으로 바꾸고 그 칸을 보여 준다. 다시 찾기는 사용자가 누른다(귀가지를 골라야 할 수 있음).
+function openReturnHomeCondition(wanted) {
+  document.getElementById('edit-conditions')?.click();
+  requestAnimationFrame(() => {
+    const box = form?.elements?.return_home;
+    if (!box) return;
+    const fold = box.closest('details');
+    if (fold) fold.open = true;
+    if (box.checked !== wanted) {
+      box.checked = wanted;
+      box.dispatchEvent(new Event('change', {
+        bubbles: true
+      }));
+    }
+    box.scrollIntoView({
+      block: 'center'
+    });
+    box.focus({
+      preventScroll: true
+    });
+    if (typeof toast === 'function') toast(wanted ? '귀가를 켰어요. 귀가지를 고른 뒤 코스를 다시 찾아 주세요.' : '귀가를 껐어요. 코스를 다시 찾으면 귀가 구간 없이 계산해요.');
+  });
+}
 
 // 코스 비교 표(예전 plan-results.js renderResults 4번). 다시 그려도 사용자가 펼치거나 접은 상태를 이어 간다(처음에는 데스크톱 펼침·휴대폰 접힘).
 let comparisonOpen = null;

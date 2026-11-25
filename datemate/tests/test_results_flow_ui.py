@@ -65,7 +65,8 @@ def test_mobile_results_follow_the_user_flow(audit_page):
       right:row.children[2].getBoundingClientRect().right,limit:box.right+0.5}))}''')
     assert fit and all(r['head'] == 'TH/row' and r['right'] <= r['limit'] for r in fit), fit
     assert page.locator('.option-comparison caption').inner_text() == '세 코스 비용·이동 시간 비교'
-    assert page.locator('.option-comparison thead th[scope=col]').count() == 5
+    # 2026-11-25 Gemini Canvas 시안: 마지막에 '선택' 칸(「이 코스 보기」)이 붙어 6칸.
+    assert page.locator('.option-comparison thead th[scope=col]').count() == 6
     compare.scroll_into_view_if_needed()
     save(page, 'flow-mobile-compare.png')
     # ⑥ 보이는 버튼은 모두 44px 이상. ④ 360·430px에서 가로 넘침이 없다.

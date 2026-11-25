@@ -437,8 +437,35 @@ function applyDelaySim(plan, data) {
   });
   parts.status.className = 'delay-sim-status' + (data.status === 'problem' ? ' is-problem' : '');
   parts.status.textContent = delaySimSummary(data);
+  // 늦어짐 → 대신 갈 곳(2026-11-25 Gemini Canvas 시안은 문제 장소를 자동으로 바꾸고 되돌리기를 뒀다). 우리는 자동으로 바꾸지 않고,
+  // 이미 있는 서버 지각 복구(접힌 '더 할 수 있는 것' 안 '늦어지면 어디서 문제가 생길까?', app/delay_recovery.py)를 같은 장소·같은 분으로 열어
+  // 서버가 영업시간·구간·예산을 다시 맞춘 후보만 고르게 한다. 종료 시각 문제(kind 'end')는 바꿀 장소가 없어 단추를 두지 않는다.
+  if (data.status === 'problem' && data.first_problem?.kind !== 'end' && delayRecoveryAllowed(plan)) {
+    const go = button('대신 갈 곳 찾기', () => openDelayRecovery(plan, data), 'secondary delay-sim-recover');
+    parts.status.append(' ', go);
+  }
   parts.basis.textContent = data.basis || '';
   parts.basis.hidden = !data.basis;
+}
+
+// 지각 확인 상자를 펼치고 같은 장소(지각 미리 보기는 첫 장소부터)·같은 분으로 확인을 누른다. 상자는 접힌 '더 할 수 있는 것' 안에 있어 그 칸도 연다.
+function openDelayRecovery(plan, data) {
+  const fold = document.querySelector('#plan-detail .plan-more');
+  if (fold) fold.open = true;
+  const box = livePlanPanel('.delay-check', plan.id);
+  if (!box) return;
+  box.open = true;
+  const select = box.querySelector('.delay-check-form select'),
+    minutes = box.querySelector('.delay-check-form input');
+  if (select) select.value = String(Math.max(0, data.index || 0));
+  if (minutes) minutes.value = String(data.delay);
+  select?.dispatchEvent(new Event('change'));
+  minutes?.dispatchEvent(new Event('input'));
+  box.querySelector('.delay-check-form button')?.click();
+  box.scrollIntoView({
+    behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    block: 'start'
+  });
 }
 
 // 단추 옆 결론 한 줄(위 접힌 상자의 delayCheckView 와 같은 판단, 짧게).
@@ -448,7 +475,7 @@ function delaySimSummary(data) {
   if (data.status === 'problem') {
     const p = data.first_problem;
     if (p.kind === 'end') return `${data.delay}분 늦으면 일정이 ${p.time}에 끝나 정한 종료 시간(${p.limit})보다 ${p.over}분 늦어요.`;
-    return `${data.delay}분 늦으면 ${p.place}에서 처음 문제가 생겨요(${p.reason}). 대신 갈 곳은 아래 '늦어지면 어디서 문제가 생길까?'에서 볼 수 있어요.`;
+    return `${data.delay}분 늦으면 ${p.place}에서 처음 문제가 생겨요(${p.reason}). 「대신 갈 곳 찾기」를 누르면 바꿀 곳을 골라 볼 수 있어요.`;
   }
   const waits = (data.pending || []).length;
   if (data.status === 'unknown') return `${data.delay}분 늦어도 시간표로는 괜찮아 보여요.${finish} 영업 정보가 없는 ${waits}곳은 연다고 보고 계산했어요.`;

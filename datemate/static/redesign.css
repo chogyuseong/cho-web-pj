@@ -344,3 +344,74 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
   #conditions .budget-transport,#conditions .detail-row,#conditions .detail-row-3 { grid-template-columns:minmax(0,1fr); }
   #conditions .budget-group .segmented { grid-auto-flow:row; grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+/* ---------- 10) 결과 화면(2026-11-25 HTML 시안 'Interactive Itinerary') ---------- */
+/* 머리말: 영문 라벨 + '맞춤 코스 비교' + 조건 한 줄(#results-meta, plan-results.js). 핵심 수치(.results-kpis): 예산 사용률 막대·총 도보·총 소요.
+   코스 탭은 흰 카드(고른 것은 진한 테두리), 일정은 장소마다 흰 카드(번호·종류 그림은 왼쪽), 구간은 가는 점선 + 초록 알약.
+   레일·번호 자리 계산(--time·--rail)은 results.css 그대로 두고 색·굵기·카드 모양만 바꾼다. */
+.results-heading { display:flex; flex-wrap:wrap; align-items:flex-end; gap:4px 16px; }
+.results-heading .eyebrow { flex-basis:100%; margin:0; font-size:14px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--hong); }
+.results-heading h2 { margin:0; font-size:30px; font-weight:800; }
+.results-heading .results-meta { flex-basis:100%; margin:2px 0 0; font-size:15px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.results-heading .results-meta:empty { display:none; }
+.results-kpis { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 18px; }
+.results-kpis .kpi { display:flex; align-items:center; gap:12px; min-height:52px; padding:8px 16px; border:1px solid var(--line); border-radius:16px; background:var(--platform); font-size:15px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
+.results-kpis .kpi-text { display:grid; }
+.results-kpis .kpi-label { font-size:14px; font-weight:600; color:var(--muted); }
+.results-kpis .kpi-bar { position:relative; width:84px; height:8px; border-radius:var(--radius-pill); background:#E2E8F0; overflow:hidden; }
+.results-kpis .kpi-bar i { position:absolute; inset:0 auto 0 0; border-radius:inherit; background:var(--hong); }
+.results-kpis .kpi-bar.is-over i { background:#B45309; }
+.results-kpis .kpi-walk { border-color:#A7F3D0; background:#ECFDF5; color:var(--accent-safe); }
+/* 코스 탭: 흰 카드, 고른 것은 진한 테두리(시안). 탭 단추는 .primary/.secondary 를 쓰지만 바탕은 line.css 가 정하므로 테두리·그림자로만 구분한다. */
+#results .plan-option-tabs { gap:12px; }
+#results .plan-option-tabs > button { border-radius:16px; box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px -6px rgba(15,23,42,.06); }
+#results .plan-option-tabs > button[aria-pressed=true] { box-shadow:0 0 0 2px var(--ink),0 6px 20px -6px rgba(15,23,42,.12); }
+/* 지연 미리 보기: '혹시 늦어지셨나요?' + 정시 · +15 · +30 · +60 알약(delay-check.js delaySimBar). */
+.delay-sim { gap:8px; padding:14px 16px; border-radius:16px; background:var(--platform); }
+.delay-sim-head { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; }
+.delay-sim-title { font-size:15px; font-weight:800; color:var(--ink); }
+.delay-sim-pills { display:inline-flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:var(--radius-pill); background:#fff; }
+.delay-sim-pill { min-height:44px; min-width:64px; padding:6px 14px; border:0; border-radius:var(--radius-pill); background:none; color:var(--muted); font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.delay-sim-pill:hover { color:var(--ink); }
+.delay-sim-pill[aria-pressed=true] { background:var(--ink); color:#fff; }
+.delay-sim-pill:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+/* 일정: 장소마다 흰 카드. 레일은 가는 회색 점선(시안), 번호는 진한 동그라미. */
+.detail .stop::before,.detail .route-line-block::before { border-left:2px dashed #CBD5E1; margin-left:3px; }
+.detail .stop .timeline-card { padding:18px 20px; border:1px solid var(--line); border-radius:var(--radius-card); background:#fff; box-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 20px -6px rgba(15,23,42,.06); transition:box-shadow .2s; }
+.detail .stop .timeline-card:hover { box-shadow:0 4px 10px rgba(15,23,42,.05),0 18px 34px -10px rgba(15,23,42,.11); }
+.detail .stop-number { background:var(--ink); border-color:var(--ink); color:#fff; }
+.detail .timeline-stamp strong { color:var(--hong); }
+.detail .timeline-stamp .stop-kind { grid-column:1; display:grid; place-items:center; width:44px; height:44px; margin-top:8px; border-radius:14px; background:#F1F5F9; color:#475569; }
+.stop-kind[data-kind=cafe] { background:#FFF7ED; color:#C2410C; }
+.stop-kind[data-kind=meal] { background:#FFF1F2; color:#BE123C; }
+.stop-kind[data-kind=art] { background:#EEF2FF; color:#4338CA; }
+.stop-kind[data-kind=walk] { background:#EFF6FF; color:#1D4ED8; }
+.stop-kind[data-kind=make] { background:#ECFDF5; color:#047857; }
+.stop-kind[data-kind=play],.stop-kind[data-kind=rest] { background:#FDF4FF; color:#A21CAF; }
+@media(max-width:800px) { .detail .timeline-stamp .stop-kind { display:none; } }
+/* 단추 막대: 고정·바꾸기(왼쪽, 옅은 바탕) / 네이버 지도(초록)·카카오맵 길찾기(파랑). */
+.detail .stop .actions>a.stop-map-link { border-color:#A7F3D0; background:#ECFDF5; color:var(--accent-safe); }
+.detail .stop .actions>a.stop-kakao-link { border:1px solid #BFDBFE; background:#EFF6FF; color:#1D4ED8; }
+/* 구간 줄: 초록 알약(도보·이동 시간). */
+.detail .route-line { gap:8px 12px; }
+.detail .route-line-text { flex:0 1 auto; padding:4px 12px; border:1px solid #A7F3D0; border-radius:var(--radius-pill); background:#ECFDF5; color:var(--accent-safe); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; }
+/* 오른쪽 패널 공유 카드 제목 + 공유 티켓(plan-results.js showPlanTicket). */
+.rail-share-title { margin:10px 0 0; font-size:14px; font-weight:700; line-height:1.4; color:var(--ink); }
+.plan-ticket { overflow:hidden; border-radius:24px; background:#fff; box-shadow:0 28px 60px -12px rgba(15,23,42,.25); }
+.ticket-top { padding:22px 24px; background:var(--ink); color:#fff; }
+.ticket-badge { display:inline-block; padding:3px 10px; border-radius:var(--radius-pill); background:rgba(255,255,255,.16); font-size:14px; font-weight:800; letter-spacing:.06em; }
+.ticket-sub { margin:14px 0 0; font-size:14px; font-weight:600; color:#CBD5E1; font-variant-numeric:tabular-nums; }
+.ticket-title { margin:2px 0 0; font-size:21px; font-weight:800; color:#fff; }
+.ticket-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:16px 0 0; padding-top:12px; border-top:1px solid rgba(255,255,255,.16); }
+.ticket-facts dt { font-size:14px; color:#CBD5E1; }
+.ticket-facts dd { margin:0; font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.ticket-cut { position:relative; height:24px; margin:0 20px; border-top:2px dashed #E2E8F0; top:12px; }
+.ticket-stops { display:grid; gap:10px; margin:8px 0 0; padding:0 24px 0 48px; }
+.ticket-stops li { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 8px; }
+.ticket-stops li strong { font-size:15px; }
+.ticket-stops .ticket-time { font-weight:800; color:var(--hong); font-variant-numeric:tabular-nums; }
+.ticket-stops small { grid-column:1 / -1; margin:0; }
+.ticket-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:18px 24px 24px; }
+.ticket-actions button { min-height:48px; }
+@media(max-width:600px) { .results-heading h2 { font-size:25px; } .results-kpis .kpi { flex:1 1 100%; } }
+@media(prefers-reduced-motion:reduce) { .detail .stop .timeline-card { transition:none; } }

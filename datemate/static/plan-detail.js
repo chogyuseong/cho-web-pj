@@ -154,7 +154,7 @@ function renderDetail() {
     box.append(routeLine(p, i, `${p.legs[i].origin} → ${place.name}`));
     const stop = node('article', undefined, 'stop');
     const stamp = node('div', undefined, 'timeline-stamp');
-    stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'));
+    stamp.append(node('strong', p.timeline[i].arrival), node('small', p.timeline[i].departure + '까지'), node('span', String(i + 1), 'stop-number'), stopKindIcon(place));
     stop.append(stamp);
     const body = node('div', undefined, 'timeline-card');
     // 읽는 순서: 장소 이름 → 한 줄 요약(분류 · 2인 비용 · 머무는 시간) → 후기에서 읽은 정보. 도착·떠나는 시각은 왼쪽 도장에 있다.
@@ -186,6 +186,14 @@ function renderDetail() {
       const map = placeMapLink('네이버 지도 보기 ↗', place);
       map.classList.add('stop-map-link');
       buttons.append(map);
+      // 카카오맵 길찾기(2026-11-25 HTML 시안): 앞 장소(또는 출발지)에서 이 장소까지. 구간 줄의 「길찾기 ▾」와 같은 주소(plan-actions.js kakaoDirectionsUrl).
+      const kakao = typeof kakaoDirectionsUrl === 'function' ? kakaoDirectionsUrl(p, p.legs[i]) : null;
+      if (kakao) {
+        const anchor = link('카카오맵 길찾기 ↗', kakao);
+        anchor.classList.add('stop-kakao-link');
+        anchor.setAttribute('aria-label', `${i + 1}번 ${place.name}까지 카카오맵 길찾기 (새 탭)`);
+        buttons.append(anchor);
+      }
     }
     // 일정 카드 → 코스 지도(maps.js focusPlanMapStop, 리디자인 3단계): 지도의 이 장소 표시를 강조하고 지도를 그 위치로 옮긴다.
     // 지도 표시 → 일정 카드(focusPlanStop)의 반대 방향. 좌표가 없는 장소(보관 기간이 지나 지움)는 지도에 없어 달지 않는다.
@@ -341,4 +349,30 @@ function replaceInList(oldId, p) {
   if (i < 0) return false;
   plans[i] = p;
   return true;
+}
+
+/* 장소 칸 번호 아래 종류 그림(2026-11-25 HTML 시안의 둥근 네모 그림). 장식이라 화면 읽기에서는 숨긴다(종류는 stop-meta 글자로 읽는다).
+   분류는 서버 분류(app/models.py THEMES)와 식사(category '음식점'·is_meal). 모르는 분류는 동그라미. 색은 redesign.css 10) [data-kind]. */
+const STOP_KIND_ICONS = {
+  cafe: '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/>',
+  meal: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  art: '<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3-3a2 2 0 0 0-2.8 0L6 21"/>',
+  walk: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  make: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
+  play: '<circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z"/>',
+  rest: '<path d="M4 18v-6a8 8 0 0 1 16 0v6"/><path d="M4 18h16"/>',
+  other: '<circle cx="12" cy="12" r="9"/>'
+};
+function stopKindKey(place) {
+  const c = String(place?.category || '');
+  if (place?.is_meal || /음식|식당|맛집/.test(c)) return 'meal';
+  return {'카페·미식': 'cafe', '문화·예술': 'art', '산책·풍경': 'walk', '체험·제작': 'make', '오락·놀이': 'play', '레저·활동': 'play', '휴식·힐링': 'rest'}[c] || 'other';
+}
+function stopKindIcon(place) {
+  const key = stopKindKey(place),
+    box = node('span', undefined, 'stop-kind');
+  box.dataset.kind = key;
+  box.setAttribute('aria-hidden', 'true');
+  box.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${STOP_KIND_ICONS[key]}</svg>`;
+  return box;
 }

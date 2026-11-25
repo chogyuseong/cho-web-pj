@@ -2,7 +2,7 @@
 
 1. 코스 탭: 이름 '안 N · {서버 option_purpose}', 1안 대비 델타 배지(도보·예산·이동). 배지 값은 코스 JSON 에서 따로 계산한 값과 같아야 하고,
    차이가 0 이거나 값을 모르면 배지가 없다(static/plan-results.js optionDeltas).
-2. '+30분 늦어지면?' 토글: 켜면 GET /api/plans/{id}/delay-check?index=0&minutes=30 결과를 장소 칸에 겹치고, 끄면 원래대로.
+2. '혹시 늦어지셨나요?' 알약(정시·+15·+30·+60, 2026-11-25 시안): 고르면 GET /api/plans/{id}/delay-check?index=0&minutes=N 결과를 장소 칸에 겹치고, 끄면 원래대로.
    코스 탭을 바꾸면 새 코스로 다시 계산한다(static/delay-check.js delaySim*).
 3. 일정 카드 → 지도: 「코스 지도에서 보기」가 지도 표시를 강조하고 그 위치로 옮긴다(공개 지도 Leaflet·가짜 네이버 SDK 모두, static/maps.js).
 4. 오른쪽 패널 요약·공유: 데스크톱만, 값은 선택한 코스 그대로, 공유 단추는 공유 구역과 같은 함수(static/plan-results.js planRailSummary).
@@ -150,20 +150,28 @@ def delay_rows(page):
       badges:[...stop.querySelectorAll('.delay-sim-badge')].map(b=>[b.dataset.kind,b.textContent])}))''')
 
 
-def check(page, plan_id):
-    return page.evaluate("id=>api(`/plans/${encodeURIComponent(id)}/delay-check?index=0&minutes=30`)", plan_id)
+def check(page, plan_id, minutes=30):
+    return page.evaluate("([id,m])=>api(`/plans/${encodeURIComponent(id)}/delay-check?index=0&minutes=${m}`)", [plan_id, minutes])
+
+
+def pill(page, minutes):
+    # 2026-11-25 HTML 시안: '+30분 늦어지면?' 켜고 끄는 단추 → '혹시 늦어지셨나요?' 정시 · +15 · +30 · +60 알약(0 = 정시 = 끄기).
+    return page.locator(f'#plan-detail .delay-sim-pill[data-minutes="{minutes}"]')
 
 
 def test_delay_toggle_marks_each_stop_and_turns_off_cleanly(audit_page):
     page, base, errors = audit_page
     page.set_viewport_size({'width': 390, 'height': 844})
     generate(page)
-    toggle = page.locator('#plan-detail .delay-sim-toggle')
+    toggle = pill(page, 30)
     # 일정(첫 장소 칸) 바로 위, 접힌 상자 '늦어지면 어디서 문제가 생길까?'는 그대로 있다.
     assert page.evaluate("""()=>{const bar=document.querySelector('#plan-detail .delay-sim'),stop=document.querySelector('#plan-detail .stop');
       return !!(bar.compareDocumentPosition(stop)&Node.DOCUMENT_POSITION_FOLLOWING)}""")
     assert page.locator('#plan-detail details.delay-check').count() == 1
-    assert toggle.get_attribute('aria-pressed') == 'false' and toggle.inner_text().strip() == '+30분 늦어지면?'
+    assert page.locator('#plan-detail .delay-sim-title').inner_text() == '혹시 늦어지셨나요?'
+    assert page.locator('#plan-detail .delay-sim-pill').all_inner_texts() == ['정시', '+15분', '+30분', '+60분']
+    assert pill(page, 0).get_attribute('aria-pressed') == 'true' and toggle.get_attribute('aria-pressed') == 'false'
+    assert all(b['height'] >= 44 for b in page.locator('#plan-detail .delay-sim-pill').evaluate_all('l=>l.map(e=>e.getBoundingClientRect().toJSON())'))
     original = page.evaluate("[...document.querySelectorAll('#plan-detail .timeline-stamp strong')].map(s=>s.textContent)")
 
     # 키보드로 켠다(Space).
@@ -199,21 +207,28 @@ def test_delay_toggle_marks_each_stop_and_turns_off_cleanly(audit_page):
     page.locator('#results .plan-option-tabs > button').nth(1).click()
     wait_for_selected_detail(page)
     page.wait_for_function("document.querySelectorAll('#plan-detail .delay-sim-start').length>0", timeout=20000)
-    assert page.locator('#plan-detail .delay-sim-toggle').get_attribute('aria-pressed') == 'true'
+    assert pill(page, 30).get_attribute('aria-pressed') == 'true'
     second = check(page, page.evaluate('selected.id'))
     starts = [row['start'] for row in second['rows'] if not row.get('festival')]
     assert [row['start'] for row in delay_rows(page)][:len(starts)] == starts
 
-    # 끄면 겹친 것이 모두 사라지고 처음 모습으로 돌아간다.
-    page.locator('#plan-detail .delay-sim-toggle').click()
-    assert page.locator('#plan-detail .delay-sim-toggle').get_attribute('aria-pressed') == 'false'
+    # 다른 분(+60분)을 고르면 그 분으로 다시 계산한다.
+    pill(page, 60).click()
+    page.wait_for_function("document.querySelector('#plan-detail .delay-sim-status').textContent.startsWith('60분')", timeout=20000)
+    sixty = check(page, page.evaluate('selected.id'), 60)
+    assert [row['start'] for row in delay_rows(page)][:1] == [row['start'] for row in sixty['rows'] if not row.get('festival')][:1]
+    assert pill(page, 60).get_attribute('aria-pressed') == 'true' and pill(page, 30).get_attribute('aria-pressed') == 'false'
+
+    # 정시로 돌리면 겹친 것이 모두 사라지고 처음 모습으로 돌아간다.
+    pill(page, 0).click()
+    assert pill(page, 60).get_attribute('aria-pressed') == 'false' and pill(page, 0).get_attribute('aria-pressed') == 'true'
     assert page.locator('#plan-detail :is(.delay-sim-time,.delay-sim-badges)').count() == 0
     assert page.locator('#plan-detail .delay-sim-status').inner_text() == ''
     assert page.locator('#plan-detail .delay-sim-help').is_visible()
     # 꺼진 상태는 다른 코스로 가도 꺼진 채다.
     page.locator('#results .plan-option-tabs > button').nth(0).click()
     wait_for_selected_detail(page)
-    assert page.locator('#plan-detail .delay-sim-toggle').get_attribute('aria-pressed') == 'false'
+    assert pill(page, 0).get_attribute('aria-pressed') == 'true'
     assert page.locator('#plan-detail .delay-sim-time').count() == 0
 
 
@@ -235,7 +250,7 @@ def test_delay_badges_use_the_server_judgement(audit_page):
                       row(names[1], arrival='12:30', start='12:40', departure='13:40', wait=10, shift=25, state='problem',
                           reason='마지막 입장 시간 초과', limit='12:30', over=10)])
     page.route('**/delay-check?index=0&minutes=30', lambda route: route.fulfill(json=fake))
-    page.locator('#plan-detail .delay-sim-toggle').click()
+    pill(page, 30).click()
     page.wait_for_function("document.querySelectorAll('#plan-detail .delay-sim-badge').length>=3")
     shown = delay_rows(page)
     assert shown[0]['badges'] == [['caution', '휴게 시간 10:00~11:00 · 20분 기다림']], shown[0]
@@ -249,31 +264,31 @@ def test_delay_badges_use_the_server_judgement(audit_page):
     save(page, 'redesign-delay-desktop.png')
 
     # 일정 종료 초과(kind 'end')·영업 종료·자료 없음.
-    page.locator('#plan-detail .delay-sim-toggle').click()
+    pill(page, 0).click()
     page.evaluate('delaySim.cache.clear()')
     fake.update(first_problem=dict(place='일정 종료', time='22:30', reason='정한 종료 시각을 넘겨요', kind='end', limit='22:00', over=30),
                 rows=[row(names[0], wait=0, state='unchecked', missing=['영업시간', '휴무일']),
                       row(names[1], wait=0), row(names[2], wait=0, state='ok')])
-    page.locator('#plan-detail .delay-sim-toggle').click()
+    pill(page, 30).click()
     page.wait_for_function("document.querySelector('#plan-detail .delay-sim-status').textContent.includes('종료 시간')")
     assert page.locator('#plan-detail .delay-sim-status').inner_text() == '30분 늦으면 일정이 22:30에 끝나 정한 종료 시간(22:00)보다 30분 늦어요.'
     assert delay_rows(page)[0]['badges'] == [['unknown', '영업시간·휴무일 자료 없음 · 연다고 보고 계산']]
-    page.locator('#plan-detail .delay-sim-toggle').click()
+    pill(page, 0).click()
     page.evaluate('delaySim.cache.clear()')
     fake.update(first_problem=dict(place=names[0], time='11:00', reason='영업시간 밖 방문', kind='closing', limit='11:30', over=30),
                 rows=[row(names[0], wait=0, state='problem', reason='영업시간 밖 방문', limit='11:30', over=30)])
-    page.locator('#plan-detail .delay-sim-toggle').click()
+    pill(page, 30).click()
     page.wait_for_function("document.querySelector('#plan-detail .delay-sim-badge.is-problem')")
     assert delay_rows(page)[0]['badges'] == [['problem', '영업 종료 11:30 · 30분 모자람']]
 
     # 계산 실패: 켜진 채로 두지 않고 이유를 알린다.
-    page.locator('#plan-detail .delay-sim-toggle').click()
+    pill(page, 0).click()
     page.evaluate('delaySim.cache.clear()')
     page.unroute('**/delay-check?index=0&minutes=30')
     page.route('**/delay-check?index=0&minutes=30', lambda route: route.fulfill(status=400, json={'detail': '이 코스는 구간 이동 시간이 저장돼 있지 않아 다시 계산할 수 없어요.'}))
-    page.locator('#plan-detail .delay-sim-toggle').click()
+    pill(page, 30).click()
     page.wait_for_function("document.querySelector('#plan-detail .delay-sim-status').classList.contains('warning')")
-    assert page.locator('#plan-detail .delay-sim-toggle').get_attribute('aria-pressed') == 'false'
+    assert pill(page, 30).get_attribute('aria-pressed') == 'false' and pill(page, 0).get_attribute('aria-pressed') == 'true'
     assert '계산하지 못했어요' in page.locator('#plan-detail .delay-sim-status').inner_text()
     assert page.locator('#plan-detail .delay-sim-time').count() == 0
 
@@ -373,7 +388,7 @@ def rail_values(page):
 def expected_rail(page):
     return page.evaluate('''()=>{const p=selected,n=plans.findIndex(x=>x.id===p.id)+1,w=knownWalking(p);
       return {budget:rangeLines(p.total).textContent.replace(/\\s+/g,' ').trim(),walk:w===null?'모름':w+'분',time:durationText(p.minutes),
-        label:`코스 ${n} 요약과 공유`,buttons:[['카톡용 일정 복사',`카톡용 일정 복사 · 코스 ${n}`],['공유 링크 복사',`공유 링크 복사 · 코스 ${n}`]]};}''')
+        label:`코스 ${n} 요약과 공유`,buttons:[['카톡용 일정 복사',`카톡용 일정 복사 · 코스 ${n}`],['공유 티켓 보기',`공유 티켓 보기 · 코스 ${n}`]]};}''')
 
 
 def test_rail_summary_and_share_on_desktop_only(audit_page):
@@ -389,14 +404,21 @@ def test_rail_summary_and_share_on_desktop_only(audit_page):
       window.__restore=()=>{window.copyKakaoItinerary=k;window.copyPlanShare=s;};}""")
     rail = page.locator('#plan-map-rail .plan-rail-summary')
     rail.get_by_role('button', name='카톡용 일정 복사 · 코스 1', exact=True).click()
-    rail.get_by_role('button', name='공유 링크 복사 · 코스 1', exact=True).click()
+    # 2026-11-25 HTML 시안: 패널의 둘째 단추는 '공유 티켓 보기' — 티켓 창의 [공유 링크 복사]가 같은 함수(copyPlanShare)를 부른다.
+    rail.get_by_role('button', name='공유 티켓 보기 · 코스 1', exact=True).click()
+    ticket = page.locator('#dialog .plan-ticket')
+    ticket.wait_for()
+    assert ticket.locator('.ticket-badge').inner_text() == 'DATEMATE PASS'
+    assert ticket.locator('.ticket-stops li').count() == page.evaluate('selected.places.length')
+    ticket.get_by_role('button', name='공유 링크 복사', exact=True).click()
     page.wait_for_function('window.__calls.length===2')
     assert page.evaluate('__calls') == [['kakao', page.evaluate('selected.id')], ['share', page.evaluate('selected.id')]]
     page.evaluate('__restore()')
     # 실제 함수로 한 번: 공유 링크가 만들어져 일정 아래 공유 현황 줄이 바뀐다(같은 함수라 같은 결과).
     page.evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async t=>{window.copied=t;}}})")
-    rail.get_by_role('button', name='공유 링크 복사 · 코스 1', exact=True).click()
+    ticket.get_by_role('button', name='공유 링크 복사', exact=True).click()
     page.wait_for_function("window.copied?.includes('/shared')||window.copied?.includes('/s/')", timeout=10000)
+    page.locator('#close-dialog').click()
     page.wait_for_function("document.querySelector('#plan-detail .share-status').textContent.includes('공유 링크 1개')", timeout=10000)
     # 공유 구역의 같은 이름 단추는 그대로 하나씩(이름이 겹치지 않는다).
     assert page.get_by_role('button', name='공유 링크 복사', exact=True).count() == 1
@@ -437,7 +459,7 @@ def test_no_horizontal_overflow_and_touch_targets_with_everything_on(audit_page,
     page, base, errors = audit_page
     page.set_viewport_size({'width': width, 'height': 900})
     generate(page)
-    page.locator('#plan-detail .delay-sim-toggle').click()
+    pill(page, 30).click()
     page.wait_for_function("document.querySelectorAll('#plan-detail .delay-sim-start').length>0", timeout=20000)
     page.locator('#plan-detail .stop').nth(1).scroll_into_view_if_needed()
     save(page, f'redesign-stop-{width}.png')

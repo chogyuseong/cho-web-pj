@@ -79,6 +79,9 @@ function renderResults(result={}){
   const wasOpen=selector=>{const box=root.querySelector(selector);return box?box.open:!RESULTS_MOBILE.matches;};
   const compareOpen=wasOpen('.comparison-details'),photosOpen=wasOpen('.plan-photo-details');
   root.replaceChildren();$('#result-count').textContent=`추천 일정 ${plans.length}개`;
+  // 머리말 아래 한 줄(2026-11-25 HTML 시안): 지역 · 방문일 · 시작~끝 · 이동 수단 기준. 첫 코스의 조건(세 코스가 같은 조건으로 나온다).
+  const meta=$('#results-meta'),c=(selected||plans[0])?.conditions;
+  if(meta)meta.textContent=c?[(c.origin?.name||c.region||'').split(' · ')[0].replace(/ 지역 중심$/,''),c.visit_date,`${c.start}~${c.end}`,`${({walk:'도보',transit:'대중교통',car:'자가용',bicycle:'자전거'})[c.transport]||''} 기준`].filter(Boolean).join(' · '):'';
   // 탭을 누르면 탭 표시만 바로 바꿔 화면에 내보내고(INP), 결과 전체·상세·지도는 다음 화면 갱신 뒤에 그린다.
   // 전에는 누른 순간 결과 전체와 지도를 다시 만들고 장소마다 패널을 붙여, 중급 휴대폰에서 누른 뒤 화면이 멈춰 보였다.
   // 상세가 어느 코스를 그린 것인지는 #plan-detail 의 data-plan-id 로 알 수 있다(renderDetail).
@@ -97,6 +100,8 @@ function renderResults(result={}){
   // 1. 가격 확인 전에 보여 준 후보와 확정된 코스가 다르면 무엇이 달라졌는지 먼저 적는다(plan-progress.js PlanPreview).
   const previewChanges=typeof PlanPreview!=='undefined'?PlanPreview.notice(result):null;
   if(previewChanges)root.append(previewChanges);
+  // 1-1. 선택한 코스의 핵심 수치(2026-11-25 HTML 시안 머리말 오른쪽): 예산 사용률 막대 · 총 도보 · 총 소요. 값은 서버 코스 그대로, 모르면 '모름'.
+  if(current)root.append(resultsKpis(current));
   // 2. 조건을 넓히거나 달라진 조건 안내는 코스 카드보다 먼저, 항상 펼쳐 보여 준다.
   if(current)root.append(conditionDifferences(current));
   if(plans.length&&result.reasons?.length)root.append(node('p',result.reasons.join(' · '),'hint'));
@@ -144,6 +149,25 @@ function durationText(minutes){
   const h=Math.floor(minutes/60),m=minutes%60;
   return h?(m?`${h}시간 ${m}분`:`${h}시간`):`${m}분`;
 }
+// 예산 사용률: 예상 비용 상한(total[1]) ÷ 예산(conditions.budget). 예산 무관이면 막대 없이 금액만. 가격 미확인 항목이 있으면 '제외'라고 적는다.
+// 상한이 예산을 넘으면 막대를 주황(is-over)으로. 막대는 장식이라 숫자 글자가 같은 내용을 말한다.
+function resultsKpis(p){
+  const box=node('div',undefined,'results-kpis');box.setAttribute('aria-label','선택한 코스 요약');
+  const won=n=>Number(n).toLocaleString('ko-KR')+'원';
+  const budget=Number(p.conditions?.budget),free=Boolean(p.conditions?.budget_unlimited),hi=Array.isArray(p.total)?p.total[1]:null,unknown=(p.unknown||[]).length;
+  const meter=node('div',undefined,'kpi kpi-budget'),text=node('div',undefined,'kpi-text');
+  text.append(node('span','예산 사용률','kpi-label'));
+  const amount=hi==null?'모름':free||!budget?`${won(hi)}${free?' (예산 무관)':''}`:`${won(hi)} / ${won(budget)}`;
+  text.append(node('strong',amount+(unknown?` · 미확인 ${unknown}항목 제외`:''),'kpi-value'));
+  meter.append(text);
+  if(hi!=null&&!free&&budget>0){
+    const bar=node('span',undefined,'kpi-bar'),fill=node('i');bar.setAttribute('aria-hidden','true');
+    fill.style.width=Math.min(100,Math.round(hi/budget*100))+'%';if(hi>budget)bar.classList.add('is-over');bar.append(fill);meter.append(bar);
+  }
+  const walk=knownWalking(p);
+  box.append(meter,node('div',walk===null?'총 도보 모름':`총 도보 ${walk}분`,'kpi kpi-walk'),node('div',durationText(p.minutes)?`총 ${durationText(p.minutes)}`:'총 소요 모름','kpi kpi-time'));
+  return box;
+}
 function planRailSummary(p){
   const index=plans.findIndex(item=>item.id===p.id),number=index+1;
   const box=node('section',undefined,'plan-rail-summary');
@@ -159,8 +183,31 @@ function planRailSummary(p){
   box.append(stats);
   if(p.id){
     const share=node('div',undefined,'rail-share'),label=(text,cls,action)=>{const b=button(text,action,cls);b.setAttribute('aria-label',`${text} · 코스 ${number}`);return b;};
-    share.append(label('카톡용 일정 복사','primary rail-kakao-copy',()=>copyKakaoItinerary(p)),label('공유 링크 복사','secondary rail-link-copy',()=>copyPlanShare(p)));
-    box.append(share);
+    share.append(label('카톡용 일정 복사','primary rail-kakao-copy',()=>copyKakaoItinerary(p)),label('공유 티켓 보기','secondary rail-ticket',()=>showPlanTicket(p)));
+    // 한 줄로 둔다: 1440×900 에서 패널 아래 지도가 첫 화면에 다 들어와야 한다(tests/test_redesign_results_ui.py scrollTop 0).
+    box.append(node('p','이 코스가 마음에 드셨나요?','rail-share-title'),share);
   }
   return box;
+}
+
+/* 공유 티켓(2026-11-25 HTML 시안 'DATEMATE PASS'): 선택한 코스를 탑승권처럼 한 장에 — 날짜·지역·모드, 예산·도보·장소 수, 장소별 도착 시각.
+   공유 대화상자(#dialog, place-dialog.js openDialog)를 쓴다. 단추는 공유 링크 복사(copyPlanShare)·텍스트 복사(copyKakaoItinerary) — 새로 만들지 않는다.
+   값은 서버 코스 그대로(가격 모르면 '모름'). 모드(데이트/여행)는 머리글 스위치(header-mode.js body.mode-travel). */
+function showPlanTicket(p){
+  const root=openDialog('공유 티켓'),number=plans.findIndex(item=>item.id===p.id)+1;
+  const ticket=node('article',undefined,'plan-ticket'),top=node('div',undefined,'ticket-top');
+  const travel=document.body.classList.contains('mode-travel');
+  top.append(node('span','DATEMATE PASS','ticket-badge'),
+    node('p',[p.conditions?.visit_date,(p.conditions?.origin?.name||'').split(' · ')[0].replace(/ 지역 중심$/,''),travel?'여행 플랜':'데이트 플랜'].filter(Boolean).join(' · '),'ticket-sub'),
+    node('h3',`코스 ${number}${p.option_purpose?' · '+p.option_purpose:''}`,'ticket-title'));
+  const facts=node('dl',undefined,'ticket-facts'),walk=knownWalking(p);
+  for(const [label,value] of [['예산',Array.isArray(p.total)?range(p.total):'모름'],['도보',walk===null?'모름':`${walk}분`],['장소',`${p.places.length}곳`]]){const row=node('div');row.append(node('dt',label),node('dd',value));facts.append(row);}
+  top.append(facts);
+  const cut=node('div',undefined,'ticket-cut');cut.setAttribute('aria-hidden','true');
+  const list=node('ol',undefined,'ticket-stops');
+  p.places.forEach((place,i)=>{const row=node('li');row.append(node('strong',place.name),node('span',p.timeline?.[i]?.arrival||'','ticket-time'),node('small',placeKind(place),'hint'));list.append(row);});
+  const actions=node('div',undefined,'ticket-actions');
+  actions.append(button('공유 링크 복사',()=>copyPlanShare(p),'primary'),button('텍스트 복사',()=>copyKakaoItinerary(p),'secondary'));
+  ticket.append(top,cut,list,actions);
+  root.append(ticket);
 }

@@ -206,44 +206,52 @@ function delayCheckView(data, plan) {
   return parts;
 }
 
-/* ── '+30분 늦어지면?' 토글(리디자인 3단계, datemate_2026.md §2.5 지연 시뮬레이션) ──────────────────────────
-   일정 바로 위의 켜고 끄는 단추(aria-pressed). 켜면 위 접힌 상자와 같은 읽기 전용 확인(GET /api/plans/{id}/delay-check)을
-   '첫 장소(index=0)에 30분 늦게 도착'으로 한 번 불러, 그 결과를 일정의 장소 칸에 겹쳐 보여 준다. 끄면 겹친 것을 모두 떼어 원래대로.
+/* ── '혹시 늦어지셨나요?' 지연 미리 보기(리디자인 3단계, 2026-11-25 HTML 시안: 정시 · +15분 · +30분 · +60분 알약) ──────────
+   일정 바로 위의 알약 묶음(각 단추 aria-pressed). 고르면 위 접힌 상자와 같은 읽기 전용 확인(GET /api/plans/{id}/delay-check)을
+   '첫 장소(index=0)에 N분 늦게 도착'으로 한 번 불러, 그 결과를 일정의 장소 칸에 겹쳐 보여 준다. '정시'는 겹친 것을 모두 떼어 원래대로.
    - 장소 칸: 시각 도장 아래 '늦으면 이용 시작 시각(±분)', 장소 이름 아래 배지 — 서버가 판단한 것만 쓴다.
      문제(row.state='problem'): 마지막 입장·영업 종료·축제 운영 종료(kind 그대로). 기다림(row.wait>0): 시작 시각이 그 장소의
      휴게 시간 끝과 같으면 '휴게 시간', 여는 시각과 같으면 '문 여는 시각', 둘 다 아니면 서버 문구와 같은 '개점·휴게 대기'.
      영업 자료 없음(state='unchecked'): 서버가 '연다'고 가정한 곳. 서버는 첫 문제에서 계산을 멈추므로 그 뒤 장소는 '계산하지 않았어요'.
-     라스트오더(주문 마감) 자료는 없어 말하지 않는다.
-   - 일정 종료 초과(kind='end')는 장소가 아니라 단추 옆 결론 줄에만 적는다.
-   - 상태는 코스가 바뀌어도(탭 전환·장소 교체·되돌리기) 켜진 채로 두고, 새 코스로 다시 계산한다(renderDetail → delaySimRefresh).
-     결과는 코스 id 별로 기억한다(코스 내용이 바뀌면 서버가 새 id 를 준다). 늦게 온 응답은 지금 보는 코스가 아니면 버린다.
-   - 대신 갈 곳·빼고 진행 같은 바꾸는 동작은 이 단추가 아니라 위 접힌 상자(delayCheckPanel)에 그대로 있다. */
-const DELAY_SIM_MINUTES = 30;
+     라스트오더(주문 마감) 자료는 없어 말하지 않는다. 시안의 '대체 장소로 자동 조정'은 만들지 않았다 — 대신 갈 곳은 서버가 고른
+     후보를 사람이 확인하고 바꾸는 위 접힌 상자(delayCheckPanel, 지각 복구)로 안내한다.
+   - 일정 종료 초과(kind='end')는 장소가 아니라 알약 옆 결론 줄에만 적는다.
+   - 고른 분(delaySim.minutes)은 코스가 바뀌어도(탭 전환·장소 교체·되돌리기) 그대로 두고, 새 코스로 다시 계산한다(renderDetail → delaySimRefresh).
+     결과는 '코스 id · 분' 별로 기억한다(코스 내용이 바뀌면 서버가 새 id 를 준다). 늦게 온 응답은 지금 보는 코스·분이 아니면 버린다.
+   - 고를 수 있는 분을 바꾸려면 DELAY_SIM_CHOICES 만 고친다(0 = 정시). */
+const DELAY_SIM_CHOICES = [0, 15, 30, 60];
 const delaySim = {
-  on: false,
+  minutes: 0,
+  get on() { return this.minutes > 0; },
   turn: 0,
   cache: new Map()
 };
+const delaySimKey = (plan, minutes) => `${plan.id}:${minutes}`;
 
 function delaySimBar(plan) {
   const bar = node('div', undefined, 'delay-sim');
   bar.setAttribute('role', 'group');
   bar.setAttribute('aria-label', '늦어질 때 미리 보기');
   bar.dataset.planId = plan.id;
-  const toggle = node('button', undefined, 'delay-sim-toggle');
-  toggle.type = 'button';
-  const knob = node('span', undefined, 'delay-sim-switch');
-  knob.setAttribute('aria-hidden', 'true');
-  toggle.append(knob, node('span', `+${DELAY_SIM_MINUTES}분 늦어지면?`, 'delay-sim-label'));
-  toggle.setAttribute('aria-pressed', String(delaySim.on));
-  toggle.addEventListener('click', () => setDelaySim(!delaySim.on));
-  const help = node('p', `켜면 첫 장소에 ${DELAY_SIM_MINUTES}분 늦게 도착한다고 보고, 장소마다 밀린 시각과 주의할 점을 일정에 표시해요. 코스는 바꾸지 않아요.`, 'hint delay-sim-help');
+  const head = node('div', undefined, 'delay-sim-head');
+  const title = node('span', '혹시 늦어지셨나요?', 'delay-sim-title');
+  const pills = node('div', undefined, 'delay-sim-pills');
+  for (const minutes of DELAY_SIM_CHOICES) {
+    const pill = node('button', minutes ? `+${minutes}분` : '정시', 'delay-sim-pill');
+    pill.type = 'button';
+    pill.dataset.minutes = String(minutes);
+    pill.setAttribute('aria-pressed', String(delaySim.minutes === minutes));
+    pill.addEventListener('click', () => setDelaySim(minutes));
+    pills.append(pill);
+  }
+  head.append(title, pills);
+  const help = node('p', '고른 만큼 첫 장소에 늦게 도착한다고 보고, 장소마다 밀린 시각과 주의할 점을 일정에 표시해요. 코스는 바꾸지 않아요.', 'hint delay-sim-help');
   help.hidden = delaySim.on;
   const status = node('p', '', 'delay-sim-status');
   status.setAttribute('role', 'status');
   const basis = node('p', '', 'hint delay-sim-basis');
   basis.hidden = true;
-  bar.append(toggle, help, status, basis);
+  bar.append(head, help, status, basis);
   return bar;
 }
 
@@ -254,21 +262,24 @@ function delaySimParts() {
   return {
     detail,
     bar,
-    toggle: bar.querySelector('.delay-sim-toggle'),
+    pills: [...bar.querySelectorAll('.delay-sim-pill')],
     help: bar.querySelector('.delay-sim-help'),
     status: bar.querySelector('.delay-sim-status'),
     basis: bar.querySelector('.delay-sim-basis')
   };
 }
 
-function setDelaySim(on) {
-  delaySim.on = on;
+// minutes: 0(정시 — 끄기) 또는 DELAY_SIM_CHOICES 의 분. 예전 호출(true/false)도 받는다(true = 30분).
+function setDelaySim(minutes) {
+  if (minutes === true) minutes = 30;
+  if (minutes === false) minutes = 0;
+  delaySim.minutes = minutes;
   const parts = delaySimParts();
   if (parts) {
-    parts.toggle.setAttribute('aria-pressed', String(on));
-    parts.help.hidden = on;
+    parts.pills.forEach(pill => pill.setAttribute('aria-pressed', String(Number(pill.dataset.minutes) === minutes)));
+    parts.help.hidden = minutes > 0;
   }
-  if (!on) {
+  if (!minutes) {
     delaySim.turn += 1;
     clearDelaySim();
     if (parts) {
@@ -286,8 +297,9 @@ function delaySimRefresh(plan) {
   if (!delaySim.on || !plan?.id) return;
   const parts = delaySimParts();
   if (!parts || parts.bar.dataset.planId !== plan.id) return;
-  const cached = delaySim.cache.get(plan.id);
+  const cached = delaySim.cache.get(delaySimKey(plan, delaySim.minutes));
   if (cached) {
+    clearDelaySim();
     applyDelaySim(plan, cached);
     return;
   }
@@ -296,23 +308,24 @@ function delaySimRefresh(plan) {
 
 async function loadDelaySim(plan) {
   const turn = ++delaySim.turn,
+    minutes = delaySim.minutes,
     parts = delaySimParts();
   clearDelaySim();
   if (parts) {
     parts.status.className = 'delay-sim-status';
-    parts.status.textContent = `${DELAY_SIM_MINUTES}분 늦을 때를 다시 계산하고 있어요…`;
+    parts.status.textContent = `${minutes}분 늦을 때를 다시 계산하고 있어요…`;
     parts.basis.hidden = true;
   }
   try {
-    const data = await api(`/plans/${encodeURIComponent(plan.id)}/delay-check?index=0&minutes=${DELAY_SIM_MINUTES}`);
-    delaySim.cache.set(plan.id, data);
-    if (delaySim.cache.size > 12) delaySim.cache.delete(delaySim.cache.keys().next().value);
-    if (turn !== delaySim.turn || !delaySim.on || selected?.id !== plan.id) return;
+    const data = await api(`/plans/${encodeURIComponent(plan.id)}/delay-check?index=0&minutes=${minutes}`);
+    delaySim.cache.set(delaySimKey(plan, minutes), data);
+    if (delaySim.cache.size > 24) delaySim.cache.delete(delaySim.cache.keys().next().value);
+    if (turn !== delaySim.turn || delaySim.minutes !== minutes || selected?.id !== plan.id) return;
     applyDelaySim(plan, data);
   } catch (error) {
     if (turn !== delaySim.turn || selected?.id !== plan.id) return;
-    // 계산하지 못하면 켜 둔 채로 두지 않는다(일정은 원래 시각 그대로라 '켜짐'이 거짓이 된다).
-    setDelaySim(false);
+    // 계산하지 못하면 고른 채로 두지 않는다(일정은 원래 시각 그대로라 '늦음'이 거짓이 된다).
+    setDelaySim(0);
     const after = delaySimParts();
     if (after) {
       after.status.className = 'delay-sim-status warning';
@@ -360,7 +373,7 @@ function delaySimBadges(row, place) {
 
 function delaySimBadgeLine(badges) {
   const line = node('p', undefined, 'delay-sim-badges');
-  line.append(node('span', `${DELAY_SIM_MINUTES}분 늦으면: `, 'visually-hidden'));
+  line.append(node('span', `${delaySim.minutes}분 늦으면: `, 'visually-hidden'));
   badges.forEach(([text, kind]) => {
     const badge = node('span', text, `delay-sim-badge is-${kind}`);
     badge.dataset.kind = kind;
@@ -372,7 +385,7 @@ function delaySimBadgeLine(badges) {
 function delaySimStamp(row) {
   const box = node('span', undefined, 'delay-sim-time');
   const shift = row.shift > 0 ? `+${row.shift}분` : row.shift < 0 ? `${-row.shift}분 일찍` : '그대로';
-  box.append(node('span', `${DELAY_SIM_MINUTES}분 늦으면 이용 시작 `, 'visually-hidden'), node('b', row.start, 'delay-sim-start'), node('small', shift, 'delay-sim-shift'));
+  box.append(node('span', `${delaySim.minutes}분 늦으면 이용 시작 `, 'visually-hidden'), node('b', row.start, 'delay-sim-start'), node('small', shift, 'delay-sim-shift'));
   return box;
 }
 

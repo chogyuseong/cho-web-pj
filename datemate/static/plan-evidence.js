@@ -30,7 +30,9 @@ function transitBasisNote(plan){
   const where=plan.conditions?.mode==='demo'?'지도 앱':'구간마다 있는 「길찾기 ▾」';
   return node('p','대중교통: '+basis+' 실제 지하철·버스 노선과 요금은 '+where+'에서 확인해 주세요.','hint transit-basis-note');
 }
-function travelMinutes(plan){return plan.decision_summary?.travel_minutes??plan.legs.reduce((n,x)=>n+(x.minutes||0),0);}
+// 이동 합계(분). 서버 decision_summary.travel_minutes(app/recommendation_summary.travel_minutes)를 먼저 쓰고, 없을 때만 같은 식으로 센다:
+// 구간(legs) + 행사장으로 가는 축제 구간(festival_visit.leg — legs 밖). 둘을 함께 바꿔야 카드·지도·순서 제안의 '이동 N분'이 맞는다(점검 F9).
+function travelMinutes(plan){return plan.decision_summary?.travel_minutes??((plan.legs||[]).reduce((n,x)=>n+(x.minutes||0),0)+(plan.festival_visit?.leg?.minutes||0));}
 // 금액 범위를 "23,000원 ~"과 "43,000원" 두 줄로 나눈다. 각 줄 안에서는 줄을 바꾸지 않는다.
 function rangeLines(value){
   const box=node('span',undefined,'range-lines');

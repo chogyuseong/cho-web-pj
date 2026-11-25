@@ -80,7 +80,7 @@ def legacy_select_options(plans,c):
         if not eligible:
             most=max(novelty(p) for p in unique)
             eligible=[p for p in unique if novelty(p)==most]
-        def travel(p):return sum(r.get('minutes') or 0 for r in p['legs'])
+        travel=travel_minutes  # '이동이 적은 안'도 화면과 같은 합계(축제 구간 포함, 점검 F9)로 고른다.
         if index==1:
             pick=min(eligible,key=lambda p:(-novelty(p),p.get('penalty',0),unique.index(p)))
         else:
@@ -120,8 +120,8 @@ def dcomp(a,b):
     return (l1+1)//2
 
 
-def travel_minutes(plan):
-    return sum(r.get('minutes') or 0 for r in plan.get('legs') or [])
+# 이동 합계는 축제 구간까지 넣은 한 정의를 쓴다(점검 보고서 F9 — recommendation_summary.travel_minutes).
+from .recommendation_summary import travel_minutes
 
 
 def travel_differs(a,b):

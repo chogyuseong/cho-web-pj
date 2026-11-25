@@ -64,7 +64,11 @@ function renderPlanMapCard(){
       selected=plan;locks=new Set(Object.keys(plan.conditions.locked||{}).map(Number));
       api('/plans/'+plan.id+'/feedback',{kind:'selection'}).catch(()=>{});
       renderResults();renderDetail();
-      requestAnimationFrame(()=>{window.scrollTo({top:scrollY,behavior:'instant'});document.querySelector('.plan-map-card [aria-pressed="true"]')?.focus({preventScroll:true});});
+      // 지도 카드가 새로 그려져 누른 탭이 사라지므로 새 카드의 고른 코스 탭으로 포커스를 돌린다. 다시 그린 직후에 바로 한 번
+      // (그사이 포커스가 BODY 에 머물지 않게), 스크롤을 되돌린 다음 화면 갱신에서 한 번 더(2026-11-25 운영 QA-04).
+      const focusTab=()=>{const tab=document.querySelector('.plan-map-card .map-option-tabs > button[aria-pressed="true"]');if(tab&&document.activeElement!==tab)tab.focus({preventScroll:true});};
+      focusTab();
+      requestAnimationFrame(()=>{window.scrollTo({top:scrollY,behavior:'instant'});focusTab();});
     },selected.id===plan.id?'primary':'secondary');
     tab.dataset.mapOption=String(index+1);tab.setAttribute('aria-pressed',String(selected.id===plan.id));tabs.append(tab);
   });

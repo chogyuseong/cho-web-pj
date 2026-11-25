@@ -65,6 +65,9 @@ const ExploreView={
       if(data.message&&data.places.length)controls.append(node('p',data.message,'hint'));
       if(!data.places.length)root.append(node('p',data.message||'조건에 맞는 장소를 찾지 못했어요. 다른 활동이나 검색어로 찾아보세요.','hint'));
       if(data.has_more)controls.append(button('장소 더 보기 · '+this.offset+' / '+data.total,async()=>{const btn=controls.querySelector('button');if(btn)btn.disabled=true;await this.page(c,seq,true);},'primary'));
+      // '더 보기'로 붙인 장소: 누른 단추는 위에서 지워져 포커스가 BODY 로 빠진다. 새로 붙은 첫 장소의 제목으로 옮겨
+      // 키보드·화면 읽기 사용자가 이어서 읽게 한다(2026-11-25 운영 QA-05). 제목은 Tab 순서에는 넣지 않는다(tabindex=-1).
+      if(more&&cards.length){const title=cards[0].querySelector('h3');if(title){title.tabIndex=-1;title.focus();}}
       if(!more)this.naverMore(c,seq,data);
     }catch(e){this.error(e,seq);}
   },

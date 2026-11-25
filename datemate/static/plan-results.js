@@ -89,14 +89,17 @@ function renderResults(result={}){
   // 전에는 누른 순간 결과 전체와 지도를 다시 만들고 장소마다 패널을 붙여, 중급 휴대폰에서 누른 뒤 화면이 멈춰 보였다.
   // 상세가 어느 코스를 그린 것인지는 #plan-detail 의 data-plan-id 로 알 수 있다(renderDetail).
   function choose(p,showDetail=false){if(selected?.id!==p.id)locks=new Set(Object.keys(p.conditions.locked||{}).map(Number));selected=p;api('/plans/'+p.id+'/feedback',{kind:'selection'}).catch(()=>{});
-    const focused=document.activeElement?.closest?.('#results .plan-option-tabs > button')?.dataset.option||null;
+    const inTabs=Boolean(document.activeElement?.closest?.('#results .plan-option-tabs'));
     root.querySelectorAll('.plan-option-tabs > button').forEach((tab,i)=>{if(!plans[i])return;const on=plans[i].id===p.id;tab.className=on?'primary':'secondary';tab.setAttribute('aria-pressed',String(on));tab.replaceChildren(...optionTabContent(plans[i],i,on));});
     root.setAttribute('aria-busy','true');
     const turn=++chooseTurn;
     requestAnimationFrame(()=>setTimeout(()=>{if(turn!==chooseTurn)return;
       renderResults();renderDetail();root.setAttribute('aria-busy','false');
-      // 다시 그리며 탭 단추가 새로 만들어져도 키보드 포커스는 같은 탭에 둔다.
-      if(focused)root.querySelector(`.plan-option-tabs > button[data-option="${focused}"]`)?.focus({preventScroll:true});
+      // 다시 그리며 탭 단추가 새로 만들어져도 포커스는 고른 코스의 탭에 둔다. 탭에 포커스가 있었을 때뿐 아니라, 누른 단추가
+      // 포커스를 받지 않아(Safari·자동화 도구의 클릭) 다시 그린 뒤 포커스가 BODY 로 빠졌을 때도 돌려준다(2026-11-25 운영 QA-04).
+      // '일정 살펴보기'(showDetail)는 상세로 가므로 탭으로 돌리지 않는다. 스크롤은 아래 scrollIntoView 가 맡아 preventScroll.
+      const lost=!document.activeElement||document.activeElement===document.body||!document.activeElement.isConnected;
+      if(inTabs||(lost&&!showDetail))root.querySelector('.plan-option-tabs > button[aria-pressed="true"]')?.focus({preventScroll:true});
       requestAnimationFrame(()=>{const target=showDetail?$('#plan-detail'):$('#results .plan-option-tabs');target?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});});
     },0));}
   const current=selected||plans[0];

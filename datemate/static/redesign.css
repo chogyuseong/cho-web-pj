@@ -302,6 +302,10 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
    #7C879A = 흰 바탕 3.6:1, 연회색 칸 바탕(--platform) 3.3:1 (2026-11-25, tests/test_a11y_mobile_polish.py). 더 옅게 바꾸면 그 테스트가 잡는다. */
 #conditions :is(.when-grid,.simple-extra-options) :is(input:not([type=checkbox]):not([type=range]),select) { min-height:46px; background:var(--platform); border-color:#7C879A; font-size:15px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
 #conditions .date-note:empty,#conditions .budget-note:empty { display:none; }
+/* 종료 시간이 시작 시간과 같거나 이르면 보내기 전에 종료 칸 바로 아래에 띄우는 안내(app.js timeRangeInvalid, 2026-11-25 운영 QA-01).
+   바탕·글자색은 .warning(line.css). 칸 테두리는 위 입력 칸 규칙과 같은 명시도로 뒤에 두어 진한 빨강(흰 바탕 6.5:1)으로 바꾼다. */
+#conditions .field-error { display:block; margin-top:6px; padding:6px 8px; font-size:14px; font-weight:600; line-height:1.5; }
+#conditions .when-grid input[type=time][aria-invalid=true] { border-color:#B42318; }
 /* 예산·이동 수단: 두 칸 나란히. 예산은 같은 폭 네 칸, 이동 수단은 옅은 바탕 위 흰 칸이 고른 것. */
 #conditions .budget-transport { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
 #conditions .segmented { display:grid; grid-auto-columns:minmax(0,1fr); grid-auto-flow:column; gap:6px; }

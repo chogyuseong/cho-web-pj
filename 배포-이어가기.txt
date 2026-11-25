@@ -7,6 +7,21 @@
 
 ★ 지금 상태 (2026-11-25 기준)
 ----------------------------------------------------------------------
+아흔다섯 번째 배포(2026-11-25 15:15) 완료: main 0a85170(병합 = feat/results-action-bars 789e249), Worker 버전 af122c73-4689-463f-ab47-9c85d70aa912.
+  사용자가 Gemini Canvas 시안(https://share.gemini.google/NMTZYFdUBrws — 결과 화면 시안 4장의 클릭되는 버전, 헤드리스 브라우저로 읽음)을 확인하라고 함.
+  시안에만 있는 것 중 사용자 선택: '휴대폰 아래 막대'·'고정 윗줄', 테스트 통과하면 배포.
+  · index.html: .results-area 맨 앞 #results-bar(#edit-conditions·#results-meta·#results-bar-actions — #results-meta 는 머리말에서 옮김), 끝에 nav#results-actionbar.
+  · plan-results.js syncResultsBars(plan-detail.js renderDetail 끝에서 호출): 윗줄 '공유 티켓'·'일정 복사'(showPlanTicket·copyKakaoItinerary 그대로),
+    휴대폰 막대 '지도 보기'(→ #plan-map-slot, 지도가 보이면 '일정 보기' → 첫 장소)·'일정 복사'·'공유 티켓'. 저장 안 된 코스(id 없음)는 단추 없음.
+  · redesign.css 12): 윗줄은 801px 이상에서만 머리글 아래 sticky(휴대폰은 .section-indicator 가 같은 자리라 제자리, 윗줄 공유·복사 숨김).
+    720px 이하에서 결과 막대가 보이면(:has) 메뉴 바(body > header nav) 숨김 — 처음 화면·둘러보기·조건 수정하기로 돌아가면 메뉴 바 그대로. 인쇄에서 두 막대 단추 숨김.
+  · 테스트 tests/test_results_bars_ui.py 4개. 로컬 전체 1611 통과·1 건너뜀, 브랜치 CI Run 45555440223 성공(5개) → main 병합·push → test:security 25 → wrangler deploy(파일 4개).
+  · 운영 확인(15:29): /api/status 200, server-timing 있음, plan-results.js·plan-detail.js·redesign.css ?v= = 로컬 sha256, 첫 화면에 #results-actionbar.
+    운영에서 체험 코스로 1440·390 캡처: 윗줄 고정, 휴대폰 메뉴 바 대신 막대, 지도 보기 → 지도·'일정 보기', 페이지 오류 0, 가로 넘침 없음(바탕화면 datemate-스크린샷-1125 6~8번).
+    보지 못한 것: 실기기(아이폰 Safari 의 :has·고정 막대), 실제 장소 코스.
+  · 되돌리는 법: git revert -m 1 0a85170 후 재배포. DB 변경 없음.
+  · 시안에 있으나 안 한 것: 비교 표 '이 코스 보기' 단추 줄, 축제 필터 탭(전체/축제/팝업), 귀가 동선 스위치 카드, 지각 자동 대체(사용자가 고르지 않음),
+    날씨 줄·비 오는 날·블로그 요약/태그·그림 지도(자료·약관). 브랜치 feat/results-action-bars(로컬·원격)는 병합됨 — 정리는 사용자가(아래 94차 명령에 같이).
 아흔네 번째 배포(2026-11-25 13:40) 완료: main 5d685b5(병합 = fix/input-border-contrast 5a731ef), Worker 버전 e09f2f76-b68e-4c8e-912b-4bc4e21d4ae1. 93차 바로 뒤, 같은 지시.
   · 조건 화면의 날짜·시작·종료·추가 옵션 입력 칸 테두리: 시안 #E2E8F0(흰 바탕 1.2:1) → #7C879A(3.6:1, 연회색 칸 바탕 3.3:1). redesign.css 9) 의 한 줄.
     결정이 필요했던 일(시안대로 둘지 진하게 할지)은 사용자 지시 '가장 완성도 있고 효과적인 것'에 따라 접근성 기준(WCAG 1.4.11 3:1)을 택함.

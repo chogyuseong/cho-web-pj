@@ -78,8 +78,12 @@
   const tripForm = document.getElementById('conditions'); // 조건 화면 form(id=conditions)
   const fieldOf = name => tripForm?.elements?.[name];
   const valueOf = el => el?.type === 'checkbox' ? el.checked : el?.value;
-  // 데이트 기본값: 이 스크립트가 돌 때(조건 화면을 다 그린 뒤, 사용자가 손대기 전)의 값.
-  const dateDefaults = Object.fromEntries(Object.keys(TRIP_DEFAULTS).map(name => [name, valueOf(fieldOf(name))]));
+  // 데이트 기본값: 조건 화면을 다 그린 뒤, 사용자가 손대기 전의 값. 처음 여행으로 바꿀 때 읽는다 — 이 스크립트가 돌 때 읽으면
+  // 오늘 시작 시각이 지나 화면이 시간대를 맞추기(simple-form.js, 서버 상태를 받은 뒤) 전의 11:00~19:00 이 남아, 오후에 연 화면에서
+  // 여행 → 데이트로 돌아오면 이미 지난 시간대로 되돌렸다(2026-11-25 브랜치 CI 의 test_travel_mode_ui 오후 실패로 발견).
+  // 사용자가 그사이 바꾼 칸은 touched 로 따로 남아 어느 쪽으로도 건드리지 않는다.
+  const readValues = () => Object.fromEntries(Object.keys(TRIP_DEFAULTS).map(name => [name, valueOf(fieldOf(name))]));
+  let dateDefaults = null;
   const touched = new Set();
   let applyingDefaults = false;
   for (const type of ['input', 'change']) tripForm?.addEventListener(type, event => {
@@ -94,7 +98,8 @@
   // 그 이벤트로 FormState.edited('사용자가 고른 조건', 자연어 해석보다 우선)에 들어가지 않게 원래 상태로 되돌린다.
   function applyDefaults(mode) {
     if (!tripForm) return [];
-    const target = mode === 'travel' ? TRIP_DEFAULTS : dateDefaults, changed = [];
+    if (mode === 'travel' && !dateDefaults) dateDefaults = readValues();
+    const target = mode === 'travel' ? TRIP_DEFAULTS : dateDefaults || readValues(), changed = [];
     const before = typeof FormState !== 'undefined' ? new Set(FormState.edited) : null;
     applyingDefaults = true;
     try {

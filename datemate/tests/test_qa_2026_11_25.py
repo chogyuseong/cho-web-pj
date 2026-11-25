@@ -7,6 +7,7 @@ QA-03 네트워크 실패는 'Failed to fetch' 대신 한국어 안내 한 문�
       추천 요청(plan-jobs)의 '응답을 받지 못했어요' 분기는 그대로다(tests/test_search_resume_ui.py 도 본다).
 QA-04 코스 탭(결과 목록·지도)을 눌러 다시 그린 뒤에도 포커스는 고른 코스의 탭에 있다(plan-results.js choose, maps.js).
 QA-05 장소 둘러보기 '더 보기' 뒤 포커스는 새로 붙은 첫 장소 제목(explore.js page).
+덧붙임: 이 브랜치 CI 에서 드러난 시각 의존 실패(여행 → 데이트가 오후에 맞춘 시간대를 11:00~19:00 으로 되돌림, header-mode.js).
 """
 from test_functional_audit import audit_page, generate, wait_for_selected_detail  # noqa: F401 (fixture)
 
@@ -164,6 +165,25 @@ def test_course_tabs_keep_focus_on_the_chosen_course_after_redraw(audit_page):
     page.wait_for_timeout(400)
     assert focused_tab(page)['map'] == '3'
     assert page.evaluate('selected.id') == page.evaluate('plans[2].id')
+
+
+def test_travel_back_to_date_restores_the_afternoon_time_window(audit_page):
+    """브랜치 CI 에서 발견(QA 항목 밖): 오후에 연 화면은 오늘 지난 11:00 시작을 17:00~22:00 으로 맞춘다(simple-form.js).
+    여행 → 데이트로 돌아오면 그 값으로 돌아와야 한다(header-mode.js dateDefaults). 전에는 맞추기 전 11:00~19:00 으로 돌아가
+    test_travel_mode_ui 가 브라우저 시각 11~17시에만 실패했다. 시계를 오후 2시 30분으로 고정해 언제 돌려도 같게 본다."""
+    import datetime
+    page, base, _ = audit_page
+    page.clock.install(time=datetime.datetime.now().replace(hour=14, minute=30, second=0, microsecond=0))
+    page.evaluate("try{localStorage.removeItem('datemate-mode')}catch{}")
+    page.goto(base + '/', wait_until='networkidle')
+    page.wait_for_function("typeof statusData!=='undefined'&&!!statusData&&document.querySelector('.simple-plan-form')")
+    times = "[form.elements.start.value,form.elements.end.value]"
+    assert page.evaluate(times) == ['17:00', '22:00']
+    for mode in ('travel', 'date'):
+        page.locator(f'#mode-switch [data-mode={mode}]').click()
+        page.wait_for_function(f"document.querySelector('#mode-switch [data-mode={mode}]').getAttribute('aria-pressed')==='true'")
+    assert page.evaluate(times) == ['17:00', '22:00']
+    page.evaluate("try{localStorage.removeItem('datemate-mode')}catch{}")
 
 
 def test_explore_more_moves_focus_to_the_first_new_place(audit_page, monkeypatch):

@@ -369,11 +369,21 @@ const STOP_KIND_ICONS = {
   rest: '<path d="M4 18v-6a8 8 0 0 1 16 0v6"/><path d="M4 18h16"/>',
   other: '<circle cx="12" cy="12" r="9"/>'
 };
+
 function stopKindKey(place) {
   const c = String(place?.category || '');
   if (place?.is_meal || /음식|식당|맛집/.test(c)) return 'meal';
-  return {'카페·미식': 'cafe', '문화·예술': 'art', '산책·풍경': 'walk', '체험·제작': 'make', '오락·놀이': 'play', '레저·활동': 'play', '휴식·힐링': 'rest'}[c] || 'other';
+  return {
+    '카페·미식': 'cafe',
+    '문화·예술': 'art',
+    '산책·풍경': 'walk',
+    '체험·제작': 'make',
+    '오락·놀이': 'play',
+    '레저·활동': 'play',
+    '휴식·힐링': 'rest'
+  } [c] || 'other';
 }
+
 function stopKindIcon(place) {
   const key = stopKindKey(place),
     box = node('span', undefined, 'stop-kind');

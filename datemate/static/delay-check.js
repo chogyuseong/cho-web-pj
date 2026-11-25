@@ -222,7 +222,9 @@ function delayCheckView(data, plan) {
 const DELAY_SIM_CHOICES = [0, 15, 30, 60];
 const delaySim = {
   minutes: 0,
-  get on() { return this.minutes > 0; },
+  get on() {
+    return this.minutes > 0;
+  },
   turn: 0,
   cache: new Map()
 };

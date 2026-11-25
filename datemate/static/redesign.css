@@ -90,6 +90,14 @@ body.mode-travel .mode-switch .mode-thumb { transform:translateX(100%); }
   /* 420px 이하: 안쪽 여백만 줄인다. 글자는 14px 아래로 줄이지 않는다(가독성 기준, tests/test_readability_ui.py).
      '장소 둘러보기'가 칸보다 길면 두 줄로 넘어가지만 칸 높이(52px)는 그대로다. */
   @media(max-width:420px) { body > header nav > :is(a,button.nav) { padding:4px 2px; } }
+  /* 360px 이하(예: 320px): 칸 폭이 약 68px 라 '장소 둘러보기'가 아이콘 아래 두 줄이 되어 그 칸만 66px 로 커졌고,
+     가운데 정렬 때문에 그 칸만 7px 위로 튀어나왔다(2026-11-25 테스트 test_phone_menu_is_a_bottom_bar[320]).
+     글자는 14px 아래로 줄이지 않기로 했으므로 네 칸을 같은 높이로 늘려(stretch) 한 줄에 맞추고,
+     늘어난 바 높이(약 80px + 아래 띄움 10px)만큼 --bottom-bar 도 올린다. 바 안쪽 여백·칸 높이를 바꾸면 이 값도 같이 고친다. */
+  @media(max-width:360px) {
+    :root { --bottom-bar:92px; }
+    body > header nav { align-items:stretch; }
+  }
   #toast { bottom:calc(var(--bottom-bar) + 16px + env(safe-area-inset-bottom)); }
 }
 @media print { body > header nav { display:none; } }

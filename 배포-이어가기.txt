@@ -7,6 +7,36 @@
 
 ★ 지금 상태 (2026-11-25 기준)
 ----------------------------------------------------------------------
+아흔세 번째 배포(2026-11-25 13:09) 완료: main 48df88c(병합 2개 = fix/review-s4-f9-f10 2674023 + feat/redesign-mockup 48df88c), Worker 버전 282b2583-9363-43ca-8798-86f0b6ad518d.
+  사용자 '모든 권한 줄테니까 혼자 진행 … 배포진행, 배포-이어하기, README 수정한후 커밋 푸쉬'(자리 비움). 오전에 컴퓨터가 꺼져 멈춘 두 브랜치를 이어 마무리.
+  · feat/redesign-mockup: 사용자 시안(Downloads screencapture-gemini-*.png — 테마·코스 만들기·결과 4장 + 결과 상세 4장 09_51~09_52)대로 머리글·조건 입력·테마 카드·결과 화면.
+    결과 상세(사용자 결정: 시안에 없는 기능은 지우지 말고 접어서 아래로):
+      장소 카드 = 위 줄(번호·빨간 시각 '도착 – 떠남'·(머묾 분)·분류/실내·실외/예약 태그) → 아이콘 타일 | 이름·주소 | 오른쪽 가격 → 사진·후기 영업시간(접기 밖)
+      → 접힌 '방문 팁 & 블로그 요약'(.stop-tips: 추천 이유·정보 출처·메뉴·블로그) → 단추 줄. .timeline-card>h4·.timeline-stamp 는 남김(지각·지도·대화상자가 찾음).
+      일정 위 = 경고·되돌리기·'혹시 늦어지셨나요?' 줄만('우리 하루' h2 는 visually-hidden). 일정 뒤 = 비교 표(plan-detail.js planComparison) → 체크리스트
+      → 접힌 '더 할 수 있는 것'(수단 한 번에·지도 링크·계산 방식·대중교통 메모·지각 확인·순서 제안·당일 도구·네 가지 확인·비용표·결정·공유) → 축제
+      → #plan-extras 접힌 '더 둘러보기 · 질문 · 후기'. 접기 펼침은 localStorage(datemate:plan-more, datemate:plan-extras-more)로 기억, 인쇄 때 자동 펼침(기억 안 함).
+      데스크톱: 지도 카드 sticky(원래), '실시간 예산 · 도보 피로도' 카드를 지도 바로 아래로, 선택 코스 요약 카드의 수치·'일정 살펴보기' 숨김(휴대폰은 그대로).
+      안 한 것: 시안의 날씨 줄·비 오는 날 시뮬레이션(자료 없음), 그림 지도, 블로그 후기 카드 태그(네이버 특약), 체크리스트를 축제 뒤로(테스트·코드가 #plan-detail 안을 봄).
+    같이 고친 실제 버그: ① 피드백 끄기(DATEMATE_FEEDBACK_ENABLED=0)가 새 머리글 탭 마크업과 안 맞아 탭이 남던 것 + 바닥글 '의견 보내기'도 지움(app/user_feedback.py
+      NAV_LINK·FOOTER_LINK, cloudflare/edge.mjs FEEDBACK_NAV_LINK·FEEDBACK_FOOTER_LINK — 마크업 바꾸면 셋 다), ② 320px 하단 메뉴 '장소 둘러보기' 칸만 7px 튀어나옴,
+      ③ 휴대폰에서 접힌 칸 안 비용표가 화면을 가로로 넘침(grid min-width).
+    테스트: conftest.py PLAN_FOLDS_OPEN 이 모든 브라우저 페이지에 두 접기를 '펼침'으로 미리 넣음(예전 화면 테스트 유지, /feedback 은 제외).
+      기본 접힘·기억·인쇄는 tests/test_plan_more_ui.py(sessionStorage 'datemate-test-folds'='default' 로 끔).
+  · fix/review-s4-f9-f10(점검 보고서 S4·F9·F10): F9 이동 합계 하나(행사장 구간 포함), F10 대안 불러오기 실패 때 이유·다시 시도, S4 주인이 상대 자리 비우기
+    (DELETE /api/plans/{pid}/agreement/partner — load 로 소유자만, tests/test_plan_owner_check.py PLAN_ROUTES 에 등록)·링크 끊을 때 남은 상대 의견 알림.
+  · 검증: 브랜치 첫 CI 는 각 1개 실패(!important 상한, 소유자 검사 목록) → 고쳐 CI Run 45541179815·45541175824 모두 성공(sqlite·postgres·container·security·audit).
+    로컬 main 병합 상태 전체 1607 통과·1 건너뜀. npm run test:security 25 통과 → npx wrangler@4.160.1 deploy(이 Windows PC, Docker Desktop, 정적 파일 19개).
+  · 운영 확인(배포 14분 뒤 13:24): /api/status 200(server-timing 있음 = 컨테이너 응답), 첫 화면의 plan-detail.js·redesign.css·maps.js ?v= 가 로컬 sha256 앞 12자리와 같음,
+    새 코드(planMoreFold·stop-tips·plan-more-body·stop-price) 있음, 머리글 피드백 탭·바닥글 링크 있음(켜진 상태). 운영에서 체험 코스(가상 장소, 외부 호출 없음) 하나 만들어
+    1440·390 캡처: 장소 카드·비교 표·체크리스트·실제 네이버 지도 정상, 페이지 오류 0, 390 가로 넘침 없음.
+    보지 못한 것: 실제 장소 코스의 사진·메뉴·블로그가 접기 안에서 잘 열리는지(테스트로만), 실기기, 인쇄 실물.
+    참고: 실제 지도에서는 지도 아래 설명(점선·축제·팝업 표시) 뒤에 예산 카드가 와서 1440×900 첫 화면에서는 카드 위쪽만 보임(지도 카드 안 스크롤로 보임).
+  · 되돌리는 법: git revert -m 1 48df88c(리디자인), git revert -m 1 2674023(S4·F9·F10) 후 재배포. DB 스키마 변경 없음.
+  · 이어서: 날짜·추가 옵션 입력 칸 테두리 대비 1.2:1 → '가장 완성도 있게' 지시에 따라 #7C879A(흰 바탕 3.6:1)로 진하게, 테스트 예외 삭제 —
+    브랜치 fix/input-border-contrast(5a731ef, 작업 폴더 cho-web-pj-mockup) CI 통과하면 94차로 배포.
+  · 남은 것: '안 N'/'코스 N' 용어 통일, 4단계 데이트/여행 모드 정의. 대기: 네이버 세 번째 문의 답, 공공데이터포털 운영계정 승인.
+  · 작업 폴더 cho-web-pj-mockup·cho-web-pj-review-s4 와 두 브랜치(로컬·원격)는 확인 뒤 정리.
 아흔두 번째 배포(2026-11-25) 완료: main dac7817(병합 = fix/review-f6-f8), Worker 버전 4ff809a8-523d-4806-8182-3eccbf894a30. 사용자 자리 비움 중 메인이 골라 진행.
   · 병합 때 이 파일만 충돌(91차 기록과 브랜치 기록) → 둘 다 남김. 병합 뒤 test:security 25 통과 → wrangler deploy. main CI Run 45450772222 성공.
   · 운영 확인(배포 14분 뒤): /api/status 200, delay-check.js delayCheckMemo·order-suggestion.js orderSuggestionMemo·plan-detail.js change_kind 있음.

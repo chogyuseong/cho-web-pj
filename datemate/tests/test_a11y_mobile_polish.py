@@ -68,15 +68,10 @@ def test_input_borders_have_3_to_1_contrast_and_focus_stays_dark(audit_page):
     # 화면에 보이는 입력·선택 칸 전부(인원·예산 숫자 칸은 +/- 단추 뒤에 숨어 있어 빠진다).
     borders = page.evaluate("""()=>[...document.querySelectorAll(
       'main input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]),main select,main textarea')]
-      .filter(el=>el.getClientRects().length).map(el=>[el.name||el.id,getComputedStyle(el).borderTopColor,
-        !!el.closest('#conditions .when-grid, #conditions .simple-extra-options')])""")
+      .filter(el=>el.getClientRects().length).map(el=>[el.name||el.id,getComputedStyle(el).borderTopColor])""")
     assert borders
-    # 2026-11-25 시안(redesign.css 9: #conditions .when-grid·.simple-extra-options 안의 칸은 연회색 바탕 + #E2E8F0 테두리)의 칸은
-    # 대비가 1.2:1 이라 이 기준에 못 미친다. 화면 쪽 결정이 날 때까지(보고 참고) 이 두 묶음만 제외하고 나머지 칸은 그대로 3:1 을 본다.
-    # 시안대로 두기로 하면 이 제외를 유지하고, 테두리를 진하게 고치면 제외를 지운다.
-    for name, border, in_mockup_grid in borders:
-        if in_mockup_grid:
-            continue
+    # 2026-11-25 시안의 날짜·추가 옵션 칸(#E2E8F0, 1.2:1)도 테두리를 #7C879A 로 진하게 해 예외 없이 모든 칸이 3:1 이다.
+    for name, border in borders:
         assert contrast(rgb(border), (255, 255, 255)) >= 3, (name, border)
     # shell.css(예전 editorial.css)의 테두리 색 전환(0.18초) 중간값을 읽지 않도록 동작 줄이기로 전환을 끈다.
     page.emulate_media(reduced_motion='reduce')

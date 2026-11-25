@@ -81,9 +81,11 @@ function renderDetail() {
   }
   const p = selected,
     box = node('section', undefined, 'detail panel');
-  const head = node('div', undefined, 'detail-header');
-  head.append(node('h2', '우리 하루, 자세히 보기'));
-  box.append(head, node('p', `${p.conditions.visit_date} · ${p.conditions.start} ~ ${p.finish} · ${p.conditions.people}명`, 'hint'));
+  // 2026-11-25 상세 결과 시안에는 이 제목이 없다(위 조건 칩 줄이 날짜·시간·인원을 보여 줌). 화면 읽기·구역 표시줄(section-indicator.js)이
+  // 이 h2 로 구역을 알기 때문에 지우지 않고 눈에만 숨긴다. 다시 보이게 하려면 'visually-hidden' 을 뺀다.
+  const head = node('div', undefined, 'detail-header visually-hidden');
+  head.append(node('h2', '우리 하루, 자세히 보기'), node('p', `${p.conditions.visit_date} · ${p.conditions.start} ~ ${p.finish} · ${p.conditions.people}명`, 'hint'));
+  box.append(head);
   if (p.delta) box.append(node('p', `${p.change_reason} 시간 ${p.delta.minutes>=0?'+':''}${p.delta.minutes}분 · ${costChangeText(totalBefore(p), p.total)}`, 'warning'));
   // 수단·장소를 바꾼 탓에 축제 방문이 새로 들어가거나 빠지거나 자리가 바뀌었으면 서버가 적어 준 한 줄(app/festival_time.change_note).
   // 문구는 서버에서만 만든다 — 여기서는 그대로 적는다. 달라진 게 없으면 키가 없다.
@@ -115,14 +117,18 @@ function renderDetail() {
     undo.append(undoButton);
     box.append(undo);
   }
-  box.append(transportOverview(p));
+  // 2026-11-25 시안: 일정 위에는 경고·되돌리기와 '늦어지면?' 줄만 둔다. 아래 도구들(한 번에 수단 바꾸기, 네이버 지도 목록, 계산 방식,
+  // 대중교통 메모, 지각 확인, 순서 제안, 당일 도구)은 일정 아래 접힌 '더 할 수 있는 것'(planMoreFold)의 맨 앞으로 옮겼다. 지우지 않았다.
+  // 모두 #plan-detail 안에 남아 있어야 한다(delay-check.js 가 '#plan-detail .delay-check' 로 상자를 찾음).
+  const tools = node('div', undefined, 'plan-more-tools');
+  tools.append(transportOverview(p));
   const links = node('div', undefined, 'map-link-list');
   links.append(node('span', '네이버 지도에서 찾기', 'map-link-label'));
   // 이름·주소를 지운 장소(보관 기간 지남)는 지도에서 찾을 말이 없어 빼고, 번호는 일정 순서 그대로 둔다.
   p.places.forEach((place, i) => {
     if (!place.naver_expired) links.append(placeMapLink(`${i+1}. ${place.name}`, place));
   });
-  box.append(links);
+  tools.append(links);
   // 구간마다 같은 설명(예: '직선거리 × 1.35 기반 이동 추정 · 실제 길찾기 미반영')이면 여기서 한 번만 적는다(routeLine 은 생략).
   // 기본은 접어 둔다(2026-11-24 사용자 요청 — 늘 보일 필요는 없고, 궁금한 사람만 눌러 본다). 모양은 '출처'·'사진 정보' 접기와 같다
   // (results.css 의 .detail :is(.stop-source,.photo-meta,.route-source-note)). 다시 늘 보이게 하려면 예전처럼
@@ -131,18 +137,18 @@ function renderDetail() {
   if (legSource) {
     const fold = node('details', undefined, 'route-source-note');
     fold.append(node('summary', '이동 시간 계산 방식'), node('p', legSource, 'hint'));
-    box.append(fold);
+    tools.append(fold);
   }
   // 대중교통 구간이 있으면 지하철·버스 구분 없는 추정이라는 것과 가정값을 일정 위에 한 번 적는다(plan-evidence.js transitBasisNote).
   const transitNote = transitBasisNote(p);
-  if (transitNote) box.append(transitNote);
+  if (transitNote) tools.append(transitNote);
   // 지금 늦으면 어디서 처음 문제가 생기는지(읽기 전용, delay-check.js). 저장된 코스(id)가 있을 때만.
-  if (p.id && typeof delayCheckPanel === 'function') box.append(delayCheckPanel(p));
+  if (p.id && typeof delayCheckPanel === 'function') tools.append(delayCheckPanel(p));
   // 같은 장소를 다른 순서로 돌면 이동이 줄어드는지(order-suggestion.js). 바꿀 수 없는 코스·장소 한 곳짜리는 상자가 없다(null).
   const orderPanel = typeof orderSuggestionPanel === 'function' ? orderSuggestionPanel(p) : null;
-  if (orderPanel) box.append(orderPanel);
+  if (orderPanel) tools.append(orderPanel);
   // 약속 당일 도구(day-of.js): 마지막 출발 시각, 한 곳씩 크게 보기, 현장용 일정 복사. 서버에 묻지 않는다.
-  if (typeof dayOfTools === 'function') box.append(dayOfTools(p));
+  if (typeof dayOfTools === 'function') tools.append(dayOfTools(p));
   // '+30분 늦어지면?' 토글(delay-check.js delaySimBar): 일정 바로 위. 켜면 장소 칸에 밀린 시각·주의 배지를 겹친다(아래 delaySimRefresh).
   if (p.id && typeof delaySimBar === 'function') box.append(delaySimBar(p));
   // 운영 시간에 맞춰 맨 앞에 고정한 축제 방문(app/festival_time.py). 첫 구간 줄(행사장 → 첫 장소) 바로 앞에 둔다.
@@ -265,9 +271,15 @@ function renderDetail() {
   slot.id = 'plan-map-slot';
   slot.hidden = true;
   box.append(slot);
-  // 확인: 네 가지 확인, 비용표(접힘), 합계와 미확인 비용 경고(접힘 밖)
-  // 할 일 순서(action-card.js): 확인할 것을 시점 순서로 모은 체크리스트. '네 가지 확인' 바로 위.
-  box.append(actionCard(p), executionSummary(p), node('h3', '비용은 투명하게'));
+  // 코스 비교 표(2026-11-25 시안 'COMPARISON MATRIX'): 예전에는 코스 카드 바로 아래(plan-results.js)였는데 시안대로 일정 뒤로 옮겼다.
+  if (plans.length && typeof optionComparison === 'function') box.append(planComparison());
+  // 할 일 순서(action-card.js): 확인할 것을 시점 순서로 모은 체크리스트(시안 '출발 전 체크리스트').
+  box.append(actionCard(p));
+  // 시안에 없는 기능은 지우지 않고 접힌 '더 할 수 있는 것' 하나에 모은다(2026-11-25 사용자 결정). 순서: 위에서 옮긴 도구들 →
+  // 네 가지 확인 → 비용표·합계 → 결정·공유. 펼침 여부는 브라우저에 기억한다(PLAN_MORE_KEY).
+  const fold = planMoreFold(PLAN_MORE_KEY, '더 할 수 있는 것', '수단·순서 바꾸기, 당일 도구, 비용표, 결정·공유'),
+    foldBody = fold.lastElementChild;
+  foldBody.append(tools, executionSummary(p), node('h3', '비용은 투명하게'));
   const scroll = node('div', undefined, 'table-scroll'),
     table = node('table', undefined, 'cost-table'),
     thead = node('thead'),
@@ -311,10 +323,10 @@ function renderDetail() {
   scroll.setAttribute('aria-label', '장소별 비용 표 · 가로로 넘겨 확인');
   const costs = node('details', undefined, 'cost-table-details');
   costs.append(node('summary', `장소·구간별 비용 표 ${p.costs.length}항목`), node('p', '표가 잘리면 좌우로 넘겨 단가와 출처를 확인하세요.', 'hint'), scroll);
-  box.append(costs);
+  foldBody.append(costs);
   // 합계의 성격을 표 바로 아래에 한 줄로 밝힌다(실제 장소 코스만). 블로그 글의 금액은 읽지 않으므로 등록 단가가 없는 곳은 가정 범위나 미확인이다.
   const basisNote = costBasisNote(p);
-  if (basisNote) box.append(basisNote);
+  if (basisNote) foldBody.append(basisNote);
   for (const [label, value] of [
       ['확인된 비용', range(p.confirmed)],
       ['추정 비용', range(p.estimated)],
@@ -322,12 +334,12 @@ function renderDetail() {
     ]) {
     const row = node('div', undefined, 'total-row');
     row.append(node('span', label), node('span', value));
-    box.append(row);
+    foldBody.append(row);
   }
   // 합계에 무엇이 들어갔고 무엇이 빠졌는지(개선안 22). 가정 가격은 합계에 '들어간' 추정이고, 미확인은 합계에서 '빠진' 항목이다.
   const assumed = p.costs.filter(c => c.price_kind === 'planning_assumption');
-  if (assumed.length) box.append(node('p', '합계에 들어간 가정 가격(실제 단가 아님): ' + assumed.map(c => `${c.name} ${range(c.amount)}`).join(', '), 'hint cost-assumed'));
-  if (p.unknown.length) box.append(node('p', '합계에서 빠진 항목(추가 확인 필요): ' + p.unknown.join(', ') + ' · 0원으로 처리하지 않았습니다.', 'warning'));
+  if (assumed.length) foldBody.append(node('p', '합계에 들어간 가정 가격(실제 단가 아님): ' + assumed.map(c => `${c.name} ${range(c.amount)}`).join(', '), 'hint cost-assumed'));
+  if (p.unknown.length) foldBody.append(node('p', '합계에서 빠진 항목(추가 확인 필요): ' + p.unknown.join(', ') + ' · 0원으로 처리하지 않았습니다.', 'warning'));
   // 결정·공유: 결정 패널과 공유 버튼을 한 구역에 둔다. 주 버튼은 '이 코스로 결정' 하나다.
   const share = node('section', undefined, 'plan-share');
   share.setAttribute('aria-label', '코스 결정과 공유');
@@ -350,7 +362,8 @@ function renderDetail() {
   if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
     share.append(node('p', '아이폰에서 인쇄 창이 뜨지 않으면 Safari의 공유(□↑) → 프린트에서 인쇄하거나 PDF로 저장할 수 있어요.', 'hint ios-print-hint'));
   }
-  box.append(share);
+  foldBody.append(share);
+  box.append(fold);
   if (p.id) queueMicrotask(() => refreshShareStatus(p));
   root.append(box);
   // 지연 토글이 켜져 있으면 새로 그린 장소 칸에 다시 겹친다(코스가 바뀌었으면 새 코스로 다시 계산).
@@ -359,20 +372,79 @@ function renderDetail() {
   // 부가 정보: 축제 구역 뒤 #plan-extras
   const more = node('section', undefined, 'detail panel plan-extras-panel');
   more.setAttribute('aria-label', '더 둘러보기');
-  more.append(leisureCoursePanel(p));
+  // 레저·블로그 메모·질문·후기도 접힌 칸 하나에(펼침 기억 PLAN_EXTRAS_KEY). 축제 구역 뒤에 온다.
+  const extrasFold = planMoreFold(PLAN_EXTRAS_KEY, '더 둘러보기 · 질문 · 후기', '주변 레저, 코스 메모, 이 일정에 물어보기, 이용 후기'),
+    extrasBody = extrasFold.lastElementChild;
+  more.append(extrasFold);
+  extrasBody.append(leisureCoursePanel(p));
   // 네이버 블로그 글은 받은 그대로의 독립 블록으로만 보여 준다(course-search.js). 예전 형식(우리가 고른 5건, format 없음)은 그리지 않는다.
   if (p.course_search?.format === 2) {
     const research = node('details', undefined, 'course-evidence');
     research.append(node('summary', `코스 구성 메모 · 네이버 블로그 글 ${p.course_search.posts?.length || 0}건`), courseSearchPanel(p.course_search, p));
-    more.append(research);
+    extrasBody.append(research);
   }
-  more.append(node('p', '외부 장소 평점: 확보한 평가 자료가 없습니다. 아래 자체 후기와 별도입니다.', 'hint'));
-  more.append(node('h3', '이 일정에 대해 물어보세요'), chatWidget('plan', p.id, p.conditions.mode));
+  extrasBody.append(node('p', '외부 장소 평점: 확보한 평가 자료가 없습니다. 아래 자체 후기와 별도입니다.', 'hint'));
+  extrasBody.append(node('h3', '이 일정에 대해 물어보세요'), chatWidget('plan', p.id, p.conditions.mode));
   const reviews = node('div');
-  more.append(reviews);
-  more.append(experiencePanel(p));
+  extrasBody.append(reviews);
+  extrasBody.append(experiencePanel(p));
   (extras || root).append(more);
   loadReviews(reviews, p).catch(e => reviews.append(node('p', e.message, 'warning')));
+}
+
+// 접힌 칸의 펼침 기억(2026-11-25). 한 번 펼치면 이 브라우저에서는 다음 코스에도 펼쳐 둔다. 저장이 막힌 브라우저는 늘 접힌 채로 시작한다.
+// 테스트는 tests/conftest.py 가 두 키를 'open' 으로 미리 넣어 예전처럼 펼친 화면에서 시험한다(기본 접힘은 test_plan_more_ui.py).
+// 키 이름을 바꾸면 conftest.py 의 PLAN_FOLDS_OPEN 도 같이 고친다.
+const PLAN_MORE_KEY = 'datemate:plan-more',
+  PLAN_EXTRAS_KEY = 'datemate:plan-extras-more';
+
+function planMoreFold(key, title, hint) {
+  const fold = node('details', undefined, 'plan-more');
+  fold.dataset.key = key;
+  const summary = node('summary', undefined);
+  summary.append(node('span', title, 'plan-more-title'), node('span', hint, 'plan-more-hint'));
+  fold.append(summary, node('div', undefined, 'plan-more-body'));
+  try {
+    fold.open = localStorage.getItem(key) === 'open';
+  } catch {}
+  fold.addEventListener('toggle', () => {
+    // 인쇄 때 잠깐 연 것(아래 beforeprint)은 기억하지 않는다. 열 때와 닫을 때 한 번씩 이 표시를 보고 지나간다.
+    if (fold.dataset.printOpen) {
+      if (!fold.open) delete fold.dataset.printOpen;
+      return;
+    }
+    try {
+      localStorage.setItem(key, fold.open ? 'open' : 'closed');
+    } catch {}
+  });
+  return fold;
+}
+
+// 인쇄 / PDF: 비용표·합계·네 가지 확인은 '더 할 수 있는 것' 안에 있어 접혀 있으면 종이에 빠진다. 인쇄하는 동안만 펼쳤다가 끝나면 되돌린다.
+// (접힌 칸 제목과 그 안의 조작 구역은 인쇄 CSS 가 숨긴다 — redesign.css 11) 의 @media print.)
+addEventListener('beforeprint', () => {
+  document.querySelectorAll('#plan-detail .plan-more:not([open])').forEach(fold => {
+    fold.dataset.printOpen = '1';
+    fold.open = true;
+  });
+});
+addEventListener('afterprint', () => {
+  document.querySelectorAll('#plan-detail .plan-more[data-print-open]').forEach(fold => {
+    fold.open = false;
+  });
+});
+
+// 코스 비교 표(예전 plan-results.js renderResults 4번). 다시 그려도 사용자가 펼치거나 접은 상태를 이어 간다(처음에는 데스크톱 펼침·휴대폰 접힘).
+let comparisonOpen = null;
+
+function planComparison() {
+  const compare = node('details', undefined, 'comparison-details');
+  compare.append(node('summary', `코스 ${plans.length}개 비용·이동 시간 비교 표`), optionComparison(plans));
+  compare.open = comparisonOpen ?? !RESULTS_MOBILE.matches;
+  compare.addEventListener('toggle', () => {
+    comparisonOpen = compare.open;
+  });
+  return compare;
 }
 
 function replaceInList(oldId, p) {

@@ -77,7 +77,7 @@ function renderResults(result={}){
   const root=$('#results'),detail=$('#plan-detail')||node('div');detail.id='plan-detail';
   // 다시 그려도 사용자가 펼치거나 접은 상태는 유지한다. 처음에는 모바일에서 접고 데스크톱에서 편다.
   const wasOpen=selector=>{const box=root.querySelector(selector);return box?box.open:!RESULTS_MOBILE.matches;};
-  const compareOpen=wasOpen('.comparison-details'),photosOpen=wasOpen('.plan-photo-details');
+  const photosOpen=wasOpen('.plan-photo-details');
   root.replaceChildren();$('#result-count').textContent=`추천 일정 ${plans.length}개`;
   // 머리말(2026-11-25 상세 결과 시안): '{지역} 맞춤 데이트 코스 N가지를 찾았어요' + 조건 칩 줄. 세 코스가 같은 조건으로 나온다.
   const c=(selected||plans[0])?.conditions;
@@ -111,7 +111,7 @@ function renderResults(result={}){
   // 3. 코스 카드
   if(plans.length){const tabs=node('div',undefined,'plan-option-tabs');tabs.setAttribute('aria-label','데이트 코스 옵션');plans.forEach((p,i)=>{const active=selected?.id===p.id,tab=button('',()=>choose(p),active?'primary':'secondary');tab.append(...optionTabContent(p,i,active));tab.dataset.option=String(i+1);tab.setAttribute('aria-pressed',String(active));tabs.append(tab);});root.append(tabs);const checks=current?resultsCheckChips(current):null;if(checks)root.append(checks);}
   // 4. 비교 표
-  if(plans.length){const compare=node('details',undefined,'comparison-details');compare.append(node('summary',`코스 ${plans.length}개 비용·이동 시간 비교 표`),optionComparison(plans));compare.open=compareOpen;root.append(compare);}
+  // 비교 표는 2026-11-25 상세 결과 시안대로 일정 뒤로 옮겼다(plan-detail.js planComparison).
   // 5. 선택한 코스 카드: 수치와 태그
   if(current){const p=current,i=plans.findIndex(item=>item.id===p.id);
     const card=node('article',undefined,'plan-card'+(selected?.id===p.id?' selected':''));

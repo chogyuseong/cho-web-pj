@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
-  EDGE_SIGNAL, CONTENT_SECURITY_POLICY, FEEDBACK_NAV_LINK, assetPathFor, edgeRoute, edgeSignal,
+  EDGE_SIGNAL, CONTENT_SECURITY_POLICY, FEEDBACK_NAV_LINK, FEEDBACK_FOOTER_LINK, assetPathFor, edgeRoute, edgeSignal,
   feedbackEnabled, handleFetch, serveAtEdge, CRAWLER_CACHE_CONTROL,
 } from "./edge.mjs";
 import { DATEMATE_ROOT, buildEdgePages } from "./build-edge-pages.mjs";
@@ -100,7 +100,7 @@ test("built pages match versioned_page(): only ?v=<sha256[:12]> added to existin
   assert.match(PAGES["/"], /<meta name="google-site-verification" content="[^"]+">/);
   // 네이버 서치어드바이저 소유 확인(2026-11-18). 엣지가 내보내는 첫 화면에도 남아 있어야 한다.
   assert.match(PAGES["/"], /<meta name="naver-site-verification" content="3fb663454990174f24df5e7e69985aab46c3e54b">/);
-  assert.ok(PAGES["/"].includes(FEEDBACK_NAV_LINK));
+  assert.ok(PAGES["/"].includes(FEEDBACK_NAV_LINK) && PAGES["/"].includes(FEEDBACK_FOOTER_LINK));
 });
 
 test("asleep: the home page comes from the edge with the app's headers and no cookie", async () => {
@@ -120,7 +120,8 @@ test("asleep: the feedback switch removes the header tab like home_page()", asyn
   const { response } = await run("/", { env: { DATEMATE_FEEDBACK_ENABLED: "0" } });
   const html = await response.text();
   assert.ok(!html.includes(FEEDBACK_NAV_LINK));
-  assert.equal(html, PAGES["/"].replace(FEEDBACK_NAV_LINK, ""));
+  assert.ok(!html.includes(FEEDBACK_FOOTER_LINK) && !html.includes('href="/feedback"'));
+  assert.equal(html, PAGES["/"].replace(FEEDBACK_NAV_LINK, "").replace(FEEDBACK_FOOTER_LINK, ""));
 });
 
 test("asleep: the shared page keeps noindex and no-referrer", async () => {

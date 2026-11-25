@@ -37,6 +37,7 @@ def test_edge_policy_strings_equal_the_app(monkeypatch):
     assert js_const('STATIC_CACHE_CONTROL') == production_headers(monkeypatch, '/static/app.js')['cache-control']
     assert js_const('STATIC_IMMUTABLE_CACHE_CONTROL') == web_security.STATIC_IMMUTABLE_CACHE_CONTROL
     assert js_const('FEEDBACK_NAV_LINK') == user_feedback.NAV_LINK
+    assert js_const('FEEDBACK_FOOTER_LINK') == user_feedback.FOOTER_LINK
 
 
 def test_edge_sets_every_header_the_app_sets(monkeypatch):

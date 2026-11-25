@@ -131,7 +131,9 @@ def test_switch_off_hides_tab_page_and_write_api(monkeypatch, admin):
         assert c.get('/feedback').status_code == 200
     monkeypatch.setenv('DATEMATE_FEEDBACK_ENABLED', '0')
     with client() as c:
-        assert user_feedback.NAV_LINK not in c.get('/').text
+        home = c.get('/').text
+        # 꺼지면 머리글 탭과 바닥글 '의견 보내기' 둘 다 없어야 한다(없는 /feedback 으로 가는 링크가 남지 않게).
+        assert user_feedback.NAV_LINK not in home and user_feedback.FOOTER_LINK not in home and 'href="/feedback"' not in home
         assert c.get('/feedback').status_code == 404
         assert c.post('/api/feedback', json=body()).status_code == 404
         # 관리자 열람은 꺼도 남는다.
@@ -140,7 +142,8 @@ def test_switch_off_hides_tab_page_and_write_api(monkeypatch, admin):
 
 
 def test_home_menu_link_matches_the_switch_marker():
-    assert user_feedback.NAV_LINK in (ROOT / 'static' / 'index.html').read_text(encoding='utf-8')
+    html = (ROOT / 'static' / 'index.html').read_text(encoding='utf-8')
+    assert user_feedback.NAV_LINK in html and user_feedback.FOOTER_LINK in html
 
 
 # --- 관리자 ------------------------------------------------------------------

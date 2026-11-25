@@ -38,7 +38,8 @@ export const STATIC_CACHE_CONTROL = "public, max-age=0, must-revalidate";
 // ?v= equal to the content hash in the pages built with these assets (web_security.py does the same check).
 export const STATIC_IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 // datemate/app/user_feedback.py: home_page() drops this link when DATEMATE_FEEDBACK_ENABLED is off.
-export const FEEDBACK_NAV_LINK = '<a id="nav-feedback" href="/feedback">피드백</a>';
+export const FEEDBACK_NAV_LINK = '<a id="nav-feedback" class="nav-feedback" href="/feedback"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14v10H9l-4 4z"/></svg><span>피드백</span></a>';
+export const FEEDBACK_FOOTER_LINK = '<a class="footer-feedback" href="/feedback">의견 보내기</a>';
 
 function requestId() {
   return crypto.randomUUID().replaceAll("-", "");
@@ -108,7 +109,7 @@ function notFound(method) {
 export function pageResponse(path, method, env, pages) {
   let html = pages?.[path];
   if (typeof html !== "string") return null;
-  if (path === "/" && !feedbackEnabled(env.DATEMATE_FEEDBACK_ENABLED)) html = html.replace(FEEDBACK_NAV_LINK, "");
+  if (path === "/" && !feedbackEnabled(env.DATEMATE_FEEDBACK_ENABLED)) html = html.replace(FEEDBACK_NAV_LINK, "").replace(FEEDBACK_FOOTER_LINK, "");
   const headers = securityHeaders(new Headers({ "content-type": "text/html; charset=utf-8" }), true);
   if (path === "/shared") headers.set("X-Robots-Tag", "noindex, nofollow");
   return new Response(method === "HEAD" ? null : html, { status: 200, headers });

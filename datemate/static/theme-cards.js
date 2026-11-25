@@ -81,6 +81,14 @@ const HERO_QUICK_STARTS=[
   {label:'어색함 없는 서촌 소개팅',situation:'first-date',area:{region:'서울',name:'서울 서촌 경복궁역 지역 중심',lat:37.5757,lon:126.9735,label:'서울 서촌'}}
 ];
 // 계절 나누기(가이드 §2.3·시안 '11월 겨울 시즌'): 3~5월 봄, 6~8월 여름, 9~10월 가을, 11~2월 겨울. 11월을 겨울로 두는 까닭: 연말 야경·실내 수요가 시작된다.
+// 여행 모드(header-mode.js 데이트/여행 스위치)의 바로 시작 칩: 모두 '주말 떠나기 좋은 동네' 카드(index.html data-preset)를 그대로 고른다.
+// 동네 카드를 더하거나 이름을 바꾸면 preset 값도 같이 고친다.
+const HERO_QUICK_STARTS_TRAVEL=[
+  {label:'강릉 바다 드라이브',preset:'강릉 안목해변'},
+  {label:'부산 광안리 밤바다',preset:'부산 해운대'},
+  {label:'경주 황리단길 한옥 산책',preset:'경주 황리단길'},
+  {label:'제주 애월 오션뷰',preset:'제주 애월'}
+];
 function seasonFor(month){return month>=3&&month<=5?'spring':month>=6&&month<=8?'summer':month>=9&&month<=10?'autumn':'winter';}
 
 // 배너에 보여 줄 '실제로 채운 조건' 문장(카드의 # 태그는 홍보 문구라 따로 둔다).
@@ -281,14 +289,21 @@ const ThemePresets=(()=>{
 
   // 히어로(index.html .hero-start): 바로 시작 칩과 한 줄 입력.
   const quick=document.getElementById('hero-quick');
-  for(const start of quick?HERO_QUICK_STARTS:[]){
-    const chip=button(start.label,()=>{
-      if(start.preset){const card=areaGrid?.querySelector(`[data-preset="${start.preset}"]`);if(card)pickArea(card);return;}
-      const theme=SITUATION_THEMES.find(item=>item.key===start.situation);
-      if(theme)pickSituation(theme,start.area);
-    });
-    chip.type='button';chip.dataset.quick=start.label;quick.append(chip);
+  // mode: 'date'(기본) | 'travel'. 데이트/여행 스위치(header-mode.js)가 다시 부른다.
+  function renderHeroQuick(mode){
+    if(!quick)return;
+    quick.replaceChildren();
+    for(const start of mode==='travel'?HERO_QUICK_STARTS_TRAVEL:HERO_QUICK_STARTS){
+      const chip=button(start.label,()=>{
+        if(start.preset){const card=areaGrid?.querySelector(`[data-preset="${start.preset}"]`);if(card)pickArea(card);return;}
+        const theme=SITUATION_THEMES.find(item=>item.key===start.situation);
+        if(theme)pickSituation(theme,start.area);
+      });
+      chip.type='button';chip.dataset.quick=start.label;quick.append(chip);
+    }
   }
+  window.renderHeroQuick=renderHeroQuick;
+  renderHeroQuick(document.body.classList.contains('mode-travel')?'travel':'date');
   // 한 줄 입력 → 조건 화면의 '어떤 데이트를 꿈꾸나요?' 칸에 넣고 해석 단추(#parse, app.js applyRequest)를 누른다.
   // 해석은 지역을 정하지 않으므로, 지역이 비어 있으면 상황 테마처럼 '어디에서 만날까요?'를 강조한다.
   document.getElementById('hero-command')?.addEventListener('submit',event=>{

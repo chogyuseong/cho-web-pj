@@ -683,6 +683,8 @@ function setTab(explore) {
   // 지금 화면을 색만이 아니라 화면 읽기 프로그램에도 알린다.
   $('#nav-plan').setAttribute('aria-pressed', String(!explore));
   $('#nav-explore').setAttribute('aria-pressed', String(explore));
+  // 머리글 메뉴의 최종 표시는 header-mode.js 가 정한다(홈 · 테마 / 코스 만들기 / 장소 둘러보기 셋 중 하나 — 스크롤 위치까지 본다).
+  if (typeof window.syncHeaderNav === 'function') window.syncHeaderNav();
   if (explore) {
     if (location.hash !== '#explore-section') history.pushState(null, '', '#explore-section');
     requestAnimationFrame(() => {

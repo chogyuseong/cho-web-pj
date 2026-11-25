@@ -23,6 +23,24 @@ header nav { margin-inline:auto; gap:4px; padding:4px; border-radius:var(--radiu
 header nav .nav,header nav a { min-height:44px; display:inline-flex; align-items:center; padding:8px 16px; border:0; border-radius:var(--radius-pill); color:var(--muted); background:none; font-weight:600; }
 header nav .nav:hover,header nav a:hover { color:var(--ink); background:#fff; }
 header nav .nav.active,header nav a[aria-current=page] { color:#fff; background:var(--ink); border-bottom:0; }
+/* 2026-11-25 시안: 로고는 진한 동그라미 안 흰 그림 + 'DateMate'. 오른쪽 끝 데이트/여행 스위치(header-mode.js).
+   '홈 · 테마' 링크는 header-mode.js 가 지금 보는 곳이면 .active 를 준다. 피드백은 데스크톱 메뉴에서 빼고 바닥글(.footer-feedback)로 —
+   720px 이하 하단 바에서는 네 번째 칸으로 다시 보인다(아래 3)). */
+header nav a.active { color:#fff; background:var(--ink); }
+body > header .brand-icon { display:grid; place-items:center; width:40px; height:40px; border:0; border-radius:50%; background:var(--ink); color:#fff; font-size:0; box-shadow:none; }
+body > header .brand-name { font-size:20px; font-weight:800; letter-spacing:-.03em; }
+@media(min-width:721px) { body > header nav .nav-feedback { display:none; } }
+.mode-switch { flex:0 0 auto; display:inline-flex; gap:2px; padding:4px; border:1px solid var(--line); border-radius:var(--radius-pill); background:var(--platform); }
+.mode-switch button { min-height:44px; min-width:64px; padding:6px 16px; border:0; border-radius:var(--radius-pill); background:none; color:var(--muted); font-size:15px; font-weight:700; }
+.mode-switch button:hover { color:var(--ink); }
+.mode-switch button[aria-pressed=true] { color:#fff; background:var(--hong); }
+.mode-switch button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+footer .footer-feedback { color:var(--ink); font-weight:700; text-underline-offset:4px; }
+@media(max-width:720px) {
+  /* 휴대폰: 머리글은 로고 + 스위치 한 줄(메뉴는 하단 바). 스위치 칸 44px 은 그대로, 글자만 조금 작게. */
+  .mode-switch { margin-left:auto; }
+  .mode-switch button { min-width:54px; padding:6px 12px; font-size:14px; }
+}
 
 /* ---------- 3) 휴대폰 하단 바(720px 이하) ---------- */
 /* 머리글에는 브랜드만 남기고, 메뉴 네 개는 화면 아래 떠 있는 반투명 바로(엄지가 닿는 곳). 칸 높이 52px(터치 44px 이상).
@@ -208,3 +226,8 @@ header nav .nav.active,header nav a[aria-current=page] { color:#fff; background:
   #curation #curation-areas .curation-card { grid-column:span 2; }
   #curation #curation-areas .curation-card:nth-child(-n+2) { grid-column:span 3; }
 }
+
+/* ---------- 8) 여행 모드(데이트/여행 스위치, header-mode.js) ---------- */
+/* 가이드 §1.1: 여행은 파랑. 글자·채운 단추에도 쓰이는 --hong 을 #1D4ED8(흰 바탕 6.7:1, --platform 6.2:1)로 바꾼다 — 가이드의 #2563EB 는
+   장식(--accent-travel)으로만. 테마 카드 그라데이션·초록(줄어듦)·문제 빨강 같은 뜻이 있는 색은 그대로 둔다. */
+body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,99,235,.09); --accent-border:rgba(37,99,235,.28); }

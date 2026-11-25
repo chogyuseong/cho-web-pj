@@ -25,11 +25,16 @@ def test_nav_announces_the_current_screen(audit_page):
     page, base, errors = audit_page
     assert page.get_attribute('header nav', 'aria-label') == '주요 메뉴'
     pressed = "[...document.querySelectorAll('#nav-plan,#nav-explore')].map(b=>b.getAttribute('aria-pressed'))"
-    assert page.evaluate(pressed) == ['true', 'false']
+    # 2026-11-25 시안: 첫 화면은 '홈 · 테마'(링크라 aria-current), 코스 만들기·장소 둘러보기는 눌리지 않은 상태.
+    assert page.evaluate(pressed) == ['false', 'false']
+    assert page.get_attribute('#nav-home', 'aria-current') == 'true'
     page.click('#nav-explore')
     assert page.evaluate(pressed) == ['false', 'true']
     page.click('#nav-plan')
     assert page.evaluate(pressed) == ['true', 'false']
+    assert page.get_attribute('#nav-home', 'aria-current') is None
+    page.click('#nav-home')
+    assert page.evaluate(pressed) == ['false', 'false'] and page.get_attribute('#nav-home', 'aria-current') == 'true'
 
 
 def test_phone_keyboards_get_search_send_and_number_hints(audit_page):

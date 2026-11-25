@@ -17,13 +17,18 @@ def route_festivals(page, hours=None):
     page.route('**/api/festivals/*/detail', lambda route: route.fulfill(json=dict(status='available', fee='무료', hours=hours, place=None, checked_at='2026-10-24', message='')))
 
 
-def test_header_tagline_fits_mobile_without_overlapping_navigation(audit_page):
+def test_header_brand_fits_mobile_without_overlapping_navigation(audit_page):
+    # 2026-11-25 시안: 보조 문구 없이 'DateMate'. 로고·메뉴·데이트/여행 스위치가 겹치지 않는다.
     page, base, errors = audit_page
-    assert page.locator('header .brand-tagline').inner_text() == '당신의 시간과 피로를 위해'
+    assert page.locator('header .brand-name').inner_text() == 'DateMate'
+    assert page.locator('header .brand').get_attribute('aria-label') == '데이트메이트 처음 화면'
     for width in (360, 390, 768, 1440):
         page.set_viewport_size({'width': width, 'height': 800})
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), width
-        boxes = page.evaluate('''()=>{const t=document.querySelector('header .brand-tagline').getBoundingClientRect(),n=document.querySelector('header nav').getBoundingClientRect();
+        switch = page.evaluate('''()=>{const t=document.querySelector('header .brand').getBoundingClientRect(),s=document.querySelector('#mode-switch').getBoundingClientRect();
+            return !(t.right<=s.left||s.right<=t.left||t.bottom<=s.top||s.bottom<=t.top)}''')
+        assert not switch, width
+        boxes = page.evaluate('''()=>{const t=document.querySelector('header .brand').getBoundingClientRect(),n=document.querySelector('header nav').getBoundingClientRect();
             return {overlap:!(t.right<=n.left||n.right<=t.left||t.bottom<=n.top||n.bottom<=t.top),right:t.right,width:innerWidth,visible:t.width>0}}''')
         assert boxes['visible'] and not boxes['overlap'] and boxes['right'] <= boxes['width'], (width, boxes)
 

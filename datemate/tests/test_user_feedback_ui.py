@@ -12,9 +12,11 @@ NAV = """[...document.querySelectorAll('body>header nav>*')].filter(e=>e.getClie
   height:r.height,left:r.left,right:r.right}})"""
 
 
-def header_fits(page, width):
+def header_fits(page, width, feedback_page=False):
     items = page.evaluate(NAV)
-    assert [i['text'] for i in items] == ['코스 만들기', '장소 둘러보기', '테마별 추천', '피드백'], (width, items)
+    # 2026-11-25 시안: 홈 데스크톱 메뉴는 셋(피드백은 바닥글 '의견 보내기'), 휴대폰 하단 바와 피드백 화면은 피드백까지 넷.
+    expected = ['홈 · 테마', '코스 만들기', '장소 둘러보기'] + (['피드백'] if width <= 720 or feedback_page else [])
+    assert [i['text'] for i in items] == expected, (width, items)
     assert len({i['top'] for i in items}) == 1, (width, items)  # 한 줄
     assert all(44 <= i['height'] < 60 for i in items), (width, items)  # 낱말이 두 줄로 깨지지 않음
     assert all(i['left'] >= 0 and i['right'] <= width for i in items), (width, items)
@@ -28,10 +30,10 @@ def test_feedback_tab_fits_the_header_on_home_and_feedback_page(audit_page):
         page.goto(base + '/', wait_until='networkidle')
         header_fits(page, width)
         page.goto(base + '/feedback', wait_until='networkidle')
-        header_fits(page, width)
+        header_fits(page, width, feedback_page=True)
         assert page.locator('header nav a[aria-current=page]').inner_text() == '피드백'
     page.goto(base + '/', wait_until='networkidle')
-    page.locator('#nav-feedback').click()
+    page.locator('footer .footer-feedback').click()
     page.wait_for_url(base + '/feedback')
     assert page.locator('h1').inner_text() == '피드백'
 

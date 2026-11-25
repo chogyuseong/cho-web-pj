@@ -23,7 +23,9 @@ def test_desktop_header_is_a_centered_pill_menu(audit_page):
     # 가운데 정렬(브랜드 쪽으로 치우치지 않는다), 고른 메뉴는 진한 알약.
     center = box['x'] + box['width'] / 2
     assert abs(center - 640) < 120, box
-    active = page.locator('#nav-plan')
+    # 첫 화면은 '홈 · 테마'가 고른 메뉴(2026-11-25 시안). 피드백은 데스크톱 메뉴에서 빠지고 바닥글로.
+    assert page.locator('body > header nav > :is(a,button)').evaluate_all("l=>l.filter(e=>e.getClientRects().length).map(e=>e.textContent)") == ['홈 · 테마', '코스 만들기', '장소 둘러보기']
+    active = page.locator('#nav-home')
     assert active.evaluate("e=>getComputedStyle(e).backgroundColor") == 'rgb(17, 24, 39)'
     assert float(active.evaluate("e=>parseFloat(getComputedStyle(e).borderTopLeftRadius)")) >= 20
     assert page.locator('body > header').evaluate("e=>getComputedStyle(e).position") == 'sticky'

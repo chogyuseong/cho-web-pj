@@ -105,7 +105,7 @@ def test_phone_header_is_one_compact_block(audit_page):
     for width in (390, 320):
         page.set_viewport_size({'width': width, 'height': 700})
         state = page.evaluate("""()=>{const h=document.querySelector('body > header'),n=h.querySelector('nav'),items=[...n.children];
-          return {height:h.getBoundingClientRect().height,tagline:getComputedStyle(h.querySelector('.brand-tagline')).display,
+          return {height:h.getBoundingClientRect().height,tagline:getComputedStyle(h.querySelector('.brand-name')).display,
             rows:new Set(items.map(i=>Math.round(i.getBoundingClientRect().top))).size,overflow:document.documentElement.scrollWidth>innerWidth};}""")
         assert state['height'] <= 120 and state['tagline'] != 'none' and state['rows'] == 1 and not state['overflow'], (width, state)
 

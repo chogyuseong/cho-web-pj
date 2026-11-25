@@ -86,8 +86,11 @@ def test_admin_lists_script_text_as_plain_text(audit_page, monkeypatch):
         assert page.evaluate('typeof window.__xss') == 'undefined'
         assert page.locator('#admin-entries img, #admin-entries script').count() == 0
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-        # 키는 브라우저 저장소에 남지 않는다.
-        assert page.evaluate('localStorage.length+sessionStorage.length') == 0
+        # 키는 브라우저 저장소에 남지 않는다. 같은 주소의 첫 화면(audit_page 가 먼저 연 '/')이 남긴 접힘 기억
+        # (datemate:plan-*, conftest PLAN_FOLDS_OPEN)만 있을 수 있고, 관리 화면이 넣은 것은 없어야 한다.
+        stored = page.evaluate("[...Object.keys(localStorage),...Object.keys(sessionStorage)]")
+        assert all(key.startswith('datemate:plan-') for key in stored), stored
+        assert FAKE_KEY not in page.evaluate("JSON.stringify({...localStorage})+JSON.stringify({...sessionStorage})")
     page.locator('.admin-entry button', has_text='처리함으로 표시').click()
     page.wait_for_selector('.admin-entry.handled')
     page.on('dialog', lambda dialog: dialog.accept())

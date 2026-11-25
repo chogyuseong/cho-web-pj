@@ -58,9 +58,9 @@ def test_course_screen_shows_the_card_and_remembers_checks(audit_page):
     plan_id = open_course(page, base)
     card = page.locator('#plan-detail .action-card')
     assert card.count() == 1 and card.locator('h3').inner_text() == '할 일 순서'
-    # '네 가지 확인'(execution-summary) 바로 위.
+    # 2026-11-25 상세 결과 시안: 체크리스트 바로 뒤가 접힌 '더 할 수 있는 것'이고, '네 가지 확인'(execution-summary)은 그 안에 있다.
     assert page.evaluate("""()=>{const a=document.querySelector('#plan-detail .action-card'),e=document.querySelector('#plan-detail .execution-summary');
-        return a.nextElementSibling===e;}""")
+        return a.nextElementSibling.matches('.plan-more')&&a.nextElementSibling.contains(e);}""")
     boxes = card.locator('input[type=checkbox]')
     assert boxes.count() == len(page.evaluate('actionCardItems(selected)')) >= 2
     boxes.nth(0).check()

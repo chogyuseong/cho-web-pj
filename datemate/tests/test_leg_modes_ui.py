@@ -41,7 +41,7 @@ def test_change_one_leg_updates_schedule_card_map_and_undo(audit_page):
     # 구간 줄, 상세의 종료 시각, 코스 카드 요약, 지도 범례, 안내 문구가 모두 새 값이다.
     text = page.locator('#plan-detail .route-line').nth(index).locator('.route-line-text').inner_text()
     assert text.endswith('· 자동차 %d분 · 가상 추정' % after['minutes'][index])
-    assert after['finish'] in page.locator('#plan-detail .detail > .hint').first.inner_text()
+    assert after['finish'] in page.locator('#plan-detail .detail-header .hint').first.text_content()
     facts = page.locator('.plan-option-tabs [aria-pressed=true] .option-facts').inner_text()
     assert '도보·자동차' in facts and after['finish'] in facts
     assert '자동차' in page.locator('.map-legend').inner_text() and '도보' in page.locator('.map-legend').inner_text()

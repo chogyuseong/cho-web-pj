@@ -73,7 +73,7 @@ def test_switching_all_legs_to_transit_shows_the_basis_once_above_the_schedule(a
     assert note.count() == 1
     text = note.inner_text()
     assert text.startswith('대중교통: ' + routes.TRANSIT_BASIS) and '지도 앱' in text, text
-    # 안내는 첫 장소의 구간 줄보다 위(일정 위)에 있다.
-    assert note.bounding_box()['y'] < page.locator('#plan-detail .route-line').first.bounding_box()['y']
+    # 2026-11-25 상세 결과 시안: 일정 위 도구들과 함께 일정 아래 접힌 '더 할 수 있는 것'(.plan-more) 안에 한 번 있다(예전에는 일정 위).
+    assert note.evaluate("e=>!!e.closest('#plan-detail .plan-more .plan-more-tools')")
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
     assert not errors, errors

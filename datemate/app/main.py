@@ -13,8 +13,10 @@ from contextlib import asynccontextmanager
 from typing import Literal
 from fastapi import FastAPI, HTTPException, Request, Response, Query
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from . import naver_cache, store
 from .catalog import places, get_place
@@ -38,7 +40,7 @@ from .media import media_info
 from .blog_search import place_blogs
 from .request_usage import bind_client, unbind_client
 from .execution import RECOMMENDATION_LIMIT_MESSAGE, reserve_recommendation
-from .static_pages import versioned_page
+from .static_pages import NOT_FOUND_PAGE, versioned_page, wants_page, with_public_origin
 
 # Provider keys (e.g. the tourism API key) travel in URL queries; httpx logs request
 # URLs at INFO, so keep its loggers quiet even if INFO logging is enabled later.
@@ -115,6 +117,15 @@ app.include_router(popup_hub_media_router)
 from .search_robots import router as search_robots_router
 
 app.include_router(search_robots_router)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request: Request, exc: StarletteHTTPException):
+    # 없는 주소를 브라우저 화면으로 열면(Accept: text/html, /api/ 밖) JSON 원문 대신 한국어 안내와 처음 화면 링크(2026-11-25 운영 QA-07).
+    # API·fetch·JSON 요청과 다른 오류 코드는 FastAPI 기본 응답 그대로다.
+    if exc.status_code == 404 and wants_page(request.url.path, request.headers.get("accept")):
+        return HTMLResponse(versioned_page(NOT_FOUND_PAGE), status_code=404)
+    return await http_exception_handler(request, exc)
 
 
 @app.get("/healthz", include_in_schema=False)
@@ -393,11 +404,13 @@ _status_cache = {"expires": 0.0, "value": None}
 def status():
     # Counting index rows and reading place files on every page load is avoidable work.
     now = time.monotonic()
-    if _status_cache["value"] is not None and _status_cache["expires"] > now:
-        return _status_cache["value"]
-    value = _status()
-    _status_cache.update(value=value, expires=now + STATUS_TTL_SECONDS)
-    return value
+    if _status_cache["value"] is None or _status_cache["expires"] <= now:
+        _status_cache.update(value=_status(), expires=now + STATUS_TTL_SECONDS)
+    from .service_time import planning_now
+
+    # 오늘(한국 날짜, 새 추천의 지난 날짜 검사와 같은 시계). 화면이 방문 날짜 칸의 min 으로 쓴다(2026-11-25 운영 QA-12).
+    # 자정 직후에도 맞도록 60초 보관 밖에서 매번 넣는다.
+    return dict(_status_cache["value"], today=planning_now().date().isoformat())
 
 
 def _status():
@@ -407,12 +420,13 @@ def _status():
     for mode in ("demo", "real"):
         a, b = collections(mode)
         counts[mode] = dict(places=len(places(mode)), indexed=a.count(), chunks=b.count())
+    # 공개 응답이라 화면(static/app.js·location-picker.js·maps.js·place-dialog.js·popups.js)이 읽는 값과 색인 수만 싣는다.
+    # 내부 설정 문구(예전 llm 'GMS 키 없음'·embedding 'demo')는 2026-11-25 운영 QA-16 에서 뺐다. 색인 수(counts)는
+    # 컨테이너 점검(scripts/check_cloud_containers.py)이 읽는다.
     return dict(
         region=REGION,
         temporary_region=False,
         counts=counts,
-        llm="키 설정됨 · 실호출 결과 별도" if os.getenv("GMS_KEY") else "GMS 키 없음",
-        embedding=embedding_mode(),
         themes=THEMES,
         date_categories=DATE_CATEGORIES,
         map_js_key=os.getenv("NAVER_MAPS_JS_KEY_ID", ""),
@@ -1041,9 +1055,10 @@ def home():
     # 파일 변경 시 URL도 바꿔 이전 maps.js와 새 app.js의 혼합 로딩을 방지한다.
     from .user_feedback import home_page
 
-    # DATEMATE_FEEDBACK_ENABLED 를 끄면 헤더의 피드백 탭을 뺀다.
+    # DATEMATE_FEEDBACK_ENABLED 를 끄면 헤더의 피드백 탭을 뺀다. canonical·og 주소는 공개 주소 설정에서(static_pages.with_public_origin).
     return HTMLResponse(
-        home_page(versioned_page("index.html")), headers={"Cache-Control": "no-store"}
+        home_page(with_public_origin(versioned_page("index.html"), public_origin())),
+        headers={"Cache-Control": "no-store"},
     )
 
 

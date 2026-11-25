@@ -579,6 +579,8 @@ def test_status_is_cached_and_drops_internal_fields(monkeypatch):
         second = client.get('/api/status').json()
     assert first == second and len(calls) == 2  # demo + real, once
     assert 'route' not in first
-    for field in ('region', 'counts', 'llm', 'embedding', 'themes', 'date_categories',
+    for field in ('region', 'counts', 'themes', 'date_categories',
                   'map_js_key', 'geocoding_available', 'map_tile_url', 'map_tile_attribution'):
         assert field in first
+    # 내부 설정 문구는 공개 응답에 없다(2026-11-25 운영 QA-16, tests/test_qa_low_2026_11_25.py).
+    assert 'llm' not in first and 'embedding' not in first

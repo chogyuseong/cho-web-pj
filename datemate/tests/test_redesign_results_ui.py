@@ -398,7 +398,7 @@ def rail_values(page):
 def expected_rail(page):
     return page.evaluate('''()=>{const p=selected,n=plans.findIndex(x=>x.id===p.id)+1,w=knownWalking(p);
       return {budget:rangeLines(p.total).textContent.replace(/\\s+/g,' ').trim(),walk:w===null?'모름':w+'분',time:durationText(p.minutes),
-        label:`코스 ${n} 요약과 공유`,buttons:[['공유 티켓 보기',`공유 티켓 보기 · 코스 ${n}`],['카톡용 일정 복사',`카톡용 일정 복사 · 코스 ${n}`]]};}''')
+        label:`코스 ${n} 요약과 공유`,buttons:[['공유 티켓 보기',`공유 티켓 보기 · 코스 ${n}`],['카톡용 일정·링크 복사',`카톡용 일정·링크 복사 · 코스 ${n}`]]};}''')
 
 
 def test_rail_summary_and_share_on_desktop_only(audit_page):
@@ -413,7 +413,7 @@ def test_rail_summary_and_share_on_desktop_only(audit_page):
       window.copyKakaoItinerary=p=>{__calls.push(['kakao',p.id]);};window.copyPlanShare=p=>{__calls.push(['share',p.id]);};
       window.__restore=()=>{window.copyKakaoItinerary=k;window.copyPlanShare=s;};}""")
     rail = page.locator('#plan-map-rail .plan-rail-summary')
-    rail.get_by_role('button', name='카톡용 일정 복사 · 코스 1', exact=True).click()
+    rail.get_by_role('button', name='카톡용 일정·링크 복사 · 코스 1', exact=True).click()
     # 2026-11-25 HTML 시안: 패널의 둘째 단추는 '공유 티켓 보기' — 티켓 창의 [공유 링크 복사]가 같은 함수(copyPlanShare)를 부른다.
     rail.get_by_role('button', name='공유 티켓 보기 · 코스 1', exact=True).click()
     ticket = page.locator('#dialog .plan-ticket')
@@ -432,7 +432,7 @@ def test_rail_summary_and_share_on_desktop_only(audit_page):
     page.wait_for_function("document.querySelector('#plan-detail .share-status').textContent.includes('공유 링크 1개')", timeout=10000)
     # 공유 구역의 같은 이름 단추는 그대로 하나씩(이름이 겹치지 않는다).
     assert page.get_by_role('button', name='공유 링크 복사', exact=True).count() == 1
-    assert page.get_by_role('button', name='카톡용 일정 복사', exact=True).count() == 1
+    assert page.get_by_role('button', name='카톡용 일정·링크 복사', exact=True).count() == 1
     # 패널 카드 안에 가로 넘침이 없다.
     assert page.evaluate("(c=>c.scrollWidth<=c.clientWidth)(document.querySelector('#plan-map-rail .plan-map-card'))")
     for row in page.evaluate(NEW_TEXT, '#plan-map-rail .plan-rail-summary :is(dt,dd)'):

@@ -347,7 +347,7 @@ def location_dialog(page, base):
 
 def photo_viewer(page, base):
     explore(page, base)
-    page.locator('#catalog .place-card').first.get_by_role('button', name='사진 1 사진 크게 보기', exact=True).click()
+    page.locator('#catalog .place-card').first.get_by_role('button', name='사진 큰보기 카페 사진 1 크게 보기', exact=True).click()
     page.wait_for_function("document.querySelector('#photo-viewer').open")
     page.wait_for_function("(()=>{const i=document.querySelector('#photo-viewer img');return !i.hidden&&i.complete&&i.naturalWidth===400})()")
 

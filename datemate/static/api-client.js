@@ -20,7 +20,7 @@ async function copyPlanShare(plan){
 
 // 카톡에 바로 붙여넣기 좋은 일정 글(2026-11-24 UX P1). 날짜 → 시간별 장소(축제 포함, day-of.js dayOfSteps 순서) → 구간 이동 → 예상 비용 → 공유 링크.
 // 공유 링크는 서버가 만든 24시간 링크(app/sharing.py)라 출발지·귀가지·입력 요청은 들어가지 않는다. 링크를 못 만들면 일정 글만 복사한다.
-// 글 모양을 바꾸면 tests/test_ux_p1_ui.py 의 기대 문구도 고친다. 공유 줄의 「카톡용 일정 복사」와 코스 카드 창의 「코스 요약 복사」가 함께 쓴다.
+// 글 모양을 바꾸면 tests/test_ux_p1_ui.py 의 기대 문구도 고친다. 공유 줄의 「카톡용 일정·링크 복사」와 코스 카드 창의 「코스 요약 복사」가 함께 쓴다.
 function kakaoItineraryText(plan,url){
   const c=plan.conditions||{},d=new Date((c.visit_date||'')+'T00:00');
   const day=Number.isNaN(d.getTime())?(c.visit_date||''):`${d.getMonth()+1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
@@ -38,6 +38,10 @@ function kakaoItineraryText(plan,url){
   lines.push('영업시간은 방문 전 네이버 지도에서 확인해 주세요.');
   return lines.join('\n');
 }
+// 이 복사는 서버에 24시간 공개 공유 링크를 먼저 만든다. 단추 이름에 '링크'를 넣고(「일정·링크 복사」·「카톡용 일정·링크 복사」)
+// 마우스를 올리면 그 사실을 알린다(2026-11-25 운영 QA-15). 복사 동작은 그대로다.
+const LINK_COPY_HINT='24시간 열리는 공유 링크를 만들어 일정 글과 함께 복사해요. 출발지·귀가지·입력한 요청은 공유되지 않아요.';
+function linkCopyHint(button){button.title=LINK_COPY_HINT;return button;}
 async function copyKakaoItinerary(plan){
   let url='';
   try{const shared=await api('/plans/'+plan.id+'/shares',{});url=new URL(shared.url,location.origin).href;}catch{}

@@ -5,7 +5,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
   EDGE_SIGNAL, CONTENT_SECURITY_POLICY, FEEDBACK_NAV_LINK, FEEDBACK_FOOTER_LINK, assetPathFor, edgeRoute, edgeSignal,
-  feedbackEnabled, handleFetch, serveAtEdge, CRAWLER_CACHE_CONTROL,
+  feedbackEnabled, handleFetch, serveAtEdge, CRAWLER_CACHE_CONTROL, NOT_FOUND_PAGE_KEY, PUBLIC_ORIGIN_TOKEN, wantsPage,
+  withPublicOrigin,
 } from "./edge.mjs";
 import { DATEMATE_ROOT, buildEdgePages } from "./build-edge-pages.mjs";
 
@@ -101,6 +102,27 @@ test("built pages match versioned_page(): only ?v=<sha256[:12]> added to existin
   // 네이버 서치어드바이저 소유 확인(2026-11-18). 엣지가 내보내는 첫 화면에도 남아 있어야 한다.
   assert.match(PAGES["/"], /<meta name="naver-site-verification" content="3fb663454990174f24df5e7e69985aab46c3e54b">/);
   assert.ok(PAGES["/"].includes(FEEDBACK_NAV_LINK) && PAGES["/"].includes(FEEDBACK_FOOTER_LINK));
+  // The not-found page is built from the same file the app sends (static_pages.NOT_FOUND_PAGE); it is not a route.
+  assert.equal(PAGES[NOT_FOUND_PAGE_KEY], readFileSync(path.join(STATIC_DIR, "not-found.html"), "utf8").replace(/\r\n?/g, "\n"));
+  assert.equal(edgeRoute("GET", "/404"), null);
+});
+
+test("public origin: absolute head tags use PUBLIC_ORIGIN only, and are dropped without one (like with_public_origin)", () => {
+  const html = PAGES["/"];
+  assert.ok(html.includes(`<link rel="canonical" href="${PUBLIC_ORIGIN_TOKEN}/">`));
+  const bare = withPublicOrigin(html, "");
+  assert.ok(!bare.includes(PUBLIC_ORIGIN_TOKEN) && !bare.includes('rel="canonical"') && !bare.includes('property="og:url"') && !bare.includes('property="og:image"'));
+  assert.ok(bare.includes('<meta name="description"') && bare.includes('property="og:title"'));
+  assert.equal(withPublicOrigin(`<link rel="canonical" href="${PUBLIC_ORIGIN_TOKEN}/">`, 'https://a.example/"><x'),
+    '<link rel="canonical" href="https://a.example/&quot;&gt;&lt;x/">');
+});
+
+test("not-found page only for browser page requests outside /api/", () => {
+  assert.equal(wantsPage("/nope", "text/html,application/xhtml+xml"), true);
+  assert.equal(wantsPage("/static/nope.js", "TEXT/HTML"), true);
+  for (const [pathname, accept] of [["/api/nope", "text/html"], ["/api", "text/html"], ["/nope", "*/*"], ["/nope", "application/json"], ["/nope", null]]) {
+    assert.equal(wantsPage(pathname, accept), false, pathname + " " + accept);
+  }
 });
 
 test("asleep: the home page comes from the edge with the app's headers and no cookie", async () => {
@@ -109,7 +131,11 @@ test("asleep: the home page comes from the edge with the app's headers and no co
   assert.equal(response.headers.get("content-type"), "text/html; charset=utf-8");
   assertAppHeaders(response, { page: true });
   assert.equal(response.headers.get("x-robots-tag"), null);
-  assert.equal(await response.text(), PAGES["/"]);
+  // The canonical/og addresses come from PUBLIC_ORIGIN, as the app does (static_pages.with_public_origin).
+  const html = await response.text();
+  assert.equal(html, withPublicOrigin(PAGES["/"], ORIGIN));
+  assert.ok(html.includes(`<link rel="canonical" href="${ORIGIN}/">`) && html.includes(`<meta property="og:image" content="${ORIGIN}/static/`));
+  assert.ok(!html.includes(PUBLIC_ORIGIN_TOKEN) && PAGES["/"].includes(PUBLIC_ORIGIN_TOKEN));
   assert.deepEqual(seen, ["/"], "the Durable Object is still asked, which starts the container");
 });
 
@@ -121,7 +147,7 @@ test("asleep: the feedback switch removes the header tab like home_page()", asyn
   const html = await response.text();
   assert.ok(!html.includes(FEEDBACK_NAV_LINK));
   assert.ok(!html.includes(FEEDBACK_FOOTER_LINK) && !html.includes('href="/feedback"'));
-  assert.equal(html, PAGES["/"].replace(FEEDBACK_NAV_LINK, "").replace(FEEDBACK_FOOTER_LINK, ""));
+  assert.equal(html, withPublicOrigin(PAGES["/"], ORIGIN).replace(FEEDBACK_NAV_LINK, "").replace(FEEDBACK_FOOTER_LINK, ""));
 });
 
 test("asleep: the shared page keeps noindex and no-referrer", async () => {
@@ -161,6 +187,19 @@ test("asleep: missing or escaping static paths answer 404 like the app, never an
     assert.deepEqual(await response.json(), { detail: "Not Found" }, pathname);
     assertAppHeaders(response, { page: true });
   }
+  // A browser page request (Accept: text/html) gets the Korean not-found page, like the app (2026-11-25 QA-07).
+  for (const pathname of ["/static/nope.js", "/static/..%2F..%2Fwrangler.jsonc", "/static/"]) {
+    const { response } = await run(pathname, { headers: { accept: "text/html,application/xhtml+xml,*/*;q=0.8" } });
+    assert.equal(response.status, 404, pathname);
+    assert.equal(response.headers.get("content-type"), "text/html; charset=utf-8");
+    assertAppHeaders(response, { page: true });
+    const html = await response.text();
+    assert.equal(html, PAGES[NOT_FOUND_PAGE_KEY]);
+    assert.ok(html.includes("찾는 페이지가 없어요") && html.includes(`<a class="home" href="/">`));
+  }
+  const head = (await run("/static/nope.js", { method: "HEAD", headers: { accept: "text/html" } })).response;
+  assert.equal(head.status, 404);
+  assert.equal(await head.text(), "");
   assert.equal(assetPathFor("/static/vendor/leaflet/leaflet.js"), "/vendor/leaflet/leaflet.js");
   assert.equal(assetPathFor("/static/app.js%3Fx"), "/app.js%3Fx");
   assert.equal(assetPathFor("/static/%E0%A4%A"), null);

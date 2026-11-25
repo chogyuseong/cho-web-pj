@@ -101,14 +101,39 @@ function crawlerResponse(pathname, method, origin) {
   return new Response(method === "HEAD" ? null : file.body, { status: 200, headers });
 }
 
-function notFound(method) {
-  const headers = securityHeaders(new Headers({ "content-type": "application/json" }), true);
-  return new Response(method === "HEAD" ? null : JSON.stringify({ detail: "Not Found" }), { status: 404, headers });
+// Same rule as datemate/app/static_pages.py wants_page(): a browser page request (Accept has text/html) outside
+// /api/ gets the Korean not-found page; the API and fetch/JSON requests keep the JSON body (2026-11-25 QA-07).
+export const NOT_FOUND_PAGE_KEY = "404";
+export function wantsPage(pathname, accept) {
+  const api = pathname === "/api" || pathname.startsWith("/api/");
+  return !api && String(accept ?? "").toLowerCase().includes("text/html");
+}
+
+function notFound(request, pages) {
+  const html = pages?.[NOT_FOUND_PAGE_KEY];
+  const page = typeof html === "string" && wantsPage(new URL(request.url).pathname, request.headers.get("accept"));
+  const headers = securityHeaders(new Headers({ "content-type": page ? "text/html; charset=utf-8" : "application/json" }), true);
+  const body = page ? html : JSON.stringify({ detail: "Not Found" });
+  return new Response(request.method === "HEAD" ? null : body, { status: 404, headers });
+}
+
+// Same rule as datemate/app/static_pages.py with_public_origin(): the home page's canonical/og:url/og:image carry
+// PUBLIC_ORIGIN_TOKEN, replaced by the PUBLIC_ORIGIN secret (the only source of absolute URLs, like robots.txt).
+// Without an origin the tags holding the token are dropped. Python tests compare the two outputs.
+export const PUBLIC_ORIGIN_TOKEN = "{{PUBLIC_ORIGIN}}";
+const ORIGIN_TAG = /<(?:link|meta)\b[^>]*\{\{PUBLIC_ORIGIN\}\}[^>]*>/g;
+function htmlAttribute(text) {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#x27;");
+}
+export function withPublicOrigin(html, origin) {
+  if (!origin) return html.replace(ORIGIN_TAG, "");
+  return html.replaceAll(PUBLIC_ORIGIN_TOKEN, htmlAttribute(origin));
 }
 
 export function pageResponse(path, method, env, pages) {
   let html = pages?.[path];
   if (typeof html !== "string") return null;
+  html = withPublicOrigin(html, env.PUBLIC_ORIGIN);
   if (path === "/" && !feedbackEnabled(env.DATEMATE_FEEDBACK_ENABLED)) html = html.replace(FEEDBACK_NAV_LINK, "").replace(FEEDBACK_FOOTER_LINK, "");
   const headers = securityHeaders(new Headers({ "content-type": "text/html; charset=utf-8" }), true);
   if (path === "/shared") headers.set("X-Robots-Tag", "noindex, nofollow");
@@ -148,7 +173,7 @@ export function assetVersions(pages) {
 export async function staticResponse(request, env, pages) {
   const url = new URL(request.url);
   const assetPath = assetPathFor(url.pathname);
-  if (!assetPath || !env.ASSETS) return notFound(request.method);
+  if (!assetPath || !env.ASSETS) return notFound(request, pages);
   const forwarded = new Headers();
   for (const name of ["if-none-match", "if-modified-since"]) {
     const value = request.headers.get(name);
@@ -159,7 +184,7 @@ export async function staticResponse(request, env, pages) {
   }));
   if (asset.status !== 200 && asset.status !== 304) {
     await asset.body?.cancel();
-    return notFound(request.method);
+    return notFound(request, pages);
   }
   const headers = new Headers();
   for (const name of PASSED_ASSET_HEADERS) {
@@ -179,7 +204,7 @@ export async function staticResponse(request, env, pages) {
 }
 
 export function edgeResponse(route, request, env, pages) {
-  if (route.kind === "page") return pageResponse(route.path, request.method, env, pages) ?? notFound(request.method);
+  if (route.kind === "page") return pageResponse(route.path, request.method, env, pages) ?? notFound(request, pages);
   return staticResponse(request, env, pages);
 }
 

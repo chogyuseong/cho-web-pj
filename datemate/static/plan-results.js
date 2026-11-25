@@ -276,3 +276,59 @@ function showPlanTicket(p){
   ticket.append(top,cut,list,actions);
   root.append(ticket);
 }
+
+/* 결과 화면 고정 윗줄·휴대폰 아래 막대(2026-11-25 Gemini Canvas 시안 share.gemini.google/NMTZYFdUBrws, 사용자 선택 두 가지).
+   ① 윗줄(#results-bar, index.html): 「← 조건 수정하기」·조건 칩(#results-meta)·「공유 티켓」·「일정 복사」. 머리글 바로 아래에 붙는다(redesign.css 12)).
+   ② 휴대폰(720px 이하) 아래 막대(#results-actionbar): 코스가 있으면 메뉴 바 대신 「지도 보기 / 일정 복사 / 공유 티켓」.
+      메뉴 바는 처음 화면·둘러보기에서는 그대로다(결과가 보일 때만 바꾼다 — CSS 가 #results-actionbar 가 보이는지로 정한다).
+      「지도 보기」는 일정 뒤 휴대폰 지도 자리(#plan-map-slot)로 가고, 지도가 화면에 보이는 동안은 「일정 보기」(첫 장소로)로 바뀐다.
+   공유·복사는 오른쪽 패널과 같은 함수(showPlanTicket·copyKakaoItinerary)를 부른다 — 새로 만들지 않는다.
+   renderDetail(plan-detail.js) 끝에서 코스가 바뀔 때마다 다시 그린다. 저장되지 않은 코스(id 없음)는 공유할 것이 없어 단추를 두지 않는다. */
+let resultsMapSeen = false,
+  resultsMapObserver = null;
+
+function syncResultsBars(p = selected) {
+  const actions = document.getElementById('results-bar-actions'),
+    bar = document.getElementById('results-actionbar');
+  if (actions) {
+    actions.replaceChildren();
+    if (p?.id) actions.append(button('공유 티켓', () => showPlanTicket(p), 'secondary results-bar-ticket'), button('일정 복사', () => copyKakaoItinerary(p), 'primary results-bar-copy'));
+  }
+  if (!bar) return;
+  bar.replaceChildren();
+  bar.hidden = !p?.id;
+  if (!p?.id) return;
+  const icon = path => `<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+  const make = (label, cls, svg, action) => {
+    const b = button('', action, cls);
+    b.innerHTML = icon(svg);
+    b.append(node('span', label));
+    return b;
+  };
+  const mapButton = make('지도 보기', 'secondary results-actionbar-map', '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>', () => {
+    const target = resultsMapSeen ? document.querySelector('#plan-detail .stop') : document.getElementById('plan-map-slot');
+    target?.scrollIntoView({
+      behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+      block: 'start'
+    });
+  });
+  mapButton.dataset.view = 'map';
+  bar.append(mapButton,
+    make('일정 복사', 'results-actionbar-copy', '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>', () => copyKakaoItinerary(p)),
+    make('공유 티켓', 'results-actionbar-ticket', '<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"/>', () => showPlanTicket(p)));
+  // 지도가 보이면 단추를 「일정 보기」로. 지도 자리는 상세를 다시 그릴 때마다 새로 생기므로 관찰도 다시 건다.
+  resultsMapObserver?.disconnect();
+  resultsMapSeen = false;
+  const slot = document.getElementById('plan-map-slot');
+  if (slot && 'IntersectionObserver' in window) {
+    resultsMapObserver = new IntersectionObserver(entries => {
+      resultsMapSeen = entries.some(entry => entry.isIntersecting);
+      const label = mapButton.querySelector('span');
+      if (label) label.textContent = resultsMapSeen ? '일정 보기' : '지도 보기';
+      mapButton.dataset.view = resultsMapSeen ? 'timeline' : 'map';
+    }, {
+      threshold: 0.25
+    });
+    resultsMapObserver.observe(slot);
+  }
+}

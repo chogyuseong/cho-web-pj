@@ -577,3 +577,33 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
   .plan-more { border:0; }
   .plan-more-body { padding:0; }
 }
+
+/* 12) 결과 화면 고정 윗줄 · 휴대폰 아래 막대 — 2026-11-25 Gemini Canvas 시안(share.gemini.google/NMTZYFdUBrws), plan-results.js syncResultsBars.
+   ① #results-bar: 「← 조건 수정하기」 · 조건 칩(#results-meta) · 오른쪽 「공유 티켓」「일정 복사」. 데스크톱(801px 이상)에서만 머리글 바로 아래에 붙는다.
+      휴대폰은 머리글 아래에 '현재 구역 줄'(.section-indicator, shell.css)이 이미 붙어 있어 겹치지 않게 제자리에 두고, 공유·복사는 아래 막대에 있어 윗줄에서는 숨긴다.
+   ② #results-actionbar: 720px 이하에서 코스가 있을 때(hidden 이 아닐 때) 메뉴 바(body > header nav, 3)) 대신 보인다. 높이는 메뉴 바와 같은 자리·같은 --bottom-bar.
+      메뉴 바로 되돌리려면 아래 'nav 숨김' 규칙과 #results-actionbar 표시 규칙을 지운다. */
+.results-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:0 0 20px; padding:10px 0; background:var(--paper,#fff); }
+.results-bar #edit-conditions { margin:0; min-height:44px; }
+.results-bar .results-meta { display:flex; flex-wrap:wrap; gap:6px; flex:1 1 320px; min-width:0; margin:0; font-size:15px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.results-bar .results-meta:empty { display:none; }
+.results-bar-actions { display:flex; gap:8px; margin-left:auto; }
+.results-bar-actions:empty { display:none; }
+.results-bar-actions button { min-height:44px; padding:8px 16px; border-radius:var(--radius-pill); font-weight:700; }
+@media(min-width:801px) {
+  .results-bar { position:sticky; top:var(--site-header-height,88px); z-index:20; margin:0 -12px 20px; padding:10px 12px; border-bottom:1px solid var(--line); }
+}
+@media(max-width:800px) { .results-bar-actions { display:none; } }
+.results-actionbar { display:none; }
+@media(max-width:720px) {
+  body.show-date-plan .results-area:not([hidden]) .results-actionbar:not([hidden]) { position:fixed; z-index:41; left:12px; right:12px; bottom:calc(10px + env(safe-area-inset-bottom));
+    display:grid; grid-template-columns:1fr 1.2fr 1.2fr; gap:6px; padding:6px; border:1px solid var(--line); border-radius:20px;
+    background:rgba(255,255,255,.92); -webkit-backdrop-filter:saturate(180%) blur(16px); backdrop-filter:saturate(180%) blur(16px); box-shadow:0 8px 24px rgba(17,24,39,.12); }
+  body.show-date-plan:has(.results-area:not([hidden]) .results-actionbar:not([hidden])) > header nav { display:none; }
+  .results-actionbar button { display:flex; align-items:center; justify-content:center; gap:6px; min-height:52px; margin:0; padding:4px 6px; border-radius:14px; font-size:15px; font-weight:800; white-space:nowrap; }
+  .results-actionbar .results-actionbar-map { border:1px solid var(--line); background:#fff; color:var(--ink); }
+  .results-actionbar .results-actionbar-copy { border:0; background:var(--ink); color:#fff; }
+  .results-actionbar .results-actionbar-ticket { border:0; background:var(--hong); color:#fff; }
+}
+@media(max-width:360px) { .results-actionbar button { font-size:14px; gap:4px; } .results-actionbar svg { display:none; } }
+@media print { .results-bar .results-bar-actions,body.show-date-plan .results-area:not([hidden]) .results-actionbar:not([hidden]) { display:none; } .results-bar { position:static; border:0; } }

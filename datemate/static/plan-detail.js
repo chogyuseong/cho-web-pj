@@ -77,6 +77,7 @@ function renderDetail() {
   extras?.replaceChildren();
   if (!selected) {
     renderPlanMapCard();
+    if (typeof syncResultsBars === 'function') syncResultsBars(null);
     return;
   }
   const p = selected,
@@ -369,6 +370,8 @@ function renderDetail() {
   // 지연 토글이 켜져 있으면 새로 그린 장소 칸에 다시 겹친다(코스가 바뀌었으면 새 코스로 다시 계산).
   if (typeof delaySimRefresh === 'function') delaySimRefresh(p);
   renderPlanMapCard();
+  // 결과 화면 고정 윗줄·휴대폰 아래 막대의 공유·복사·지도 단추(plan-results.js syncResultsBars). 지도 자리가 생긴 뒤에 부른다.
+  if (typeof syncResultsBars === 'function') syncResultsBars(p);
   // 부가 정보: 축제 구역 뒤 #plan-extras
   const more = node('section', undefined, 'detail panel plan-extras-panel');
   more.setAttribute('aria-label', '더 둘러보기');

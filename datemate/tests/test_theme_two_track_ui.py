@@ -7,7 +7,7 @@ import pytest
 from test_functional_audit import audit_page  # noqa: F401  (pytest fixture)
 from test_nationwide_home import intercept_plan_jobs, wait_for_job
 
-FIELDS = "Object.fromEntries(['setting','max_walk','max_leg','start','end','count','stay_minutes','theme_mode','transport','meeting_type','priority'].map(n=>[n,form.elements[n]?.value]))"
+FIELDS = "Object.fromEntries(['budget','setting','max_walk','max_leg','start','end','count','stay_minutes','theme_mode','transport','meeting_type','priority'].map(n=>[n,form.elements[n]?.value]))"
 CHECKS = "({reservation:form.elements.reservation.checked,include_meal:form.elements.include_meal?.checked,themes:[...document.querySelectorAll('[name=themes]:checked')].map(i=>i.value)})"
 
 
@@ -24,11 +24,14 @@ def situation(page, key):
 def test_season_card_matches_the_month(audit_page):
     page, _, _ = audit_page
     assert page.evaluate('[1,2,3,5,6,8,9,11,12].map(seasonFor)') == [
-        'winter', 'winter', 'spring', 'spring', 'summer', 'summer', 'autumn', 'autumn', 'winter']
+        'winter', 'winter', 'spring', 'spring', 'summer', 'summer', 'autumn', 'winter', 'winter']
+    # 2026-11-25 시안: 11~2월 겨울('11월 겨울 시즌'), 9~10월 가을. 배지는 달과 계절.
+    assert page.evaluate('[seasonBadge(10),seasonBadge(11),seasonBadge(2)]') == ['10월 가을 시즌', '11월 겨울 시즌', '2월 겨울 시즌']
     first = page.locator('#curation-situation .curation-card').first
     expected = page.evaluate('SEASON_THEMES[seasonFor(new Date().getMonth()+1)].key')
     assert first.get_attribute('data-situation') == expected
-    assert first.locator('.curation-badge').inner_text() == '지금 시즌'
+    assert first.locator('.curation-badge').inner_text() == page.evaluate('seasonBadge(new Date().getMonth()+1)')
+    assert 'is-feature' in first.get_attribute('class')
 
 
 @pytest.mark.parametrize('width', [375, 1280])
@@ -46,7 +49,7 @@ def test_situation_theme_keeps_area_fills_conditions_and_sends_them(audit_page, 
     assert (fields['setting'], fields['max_walk'], fields['max_leg']) == ('indoor', '15', '15')
     assert page.evaluate(CHECKS)['themes'] == ['카페·미식', '문화·예술', '체험·제작']
     banner = page.locator('#preset-tags')
-    assert '‘비·더위 피하는 올-실내 코스’ 조건을 채웠어요. 데이트할 지역과 날짜만 골라 주세요.' in banner.inner_text()
+    assert '‘비·추위 피하는 올-실내’ 조건을 채웠어요. 데이트할 지역과 날짜만 골라 주세요.' in banner.inner_text()
     assert '실내만' in banner.inner_text() and '전체 도보 15분 이하' in banner.inner_text()
     # 지역이 이미 있으니 바로 추천받기 단추에 포커스.
     page.wait_for_function("document.activeElement?.classList.contains('preset-go')")
@@ -70,11 +73,14 @@ def test_switching_themes_leaves_nothing_behind_and_clear_restores(audit_page):
     situation(page, 'anniversary')
     assert page.evaluate(CHECKS)['reservation'] is True
     assert page.evaluate('form.elements.meeting_type.value') == 'anniversary'
+    # '#10만원대'(1인): 예산 칸은 일행 합계라 인원(2명)을 곱해 넣는다.
+    assert page.evaluate('[form.elements.budget.value, form.elements.budget_unlimited.checked]') == ['400000', False]
     # 다른 상황 테마로: 기념일의 예약·만남 종류가 남지 않는다.
     situation(page, 'rest')
     fields, checks = page.evaluate(FIELDS), page.evaluate(CHECKS)
     assert checks['reservation'] is False and fields['meeting_type'] == 'regular'
-    assert (fields['max_walk'], fields['stay_minutes'], fields['count']) == ('15', '120', '2')
+    assert (fields['max_walk'], fields['stay_minutes'], fields['count']) == ('10', '120', '2')
+    assert fields['budget'] == before['budget']
     situation(page, 'after-work')
     fields = page.evaluate(FIELDS)
     assert (fields['max_walk'], fields['stay_minutes'], fields['start'], fields['end'], fields['count']) == ('', '60', '18:30', '21:30', '2')
@@ -114,12 +120,12 @@ def test_situation_theme_without_area_points_to_the_area_step(audit_page, width)
     assert not banner.get_by_role('button', name='이 조건으로 바로 추천받기').is_visible()
     fields = page.evaluate(FIELDS)
     assert (fields['start'], fields['end'], fields['count'], fields['max_walk'], fields['meeting_type'], fields['priority']) == (
-        '13:00', '17:00', '3', '15', 'first', 'talk')
+        '14:00', '17:00', '2', '15', 'first', 'talk')
     # 지역을 고르면 강조가 꺼지고 바로 추천받기가 보인다. 상황 테마 안내는 그대로.
     page.get_by_role('group', name='인기 동네').get_by_role('button', name='서울 성수', exact=True).click()
     page.wait_for_function("!document.querySelector('.needs-area')")
     banner.get_by_role('button', name='이 조건으로 바로 추천받기').wait_for()
-    assert '썸·소개팅' in banner.inner_text()
+    assert '썸 & 소개팅' in banner.inner_text()
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
 
 

@@ -29,19 +29,23 @@ def test_theme_cards_show_theme_first(audit_page, width):
     page.set_viewport_size({'width': width, 'height': 900})
     section = page.locator('#curation')
     assert section.locator('#curation-title').inner_text() == '테마로 고르는 하루'
-    assert '테마를 고르면' in section.locator('.curation-heading p').inner_text()
+    # 설명 문장은 화면 읽기용으로 남는다(2026-11-25 시안은 라벨 + 제목만 보인다).
+    assert '테마를 고르면' in section.locator('.curation-heading p.visually-hidden').inner_text()
+    assert section.locator('.curation-heading .eyebrow').inner_text().lower() == 'curated for today'
     cards = section.locator('#curation-situation .curation-card')
     assert cards.count() == 7
     first = cards.first
-    # 배지 → 제목(크게) → 문구 → 조건 태그.
-    assert first.evaluate('c=>[...c.children].map(e=>e.className.split(" ")[0])') == ['curation-badge', 'curation-mood', 'curation-copy', 'curation-tags']
+    # 배지 → 제목(크게) → 문구 → 조건 태그 → 그림(오른쪽 위에 겹쳐 놓음, 화면 읽기에서는 숨김).
+    assert first.evaluate('c=>[...c.children].map(e=>e.className.split(" ")[0])') == ['curation-badge', 'curation-mood', 'curation-copy', 'curation-tags', 'curation-icon']
     sizes = first.evaluate("c=>['.curation-mood','.curation-badge'].map(s=>parseFloat(getComputedStyle(c.querySelector(s)).fontSize))")
-    assert sizes == [19, 14]
+    assert sizes == ([26, 14] if width == 1440 else [22, 14])
     for card in cards.all():
         assert 2 <= card.locator('.curation-tags span').count() <= 3
     if width == 1440:
+        # 벤토 4열: 계절 카드가 첫 줄 두 칸, 나머지는 한 칸씩.
         lefts = {round(card.bounding_box()['x']) for card in cards.all()}
-        assert len(lefts) == 3
+        assert len(lefts) == 4
+        assert round(cards.first.bounding_box()['width']) > round(cards.nth(1).bounding_box()['width']) * 2
         for card in cards.all():
             assert card.evaluate('c=>[...c.children].every(s=>s.scrollWidth<=s.clientWidth+1)')
     else:

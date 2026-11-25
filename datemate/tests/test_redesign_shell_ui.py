@@ -101,8 +101,9 @@ def test_theme_cards_are_rounded_cards(audit_page):
     page, _, _ = audit_page
     page.set_viewport_size({'width': 1280, 'height': 900})
     card = page.locator('#curation-situation .curation-card').first
-    style = card.evaluate("e=>{const s=getComputedStyle(e);return [s.borderTopLeftRadius,s.backgroundColor,getComputedStyle(e,'::before').content]}")
-    assert style == ['20px', 'rgb(255, 255, 255)', 'none'], style
+    # 2026-11-25 시안: 진한 그라데이션 카드(흰 글자). ::before 는 글자 대비용 어두운 막(예전 노선 동그라미 크기·테두리는 지움).
+    style = card.evaluate("e=>{const s=getComputedStyle(e),b=getComputedStyle(e,'::before');return [s.borderTopLeftRadius,s.color,s.backgroundImage.includes('gradient'),b.borderTopWidth,b.width===s.width]}")
+    assert style == ['20px', 'rgb(255, 255, 255)', True, '0px', True], style
 
 
 @pytest.mark.parametrize('width', [375, 1280])

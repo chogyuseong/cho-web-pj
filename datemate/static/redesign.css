@@ -849,3 +849,65 @@ html body #quick-search-input, html body #quick-search-input:focus { border:0; b
 /* ---------- 24) 코스 지도 번호 표시 분류 색(maps.js 의 .route-stop-marker[data-kind]) — 2026-11-26 요구 문서 Phase 3 ----------
    흰 숫자가 읽히게 진한 색(--kind-ink). 일정 카드에서 고른 표시(is-focused)는 예전처럼 옵시디언 + 코랄 고리(237번 줄 규칙이 이긴다). */
 .route-marker.route-stop-marker[data-kind]:not(.is-focused) { background:var(--kind-ink); border-color:#fff; color:#fff; }
+
+/* ---------- 25) 375px 휴대폰 정리 — 2026-11-26 101차 운영 확인(아이폰 SE·미니 폭) ----------
+   ① 머리글: 돋보기(빠른 검색) 단추가 생겨 375px 에서 3px 모자라 데이트/여행 스위치가 둘째 줄로 밀렸다 → 400px 이하에서 스위치의 작은 그림을 숨기고 폭을 112px 로(글자는 그대로)
+      머리글 간격·돋보기 오른쪽 여백을 줄인다. 320px 은 로고 131 + 돋보기 44 + 스위치 104 + 여백이 화면(305)보다 22px 넓어 스위치가 둘째 줄로 내려간다(넘침 없음, 요구 기준 375px).
+   ② 하단 바: 네 칸을 같은 폭(375px 에서 78px)으로 나눠 '장소 둘러보기'(약 88px)만 두 줄이 됐다 → 340~400px 에서는 칸 폭을 글자 길이에 맞춘다(합 약 322px).
+      340px 미만은 예전처럼 같은 폭(두 줄 허용 — 글자 합이 화면보다 넓다).
+   ③ 바구니 도크: 휴대폰에서는 제목 한 줄 · 담은 장소 칩 한 줄(가로로 밀기) · 단추 한 줄. 장소 이름은 줄바꿈하지 않는다. */
+@media(max-width:720px) {
+  html body > header { column-gap:8px; }
+  .quick-search-open { margin-right:0; }
+  .basket-title { flex:1 1 100%; }
+  .basket-list { flex:1 1 100%; flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; scrollbar-width:thin; }
+  .basket-item { flex:0 0 auto; white-space:nowrap; }
+  .basket-clear { flex:0 0 auto; }
+  .basket-go { flex:1 1 auto; }
+}
+@media(max-width:400px) { #mode-switch svg { display:none; } html body .mode-switch { width:112px; } }
+@media(min-width:340px) and (max-width:400px) {
+  html body > header nav { grid-template-columns:repeat(4,minmax(max-content,1fr)); }
+  html body > header nav > :is(a,button.nav) { white-space:nowrap; }
+}
+/* 320px(가장 좁은 휴대폰): 스위치 단추 안쪽 여백을 줄여 머리글 한 줄을 지킨다(누르는 높이 44px 는 그대로). */
+/* 340px 이하(320px 휴대폰): 머리글 한 줄·높이 120px 이하를 지킨다(tests/test_readability_stage1_ui.py test_phone_header_is_one_compact_block).
+   간격 8→6px, 로고 아이콘 36→30px·글자 20→15px, 스위치 100px. 합 약 299px(305px 안). 글자는 14px 이상 그대로.
+   좌우 여백(16px)은 line.css 의 '!important' 규칙이라 여기서 줄이지 않는다. */
+@media(max-width:340px) {
+  .mode-switch button { min-width:0; padding:6px 2px; font-size:14px; letter-spacing:-.04em; white-space:nowrap; }
+  html body .mode-switch { width:100px; }
+  html body > header { column-gap:6px; }
+  html body > header .brand { gap:6px; }
+  html body > header .brand-icon { width:30px; height:30px; border-radius:11px; }
+  html body > header .brand-name { font-size:15px; }
+}
+
+/* ---------- 26) 사진 없는 장소의 네이버 이미지 검색 결과(place-photos.js naverImageFold·naverImageBlock, app/naver_images.py) — 2026-11-26 ----------
+   사진 칸 아래 따로 접힌 칸(테두리 상자). 안에는 '네이버 검색결과' 블록 하나만(머리글·본문·바닥 BI). 썸네일 3열(휴대폰 2열), 받은 순서 그대로.
+   제목은 두 줄까지 보이되 잘라 다듬지 않는다(줄 넘침은 가리지 않고 줄바꿈 — 특약 1.2 '가공 없이'). */
+.naver-images { margin:10px 0 0; border:1px solid var(--border-strong); border-radius:var(--radius-md); background:var(--bg-surface); }
+.naver-images > summary { display:flex; align-items:center; min-height:44px; padding:8px 14px; cursor:pointer; color:var(--ink-primary); font-size:14px; font-weight:700; }
+.naver-images-content { padding:0 10px 10px; }
+.naver-images-content > .hint { margin:4px 4px 8px; }
+.naver-image-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:0; padding:4px 0; list-style:none; }
+.naver-image-item figure { margin:0; }
+.naver-image-item img { display:block; width:100%; height:auto; aspect-ratio:4/3; object-fit:cover; border-radius:var(--radius-sm); background:var(--bg-subtle); }
+.naver-image-item figcaption { margin-top:4px; color:var(--ink-secondary); font-size:14px; line-height:1.45; overflow-wrap:anywhere; }
+.naver-image-item a { display:block; color:inherit; text-decoration:none; }
+.naver-image-item a:focus-visible { outline:3px solid var(--ink-primary); outline-offset:2px; border-radius:var(--radius-sm); }
+@media(max-width:600px) { .naver-image-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media print { .naver-images { display:none; } }
+
+/* ---------- 27) 장소 상세 서랍 · 바텀 시트(place-dialog.js showPlace → #dialog.place-drawer) — 2026-11-26 요구 문서 Phase 4 ----------
+   넓은 화면: 오른쪽에 붙는 서랍(폭 520px, 화면 높이). 720px 이하: 아래에 붙는 시트(높이 최대 88%, 위 모서리만 둥글게).
+   같은 <dialog> 라 키보드 가두기·Esc 닫기·포커스 되돌리기는 그대로. 들어오는 움직임은 '움직임 줄이기' 설정이면 끈다. */
+#dialog.place-drawer { position:fixed; inset:0 0 0 auto; margin:0; width:min(520px,100%); max-width:100%; height:100dvh; max-height:100dvh; border-radius:var(--radius-xl) 0 0 var(--radius-xl); border-right:0; box-shadow:var(--shadow-float); }
+#dialog.place-drawer[open] { animation:drawer-in .26s cubic-bezier(.2,.8,.2,1); }
+@keyframes drawer-in { from { transform:translateX(40px); opacity:.4; } to { transform:none; opacity:1; } }
+@media(max-width:720px) {
+  #dialog.place-drawer { inset:auto 0 0 0; margin:0; width:100%; height:auto; max-height:88dvh; border-radius:var(--radius-xl) var(--radius-xl) 0 0; border-right:1px solid var(--line); border-bottom:0; }
+  #dialog.place-drawer[open] { animation-name:sheet-in; }
+  @keyframes sheet-in { from { transform:translateY(48px); opacity:.4; } to { transform:none; opacity:1; } }
+}
+@media(prefers-reduced-motion:reduce) { #dialog.place-drawer[open] { animation:none; } }

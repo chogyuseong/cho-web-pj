@@ -73,3 +73,25 @@ def test_auto_adjust_sends_the_first_recovery_option(audit_page):
     auto.click()
     page.wait_for_function('!!document.querySelector("#toast")?.textContent.includes("테스트: 저장하지 않음")')
     assert sent == [{'index': 0, 'minutes': 30, 'target': 1, 'replacement_id': 'opt-1'}]
+
+
+def test_place_info_opens_as_a_drawer_or_bottom_sheet(audit_page):
+    """장소 정보(place-dialog.js showPlace)는 넓은 화면에서 오른쪽 서랍, 720px 이하에서 아래 시트(redesign.css 27)). 닫으면 보통 대화상자로."""
+    page, _, _ = audit_page
+    generate(page)
+    wait_for_selected_detail(page)
+    for width in (1280, 390):
+        page.set_viewport_size({'width': width, 'height': 800})
+        page.evaluate("showPlace(selected.places[0].id,'demo')")
+        page.wait_for_function("document.getElementById('dialog').open&&document.getElementById('dialog').classList.contains('place-drawer')")
+        page.wait_for_timeout(350)
+        box = page.evaluate("""()=>{const r=document.getElementById('dialog').getBoundingClientRect();
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,cw:document.documentElement.clientWidth,vh:innerHeight};}""")
+        assert abs(box['right'] - box['cw']) <= 1 and box['bottom'] <= box['vh'] + 1, (width, box)
+        if width > 720:
+            assert box['top'] <= 1 and box['left'] > 200, box
+        else:
+            assert abs(box['bottom'] - box['vh']) <= 1 and box['left'] <= 1, box
+        page.keyboard.press('Escape')
+        page.wait_for_function("!document.getElementById('dialog').open")
+        assert page.evaluate("document.getElementById('dialog').classList.contains('place-drawer')") is False

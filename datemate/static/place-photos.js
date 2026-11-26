@@ -197,6 +197,45 @@ function planPhotoPreview(plan){
   }
   return row;
 }
+/* 사진이 없는 장소의 네이버 이미지 검색 결과(2026-11-26, app/naver_images.py — 네이버 답 '선별·가공 없이 순서·내용 유지해 표시는 이용 가능').
+   사진 칸 아래 따로 접힌 칸(details.naver-images)에 '네이버 검색결과' 블록 하나만 둔다: 머리글(검색어·건수·원본 ↗), 본문(받은 순서 그대로의 썸네일과 제목),
+   바닥 BI 로고(naver-attribution.js naverResultBlock). 블록 앞뒤에 우리 글을 붙이지 않는다(네이버 답 2-1·2-2). 이 장소 사진이 맞는지는 우리가 판정하지 않는다
+   — 접힘 제목에 '이 장소 사진인지 확인 안 됨'을 적는다(블록 밖, 칸 제목). 썸네일은 네이버 주소 그대로(no-referrer), 누르면 원본 그림을 새 창으로.
+   펼칠 때 한 번만 부르고, 결과 없음·실패는 블록 없이 우리 안내 한 줄. */
+const placeImageRequests=new Map();
+function naverImageFold(place){
+  const fold=node('details',undefined,'naver-images');
+  fold.append(node('summary','네이버 이미지 검색 결과 보기 · 이 장소 사진인지 확인 안 됨'));
+  const content=node('div',undefined,'naver-images-content');fold.append(content);
+  let loaded=false;
+  fold.addEventListener('toggle',async()=>{
+    if(!fold.open||loaded)return;loaded=true;
+    const status=node('p','네이버 이미지 검색 결과를 불러오고 있어요…','hint');status.setAttribute('role','status');content.replaceChildren(status);
+    try{
+      if(!placeImageRequests.has(place.id))placeImageRequests.set(place.id,api('/places/'+encodeURIComponent(place.id)+'/images?mode=real').catch(e=>{placeImageRequests.delete(place.id);throw e;}));
+      const data=await placeImageRequests.get(place.id);
+      const images=Array.isArray(data.images)?data.images:[];
+      if(!images.length){content.replaceChildren(node('p',data.message||'이미지 검색 결과가 없어요.','hint'));return;}
+      content.replaceChildren(naverImageBlock(data,images));
+    }catch(error){loaded=false;content.replaceChildren(node('p','이미지 검색 결과를 불러오지 못했어요. 다시 펼쳐 주세요.','hint'));}
+  });
+  return fold;
+}
+function naverImageBlock(data,images){
+  const block=naverResultBlock('이미지 검색',data.search_url,{tag:'div',className:'naver-image-block',heading:node('h5',`‘${data.query}’ 이미지 검색 결과 ${images.length}건`,'naver-result-title')});
+  const list=node('ul',undefined,'naver-image-list');
+  for(const image of images){
+    const item=node('li',undefined,'naver-image-item');
+    const figure=node('figure');
+    if(image.thumbnail){const img=node('img');img.src=image.thumbnail;img.alt=image.title||'네이버 이미지 검색 결과';img.loading='lazy';img.decoding='async';img.referrerPolicy='no-referrer';img.width=160;img.height=120;figure.append(img);}
+    figure.append(node('figcaption',image.title||'(제목 없음)'));
+    if(image.link){const a=node('a');a.href=image.link;a.target='_blank';a.rel='noopener noreferrer';a.setAttribute('aria-label',(image.title||'이미지')+' 원본 보기 (새 창)');a.append(figure);item.append(a);}else item.append(figure);
+    list.append(item);
+  }
+  block.body.append(list);
+  return block;
+}
+
 function placePhotoPanel(place,photoMode,full=false,eager=false){
   const panel=node('section',undefined,'place-photo-panel');panel.setAttribute('aria-label',place.name+' 사진과 설명');
   if(place.demo||photoMode==='demo'){
@@ -213,7 +252,10 @@ function placePhotoPanel(place,photoMode,full=false,eager=false){
     let data=await fetchPlacePhotos(place,photoMode,refreshNext);refreshNext=false;
     panel.replaceChildren();
     // 사진이 없으면 빈 사진 칸 대신 이름·주소 카드와 네이버 지도 링크를 둔다(2026-11-19, 전에는 네이버 이미지 검색 결과 링크).
-    if(!data.photos.length){const empty=node('div',undefined,'photo-empty-card');empty.append(node('strong',place.name),node('p',place.category||'장소'),node('p',place.address||'주소는 장소 정보에서 확인해 주세요.'));panel.append(empty,emptyBody(node('p',data.message||'해당 장소의 사진을 찾지 못했습니다.','photo-status'),photoMapLink(place),...(data.photo_retry?[retry()]:[])));return;}
+    if(!data.photos.length){const empty=node('div',undefined,'photo-empty-card');empty.append(node('strong',place.name),node('p',place.category||'장소'),node('p',place.address||'주소는 장소 정보에서 확인해 주세요.'));panel.append(empty,emptyBody(node('p',data.message||'해당 장소의 사진을 찾지 못했습니다.','photo-status'),photoMapLink(place),...(data.photo_retry?[retry()]:[])));
+      // 사진이 없으면 접힌 '네이버 이미지 검색 결과'(2026-11-26, 아래 naverImageBlock). 펼칠 때만 부른다.
+      panel.append(naverImageFold(place));
+      return;}
     const photo=data.photos[0],figure=node('figure',undefined,'place-photo'),img=node('img');
     img.alt=photo.title+' — '+place.name;img.loading=eager?'eager':'lazy';img.decoding='async';img.width=640;img.height=420;
     // 사진을 받기 전(화면 근처를 기다리는 동안)에는 src 없는 img 의 대체 글자가 보이지 않게 숨겨 둔다. 자리는 .photo-viewport 가 잡는다.

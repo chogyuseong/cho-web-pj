@@ -7,7 +7,16 @@
 
 ★ 지금 상태 (2026-11-26 기준)
 ----------------------------------------------------------------------
-브랜치 feat/good-price-menus(2026-11-26, 아직 main 병합·배포 전 — 사용자 확인 뒤): 식당 메뉴 칸에 서울시 착한가격업소 메뉴·가격.
+백세 번째 배포(2026-11-26 저녁) 완료: main 4c74a93(병합 = feat/good-price-menus b5245e0), Worker 버전 e38c39fb-f44d-49e5-a470-76bc1ab9b1bd.
+  사용자 '진행해'(병합·배포). 이 컴퓨터는 openapi.seoul.go.kr:8088 이 열려 있어(예전 컴퓨터는 막힘) sample·실제 키 호출로 바로 진행함. 내용은 바로 아래 브랜치 기록.
+  · 검증: 브랜치 CI Run 45834192476 성공 → main --no-ff 병합·push → npm run test:security 27 통과 → npx wrangler@4.160.1 deploy(정적 4개: meal-suggestions·results.css·plan-evidence·experience.js).
+    Docker Desktop 이 꺼져 있어 %LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe 로 켠 뒤 배포.
+  · 운영 확인(13분 기다린 뒤): /api/status 200·server-timing 있음, meal-suggestions.js ?v=e1d5d299389c = 로컬 sha256, goodPriceMenu 들어 있음.
+    둘러보기 서울 식당 305곳의 /api/places/{id}/menu 를 불러 봄(첫 요청으로 배경 받기 → 25초 뒤): seoul_good_price 2곳·map_link 148곳(나머지 155곳은 내 쪽 연결 제한 429 — 요청마다 새 연결을 연 탓).
+    예: public:store-MA010120220800023022 '광나루찌개'(서울특별시 종로구 대학로5가길 1) 된장찌개 6,000원·삼겹살 10,000원·김치찌개 6,000원, checked_at 2026-11-26
+    → 운영 컨테이너에 키가 넘어가고 서울 API 로 나갈 수 있음 확인. 화면(브라우저)에서 메뉴 칸 모양은 직접 보지 않음(테스트로만).
+  · 되돌리는 법: git revert -m 1 4c74a93 후 재배포. DB 변경 없음.
+브랜치 feat/good-price-menus(2026-11-26, 103차로 배포됨): 식당 메뉴 칸에 서울시 착한가격업소 메뉴·가격.
   ① 무엇을: 서울 열린데이터광장 OA-1174(ListPriceModelStoreProductService)의 품목·가격을, 같은 가게가 확실한 서울 식당의 메뉴 칸에 글 그대로 먼저 보여 줌.
      새 파일 datemate/app/good_price.py(받기·보관·판정), app/menus.restaurant_menu(운영자 확인 메뉴 다음 순서, source_kind 'seoul_good_price'),
      static/meal-suggestions.js goodPriceMenu(제목 '메뉴·가격', 줄 6개+'외 n개 메뉴', '착한가격업소 · 서울시 제공 · 받은 날 확인 출처 ↗', 지도 링크 단추, '새로 조회' 단추 없음),

@@ -16,7 +16,7 @@ def header_fits(page, width, feedback_page=False):
     items = page.evaluate(NAV)
     # 2026-11-25 시안: 데스크톱 메뉴는 코스 만들기·테마 추천·장소 둘러보기·피드백. 휴대폰 하단 바(홈 화면)는 피드백 대신 코스 결과가
     # 있다(DOM 순서로는 마지막, CSS order 로 셋째 칸). 피드백 화면 메뉴는 폭과 관계없이 피드백까지 넷.
-    expected = ['코스 만들기', '테마 추천', '장소 둘러보기', '코스 결과' if width <= 720 and not feedback_page else '피드백']
+    expected = ['코스 만들기', '테마 추천', '장소 둘러보기', '추천 결과' if width <= 720 and not feedback_page else '피드백']
     assert [i['text'] for i in items] == expected, (width, items)
     assert len({i['top'] for i in items}) == 1, (width, items)  # 한 줄
     assert all(44 <= i['height'] < 60 for i in items), (width, items)  # 낱말이 두 줄로 깨지지 않음

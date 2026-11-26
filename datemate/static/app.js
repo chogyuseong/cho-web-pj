@@ -283,8 +283,13 @@ function linkedText(tag, text, cls) {
   return root;
 }
 
-function toast(text) {
+/* 알림(토스트). options.action = {label, run} 이면 글 옆에 단추를 단다(2026-11-26 요구 문서 Phase 1 '되돌리기 토스트').
+   action 을 주지 않아도, 바로 앞에 코스를 새 버전으로 바꾼 동작이 남긴 되돌리기(toast.pendingUndo, plan-actions.js commitNewPlan)가 있으면
+   그 단추를 대신 단다 — 교체·레저·지각 복구처럼 바꾼 뒤 자기 알림을 띄우는 곳도 따로 고치지 않고 [되돌리기]가 붙는다. */
+function toast(text, options = {}) {
   const el = $('#toast');
+  const action = options.action || toast.pendingUndo || null;
+  toast.pendingUndo = null;
   // showModal() 로 연 대화상자는 최상위 층이고 바깥은 비활성(inert)이라 body 의 토스트가 그 뒤에 가려지고 읽히지도 않는다.
   // 열린 모달이 있으면 토스트를 그 안으로 옮기고, 대화상자가 닫히면 body 로 되돌린다.
   let host = document.body;
@@ -299,10 +304,19 @@ function toast(text) {
       once: true
     });
   }
-  el.textContent = text;
-  $('#toast').style.display = 'block';
+  if (action) {
+    const label = node('span', text, 'toast-text');
+    const go = button(action.label, () => {
+      el.style.display = 'none';
+      clearTimeout(toast.timer);
+      action.run();
+    }, 'toast-action');
+    el.replaceChildren(label, go);
+  } else el.textContent = text;
+  $('#toast').style.display = action ? 'flex' : 'block';
   // 읽을 시간: 글 길이에 맞춰 6.5~15초(한 글자 약 0.15초). 마우스를 올리거나 포커스가 있는 동안은 닫지 않는다(WCAG 2.2.1, 2026-11-17).
-  toast.wait = Math.min(15000, Math.max(6500, String(text).length * 150));
+  // 되돌리기 단추가 있으면 누를 시간을 넉넉히(최소 10초).
+  toast.wait = Math.min(15000, Math.max(action ? 10000 : 6500, String(text).length * 150));
   toast.schedule();
 }
 toast.schedule = function(wait = toast.wait || 6500) {
@@ -598,6 +612,7 @@ form.elements.request.addEventListener('change', () => applyRequest().catch(e =>
 
 function beginPlanSearch() {
   plans = [];
+  window.syncResultsTab?.();
   selected = null;
   locks.clear();
   const detail = $('#plan-detail');
@@ -721,6 +736,7 @@ form.elements.mode.addEventListener('change', () => {
   selected = null;
   locks.clear();
   plans = [];
+  window.syncResultsTab?.();
   mode = form.elements.mode.value;
   clearLocationsForMode();
   if (mode === 'demo') form.elements.region.value = '서울';
@@ -735,6 +751,7 @@ form.elements.region.addEventListener('change', () => {
   selected = null;
   locks.clear();
   plans = [];
+  window.syncResultsTab?.();
 });
 
 

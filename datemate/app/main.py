@@ -487,7 +487,7 @@ def location_region(data: CoordinateInput, request: Request):
             status="key_missing",
             region=None,
             label="",
-            message="시·도 자동 확인에는 네이버 Maps 키가 필요해요. 시·도를 직접 골라 주세요.",
+            message="지금은 시·도를 자동으로 확인할 수 없어요. 시·도를 직접 골라 주세요.",
         )
     # 지도 클릭마다 한 번만 확인하도록 사용자별 연속 요청을 제한한다.
     key = "region-rate:" + request.state.owner

@@ -34,13 +34,29 @@
     return 'home';
   }
   let last = '';
+  // '추천 결과' 탭(2026-11-26 요구 문서 Phase 1): 만든 코스가 있으면 데스크톱 메뉴에도 보이고 코스 개수 배지를 단다(redesign.css 19)).
+  // plans 는 app.js 의 전역 목록. 결과 화면을 오갈 때 body 클래스가 바뀌며 syncHeaderNav 가 불리므로 여기서 함께 맞춘다.
+  function syncResultsTab() {
+    const tab = document.getElementById('nav-results');
+    if (!tab) return;
+    const count = typeof plans !== 'undefined' && Array.isArray(plans) ? plans.length : 0;
+    tab.classList.toggle('has-plans', count > 0);
+    const badge = tab.querySelector('.nav-count');
+    if (badge) { badge.textContent = String(count); badge.hidden = count === 0; }
+    tab.setAttribute('aria-label', count ? `추천 결과 · 코스 ${count}개` : '추천 결과');
+    placeNavIndicator(); // 탭이 생기거나 사라지면 메뉴 폭이 바뀌어 미끄럼 표시 자리를 다시 잰다.
+  }
+  window.syncResultsTab = syncResultsTab;
   function syncHeaderNav() {
+    syncResultsTab();
     const now = current();
     if (now === last) return;
     last = now;
-    // 휴대폰 하단 바의 '코스 결과'는 결과 화면(body.show-date-plan)에 있는 동안 현재 위치.
+    // '추천 결과'(휴대폰 하단 바 · 코스가 있으면 데스크톱 메뉴)는 결과 화면(body.show-date-plan)에 있는 동안 현재 위치.
     const results = document.getElementById('nav-results');
-    for (const [item, on] of [[home, now === 'home'], [plan, now === 'plan'], [explore, now === 'explore'], [results, body.classList.contains('show-date-plan')]]) {
+    // 결과 화면에서는 '추천 결과'만 현재 위치다(2026-11-26 — 예전에는 결과 화면도 '코스 만들기'가 함께 켜졌다. 결과 탭이 데스크톱에도 생겨 하나로).
+    const onResults = body.classList.contains('show-date-plan');
+    for (const [item, on] of [[home, now === 'home'], [plan, now === 'plan' && !onResults], [explore, now === 'explore'], [results, onResults]]) {
       if (!item) continue;
       item.classList.toggle('active', on);
       // 현재 위치는 링크·단추 모두 aria-current 하나로 알린다(2026-11-25 운영 QA-11 — 예전에는 단추만 aria-pressed 였다).
@@ -152,6 +168,8 @@
   function saved() { try { return localStorage.getItem(KEY) === 'travel' ? 'travel' : 'date'; } catch { return 'date'; } }
   function apply(mode, fromUser) {
     body.classList.toggle('mode-travel', mode === 'travel');
+    // 디자인 토큰(tokens.css html[data-mode="travel"])의 포인트색 전환. 예전 규칙은 body.mode-travel 을 보므로 둘 다 둔다.
+    document.documentElement.dataset.mode = mode;
     switcher?.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     const copy = COPY[mode];
     const h1 = document.querySelector('.hero-copy h1');

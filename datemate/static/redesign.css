@@ -663,12 +663,13 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
    글자는 모두 14px 이상·명암비 4.5 이상(tests/test_readability_ui.py). 그래서 시안의 작은 태그(10~11px)와 코랄 글자(#FF385C, 흰 바탕 3:1)는 쓰지 않고,
    코랄은 점·테두리에만, 분류 색 글자는 같은 계열의 진한 색(--kind-*-ink)으로 바꿨다. 분류 색은 결과 화면 16) 과 같이 쓴다. */
 :root {
-  --hairline:#E4E4E7; --alabaster:#F8F9FA; --obsidian:#09090B; --coral:#FF385C;
-  --kind-cafe:#F59E0B; --kind-cafe-ink:#B45309; --kind-cafe-soft:#FEF3C7;
-  --kind-culture:#8B5CF6; --kind-culture-ink:#6D28D9; --kind-culture-soft:#EDE9FE;
-  --kind-food:#F43F5E; --kind-food-ink:#BE123C; --kind-food-soft:#FFE4E6;
-  --kind-walk:#10B981; --kind-walk-ink:#047857; --kind-walk-soft:#D1FAE5;
-  --kind-play:#3B82F6; --kind-play-ink:#1D4ED8; --kind-play-soft:#DBEAFE;
+  /* 값은 tokens.css(요구 문서 토큰)에서 가져온다. 이 이름들은 15)~18) 이 쓰는 별칭 — 새 규칙은 tokens.css 이름을 바로 써도 된다. */
+  --hairline:var(--border-strong); --alabaster:var(--bg-subtle); --obsidian:var(--ink-primary); --coral:var(--brand-primary);
+  --kind-cafe:var(--cat-cafe); --kind-cafe-ink:var(--cat-cafe-ink); --kind-cafe-soft:var(--cat-cafe-bg);
+  --kind-culture:var(--cat-exhibition); --kind-culture-ink:var(--cat-exhibition-ink); --kind-culture-soft:var(--cat-exhibition-bg);
+  --kind-food:var(--cat-food); --kind-food-ink:var(--cat-food-ink); --kind-food-soft:var(--cat-food-bg);
+  --kind-walk:var(--cat-walk); --kind-walk-ink:var(--cat-walk-ink); --kind-walk-soft:var(--cat-walk-bg);
+  --kind-play:var(--cat-activity); --kind-play-ink:var(--cat-activity-ink); --kind-play-soft:var(--cat-activity-bg);
 }
 body:not(.show-date-plan) .romance-hero { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); align-items:center; gap:56px; padding:64px 0 72px; }
 .romance-hero .hero-copy { display:block; padding:0; }
@@ -788,3 +789,32 @@ html body #quick-search-input, html body #quick-search-input:focus { border:0; b
 .activity-group .quick-chips button[data-theme="문화·예술"] { --kind-color:var(--kind-culture); --kind-ink:var(--kind-culture-ink); --kind-soft:var(--kind-culture-soft); }
 .activity-group .quick-chips button:is([data-theme="체험·제작"],[data-theme="오락·놀이"],[data-theme="레저·활동"]) { --kind-color:var(--kind-play); --kind-ink:var(--kind-play-ink); --kind-soft:var(--kind-play-soft); }
 #conditions .activity-group .quick-chips button[data-theme][aria-pressed=true] { background:var(--kind-soft); border-color:var(--kind-color); color:var(--kind-ink); box-shadow:none; }
+
+/* ---------- 19) '추천 결과' 탭 · 코스 개수 배지 — 2026-11-26 요구 문서 Phase 1 ----------
+   데스크톱: 코스를 만들기 전에는 숨기고(57번 줄 규칙), 만든 뒤(header-mode.js syncResultsTab 이 .has-plans)에는 '코스 만들기' 바로 뒤에 보인다.
+   메뉴 순서(데스크톱): 코스 만들기 · 추천 결과 · 테마 추천 · 장소 둘러보기 · 피드백 — DOM 순서는 그대로 두고 order 만 준다(휴대폰 하단 바 규칙 68번 줄과 별개).
+   배지: 브랜드 진한 색(--brand-ink) 원 안 흰 숫자(명암비 4.5 이상). 화면 읽기는 단추 aria-label('추천 결과 · 코스 3개'). */
+@media(min-width:721px) {
+  html body > header nav > button.nav-results.has-plans { display:inline-flex; order:2; }
+  html body > header nav > #nav-plan { order:1; }
+  html body > header nav > #nav-home { order:3; }
+  html body > header nav > #nav-explore { order:4; }
+  html body > header nav > .nav-feedback { order:5; }
+}
+.nav-count { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; margin-left:6px; padding:0 6px; border-radius:999px; background:var(--brand-ink); color:#fff; font-size:14px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+.nav-count[hidden] { display:none; }
+@media(max-width:720px) { .nav-count { position:absolute; top:4px; right:calc(50% - 26px); margin:0; min-width:18px; height:18px; padding:0 5px; font-size:14px; } html body > header nav > button.nav-results { position:relative; } }
+
+/* ---------- 20) 되돌리기 단추가 있는 알림(app.js toast options.action / toast.pendingUndo) ----------
+   알림 바탕(--hong)과 같은 계열 안에서 흰 테두리 단추. 단추 높이 44px. 글이 길면 단추가 아래 줄로 내려간다. */
+#toast:has(.toast-action) { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; border-radius:18px; }
+#toast .toast-action { min-height:44px; padding:0 16px; border:1px solid rgba(255,255,255,.9); border-radius:999px; background:transparent; color:#fff; font-size:15px; font-weight:800; }
+#toast .toast-action:hover { background:rgba(255,255,255,.16); }
+#toast .toast-action:focus-visible { outline:3px solid #fff; outline-offset:2px; }
+
+/* ---------- 21) 방문일 날씨(weather.js) — 2026-11-26 요구 문서 Phase 1. 날짜 줄 아래 칩 3개 + 비·눈일 때 실내 제안 줄 ---------- */
+#conditions .weather-choice { margin:4px 0 0; }
+#conditions .weather-choice-title { margin:0 0 8px; font-size:14px; font-weight:700; color:var(--ink-secondary); }
+#conditions .weather-suggest { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:10px 0 0; padding:10px 14px; border:1px solid var(--status-info); border-radius:var(--radius-md); background:var(--status-info-bg); color:#1E3A8A; font-size:15px; }
+#conditions .weather-suggest[hidden] { display:none; }
+#conditions .weather-indoor { min-height:44px; }

@@ -269,6 +269,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   when.append(take('visit_date'),take('start'),take('end'));
   const whenNote=node('p','','hint choice-note date-note');whenNote.setAttribute('role','status');
   form.append(when,whenNote);
+  // 방문일 날씨(선택, weather.js): 날짜 줄 바로 아래. 비·눈이면 실내 위주 제안.
+  window.mountWeatherChoice?.(whenNote);
   // 지난 시작 시각을 맞출 때 고르는 다음 시간대(예전 시간대 칩과 같은 값).
   const timeWindows=[['11:00','19:00'],['11:00','17:00'],['13:00','19:00'],['17:00','22:00']];
   function fitTimeToToday(){

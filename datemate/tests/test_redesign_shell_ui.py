@@ -47,7 +47,7 @@ def test_phone_menu_is_a_bottom_bar(audit_page, width):
     visible = [item for item in all_items.all() if item.is_visible()]
     assert len(visible) == 4
     visible.sort(key=lambda item: item.bounding_box()['x'])
-    assert [item.inner_text().strip() for item in visible] == ['코스 만들기', '테마 추천', '코스 결과', '장소 둘러보기']
+    assert [item.inner_text().strip() for item in visible] == ['코스 만들기', '테마 추천', '추천 결과', '장소 둘러보기']
     items = page.locator('body > header nav > :is(a,button):visible')
     boxes = [item.bounding_box() for item in visible]
     # 네 칸이 한 줄로 화면 아래에, 터치 높이 44px 이상.

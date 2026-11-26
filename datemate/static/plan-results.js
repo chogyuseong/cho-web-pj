@@ -75,6 +75,8 @@ function optionTabContent(p,i,active){
 // 탭을 빠르게 연달아 누르면 마지막 것만 그린다(plan-results choose).
 let chooseTurn=0;
 function renderResults(result={}){
+  // 머리글 '추천 결과' 탭의 코스 개수 배지(header-mode.js syncResultsTab)는 목록이 바뀔 때마다 맞춘다 — 결과 화면 클래스는 목록보다 먼저 바뀐다.
+  requestAnimationFrame(()=>window.syncResultsTab?.());
   const root=$('#results'),detail=$('#plan-detail')||node('div');detail.id='plan-detail';
   // 다시 그려도 사용자가 펼치거나 접은 상태는 유지한다. 처음에는 모바일에서 접고 데스크톱에서 편다.
   const wasOpen=selector=>{const box=root.querySelector(selector);return box?box.open:!RESULTS_MOBILE.matches;};

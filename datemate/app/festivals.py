@@ -132,7 +132,7 @@ def seen(content_id):
 def fetch_festivals(start, end, region):
     key = os.getenv('TOUR_API_KEY', '').strip()
     if not key:
-        return dict(status='key_missing', festivals=[], message='한국관광공사 관광정보 API 키를 설정하면 실제 축제를 조회할 수 있어요.')
+        return dict(status='key_missing', festivals=[], message='지금은 축제·행사 정보를 불러올 수 없어요. 잠시 후 다시 확인해 주세요.')  # 2026-11-26: 화면에 '키' 같은 개발자 말을 쓰지 않는다(상태는 status='key_missing' 으로 구분)
     cache_key = f'festivals:v5:{start}:{end}:{region or "all"}'
     cached = store.cached(cache_key)
     if cached:
@@ -192,7 +192,7 @@ def fetch_festival_detail(content_id):
     key = os.getenv('TOUR_API_KEY', '').strip()
     if not key:
         return dict(status='key_missing', fee=None, hours=None, place=None, checked_at=None,
-                    message='한국관광공사 관광정보 API 키를 설정하면 이용요금을 확인할 수 있어요.')
+                    message='지금은 이용요금 정보를 불러올 수 없어요. 행사 누리집에서 확인해 주세요.')
     cache_key = f'festival-detail:v1:{content_id}'
     cached = store.cached(cache_key)
     if cached:

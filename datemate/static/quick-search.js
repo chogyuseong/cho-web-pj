@@ -49,7 +49,7 @@
     page('코스 만들기', 'nav-plan', '조건 추천 만들기 시작');
     page('테마 추천', 'nav-home', '테마 큐레이션 처음');
     page('장소 둘러보기', 'nav-explore', '둘러보기 탐색 장소 팝업');
-    if (typeof plans !== 'undefined' && plans.length) page('코스 결과', 'nav-results', '결과 일정 비교');
+    if (typeof plans !== 'undefined' && plans.length) page('추천 결과', 'nav-results', '결과 일정 비교 코스');
     const feedback = document.getElementById('nav-feedback');
     if (feedback) out.push({ group: '페이지', label: '피드백', keywords: '의견 문의', run: () => { location.href = feedback.href; } });
     document.querySelectorAll('.curation-card[data-situation]').forEach(card => {

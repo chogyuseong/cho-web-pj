@@ -337,7 +337,7 @@ function syncResultsBars(p = selected) {
 /* 축제 구역 필터 탭(2026-11-25 Gemini Canvas 시안: 전체 / 축제·행사 / 팝업스토어). index.html #festival-section 머리말의 .event-filter.
    축제(한국관광공사 카드, festivals.js)와 팝업(네이버 블로그 검색 블록, popups.js #popup-course)은 서로 다른 구역이라 섞지 않고,
    .results-area 의 data-event-filter 로 한쪽 구역을 숨긴다(redesign.css 13)). 팝업 구역이 없거나 숨어 있으면 탭 자체를 숨긴다(고를 것이 하나뿐).
-   팝업 블록은 받은 그대로 보여 준다는 약관(특약 2.2) 때문에 글을 골라 카드로 만들지 않는다 — 탭은 구역을 통째로 보이거나 숨길 뿐이다. */
+   팝업 블록은 받은 그대로 보여 준다는 약관(특약 1.2) 때문에 글을 골라 카드로 만들지 않는다 — 탭은 구역을 통째로 보이거나 숨길 뿐이다. */
 document.addEventListener('click', event => {
   const tab = event.target.closest?.('.event-filter [data-event-filter]');
   if (!tab) return;

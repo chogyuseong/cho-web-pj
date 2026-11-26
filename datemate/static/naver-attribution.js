@@ -1,14 +1,15 @@
-/* 네이버 검색 API 특약 2.1·2.2(2026-09 개정): 네이버 검색 데이터가 보이는 곳마다 '네이버 검색결과'임을 표시하고,
+/* 네이버 검색 API 특약(2026-10-07 시행 「NAVER API HUB 서비스 이용약관」 1.1~1.4 — 2026-09 개정본의 2.1~2.4 와 같은 내용, 번호만 바뀜.
+   네이버 답변 2026-11-24, docs/naver-terms-inquiry-draft-2026-11-20.ko.md): 네이버 검색 데이터가 보이는 곳마다 '네이버 검색결과'임을 표시하고,
    항목마다 원본(데이터 출처)으로 가는 링크를 단다.
-   표기: NAVER API HUB 상표·BI 가이드(https://guide.ncloud-docs.com/docs/apihub-brandguide)의 텍스트 표기 'NAVER 오픈 API'.
-   로고 이미지는 쓰지 않는다(가이드가 텍스트 표기를 허용, 로고 파일은 받지 않음).
-   2026-11-24 사용자 결정: 'NAVER 오픈 API' 는 링크가 아니라 작은 회색 글자(.naver-api-mark)로만 둔다 — 사용자가 누를 일이 없는 단추처럼 보였다.
-   출처 표시 자체(네이버 검색결과임 + 원본 링크)는 그대로다. 가이드가 링크까지 요구하는지는 분명하지 않아, 네이버 질의
-   (docs/naver-terms-inquiry-draft-2026-11-20.ko.md) 답에서 링크가 필요하다고 하면 아래 NAVER_API_HUB_URL 로 다시 링크를 걸면 된다
-   (주소는 대소문자를 가린다 — '/NAVERAPIHUB' 는 404 였다).
+   BI: NAVER API HUB 상표·BI 가이드(https://guide.ncloud-docs.com/docs/apihub-brandguide)의 기술 표기 가로형 로고
+   'Powered by NAVER OpenAPI'(가이드 PNG 묶음 '2-1. NAVER OpenAPI_c_hor.png' 를 높이 36px 로 줄인 static/brand/naver-openapi-powered.png).
+   가이드대로 로고를 누르면 NAVER API HUB 소개가 새 창으로 열린다. 가이드 예시처럼 결과 영역 오른쪽 아래에 둔다.
+   (2026-11-24 의 '작은 회색 글자 NAVER 오픈 API, 링크 없음'은 네이버 답 '표시는 BI 가이드에 따라'를 받고 2026-11-26 로고로 바꿈.)
+   주소는 대소문자를 가린다 — '/NAVERAPIHUB' 는 404 였다(2026-11-24 확인).
    다른 스크립트보다 먼저 읽힌다(index.html). DOM 도우미(node·link)에 기대지 않는다. */
 const NAVER_API_HUB_URL = 'https://www.ncloud.com/product/applicationService/naverApiHub';
 const NAVER_RESULT_LABEL = '네이버 검색결과';
+const NAVER_LOGO_SRC = '/static/brand/naver-openapi-powered.png'; // 395×36 PNG, 화면에서는 높이 14px(.naver-powered img). 파일을 바꾸면 width·height 도.
 
 function naverSafeUrl(url) {
   try {
@@ -29,8 +30,24 @@ function naverAnchor(text, url, label) {
   return a;
 }
 
-/* kind: '지역 검색' · '블로그 검색' · '이미지 검색'. originalUrl: 이 항목의 원본(없으면 원본 링크 없이 표시만). */
-function naverAttribution(kind, originalUrl, tag = 'p') {
+/* BI 로고 링크 하나('Powered by NAVER OpenAPI' → NAVER API HUB 소개, 새 창). 블록 오른쪽 아래와 아래 naverAttribution 한 줄이 쓴다. */
+function naverPoweredBy() {
+  const a = naverAnchor('', NAVER_API_HUB_URL, 'Powered by NAVER OpenAPI — NAVER API HUB 소개 새 창');
+  a.className = 'naver-powered';
+  const img = document.createElement('img');
+  img.src = NAVER_LOGO_SRC;
+  img.alt = 'Powered by NAVER OpenAPI';
+  img.width = 154; // 395×36 을 높이 14px 로 — CLS 를 막으려고 크기를 미리 적는다.
+  img.height = 14;
+  img.decoding = 'async';
+  a.append(img);
+  return a;
+}
+
+/* 블록 밖 한 줄 출처 표시(예전에 저장한 코스의 네이버 검색 장소 — maps.js·place-dialog.js·plan-detail.js·shared.js).
+   kind: '지역 검색' · '블로그 검색' · '이미지 검색'. originalUrl: 이 항목의 원본(없으면 원본 링크 없이 표시만).
+   options.logo=false: 로고를 따로 두는 곳(블록 머리글 — 로고는 블록 오른쪽 아래). */
+function naverAttribution(kind, originalUrl, tag = 'p', options = {}) {
   const box = document.createElement(tag);
   box.className = 'naver-attribution';
   const label = document.createElement('span');
@@ -39,22 +56,24 @@ function naverAttribution(kind, originalUrl, tag = 'p') {
   box.append(label);
   const original = naverSafeUrl(originalUrl);
   if (original) box.append(document.createTextNode(' · '), naverAnchor('원본 ↗', original, NAVER_RESULT_LABEL + ' 원본 보기'));
-  const mark = document.createElement('span');
-  mark.className = 'naver-api-mark';
-  mark.textContent = 'NAVER 오픈 API';
-  box.append(document.createTextNode(' · '), mark);
+  if (options.logo !== false) box.append(document.createTextNode(' '), naverPoweredBy());
   return box;
 }
 
-/* 네이버 검색결과 블록(특약 2.2 '독립적으로, 가공 없이 노출', docs/naver-terms-stage2-design.ko.md 3.7(a)).
+/* 네이버 검색결과 블록 — 특약 1.2 '독립적으로, 가공 없이 노출'(docs/naver-terms-stage2-design.ko.md 3.7(a)).
    화면에 남는 네이버 검색 결과는 모두 이 블록 하나로 그린다: 블로그 글(place-blogs.js·course-search.js), 팝업 글(popups.js),
-   둘러보기의 '네이버에서 더 찾기'(explore.js), 출발지 이름 검색(location-picker.js).
-   모양: 테두리로 두른 상자, 머리글('네이버 검색결과 · 종류 · 원본 ↗ · NAVER 오픈 API'), 그 아래 본문.
-   규칙: 본문(.naver-result-body)에는 API 가 준 필드(제목·요약·주소·분류·작성자·날짜·원본 링크)만 넣는다. 우리 정보 — 메뉴, 사진, 지도,
-   일정에 넣기 같은 단추, 우리 분류 태그, 안내 문장 — 는 블록 밖(앞이나 뒤의 다른 요소)에 둔다. 같은 카드 안이라도 블록 경계 안으로
-   넣지 않는다(네이버 답을 받기 전의 보수적인 기준, 5-1절 Q2). 받은 순서를 바꾸지 않고, 「더 보기」는 뒤쪽 항목을 접어 둔 것을 펴기만 한다.
-   kind: '지역 검색' · '블로그 검색'. originalUrl: 같은 검색어의 네이버 화면. options.heading: 머리글 맨 위에 둘 제목 요소(검색어·건수).
-   돌려주는 요소의 body 속성이 본문이다. */
+   둘러보기의 '네이버에서 더 찾기'(explore.js), 출발지 이름 검색(location-picker.js·simple-form.js).
+   모양: 테두리로 두른 독립 영역 = 머리글(.naver-result-head: 제목[검색어·건수] + '네이버 검색결과 · 종류 · 원본 ↗')
+         + 본문(.naver-result-body) + 바닥(.naver-result-foot: 왼쪽 「더 보기」 자리 block.foot, 오른쪽 BI 로고).
+   네이버 답변(2026-11-24, 첫 문의 2-1·2-2):
+     · 블록 앞·뒤·중간에 다른 정보를 넣지 않는다. 같은 카드 안에서 블록 바로 위·아래에 우리 정보를 붙이는 것도 앞·뒤 삽입이다
+       → 블록이 든 칸에는 블록만 둔다. 우리 정보(메모·안내·단추·사진·메뉴)는 테두리로 나뉜 다른 칸에(예: 코스 조사의 메모 상자와 블로그 칸).
+     · 블록 앞의 안내 문구(예: '광고 글이 섞일 수 있어요')도 앞 삽입 → 두지 않는다. 네이버 결과임은 머리글 표시 + BI 로고로만 알린다.
+   본문에는 API 가 준 필드(제목·요약·주소·분류·작성자·날짜·전화·원본 링크)만. 받은 순서·건수를 바꾸지 않는다.
+   「더 보기」(block.foot)는 받은 결과의 뒤쪽을 같은 순서로 펴는 쪽 넘김이라 블록 안 바닥에 둔다 — 정보 삽입이 아니라 네이버 결과 목록의 일부로 본다
+   (네이버 검색 화면의 '더보기'와 같은 역할. 문서 docs/naver-terms-inquiry-draft-2026-11-20.ko.md 에 판단 기록).
+   kind: '지역 검색' · '블로그 검색' · '이미지 검색'. originalUrl: 같은 검색어의 네이버 화면. options.heading: 머리글 맨 위에 둘 제목 요소(검색어·건수).
+   돌려주는 요소의 body 가 본문, foot 이 「더 보기」 자리다. */
 function naverResultBlock(kind, originalUrl, options = {}) {
   const block = document.createElement(options.tag || 'section');
   block.className = 'naver-result-block' + (options.className ? ' ' + options.className : '');
@@ -62,11 +81,17 @@ function naverResultBlock(kind, originalUrl, options = {}) {
   const head = document.createElement('div');
   head.className = 'naver-result-head';
   if (options.heading) head.append(options.heading);
-  head.append(naverAttribution(kind, originalUrl));
+  head.append(naverAttribution(kind, originalUrl, 'p', { logo: false }));
   const body = document.createElement('div');
   body.className = 'naver-result-body';
-  block.append(head, body);
+  const foot = document.createElement('div');
+  foot.className = 'naver-result-foot';
+  const pager = document.createElement('div');
+  pager.className = 'naver-result-pager';
+  foot.append(pager, naverPoweredBy());
+  block.append(head, body, foot);
   block.body = body;
+  block.foot = pager;
   return block;
 }
 

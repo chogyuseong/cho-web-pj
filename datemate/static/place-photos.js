@@ -23,7 +23,7 @@ function photoCheckedAt(value){
 // 네이버 사진의 구분(업체 등록 / 방문자 후기 / 업체 연결 공개 사진 · 등록 주체 미확인, 내용 미검사)도 2026-11-18 부터 여기 첫 줄이다
 // (출처 줄에서 옮김, 사용자 지시 — photoCredits 머리 주석). 접기가 없는 크게 보기 창에서는 '원본' 링크의 이름·title 로만 남는다.
 // 네이버 공개 사진(place_public): 네이버와 서면으로 허락을 받았을 때만 켜지는 경로의 사진이다(app/naver_pages.py, 지금은 꺼짐).
-// 네이버 이미지 검색으로 고른 '검색 사진'은 2026-11-20 에 없앴다(특약 2.2, docs/naver-terms-stage2-design.ko.md 3.4(c)).
+// 네이버 이미지 검색으로 고른 '검색 사진'은 2026-11-20 에 없앴다(특약 1.2, docs/naver-terms-stage2-design.ko.md 3.4(c)).
 const NAVER_PHOTO_KINDS=['place_public'];
 function photoMetaLines(photo){
   const lines=[node('p',`촬영 ${photo.taken_at||'시점 미확인'} · 자료 확인 ${photoCheckedAt(photo.checked_at)}`,'hint'),node('p',photo.changes||'원본 변경 없음','hint')];

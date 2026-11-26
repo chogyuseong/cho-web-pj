@@ -49,7 +49,7 @@ def festival_search(conditions):
 def public_plan(plan):
     # Never copy the original payload and remove fields: new private fields must
     # remain private by default. No origin/home/requests/routes/free text/images.
-    # 네이버 검색으로 찾은 장소는 '네이버 검색결과' 표시와 원본(지도 검색) 링크를 함께 보낸다(특약 2.1·2.2).
+    # 네이버 검색으로 찾은 장소는 '네이버 검색결과' 표시와 원본(지도 검색) 링크를 함께 보낸다(특약 1.1·1.2).
     from .naver_terms import is_naver_place
     def naver_fields(p):
         if not is_naver_place(p):return {}

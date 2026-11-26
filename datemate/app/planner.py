@@ -364,7 +364,7 @@ def unmet_composition(plan):
     return any(r['condition'] in ('meal','request_activity') and r['state']=='unmet' for r in plan['condition_checks'])
 
 def recommend(c):
-    """조건만으로 코스를 고른다. 네이버 블로그 검색 결과는 후보·순위·이유 문장 어디에도 쓰지 않는다(특약 2.2, app/course_search.py)."""
+    """조건만으로 코스를 고른다. 네이버 블로그 검색 결과는 후보·순위·이유 문장 어디에도 쓰지 않는다(특약 1.2, app/course_search.py)."""
     from .request_intent import normalize
     c=normalize(c)
     from .condition_audit import audit_plan

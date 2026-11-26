@@ -182,7 +182,7 @@ function renderDetail() {
     head.append(tags);
     body.append(head, stopKindIcon(place), node('h4', place.name));
     if (place.address) body.append(node('p', place.address, 'stop-address'));
-    // 네이버 지역 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2). 21일이 지나 지운 장소는 안내만.
+    // 네이버 지역 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 1.1·1.2). 21일이 지나 지운 장소는 안내만.
     if (place.naver_expired) body.append(naverExpiredNote());
     else if (isNaverResult(place)) body.append(naverAttribution('지역 검색', place.place_source || place.source));
     // 예전 한 줄 요약(.stop-meta: 분류 · 비용 · 머무는 시간)은 나눠 옮겼다 — 분류는 위 태그, 머무는 시간은 위 줄 '(N분)', 비용은 오른쪽 가격.

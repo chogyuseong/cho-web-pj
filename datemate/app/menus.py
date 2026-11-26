@@ -122,7 +122,7 @@ def fetch_page(client,query):
 
 def map_menu_link(place,empty):
     """모아 둔 메뉴 자료가 없는 식당: 가격을 만들지 않고 네이버 지도 링크만 준다(검색 API 를 부르지 않음).
-    블로그 검색 요약에서 금액을 읽어 메뉴로 보여 주던 것(blog_menu)은 특약 2.2·2.3 에 따라 없앴다(docs/naver-terms-stage2-design.ko.md 3.2(a))."""
+    블로그 검색 요약에서 금액을 읽어 메뉴로 보여 주던 것(blog_menu)은 특약 1.2·1.3 에 따라 없앴다(docs/naver-terms-stage2-design.ko.md 3.2(a))."""
     from urllib.parse import quote
     map_url='https://map.naver.com/p/search/'+quote(place_query(place))
     return dict(empty,status='not_found',source_kind='map_link',search_url=map_url,source_url=map_url,source_label='네이버 지도에서 메뉴 보기',

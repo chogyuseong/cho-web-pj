@@ -85,8 +85,9 @@ const ExploreView={
   },
   naverBlock(found){
     const block=naverResultBlock('지역 검색',found.search_url,{heading:node('h4',`‘${found.query}’ 검색 결과 ${found.items.length}건`,'naver-result-title')});
-    if(found.items.length){const list=node('ol',undefined,'naver-local-list');list.append(...found.items.map(item=>this.naverItem(item)));block.body.append(list);}
-    else block.body.append(node('p',found.status==='available'?'이 검색어의 결과가 없어요.':'이 검색어는 불러오지 못했어요.','hint'));
+    // 결과가 있는 검색어만 블록으로 그린다(아래 naverMore). 예전 '이 검색어의 결과가 없어요.'를 블록 본문에 넣던 것은 우리 글을 블록 안에 넣는 것이라 뺐다
+    // (네이버 답 2026-11-24 첫 문의 2-1: 앞·뒤·중간 삽입 불가). 결과 없는 검색어는 그리지 않는다.
+    const list=node('ol',undefined,'naver-local-list');list.append(...found.items.map(item=>this.naverItem(item)));block.body.append(list);
     return block;
   },
   // '네이버에서 더 찾기': 접어 두고, 펼쳤을 때 한 번만 부른다. 우리 안내 문장은 블록 밖(위)에 둔다.
@@ -94,15 +95,18 @@ const ExploreView={
     const box=this.naverBox();box.replaceChildren();
     if(!data.naver_more)return;
     const details=node('details',undefined,'explore-naver-more'),content=node('div',undefined,'explore-naver-content');
-    details.append(node('summary','네이버에서 더 찾기'),node('p','같은 조건의 네이버 지역 검색 결과를 검색어마다 따로, 네이버가 준 순서 그대로 보여 드려요. 위 목록과 합치거나 다시 줄 세우지 않았고, 코스 추천에도 쓰지 않아요.','hint explore-naver-note'),content);
+    // 펼친 칸 안에는 네이버 블록만 둔다. 예전 블록 앞 안내('…네이버가 준 순서 그대로 보여 드려요. 위 목록과 합치거나…')는 앞 삽입이라 뺐다(네이버 답 2-2, 2026-11-26).
+    details.append(node('summary','네이버에서 더 찾기'),content);
     let loaded=false;
     const load=async()=>{
       loaded=true;content.setAttribute('aria-busy','true');content.replaceChildren(node('p','네이버 검색 결과를 불러오고 있어요…','hint'));
       try{
         const found=await api('/explore/naver?'+new URLSearchParams({region:c.region,activity:c.activity,q:c.q}));if(seq!==this.sequence)return;
         content.replaceChildren();
-        if(found.message)content.append(node('p',found.message,'hint'));
-        for(const block of found.blocks||[])content.append(this.naverBlock(block));
+        const withItems=(found.blocks||[]).filter(block=>block.items?.length);
+        // 결과가 하나도 없으면 우리 안내만(블록 없음). 있으면 블록만 — 빈 검색어는 알리지 않고 건너뛴다(블록 바로 뒤에 우리 글을 두지 않으려고).
+        if(!withItems.length){content.append(node('p',found.message||'네이버 지역 검색 결과가 없어요.','hint'));return;}
+        for(const block of withItems)content.append(this.naverBlock(block));
       }catch(error){loaded=false;content.replaceChildren(node('p',error.message||'네이버 검색 결과를 불러오지 못했어요.','hint'),button('다시 불러오기',load,'secondary'));}
       finally{content.setAttribute('aria-busy','false');}
     };

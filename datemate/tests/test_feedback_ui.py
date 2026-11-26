@@ -162,7 +162,7 @@ def test_place_evidence_uses_plain_words_and_status_badges(audit_page):
     evidence = page.locator('#plan-detail .place-evidence').first
     evidence.locator('summary').click()
     items = evidence.locator('.evidence-item')
-    # 위치 · 영업 정보 · 가격. '블로그 언급' 줄은 없앴다(블로그 검색 결과를 추천 근거로 쓰지 않음, 네이버 검색 API 특약 2.2).
+    # 위치 · 영업 정보 · 가격. '블로그 언급' 줄은 없앴다(블로그 검색 결과를 추천 근거로 쓰지 않음, 네이버 검색 API 특약 1.2).
     assert items.count() == 3 and '블로그 언급' not in evidence.inner_text()
     texts = items.all_inner_texts()
     # '위치' 줄: 공공 자료 판정이 없으면 판정 문구 없이 네이버 지도 링크만(2026-11-20, app/place_identity.py).

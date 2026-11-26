@@ -1,4 +1,4 @@
-"""장소 블로그 검색(app/blog_search.py): 네이버가 준 순서·건수·제목·요약 그대로 돌려준다(특약 2.2)."""
+"""장소 블로그 검색(app/blog_search.py): 네이버가 준 순서·건수·제목·요약 그대로 돌려준다(특약 1.2)."""
 import httpx
 
 from app.blog_search import original_text, place_blogs

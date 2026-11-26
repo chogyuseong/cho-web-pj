@@ -29,7 +29,7 @@ def generate(data: Conditions, owner: str):
         naver_session(),
         naver_cache.scope(owner),
     ):
-        # 새 추천 = 같은 사용자의 새 질의: 이전 추천의 네이버 검색 보관분(발견 장소·검색 글·가격 근거 등)을 지운다(특약 2.4).
+        # 새 추천 = 같은 사용자의 새 질의: 이전 추천의 네이버 검색 보관분(발견 장소·검색 글·가격 근거 등)을 지운다(특약 1.4).
         # 같은 조건으로 다시 추천하면 같은 질의로 보고 지우지 않는다(fingerprint).
         naver_cache.new_query(
             "plan",
@@ -165,7 +165,7 @@ def _research(data):
 
     후보는 우리 카탈로그와 공공 자료(한국관광공사·소상공인 상가정보, app/intent_discovery.py)에서만 나온다.
     네이버 지역 검색 결과는 후보·점수·필터·이유 문장에 쓰지 않는다(tests/test_public_candidates.py).
-    네이버 블로그 검색 결과(evidence)는 화면의 독립 블록에 그대로 보여 주려고 싣기만 한다(특약 2.2).
+    네이버 블로그 검색 결과(evidence)는 화면의 독립 블록에 그대로 보여 주려고 싣기만 한다(특약 1.2).
     추천이 쓰는 것은 조건에서 만든 검색어 문자열(requested_query)뿐이고, 글의 내용·순위·건수·검색 성공 여부는 쓰지 않는다
     (tests/test_blog_independent_block.py).
     """

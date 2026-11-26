@@ -267,7 +267,7 @@ async def safety(request: Request, call_next):
                 )
             )
         request.state.owner = owner
-        # 네이버 검색 결과 보관(특약 2.4): 이 요청의 사용자별 개인화 보관과 요청 안 메모(app/naver_cache.py).
+        # 네이버 검색 결과 보관(특약 1.4): 이 요청의 사용자별 개인화 보관과 요청 안 메모(app/naver_cache.py).
         naver_tokens = naver_cache.bind(owner)
         match = re.match(r"^/api/(?:plans/|chat/plan/)([^/]+)", request.url.path)
         if match:

@@ -30,7 +30,7 @@ def test_meal_requires_real_food_and_lunch_window():
 
 
 def test_search_result_discovery_module_is_removed():
-    # 네이버 검색 API 특약 2.1·2.2(2026-09): 블로그 글에서 장소를 뽑던 코드(1단계)에 이어, 지역 검색 결과를 후보로 쓰던
+    # 네이버 검색 API 특약 1.1·1.2(2026-09): 블로그 글에서 장소를 뽑던 코드(1단계)에 이어, 지역 검색 결과를 후보로 쓰던
     # app/discovery.py 자체를 없앴다(2단계 3.8(b)). 후보는 app/public_places.py 의 공공 자료에서만 나온다.
     import importlib.util
     assert importlib.util.find_spec('app.discovery') is None

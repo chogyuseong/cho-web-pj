@@ -1,4 +1,4 @@
-"""네이버 검색 API 특약 2.2(2단계, docs/naver-terms-stage2-design.ko.md 3.1(a)·3.2(a)).
+"""네이버 검색 API 특약 1.2(2단계, docs/naver-terms-stage2-design.ko.md 3.1(a)·3.2(a)).
 
 1) 블로그 검색 결과는 추천 계산에 들어가지 않는다: 결과가 달라도(다른 글·0건·검색 실패) 3안의 장소·순서·이름·이유 문장·비용이 같다.
 2) 화면에 보낼 글 목록은 받은 순서·건수·원문 그대로다(자세한 것은 tests/test_course_search.py, tests/test_blog_search.py).

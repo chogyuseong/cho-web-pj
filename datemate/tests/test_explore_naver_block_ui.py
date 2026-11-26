@@ -68,24 +68,24 @@ def test_public_list_then_untouched_naver_blocks(audit_page, width):
     assert page.evaluate("()=>{const a=document.getElementById('catalog'),b=document.getElementById('explore-naver');"
                          "return Boolean(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING)}"), '기본 목록 아래에 있다'
     more.locator('summary').click()
-    page.wait_for_function('document.querySelectorAll("#explore-naver .naver-result-block").length===2')
+    # 결과가 있는 검색어만 블록으로 그린다(빈 검색어 '부산 데이트 카페'는 그리지 않음 — 블록 안에 우리 글을 넣지 않으려고, 2026-11-26).
+    page.wait_for_function('document.querySelectorAll("#explore-naver .naver-result-block").length===1')
     assert len(requests) == 1 and 'region=%EC%84%9C%EC%9A%B8' in requests[0], '화면에서 고른 시·도(서울)로 한 번 부른다'
-    # 우리 안내는 블록 밖에 한 번.
-    note = more.locator('.explore-naver-note')
-    assert '네이버가 준 순서 그대로' in note.inner_text() and '코스 추천에도 쓰지 않아요' in note.inner_text()
-    assert more.locator('.naver-result-block .explore-naver-note').count() == 0
+    # 블록 앞 안내 문구는 없다(네이버 답 2-2 앞 삽입, 특약 1.2). 펼친 칸 안에는 블록만.
+    assert more.locator('.explore-naver-note').count() == 0
+    assert more.locator('.explore-naver-content').evaluate('e=>[...e.children].map(c=>c.className)') == ['naver-result-block']
     blocks = more.locator('.naver-result-block')
     first = blocks.nth(0)
-    # 블록 = 머리글(검색어·건수 + 출처 표시 + 원본 링크) + 본문.
-    assert first.evaluate('e=>[...e.children].map(c=>c.className)') == ['naver-result-head', 'naver-result-body']
+    # 블록 = 머리글(검색어·건수 + 출처 표시 + 원본 링크) + 본문 + 바닥(BI 로고).
+    assert first.evaluate('e=>[...e.children].map(c=>c.className)') == ['naver-result-head', 'naver-result-body', 'naver-result-foot']
     head = first.locator('.naver-result-head')
     assert head.locator('.naver-result-title').inner_text() == '‘부산 데이트 장소’ 검색 결과 4건'
     assert '네이버 검색결과 · 지역 검색' in head.locator('.naver-attribution').inner_text()
     assert head.locator('a').first.get_attribute('href').startswith('https://map.naver.com/p/search/')
-    assert 'NAVER 오픈 API' in head.inner_text()
-    # 상표 표기는 링크가 아닌 작은 글자다(2026-11-24 사용자 결정 — 누를 일이 없는 단추처럼 보였다).
-    assert head.get_by_role('link', name='NAVER 오픈 API').count() == 0
-    assert head.locator('.naver-api-mark').inner_text() == 'NAVER 오픈 API'
+    # BI: 머리글에는 글자 출처만, 공식 로고('Powered by NAVER OpenAPI')는 블록 바닥 오른쪽 — 누르면 NAVER API HUB 소개(새 창). 2026-11-26 BI 가이드.
+    assert head.locator('.naver-powered').count() == 0
+    logo = first.locator('.naver-result-foot > a.naver-powered')
+    assert logo.get_attribute('target') == '_blank' and logo.locator('img').get_attribute('alt') == 'Powered by NAVER OpenAPI'
     # 본문: 받은 순서·건수 그대로(다른 시·도, 병원, 같은 가게 두 번도 그대로). 태그 글자는 글자로만.
     titles = first.locator('.naver-local-title').all_inner_texts()
     assert titles == ['<b>글자</b>로만 카페', '같은 가게', '서울 병원', '같은 가게']
@@ -99,10 +99,9 @@ def test_public_list_then_untouched_naver_blocks(audit_page, width):
     assert links.nth(0).get_attribute('rel') == 'noopener noreferrer' and links.nth(1).get_attribute('href') == 'https://example.com/cafe'
     # 블록 안에는 우리 정보가 없다: 사진, 단추, 우리 분류 태그, 장소 카드, 공공 자료 표시.
     for gone in ('img', 'button', '.tag', '.place-card', '.place-photo-panel', '.public-data-source', '.hint'):
-        assert blocks.nth(0).locator(gone).count() == 0, gone
+        assert blocks.nth(0).locator('.naver-result-body').locator(gone).count() == 0, gone
     assert '카페·미식' not in first.inner_text()
-    # 결과가 없는 검색어도 블록 하나로 남는다.
-    assert blocks.nth(1).locator('.naver-result-title').inner_text() == '‘부산 데이트 카페’ 검색 결과 0건'
+    assert '부산 데이트 카페' not in more.inner_text()
     # 테두리로 구분된 상자다.
     style = first.evaluate('e=>{const s=getComputedStyle(e);return [s.borderTopWidth,s.borderTopStyle]}')
     assert style == ['1px', 'solid']

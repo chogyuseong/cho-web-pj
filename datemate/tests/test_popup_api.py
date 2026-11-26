@@ -1,4 +1,4 @@
-"""GET /api/popups: 네이버 블로그 검색 결과를 받은 그대로 + 우리 거점 사전(2026-11-20, 특약 2.2).
+"""GET /api/popups: 네이버 블로그 검색 결과를 받은 그대로 + 우리 거점 사전(2026-11-20, 특약 1.2).
 
 네이버 검색 호출은 popup_api.observed_http 를 바꿔 끼워 흉내 낸다(외부 호출 없음).
 무엇을 고정하는가: 검색 한 번, 받은 순서·건수 그대로, 제목·요약 원문 그대로, 글에서 읽은 판정 필드 없음,
@@ -207,7 +207,7 @@ def test_personal_cache_is_reused_within_the_month_and_cleared_by_a_new_search(f
     earlier = get(client, visit_date="2026-10-19").json()
     assert earlier["sources"][0]["cached"] is False
     assert fake.calls[-1] == ("blog", "2026년 10월 서울 팝업스토어") and fake.count("blog") == 2
-    # 새 검색은 같은 사용자의 새 질의라 이전 팝업 검색 보관분을 지운다(특약 2.4, app/naver_cache.new_query).
+    # 새 검색은 같은 사용자의 새 질의라 이전 팝업 검색 보관분을 지운다(특약 1.4, app/naver_cache.new_query).
     assert get(client).json()["posts"] == first["posts"] and fake.count("blog") == 3
     # 검색어가 바뀌면 다른 보관 키. 지역명이 앞에 붙어 있어도 같은 검색으로 본다.
     assert get(client, q="  성수​ ").json()["q"] == "성수"

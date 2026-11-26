@@ -81,7 +81,7 @@ def with_thumbs(data):
     for photo in data.get("photos") or []:
         url = photo.get("image_url") or photo.get("url")
         if naver_search_photo(photo):
-            # 네이버 검색 API 특약 2.2·2.3(2026-09): 검색 결과 사진은 줄이거나(가공) 서버 메모리에 담아 두지(캐싱) 않는다.
+            # 네이버 검색 API 특약 1.2·1.3(2026-09): 검색 결과 사진은 줄이거나(가공) 서버 메모리에 담아 두지(캐싱) 않는다.
             # 화면은 검색 결과가 준 작은 사진(thumbnail_url)을 그대로 쓴다.
             photos.append(photo)
             continue

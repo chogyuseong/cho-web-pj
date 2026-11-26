@@ -39,7 +39,7 @@ class State(TypedDict,total=False):
 def retrieve_node(state):
     plan=state.get('plan')
     from .naver_terms import NAVER_ID_PREFIXES,ai_safe_plan
-    # 네이버 검색 API 특약 2.3: 네이버 검색 결과·파생물은 AI 입력에 넣지 않는다. 네이버 검색 장소 id 는 색인을 찾지 않는다.
+    # 네이버 검색 API 특약 1.3: 네이버 검색 결과·파생물은 AI 입력에 넣지 않는다. 네이버 검색 장소 id 는 색인을 찾지 않는다.
     ids=[i for i in state['ids'] if not str(i).startswith(NAVER_ID_PREFIXES)]
     try:evidence=retrieve(ids,state['question'],state['mode'],int(os.getenv('TOP_K','4'))) if ids else []
     except Exception:

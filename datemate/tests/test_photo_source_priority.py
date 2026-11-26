@@ -1,6 +1,6 @@
 import pytest
 """Business photos first, then registered and Korea Tourism photos. Naver image search results are never
-used as place photos (2026-11-20, 특약 2.2 — docs/naver-terms-stage2-design.ko.md 3.4(c)); a place without
+used as place photos (2026-11-20, 특약 1.2 — docs/naver-terms-stage2-design.ko.md 3.4(c)); a place without
 such photos gets the Naver Map link instead."""
 import json
 from app.media import media_info

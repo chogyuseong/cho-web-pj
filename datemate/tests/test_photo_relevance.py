@@ -13,7 +13,7 @@ def visual_service(monkeypatch):
     monkeypatch.setenv('PHOTO_VISUAL_CHECK','true')
     monkeypatch.setattr('app.store.cached',lambda key:cache.get(key))
     monkeypatch.setattr('app.store.cache',lambda key,value,ttl:cache.update({key:value}))
-    # 2026-11-20: 네이버 사진은 비전 모델에 보내지 않는다(검색 API 특약 2.3, photo_relevance.naver_origin).
+    # 2026-11-20: 네이버 사진은 비전 모델에 보내지 않는다(검색 API 특약 1.3, photo_relevance.naver_origin).
     # 여기서는 남겨 둔 분류 규칙만 시험하려고 그 판정을 끈다. 실제 차단은 test_naver_terms_2026_09 와 아래 test_naver_photo_never_reaches_the_model.
     monkeypatch.setattr('app.photo_relevance.naver_origin',lambda place,photo:False)
     class Model:

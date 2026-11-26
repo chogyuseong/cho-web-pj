@@ -421,11 +421,16 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .naver-result-head .naver-attribution { margin:0; }
 .naver-result-title { margin:0 0 2px; font-size:16px; line-height:1.5; font-weight:700; color:var(--ink); overflow-wrap:anywhere; }
 .naver-result-body { min-width:0; padding:4px 12px; }
+/* 블록 바닥(2026-11-26, 네이버 답 '표시는 BI 가이드에 따라'): 왼쪽 「더 보기」 자리(.naver-result-pager, 비면 접힘), 오른쪽 BI 로고.
+   가이드 예시처럼 결과 영역 오른쪽 아래. 로고 칸은 누르기 쉽게 높이 32px(로고 그림은 14px). */
+.naver-result-foot { display:flex; align-items:center; justify-content:space-between; gap:8px 12px; flex-wrap:wrap; padding:6px 12px 8px; border-top:1px solid var(--line); }
+.naver-result-pager:empty { display:none; }
+.naver-result-pager>button { margin:0; }
+.naver-result-foot>.naver-powered { min-height:32px; margin-left:auto; }
 /* 둘러보기 '네이버에서 더 찾기'(explore.js): 접힘 상자 안에 검색어마다 블록 하나. 항목은 받은 값 그대로(이름·분류·주소·설명·전화·링크). */
 .explore-naver { margin:24px 0 0; }
 .explore-naver-more { padding:0; border:1px solid var(--line); border-radius:10px; background:#fff; }
 .explore-naver-more>summary { min-height:44px; box-sizing:border-box; margin:0; padding:12px 16px; font-size:16px; font-weight:700; color:var(--ink); }
-.explore-naver-note { margin:0; padding:0 16px 8px; }
 .explore-naver-content { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; padding:0 16px 16px; }
 @media(min-width:1000px) { .explore-naver-content { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .explore-naver-content .naver-result-block { margin:0; }
@@ -779,10 +784,15 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 /* 코스 조사 패널(코스 구성 메모 + 네이버 블로그 글 블록 .naver-result-block, course-search.js). 상자 모양 !important 는 line.css 의 같은 모양 상자 목록과 맞춘 값. */
 .course-evidence { padding-bottom:0; }
 .course-evidence>summary { color:var(--ink)!important; }
-.course-search-panel { margin-bottom:22px; padding:23px; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+/* 2026-11-26 네이버 답(블록과 우리 정보는 구분된 별개 영역): 패널은 두 칸을 담는 틀만, 테두리 상자는 메모(.course-search-memo)와
+   블로그 블록(.naver-result-block)이 각자 갖는다. 두 칸 사이 22px. */
+.course-search-panel { display:grid; gap:22px; margin-bottom:22px; }
+.course-search-memo { padding:23px; background:#fff!important; border:1px solid var(--line)!important; border-radius:10px!important; }
+.course-search-blogs .naver-result-block { margin:0; }
 .course-evidence .course-search-panel { margin-bottom:0; }
 .course-search-panel h3 { margin:6px 0; font-size:22px; overflow-wrap:anywhere; }
 .course-search-panel .blog-post-list { list-style:none; margin:0; padding:0; }
+.course-search-panel .naver-result-head>h3 { margin:0 0 2px; font-size:17px; line-height:1.5; }
 
 /* 둘이 함께 고르기·반드시 지킬 조건·다녀온 뒤 피드백 */
 .experience-panel { margin:25px 0; }

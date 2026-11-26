@@ -61,7 +61,7 @@ def classify(place, photo):
     except ValueError:
         return dict(status="unverified")
     if naver_origin(place, photo):
-        # 네이버 검색 API 특약 2.3(2026-09): 검색 결과로 얻은 사진·제목·장소(파생물 포함)를 AI(비전 모델) 입력에 쓰지 않는다.
+        # 네이버 검색 API 특약 1.3(2026-09): 검색 결과로 얻은 사진·제목·장소(파생물 포함)를 AI(비전 모델) 입력에 쓰지 않는다.
         # 여기까지 오는 사진은 모두 네이버 사진 서버(.pstatic.net)의 것이라, 키가 있어도 내용 검사는 하지 않는다.
         return dict(status="unverified", reason="naver_terms_ai_blocked")
     key = (

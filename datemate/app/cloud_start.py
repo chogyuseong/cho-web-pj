@@ -13,7 +13,7 @@ def prepare_runtime():
         from .catalog import places
         from .indexing import index_places, index_documents, purge_naver_documents
         for mode in ('demo','real'):
-            # 네이버 검색 장소는 색인하지 않고, 예전에 들어간 것은 지운다(특약 2.3, app/naver_terms.py).
+            # 네이버 검색 장소는 색인하지 않고, 예전에 들어간 것은 지운다(특약 1.3, app/naver_terms.py).
             purge_naver_documents(mode)
             index_places(places(mode),mode)
             path = ROOT/'data'/f'{mode}_documents.json'

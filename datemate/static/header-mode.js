@@ -90,6 +90,27 @@
   }
   addEventListener('resize', placeNavIndicator);
   document.fonts?.ready?.then(placeNavIndicator);
+  // 휴대폰 하단 고정 막대(하단 메뉴 · 결과 행동 막대 · 장소 둘러보기의 코스 바구니)가 화면 아래에서 차지하는 높이를 --bottom-stack 으로 둔다
+  // (2026-11-27 아이폰 캡처 — 막대가 마지막 내용·'…로 이동'한 칸을 가렸다). 바구니는 하단 메뉴 위에 겹쳐 뜨고 높이가 담은 수·폭에 따라
+  // 바뀌어 CSS 상수(--bottom-bar)로는 못 맞춘다. 재는 값은 막대 띄움·safe-area 를 이미 포함한다. 쓰는 곳: redesign.css 3) body 아래 여백·scroll-padding-bottom.
+  // 고정(fixed)이 아닌 넓은 화면에서는 값을 지워 CSS 기본값으로 돌아간다.
+  const BOTTOM_BARS = 'body > header nav, .results-actionbar, #basket-dock';
+  function syncBottomStack() {
+    const root = document.documentElement;
+    let top = innerHeight;
+    for (const bar of document.querySelectorAll(BOTTOM_BARS)) {
+      if (!bar.getClientRects().length || getComputedStyle(bar).position !== 'fixed') continue;
+      top = Math.min(top, bar.getBoundingClientRect().top);
+    }
+    if (top >= innerHeight) root.style.removeProperty('--bottom-stack');
+    else root.style.setProperty('--bottom-stack', Math.ceil(innerHeight - top) + 'px');
+  }
+  const barSizes = typeof ResizeObserver === 'function' ? new ResizeObserver(syncBottomStack) : null;
+  function watchBottomBars() { for (const bar of document.querySelectorAll(BOTTOM_BARS)) barSizes?.observe(bar); syncBottomStack(); }
+  addEventListener('resize', syncBottomStack);
+  // 바구니 도크는 처음 담을 때 body 끝에 생긴다(explore.js Basket.render). 숨김(hidden)·화면 바꾸기(body class)는 크기 변화로 ResizeObserver 가 잡는다.
+  new MutationObserver(watchBottomBars).observe(body, { childList: true });
+  watchBottomBars();
   // 강제로 다시 맞춘다(app.js setTab 이 클래스를 바꾼 뒤 부른다 — 같은 상태라도 단추 클래스를 되돌려 놓는다).
   window.syncHeaderNav = () => { last = ''; syncHeaderNav(); };
   let frame = 0;

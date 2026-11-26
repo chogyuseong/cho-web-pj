@@ -70,6 +70,9 @@ body.mode-travel .mode-switch .mode-thumb { transform:translateX(100%); }
   html body > header nav > a.nav-feedback { display:none; }
   .mode-switch button svg { display:none; }
   header nav .nav.active,header nav a.active { color:var(--hong); background:none; box-shadow:none; }
+  /* 하단 바에서는 :hover 를 칠하지 않는다. 터치 화면(iOS)은 누른 칸에 :hover 가 남아, 다른 탭으로 옮긴 뒤에도 '추천 결과'에
+     2) 의 흰 알약·진한 글자가 현재 탭처럼 남았다(2026-11-27 아이폰 캡처). 고르지 않은 칸의 모양(옅은 글자·바탕 없음) 그대로 둔다. */
+  header nav .nav:not(.active):hover,header nav a:not(.active):hover { color:var(--muted); background:none; }
 }
 
 /* ---------- 3) 휴대폰 하단 바(720px 이하) ---------- */
@@ -81,7 +84,11 @@ body.mode-travel .mode-switch .mode-thumb { transform:translateX(100%); }
      그래서 휴대폰에서는 머리글 흐림을 끄고 불투명한 흰색으로 둔다(흐림은 바 자신이 갖는다).
      예전 rgba(255,255,255,.96) 은 흐림 없이 4% 비쳐, 아이폰에서 뒤로 지나가는 글자('지도에서 고르기')가 머리글 위에 겹쳐 보였다(2026-11-26 사용자 캡처). */
   body > header { -webkit-backdrop-filter:none; backdrop-filter:none; background:#fff; }
-  body { padding-bottom:calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
+  /* 아래 여백 = 화면 아래 고정 막대들이 차지하는 높이(--bottom-stack, header-mode.js syncBottomStack 이 잰다 — 하단 메뉴, 결과 화면의 행동 막대,
+     하단 메뉴 위에 겹쳐 뜨는 코스 바구니까지) + 틈 16px. 재기 전·스크립트가 없으면 하단 메뉴 높이 + safe-area.
+     scroll-padding-bottom 도 같은 값 — '…로 이동'(scrollIntoView·포커스)한 칸이 막대 밑에 숨지 않게(2026-11-27 아이폰 캡처: 시간 칸·첫 코스 카드가 가려짐). */
+  :root { --bottom-clear:calc(var(--bottom-stack,calc(var(--bottom-bar) + env(safe-area-inset-bottom))) + 16px); scroll-padding-bottom:var(--bottom-clear); }
+  body { padding-bottom:var(--bottom-clear); }
   body > header nav { position:fixed; z-index:40; left:12px; right:12px; bottom:calc(10px + env(safe-area-inset-bottom)); margin:0; width:auto;
     display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; padding:6px; overflow:visible;
     border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.85); -webkit-backdrop-filter:saturate(180%) blur(16px); backdrop-filter:saturate(180%) blur(16px);
@@ -364,6 +371,11 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
   .planner-heading h2 { font-size:25px; }
   #conditions .area-group>legend { padding-right:0; }
   #conditions .region-pick { position:static; margin:0 0 10px; }
+  /* 지역 칸(2026-11-27 아이폰 캡처): 동네 칩 바로 밑에 '데이트할 지역' 제목이 붙고, 칸(53px)과 '검색'(50px) 높이가 달랐고,
+     '지도에서 고르기'가 칸에 붙어 있었다 → 칩과 제목 사이 16px, 칸·검색 같은 높이(52px), 지도 단추 위 10px. 넓은 화면은 그대로. */
+  #conditions .area-group #origin-location { margin-top:16px; }
+  #conditions #origin-location .origin-search :is(input,.origin-search-button) { height:52px; min-height:52px; }
+  #conditions #origin-location > button { margin-top:10px; }
   #conditions .when-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   #conditions .when-grid label:first-child { grid-column:1 / -1; }
   #conditions .budget-transport,#conditions .detail-row,#conditions .detail-row-3 { grid-template-columns:minmax(0,1fr); }
@@ -439,6 +451,16 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 .ticket-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:18px 24px 24px; }
 .ticket-actions button { min-height:48px; }
 @media(max-width:600px) { .results-heading h2 { font-size:25px; } .results-kpis .kpi { flex:1 1 100%; } }
+/* 휴대폰 결과 머리·예산 카드(2026-11-27 아이폰 캡처). 넓은 화면 모양은 그대로.
+   머리: '추천 일정 3개'가 축제 단추 옆 아래쪽(align-items:flex-end)에 떠 있고 팝업 단추만 다음 줄로 떨어졌다 →
+     결과 수는 제목 아래 제 줄, 축제·팝업 단추는 그 아래 한 줄씩 같은 폭(가운데 글자). 영업시간 안내(order:3)는 그 아래 그대로.
+   예산 사용률: 금액 글자와 84px 막대가 한 줄을 나눠 '… 미확인 8항목 제외'가 좁게 줄바꿈 → 글자 줄 아래에 막대를 카드 폭으로. */
+@media(max-width:600px) {
+  .results-heading #result-count { flex-basis:100%; }
+  .results-heading .festival-jump { flex:1 1 100%; min-height:44px; margin:0; font-size:14px; }
+  .results-kpis .kpi-budget { flex-direction:column; align-items:stretch; gap:8px; }
+  .results-kpis .kpi-budget .kpi-bar { width:100%; }
+}
 @media(prefers-reduced-motion:reduce) { .detail .stop .timeline-card { transition:none; } }
 
 /* ---------- 11) 축제·행사(2026-11-25 상세 결과 시안 'Same-day events') ---------- */

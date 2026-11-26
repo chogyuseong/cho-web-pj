@@ -140,3 +140,15 @@ def test_parse_stays_and_delay_check_with_stays():
     for bad in ('x', '5:60', f'0:{STAY_RANGE[0] - 1}', f'0:{STAY_RANGE[1] + 1}'):
         with pytest.raises(ValueError):
             parse_stays(bad, 3)
+
+
+def test_activity_chips_have_category_dots(audit_page):
+    """코스 만들기 '선호 활동' 칩: 분류 색 점(::before), 고르면 옅은 분류색 바탕 + 분류색 테두리(redesign.css 18))."""
+    page, _, _ = audit_page
+    chip = page.locator('#conditions .activity-group .quick-chips button[data-theme="카페·미식"]')
+    dot = chip.evaluate("e=>getComputedStyle(e,'::before').backgroundColor")
+    assert dot == 'rgb(245, 158, 11)', dot  # --kind-cafe #F59E0B
+    chip.click()
+    assert chip.get_attribute('aria-pressed') == 'true'
+    style = chip.evaluate("e=>{const s=getComputedStyle(e);return [s.backgroundColor,s.borderTopColor,s.color]}")
+    assert style == ['rgb(254, 243, 199)', 'rgb(245, 158, 11)', 'rgb(180, 83, 9)'], style

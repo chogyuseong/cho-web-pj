@@ -36,7 +36,9 @@ def test_feedback_tab_fits_the_header_on_home_and_feedback_page(audit_page):
     page.goto(base + '/', wait_until='networkidle')
     page.locator('footer .footer-feedback').click()
     page.wait_for_url(base + '/feedback')
-    assert page.locator('h1').inner_text() == '피드백'
+    # 2026-11-26 시안: 제목 '피드백 보내기', 오른쪽에 '데이터 및 이용 안내' 질문 모음(유형·만족도 칩은 test_feedback_kind_and_mood_go_in_front).
+    assert page.locator('h1').inner_text() == '피드백 보내기'
+    assert page.locator('.feedback-faq h2').inner_text() == '데이터 및 이용 안내' and page.locator('.feedback-faq details').count() == 3
 
 
 def test_writing_feedback_shows_success_and_blocks_resend(audit_page):
@@ -96,3 +98,21 @@ def test_admin_lists_script_text_as_plain_text(audit_page, monkeypatch):
     page.on('dialog', lambda dialog: dialog.accept())
     page.locator('.admin-entry button', has_text='삭제').click()
     page.wait_for_selector('.admin-empty')
+
+
+def test_feedback_kind_and_mood_go_in_front(audit_page):
+    """문의 유형·이용 만족도(2026-11-26 시안, 선택): 고른 것만 글 앞머리 '[유형 · 만족도] '로 붙여 보낸다(DB 칸은 그대로, static/feedback.js prefix)."""
+    page, base, _ = audit_page
+    sent = []
+    page.route('**/api/feedback', lambda route: (sent.append(route.request.post_data_json), route.fulfill(json={'received': True, 'message': '고마워요'}))[1])
+    page.goto(base + '/feedback', wait_until='networkidle')
+    page.get_by_text('장소 오류', exact=True).click()
+    page.get_by_text('아쉬워요', exact=True).click()
+    assert page.locator('[name=kind]:checked').input_value() == '장소 오류'
+    page.locator('#feedback-message').fill('영업시간이 달라요. 확인 부탁해요.')
+    page.locator('#feedback-submit').click()
+    page.wait_for_function("document.getElementById('feedback-status').textContent.includes('고마워요')")
+    assert sent[-1]['message'] == '[장소 오류 · 아쉬워요] 영업시간이 달라요. 확인 부탁해요.'
+    # 칩은 진짜 라디오 단추라 키보드로 고를 수 있고, 누르기 쉬운 높이다.
+    label = page.locator('.feedback-chip-row label').first
+    assert label.bounding_box()['height'] >= 44

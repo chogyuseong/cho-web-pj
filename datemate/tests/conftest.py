@@ -33,7 +33,8 @@ os.environ['DATEMATE_IP_CONCURRENT_PLAN_JOBS']='100000'
 os.environ['NAVER_SEARCH_CLIENT_ID']=''
 os.environ['NAVER_SEARCH_CLIENT_SECRET']=''
 # 셸에 실제 키가 설정돼 있어도 축제·지도 API를 실제로 호출하지 않게 한다. 필요한 테스트는 monkeypatch로 넣는다.
-for _name in ('TOUR_API_KEY','NAVER_MAPS_KEY_ID','NAVER_MAPS_KEY','NAVER_MAPS_JS_KEY_ID'):
+# SEOUL_OPEN_API_KEY: 서울 주차 실시간(app/seoul_parking_live.py)·착한가격업소(app/good_price.py). 필요한 테스트는 monkeypatch.setenv.
+for _name in ('TOUR_API_KEY','NAVER_MAPS_KEY_ID','NAVER_MAPS_KEY','NAVER_MAPS_JS_KEY_ID','SEOUL_OPEN_API_KEY'):
     os.environ[_name]=''
 os.environ['DATEMATE_OPERATING_EVIDENCE_FILE']=''
 os.environ['DATEMATE_EXTERNAL_CALLS_PER_RECOMMENDATION']='60'
@@ -93,6 +94,13 @@ def no_public_identity_worker(monkeypatch):
     place_identity._queue.clear()
     yield
     place_identity._queue.clear()
+
+
+# 착한가격업소 자료(app/good_price.py)도 배경 스레드에서 서울 API 를 부른다. 테스트에서는 띄우지 않는다(받기는 refresh 를 직접 부른다).
+@pytest.fixture(autouse=True)
+def no_good_price_worker(monkeypatch):
+    from app import good_price
+    monkeypatch.setattr(good_price, '_start_refresh', lambda: None)
 
 
 # 추천 작업 목록(app/plan_jobs._jobs)은 프로세스 메모리에 있고, 끝난 작업도 600초 동안 남아 '작업 100개'(start 의 429 '검색 요청이 많아요')에 센다.

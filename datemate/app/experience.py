@@ -159,7 +159,8 @@ def meal_draft(original,owner,food_id,after_index,replace_index,locked,menu_inde
         if not 0<=menu_index<len(options):raise ValueError('선택한 메뉴가 바뀌었어요. 메뉴를 다시 확인해 주세요.')
         selected_menu=options[menu_index];food.update(price=[selected_menu['amount']]*2,price_status='estimated')
         # 운영자가 확인한 제공 메뉴(operating_evidence)는 operator_menu. naver_menu 는 네이버 화면에서 읽던 메뉴로, 지금은 꺼져 있다(naver_pages).
-        menu_kind='operator_menu' if menu.get('source_kind')=='operator_reviewed_menu' else 'naver_menu'
+        # 서울시 착한가격업소 메뉴(app/good_price.py)는 good_price_menu — 네이버에서 읽은 가격 종류(naver_terms.NAVER_PRICE_KINDS)와 섞지 않는다.
+        menu_kind={'operator_reviewed_menu':'operator_menu','seoul_good_price':'good_price_menu'}.get(menu.get('source_kind'),'naver_menu')
         food['menu_pricing']=dict(price_kind=menu_kind,price_basis=selected_menu['name']+' 1개/인 가정 · '+menu.get('source_label','공개 메뉴')+' 참고가',source=menu['source_url'],checked_at=menu['checked_at'])
     chosen.insert(target,food)
     mapping={i+(i>=target):pid for i,pid in mapping.items()}

@@ -35,6 +35,7 @@ PYTHON = [
     "app/public_parking.py",
     "app/public_places.py",
     "app/seoul_parking_live.py",
+    "app/good_price.py",
     "app/review_facts.py",
     "app/delay_check.py",
     "app/delay_recovery.py",

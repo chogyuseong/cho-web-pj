@@ -30,7 +30,7 @@
   · 다음 할 일: ① 이미지 검색 사진(별개 영역·BI) ② 착한가격업소 메뉴·가격 — 서울 OA-1174(ListPriceModelStoreProductService)·부산 메뉴 API 조사함,
     이 컴퓨터 네트워크는 openapi.seoul.go.kr:8088 막힘 → 사용자 휴대폰으로 sample 응답 캡처 부탁함. 키는 .env SEOUL_OPEN_API_KEY(운영 Secret 도 있음).
     ③ 네이버 지도 메뉴 긁어 오기는 하지 않기로(약관·법적 위험 설명, 사용자 수긍 여부는 아직).
-  · 정리 대기: worktree ../cho-web-pj-terms, 브랜치 fix/hero-placeholder-mobile(로컬)·fix/naver-terms-separate-areas(로컬·원격) — 병합됨.
+  · 정리(사용자 '지워', 100차 뒤): worktree ../cho-web-pj-terms, 브랜치 fix/hero-placeholder-mobile(로컬)·fix/naver-terms-separate-areas(로컬·원격) 삭제(모두 main 병합 확인 뒤).
 아흔아홉 번째 배포(2026-11-26 새벽) 완료: main 45a7e2a(병합 = fix/qa-low-2026-11-25 bf6d73c), Worker 버전 fb8d9be0-d01b-4bf9-8b3d-0b68736de39b.
   사용자 '진행'(낮음 11건) + '모든 권한 … 최대한 … 배포-이어하기·README 수정 후 커밋 푸쉬 → 컴퓨터 종료'. 내용은 바로 아래 브랜치 기록.
   · 검증: 브랜치 CI Run 45641786450·45647272104 성공 → main 병합·push → test:security 27 통과 → wrangler deploy(파일 13개, not-found.html 새 파일).

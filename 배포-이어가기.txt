@@ -5,8 +5,28 @@
 필요한 것만 순서대로 적은 것입니다. 기능 소개는 README.md, 상세 설정은 datemate/README.md 를 보세요.
 
 
-★ 지금 상태 (2026-11-26 기준)
+★ 지금 상태 (2026-11-27 기준)
 ----------------------------------------------------------------------
+브랜치 fix/iphone-layout-1127(2026-11-27, 병합·배포 전): 사용자 아이폰(약 402pt, Safari) 운영 캡처 두 장의 휴대폰 화면 깨짐.
+  ① 무엇을(원인 → 고침, 넓은 화면 모양은 그대로):
+     1) 하단 메뉴: '코스 만들기'가 현재 탭인데 '추천 결과'에 흰 알약·진한 글자. 미끄럼 알약(.nav-indicator)은 휴대폰에서 원래 숨겨져 있고, 원인은 redesign.css 2) 의
+        메뉴 :hover(흰 바탕·진한 글자) — 터치 화면(iOS)은 누른 칸에 :hover 가 남는다. → 720px 이하에서 고르지 않은 칸의 :hover 를 칠하지 않음(redesign.css 2-1)).
+     2) 고정 막대가 내용을 가림: body 아래 여백이 하단 메뉴 높이(76px)와 딱 같아 틈이 없었고, scroll-padding-bottom 이 없어 '…로 이동'·포커스한 칸이 막대 밑에 숨음.
+        장소 둘러보기의 코스 바구니는 하단 메뉴 위에 겹쳐 뜨는데 여백 계산에 없었음. → header-mode.js syncBottomStack 이 화면 아래 고정 막대들(하단 메뉴·결과 행동 막대·
+        바구니)이 차지하는 높이를 재 --bottom-stack 으로 두고(ResizeObserver·창 크기·바구니 생성 때), redesign.css 3) 에서 :root --bottom-clear = 그 값(없으면
+        --bottom-bar + safe-area) + 16px 을 body padding-bottom·scroll-padding-bottom 에 씀. 결과 화면은 하단 메뉴가 숨고 행동 막대만 있으므로 그 높이.
+     3) 결과 머리: '추천 일정 3개'가 축제 단추 옆 아래쪽에 떠 있고 팝업 단추만 다음 줄. → 600px 이하 결과 수는 제목 아래 제 줄, 축제·팝업 단추는 한 줄씩 같은 폭(44px).
+     4) 예산 사용률: 금액 글자와 84px 막대가 한 줄을 나눠 좁게 줄바꿈. → 600px 이하 글자 줄 아래 막대를 카드 폭으로.
+     5) 지역 칸: 동네 칩 밑 '데이트할 지역' 제목 틈 0, 칸 53px·'검색' 50px, '지도에서 고르기'가 칸에 붙음. → 800px 이하 틈 16px, 칸·검색 52px, 지도 단추 위 10px.
+     6) 날짜 칸 '11/27/26' 가운데: 고치지 않음. 가운데 정렬은 iOS date 칸 넘침을 고칠 때(redesign.css 의 @supports (-webkit-touch-callout:none) 규칙, 2026-11-26) 일부러 둔 것이고,
+        월/일/연 순서는 아이폰의 지역 설정(미국식) 표시라 웹에서 바꿀 수 없음.
+  · 검증: tests/test_iphone_layout_1127_ui.py 4개(320·375·402·430px, 고치기 전 4개 모두 실패 확인 — 바구니 여백은 header-mode.js 만 되돌려도 실패).
+     로컬 전체(Windows, sqlite, msedge) 1681 통과·1 건너뜀·실패 0(25분 46초). format_sources --check 통과, 새 테스트 파일 ruff format·ruff check 통과. !important 추가 없음.
+     CI: Run 45851083014(263de49) 성공 — python-audit·container·test (postgres)·test (sqlite)·security 5개 모두 통과.
+     402px 전후 화면: .playwright-mcp/iphone-1127-{before,after}-{builder,builder-end,region,results,results-end,results-full}.png(저장소에 올리지 않음).
+  · 되돌리는 법: 병합 전이면 브랜치를 버림. 병합 뒤면 git revert(병합 커밋) 후 재배포(정적 2개: redesign.css·header-mode.js). DB 변경 없음.
+  · 배포 때 볼 것: 실제 아이폰 Safari 에서 ① 하단 메뉴를 눌러 옮긴 뒤 다른 칸에 흰 알약이 남지 않는지 ② 조건 화면·결과 화면·둘러보기(바구니 담은 상태) 맨 아래 내용이
+     막대 위에 보이는지 ③ index.html viewport 에 viewport-fit=cover 가 없어 Safari 에서 env(safe-area-inset-bottom) 은 0 — 홈 화면에 추가(단독 실행)한 경우 막대 위치는 따로 확인.
 백세 번째 배포(2026-11-26 저녁) 완료: main 4c74a93(병합 = feat/good-price-menus b5245e0), Worker 버전 e38c39fb-f44d-49e5-a470-76bc1ab9b1bd.
   사용자 '진행해'(병합·배포). 이 컴퓨터는 openapi.seoul.go.kr:8088 이 열려 있어(예전 컴퓨터는 막힘) sample·실제 키 호출로 바로 진행함. 내용은 바로 아래 브랜치 기록.
   · 검증: 브랜치 CI Run 45834192476 성공 → main --no-ff 병합·push → npm run test:security 27 통과 → npx wrangler@4.160.1 deploy(정적 4개: meal-suggestions·results.css·plan-evidence·experience.js).

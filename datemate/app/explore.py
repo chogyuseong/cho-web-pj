@@ -116,7 +116,7 @@ def public_list(region,activity='',q=''):
         places+=[place for _,place in public_places.pick_stores(pairs,center,STORE_CAPS,taken=places)]
     statuses=[s['status'] for s in sources]
     if places:status,message='ready',None if all(s=='available' for s in statuses) else '일부 자료를 받지 못해 받은 곳만 보여 드려요.'
-    elif 'key_missing' in statuses:status,message='key_missing','공공데이터포털 키가 필요해요.'
+    elif 'key_missing' in statuses:status,message='key_missing','지금은 장소 정보를 불러올 수 없어요. 잠시 후 다시 확인해 주세요.'
     # 검색어 문제(기호뿐·한 글자, 관광공사가 거절한 '<script>' 같은 글)는 장애가 아니라 결과 없음과 입력 안내다(2026-11-25 운영 QA-06).
     elif q and statuses[:1] in (['too_short'],['rejected']):status,message='empty',KEYWORD_HINT
     elif statuses and all(s in ('unavailable','limited') for s in statuses):status,message='unavailable','공공 자료를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
@@ -132,7 +132,7 @@ def results(region,activity='',q=''):
     # 공공 자료로 만든 목록이라 사용자 사이에 나눠 쓴다(네이버 결과가 들어 있지 않다).
     cached=store.cached(key)
     if cached is not None:return cached
-    if not public_places.enabled():return dict(status='key_missing',places=[],message='공공데이터포털 키가 필요해요.',sources=[])
+    if not public_places.enabled():return dict(status='key_missing',places=[],message='지금은 장소 정보를 불러올 수 없어요. 잠시 후 다시 확인해 주세요.',sources=[])
     # 새 조건은 공공 API 를 몇 건 부른다. IP 범위마다 분당 횟수를 묶는다.
     require_ip('explore-search','DATEMATE_IP_EXPLORE_SEARCHES_PER_MINUTE',10,'새 조건 검색이 많아요. 잠시 후 다시 시도해 주세요.')
     result=public_list(region,activity,q)
@@ -157,7 +157,7 @@ def naver_blocks(region,activity='',q=''):
     from concurrent.futures import ThreadPoolExecutor
     from .request_usage import context_map
     planned=naver_queries(region,activity,q)
-    if not search_enabled():return dict(status='key_missing',blocks=[],message='네이버 검색 키가 필요해요.')
+    if not search_enabled():return dict(status='key_missing',blocks=[],message='지금은 네이버 검색 결과를 불러올 수 없어요.')
     fingerprint=json.dumps([region,activity,' '.join(q.split()).casefold()],ensure_ascii=False)
     key='explore-naver-v1:'+hashlib.sha256(fingerprint.encode()).hexdigest()
     cached=naver_cache.cached(key)

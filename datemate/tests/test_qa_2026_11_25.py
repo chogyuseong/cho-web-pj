@@ -101,9 +101,9 @@ def test_request_box_has_the_server_limit_and_long_text_reads_in_korean(audit_pa
 def test_network_failure_reads_in_korean_on_every_screen(audit_page):
     page, _, _ = audit_page
     page.route('**/api/conditions/parse', lambda route: route.abort('failed'))
-    # 첫 화면 한 줄 입력 '코스 찾기'(QA-03 재현 경로).
-    page.locator('#hero-command-input').fill('성수에서 전시 보고 저녁 먹기')
-    page.locator('#hero-command button[type=submit]').click()
+    # 한 줄 입력 '이 마음으로 조건 채우기'(QA-03 재현 경로 — 2026-11-26 시안부터 한 줄 입력은 코스 만들기 카드 맨 위에 있다).
+    page.locator('#conditions [name=request]').fill('성수에서 전시 보고 저녁 먹기')
+    page.locator('#parse').click()
     text = toast_text(page)
     assert text == NETWORK_TEXT
     assert not any(word in text for word in DEVELOPER_WORDS), text

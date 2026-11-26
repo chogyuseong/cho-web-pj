@@ -464,7 +464,8 @@ function drawPlanMap(plan,afterCanvas=null){
           // 이 줄을 고칠 때 장소 이름이나 검색 결과 글자를 content 에 이어 붙이지 말 것.
           const marker=new naver.maps.Marker({map,position:new naver.maps.LatLng(lat,lon),zIndex:lit?140:130,
             title:members.map(i=>(i+1)+' · '+plan.places[i].name).join(' / '),
-            icon:{content:'<span class="route-marker route-stop-marker'+(lit?' is-focused':'')+(merged?' route-stop-merged" style="width:'+width+'px':'')+'" role="button" aria-label="'+name+'"'+(lit?' aria-current="true"':'')+'>'+label+'</span>',
+            // 분류 색(2026-11-26 요구 문서 '지도 핀 카테고리 색'): 한 장소 표시에만 data-kind(plan-detail.js stopKindKey — 정해진 낱말뿐이라 HTML 에 넣어도 안전).
+            icon:{content:'<span class="route-marker route-stop-marker'+(lit?' is-focused':'')+(merged?' route-stop-merged" style="width:'+width+'px':'')+'"'+(!merged&&typeof stopKindKey==='function'?' data-kind="'+stopKindKey(plan.places[members[0]])+'"':'')+' role="button" aria-label="'+name+'"'+(lit?' aria-current="true"':'')+'>'+label+'</span>',
               anchor:new naver.maps.Point(width/2,19)}});
           // 합친 표시는 앞 번호 장소로 간다(일정에서 뒤 번호는 바로 아래 카드). 묶인 장소를 고르게 하려면 여기서 작은 선택 칸을 열면 된다.
           // 네이버 지도는 표시 click 을 알린 뒤 지도 칸(tabindex)에 포커스를 되돌려 그 칸으로 다시 스크롤한다(운영 SDK 에서 확인).

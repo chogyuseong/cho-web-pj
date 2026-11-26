@@ -66,12 +66,14 @@ def test_heading_font_is_real_woff2_and_preloaded():
                     in html), (name, weight)
 
 
-def test_hero_photo_is_skipped_on_narrow_screens_and_prioritised_on_wide(audit_page):
+def test_first_screen_has_no_large_hero_image(audit_page):
+    """2026-11-26 시안: 처음 화면 오른쪽은 사진이 아니라 글로 된 '추천 동선 미리보기(예시)' 카드다. 큰 그림을 받지 않아 첫 화면이 가볍다.
+    (예전 이 자리 테스트: 넓은 화면에서만 WebP 사진을 받고 fetchpriority=high — 사진을 뺐으므로 받는 그림이 없는지를 본다.)"""
     page, base, errors = audit_page
     page.set_viewport_size({'width': 1440, 'height': 900})
-    page.wait_for_function("(()=>{const i=document.querySelector('.hero-photo img');return i.complete&&i.naturalWidth===1400;})()")
-    assert page.evaluate("document.querySelector('.hero-photo img').currentSrc").endswith('/static/images/seoul-evening.webp')
-    assert page.evaluate("document.querySelector('.hero-photo img').getAttribute('fetchpriority')") == 'high'
-    page.set_viewport_size({'width': 390, 'height': 844})
-    page.wait_for_function("document.querySelector('.hero-photo img').currentSrc.startsWith('data:')")
-    assert (STATIC / 'images' / 'seoul-evening.webp').stat().st_size < (STATIC / 'images' / 'seoul-evening.jpg').stat().st_size
+    assert page.locator('.hero-photo, .hero img').count() == 0
+    assert page.locator('.hero-preview').is_visible()
+    loaded = page.evaluate("performance.getEntriesByType('resource').map(r=>r.name).filter(n=>/seoul-evening/.test(n))")
+    assert loaded == [], loaded
+
+

@@ -487,7 +487,7 @@ def location_region(data: CoordinateInput, request: Request):
             status="key_missing",
             region=None,
             label="",
-            message="시·도 자동 확인에는 네이버 Maps 키가 필요해요. 시·도를 직접 골라 주세요.",
+            message="지금은 시·도를 자동으로 확인할 수 없어요. 시·도를 직접 골라 주세요.",
         )
     # 지도 클릭마다 한 번만 확인하도록 사용자별 연속 요청을 제한한다.
     key = "region-rate:" + request.state.owner
@@ -907,6 +907,8 @@ class ReorderInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     # 제안받은 순서 그대로의 장소 id 목록(app/order_suggestion.suggest 의 order). 서버가 다시 계산한 제안과 같을 때만 저장한다.
     order: list[PlaceId] = Field(min_length=2, max_length=5)
+    # True: 제안이 아니라 사용자가 정한 순서(2026-11-26 카드 ↑/↓, app/order_suggestion.apply_manual). 같은 계산·같은 저장, 이동이 줄지 않아도 바꾼다.
+    manual: bool = False
 
 
 @app.get("/api/plans/{id}/order-suggestion")
@@ -928,10 +930,10 @@ def reorder(id: str, data: ReorderInput, request: Request):
         request.state.owner,
         "자동차 길찾기를 다시 확인하는 중이에요. 잠시 후 다시 바꿔 주세요.",
     )
-    from .order_suggestion import Refused, apply
+    from .order_suggestion import Refused, apply, apply_manual
 
     try:
-        return apply(plan, data.order, request.state.owner)
+        return (apply_manual if data.manual else apply)(plan, data.order, request.state.owner)
     except Refused as exc:
         raise HTTPException(409, str(exc))
 

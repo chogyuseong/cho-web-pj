@@ -36,7 +36,22 @@ async function runPlanChange(task) {
 // 바뀐 코스를 화면에 올린다. 못 올리면(그 사이 다른 코스 탭을 보고 있거나 코스 목록이 새로 바뀜) 알리고 false.
 // done: 서버에서 끝난 일(되돌리기는 '되돌렸어요').
 function commitNewPlan(oldId, updated, done = '새 코스를 저장했어요') {
-  if (commitPlanChange(oldId, updated)) return true;
+  if (commitPlanChange(oldId, updated)) {
+    // 바꾼 코스는 되돌릴 수 있다(서버 /undo, 화면의 '… 되돌리기' 단추 plan-detail.js). 알림에 [되돌리기]를 붙인다 —
+    // 부른 쪽이 바로 자기 알림을 띄우면 그 알림에, 아니면 이 함수가 '…저장했어요. 바로 되돌릴 수 있어요.'를 띄운다(app.js toast).
+    // 되돌리기 자체(done '되돌렸어요')와 되돌릴 수 없는 코스(공유받은 코스 등)는 붙이지 않는다.
+    if (done !== '되돌렸어요' && updated.parent && updated.can_edit !== false) {
+      const run = () => document.querySelector('#plan-detail .undo-actions button')?.click();
+      toast.pendingUndo = {
+        label: '되돌리기',
+        run
+      };
+      queueMicrotask(() => {
+        if (toast.pendingUndo?.run === run) toast(`${done}. 바로 되돌릴 수 있어요.`);
+      });
+    }
+    return true;
+  }
   toast(plans.some(p => p.id === updated.id) ?
     `${done}. 그 사이 다른 코스를 보고 있어 바로 열지 않았어요. 위 코스 탭에서 확인해 주세요.` :
     `${done}. 그 사이 코스 목록이 바뀌어 화면에는 넣지 못했어요.`);

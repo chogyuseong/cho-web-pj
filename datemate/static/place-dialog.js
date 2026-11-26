@@ -171,7 +171,7 @@ async function showAlternatives(index) {
             replacement_id: option.places[index].id
           });
           // 못 연 새 코스의 토스트는 열린 대화상자 안에 뜨고, 닫히면 바깥으로 옮겨진다(app.js toast).
-          commitNewPlan(planId, updated);
+          commitNewPlan(planId, updated, "장소를 바꿨어요");
           api('/plans/' + planId + '/feedback', {
             kind: 'replace_reason',
             place_id: oldPlaceId,

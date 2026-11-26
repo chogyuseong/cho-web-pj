@@ -41,3 +41,31 @@
 .admin-empty { font-size:16px; color:var(--muted); padding:16px 0; }
 .admin-pages { display:flex; align-items:center; gap:12px; margin:16px 0 0; }
 .admin-pages span { font-size:14px; }
+
+/* ---------- 2026-11-26 사용자 시안(Downloads\datemate-시안-2026-11-26 05번): 두 칸 카드 — 왼쪽 피드백, 오른쪽 '데이터 및 이용 안내' ----------
+   유형·만족도는 진짜 라디오 단추를 칩 모양으로(키보드 ←→ 로 고르기·화면 읽기 그대로). 고른 칩은 옵시디언 바탕(유형)·코랄 테두리(만족도).
+   글자는 14px 이상·명암비 4.5 이상(다른 화면과 같은 기준). 900px 이하에서는 한 칸으로 쌓는다(안내가 아래). */
+.feedback-main { max-width:1120px; padding-top:40px; }
+.feedback-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:start; }
+.feedback-card { padding:28px; border:1px solid #E4E4E7; border-radius:22px; background:#fff; box-shadow:0 8px 24px rgba(9,9,11,.04); min-width:0; }
+.feedback-eyebrow { margin:0 0 4px; color:#BE123C; font-size:14px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.feedback-eyebrow.is-trust { color:#047857; }
+.feedback-card h1, .feedback-card h2 { margin:0 0 8px; font-size:26px; line-height:1.3; color:#09090B; }
+.feedback-chips { margin:8px 0 0; padding:0; border:0; min-width:0; }
+.feedback-chips legend { padding:0; margin:0 0 8px; font-size:16px; font-weight:700; color:#09090B; }
+.feedback-chip-row { display:flex; flex-wrap:wrap; gap:8px; }
+.feedback-form .feedback-chip-row label { position:relative; display:inline-flex; align-items:center; min-height:44px; margin:0; padding:8px 16px; border:1px solid #E4E4E7; border-radius:999px; background:#F8F9FA; color:#3F3F46; font-size:15px; font-weight:600; cursor:pointer; }
+.feedback-chip-row input { position:absolute; opacity:0; width:1px; height:1px; margin:0; }
+.feedback-chip-row label:has(input:checked) { background:#09090B; border-color:#09090B; color:#fff; }
+.feedback-mood .feedback-chip-row label { flex:1 1 0; justify-content:center; border-radius:14px; }
+.feedback-mood .feedback-chip-row label:has(input:checked) { background:#FFE4E6; border-color:#FF385C; color:#BE123C; }
+.feedback-chip-row label:has(input:focus-visible) { outline:3px solid #09090B; outline-offset:2px; }
+.feedback-faq details { border-top:1px solid #E4E4E7; padding:4px 0; }
+.feedback-faq details:last-of-type { border-bottom:1px solid #E4E4E7; }
+.feedback-faq summary { display:flex; align-items:center; min-height:48px; font-size:16px; font-weight:700; color:#09090B; cursor:pointer; }
+.feedback-faq details p { margin:0 0 14px; color:#3F3F46; font-size:15px; line-height:1.75; }
+@media(max-width:900px) {
+  .feedback-layout { grid-template-columns:minmax(0,1fr); }
+  .feedback-card { padding:20px; border-radius:18px; }
+  .feedback-mood .feedback-chip-row label { flex:1 1 40%; }
+}

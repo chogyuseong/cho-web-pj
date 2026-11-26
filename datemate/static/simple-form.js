@@ -269,6 +269,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   when.append(take('visit_date'),take('start'),take('end'));
   const whenNote=node('p','','hint choice-note date-note');whenNote.setAttribute('role','status');
   form.append(when,whenNote);
+  // 방문일 날씨(선택, weather.js): 날짜 줄 바로 아래. 비·눈이면 실내 위주 제안.
+  window.mountWeatherChoice?.(whenNote);
   // 지난 시작 시각을 맞출 때 고르는 다음 시간대(예전 시간대 칩과 같은 값).
   const timeWindows=[['11:00','19:00'],['11:00','17:00'],['13:00','19:00'],['17:00','22:00']];
   function fitTimeToToday(){
@@ -345,12 +347,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   activityRow.append(...activityChips);
   activity.append(activityRow,node('p','고른 종류의 장소로만 코스를 짜요(식사 시간대 식당은 따로 넣어요). 고르지 않으면 골고루 섞어요.','hint'));
 
-  // 5. 한 줄 요청(자연어, 선택): 카드 맨 위 접힘. 히어로 한 줄 입력(theme-cards.js)이 이 칸에 넣고 해석할 때 펼친다.
-  const preference=node('details',undefined,'simple-dream');
+  // 5. 한 줄 요청(자연어, 선택): 카드 맨 위(펼쳐 둠).
+  // 2026-11-26 시안: 한 줄 입력이 카드 맨 위에 늘 보인다(처음 화면의 한 줄 입력 막대를 이리로 옮김). 접기 틀은 남겨 두되 처음부터 펼친다 —
+  // 접으면 다시 접힌 채로 둔다(사용자가 고른 상태). 예시 문구는 header-mode.js COPY.placeholder(데이트/여행)가 넣는다.
+  const preference=node('details',undefined,'simple-dream');preference.open=true;
   preference.append(node('summary','한 줄로 적어서 조건 채우기 (선택)','simple-dream-summary'));
   form.insertBefore(preference,region);
   const request=take('request');request.firstChild.textContent='어떤 데이트를 꿈꾸나요?';
-  form.elements.request.placeholder='예: 비 오는 날 실내 위주로 / 전시 보고 산책 / 매운 음식은 제외';
+  // 예시 문구는 데이트/여행에 따라 header-mode.js COPY.placeholder 가 정한다. 이 카드는 서버 상태를 받은 뒤 그려져 header-mode.js 보다 늦으므로 여기서 한 번 더 맞춘다.
+  form.elements.request.placeholder='예: 비 오는 날 성수에서 덜 걷고 분위기 좋은 저녁 코스';window.syncRequestPlaceholder?.();
   const scenarios=node('div',undefined,'simple-dream-examples quick-chips');scenarios.setAttribute('role','group');scenarios.setAttribute('aria-label','이런 데이트는 어때요');
   for(const text of ['비 오는 날 성수 실내 데이트','덜 걷고 분위기 좋은 저녁 코스','바다 보며 걷는 주말 오후']){
     scenarios.append(button(text,()=>{const input=form.elements.request;input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();},'quick-chip'));

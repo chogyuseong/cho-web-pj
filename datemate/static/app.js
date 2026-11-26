@@ -13,9 +13,15 @@ function showPlannerPage(results, navigate = true) {
   if (navigate) {
     location.hash = results ? 'date-plan' : 'planner-section';
   }
+  // 다음 그리기에서 새 화면 제목으로 포커스를 옮긴다. 그사이 다른 동작이 포커스를 옮겼으면(예: 현재 위치 실패 안내가 지역 칸으로 옮김) 빼앗지 않는다
+  // — 2026-11-26 tests/test_quick_conditions_ui.py test_current_location_allowed 가 가끔 제목에 포커스가 남아 실패한 경쟁을 막는다.
+  const focusBefore = document.activeElement;
   requestAnimationFrame(() => {
     const heading = document.querySelector(results ? '.results-area .section-heading h2' : '.conditions .section-heading h2');
     heading.tabIndex = -1;
+    if (focusMovedSince(focusBefore)) return void document.getElementById('planner-section').scrollIntoView({
+      block: 'start'
+    });
     heading.focus({
       preventScroll: true
     });
@@ -277,8 +283,13 @@ function linkedText(tag, text, cls) {
   return root;
 }
 
-function toast(text) {
+/* 알림(토스트). options.action = {label, run} 이면 글 옆에 단추를 단다(2026-11-26 요구 문서 Phase 1 '되돌리기 토스트').
+   action 을 주지 않아도, 바로 앞에 코스를 새 버전으로 바꾼 동작이 남긴 되돌리기(toast.pendingUndo, plan-actions.js commitNewPlan)가 있으면
+   그 단추를 대신 단다 — 교체·레저·지각 복구처럼 바꾼 뒤 자기 알림을 띄우는 곳도 따로 고치지 않고 [되돌리기]가 붙는다. */
+function toast(text, options = {}) {
   const el = $('#toast');
+  const action = options.action || toast.pendingUndo || null;
+  toast.pendingUndo = null;
   // showModal() 로 연 대화상자는 최상위 층이고 바깥은 비활성(inert)이라 body 의 토스트가 그 뒤에 가려지고 읽히지도 않는다.
   // 열린 모달이 있으면 토스트를 그 안으로 옮기고, 대화상자가 닫히면 body 로 되돌린다.
   let host = document.body;
@@ -293,10 +304,19 @@ function toast(text) {
       once: true
     });
   }
-  el.textContent = text;
-  $('#toast').style.display = 'block';
+  if (action) {
+    const label = node('span', text, 'toast-text');
+    const go = button(action.label, () => {
+      el.style.display = 'none';
+      clearTimeout(toast.timer);
+      action.run();
+    }, 'toast-action');
+    el.replaceChildren(label, go);
+  } else el.textContent = text;
+  $('#toast').style.display = action ? 'flex' : 'block';
   // 읽을 시간: 글 길이에 맞춰 6.5~15초(한 글자 약 0.15초). 마우스를 올리거나 포커스가 있는 동안은 닫지 않는다(WCAG 2.2.1, 2026-11-17).
-  toast.wait = Math.min(15000, Math.max(6500, String(text).length * 150));
+  // 되돌리기 단추가 있으면 누를 시간을 넉넉히(최소 10초).
+  toast.wait = Math.min(15000, Math.max(action ? 10000 : 6500, String(text).length * 150));
   toast.schedule();
 }
 toast.schedule = function(wait = toast.wait || 6500) {
@@ -389,12 +409,15 @@ function values() {
   data.festival = FestivalPanel.anchorFor(data);
   if (selected && selected.conditions.mode === data.mode)
     for (const i of locks) data.locked[i] = selected.places[i].id;
-  // 둘러보기에서 「이 장소 포함해서 코스 짜기」로 고른 장소(explore.js includePlace, 2026-11-24 UX P2)를 비어 있는 첫 자리에 고정한다.
+  // 둘러보기 바구니에서 담은 꼭 들를 장소(explore.js includePlaces, 2026-11-26 — 예전 한 곳 포함 2026-11-24 UX P2)를 비어 있는 앞자리부터 고정한다.
   // 서버는 고정한 장소가 후보에 없으면 둘러보기 보관분에서 찾아 넣는다(app/quality.py pool). 체험 코스(가상 장소)에는 넣지 않는다.
-  if (typeof includedPlace !== 'undefined' && includedPlace && data.mode === 'real' && !Object.values(data.locked).includes(includedPlace.id)) {
-    let slot = 0;
-    while (slot in data.locked) slot += 1;
-    if (slot < data.count) data.locked[slot] = includedPlace.id;
+  if (typeof includedPlaces !== 'undefined' && data.mode === 'real') {
+    for (const place of includedPlaces) {
+      if (Object.values(data.locked).includes(place.id)) continue;
+      let slot = 0;
+      while (slot in data.locked) slot += 1;
+      if (slot < data.count) data.locked[slot] = place.id;
+    }
   }
   return data;
 }
@@ -592,6 +615,7 @@ form.elements.request.addEventListener('change', () => applyRequest().catch(e =>
 
 function beginPlanSearch() {
   plans = [];
+  window.syncResultsTab?.();
   selected = null;
   locks.clear();
   const detail = $('#plan-detail');
@@ -715,6 +739,7 @@ form.elements.mode.addEventListener('change', () => {
   selected = null;
   locks.clear();
   plans = [];
+  window.syncResultsTab?.();
   mode = form.elements.mode.value;
   clearLocationsForMode();
   if (mode === 'demo') form.elements.region.value = '서울';
@@ -729,6 +754,7 @@ form.elements.region.addEventListener('change', () => {
   selected = null;
   locks.clear();
   plans = [];
+  window.syncResultsTab?.();
 });
 
 
@@ -785,17 +811,24 @@ $('#edit-conditions').onclick = () => {
 };
 
 
+// 화면을 옮긴 뒤 다음 그리기까지 사이에 포커스가 다른 칸으로 옮겨 갔는지. 처음 포커스(누른 단추·body)에 그대로면 false.
+function focusMovedSince(before) {
+  const now = document.activeElement;
+  return Boolean(now && now !== before && now !== document.body && now !== document.documentElement);
+}
+
 // Reveal the destination screen before scrolling, including repeated anchor clicks.
 function navigateHomeSection(hash, updateHistory = true) {
   if (!['#planner-section', '#curation'].includes(hash)) return;
   setTab(false);
   if (updateHistory && location.hash !== hash) history.pushState(null, '', hash);
+  const focusBefore = document.activeElement;
   requestAnimationFrame(() => {
     const section = document.querySelector(hash);
     if (!section) return;
     const heading = section.querySelector('h2') || section;
     heading.tabIndex = -1;
-    heading.focus({
+    if (!focusMovedSince(focusBefore)) heading.focus({
       preventScroll: true
     });
     section.scrollIntoView({

@@ -17,12 +17,13 @@ from app.config import ROOT
 STATIC = ROOT / 'static'
 
 # 화면별 CSS 순서(5-5 기준). 홈·피드백은 shell.css(예전 selle·calm·editorial·clarity)를 읽고, 공유·관리 화면은 읽지 않는다.
+# 2026-11-26: tokens.css(디자인 토큰, 변수만)를 style.css 바로 뒤에 모든 화면이 읽는다.
 PAGE_STYLESHEETS = {
-    'index.html': ['style.css', 'location-picker.css', 'shell.css', 'readability.css', 'line.css',
+    'index.html': ['style.css', 'tokens.css', 'location-picker.css', 'shell.css', 'readability.css', 'line.css',
                    'home.css', 'results.css', 'place-photos.css', 'plan-map.css', 'popups.css', 'server-wake.css', 'redesign.css'],
-    'feedback.html': ['style.css', 'shell.css', 'readability.css', 'feedback.css', 'line.css', 'redesign.css'],
-    'feedback-admin.html': ['style.css', 'readability.css', 'feedback.css', 'line.css'],
-    'shared.html': ['style.css', 'readability.css', 'line.css', 'shared.css', 'server-wake.css'],
+    'feedback.html': ['style.css', 'tokens.css', 'shell.css', 'readability.css', 'feedback.css', 'line.css', 'redesign.css'],
+    'feedback-admin.html': ['style.css', 'tokens.css', 'readability.css', 'feedback.css', 'line.css'],
+    'shared.html': ['style.css', 'tokens.css', 'readability.css', 'line.css', 'shared.css', 'server-wake.css'],
 }
 COMPONENT_FILES = ('results.css', 'home.css', 'place-photos.css', 'plan-map.css')
 THEME_FILES = ('style.css', 'shell.css', 'readability.css', 'line.css')

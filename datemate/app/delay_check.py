@@ -20,6 +20,9 @@
   남은 첫 장소보다 뒤 번호에 적힌 지연도 그 장소에 닿을 때 더한다(planner._evaluate 의 delays 와 같은 규칙, 2026-11-24).
   더하지 않으면 '더 늦었는데 더 일찍 끝난다'고 답한다 — 0분으로 확인하면 어느 번호에서 시작하든 지금 시간표가 그대로 나와야 한다.
 원본 코스·공유본·방문 기록을 바꾸지 않는다(저장하지 않는다). 대신 갈 곳·빼고 진행은 app/delay_recovery.py 가 따로 계산한다.
+- stays({장소 번호: 분}, 2026-11-26 시안의 '체류 시간 -15분/+15분'): 그 장소에 머무는 시간을 바꿔 본다. 같은 규칙(개점 대기·휴게·마지막 입장·
+  영업 종료·일정 종료)으로 남은 시간표를 다시 계산하므로, 체류를 늘려 다음 장소가 휴게 시간에 걸리면 그 장소에서 문제로 알린다.
+  index=0·delay=0 으로 부르면 '지연 없이 체류만 바꾼 시간표'다. 범위는 STAY_RANGE(분) — 화면 단추는 15분씩 움직인다(static/delay-check.js).
 """
 
 from .festival_time import hours_range, places_start
@@ -28,6 +31,23 @@ from .models import Conditions
 from .planner import ASSUMED_HOURS, clock, minutes, visit_window
 
 MAX_DELAY = 180
+STAY_RANGE = (15, 360)
+
+
+def parse_stays(text, count):
+    """'0:90,2:45' → {0: 90, 2: 45}. 번호는 0..count-1, 분은 STAY_RANGE 안. 비면 {}. 잘못된 값은 ValueError(화면에 그대로 보인다)."""
+    out = {}
+    for part in filter(None, (piece.strip() for piece in str(text or "").split(","))):
+        try:
+            index, value = (int(x) for x in part.split(":", 1))
+        except ValueError:
+            raise ValueError("체류 시간 형식이 올바르지 않아요.") from None
+        if not 0 <= index < count:
+            raise ValueError("체류 시간을 바꿀 장소를 다시 골라 주세요.")
+        if not STAY_RANGE[0] <= value <= STAY_RANGE[1]:
+            raise ValueError(f"체류 시간은 {STAY_RANGE[0]}~{STAY_RANGE[1]}분 사이로 정해 주세요.")
+        out[index] = value
+    return out
 
 
 def festival_minutes(text, c):
@@ -152,7 +172,7 @@ def delayed_conditions(plan, c):
     return c
 
 
-def delay_check(plan, index, delay):
+def delay_check(plan, index, delay, stays=None):
     c = Conditions.model_validate(plan["conditions"])
     places, legs, timeline = plan["places"], plan["legs"], plan["timeline"]
     if not 0 <= index < len(places):
@@ -254,8 +274,9 @@ def delay_check(plan, index, delay):
             pending.append(dict(place=p["name"], fields=missing))
             if p.get("hours") is None:
                 p["hours"] = list(ASSUMED_HOURS)
-        stay_assumed = p.get("stay") is None
-        p["stay"] = p.get("stay") or c.stay_minutes
+        stay_assumed = p.get("stay") is None and j not in (stays or {})
+        # 화면에서 바꿔 본 체류(stays)가 먼저, 다음은 장소 자료의 체류, 없으면 조건의 장소당 체류.
+        p["stay"] = (stays or {}).get(j) or p.get("stay") or c.stay_minutes
         if p.get("last_entry") is None:
             no_last_entry.append(p["name"])
         start, problem = visit_window(p, now)
@@ -353,8 +374,21 @@ def delay_check(plan, index, delay):
         delayed_arrival=clock(planned_arrival + delay),
         # 말하듯이(2026-11-24 사용자: '답변이 너무 딱딱해'). 계산 내용(기준 장소·기준 시각·더한 분·순서 유지)은 그대로다.
         # 테스트가 '다시 계산했어요.'로 끝나는지, '앞서 N분 늦음을 반영해 저장한 시각'이 들어 있는지 본다 — 바꾸면 함께 고칠 것.
-        basis=f"{places[index]['name']}의 {planned}에 {delay}분 늦는다고 보고, 들르는 순서는 그대로 둔 채 남은 일정을 다시 계산했어요."
-        + later_note,
+        # 지연 없이 체류만 바꿔 본 경우(delay 0 + stays)는 '0분 늦는다고 보고'가 어색해 체류 문장만 쓴다(2026-11-26).
+        basis=(
+            f"{places[index]['name']}의 {planned}에 {delay}분 늦는다고 보고, 들르는 순서는 그대로 둔 채 남은 일정을 다시 계산했어요."
+            if delay or not stays
+            else "들르는 순서와 이동 시간은 그대로 두고, 바꾼 체류 시간으로 남은 일정을 다시 계산했어요."
+        )
+        + later_note
+        + (
+            " 체류 시간은 "
+            + ", ".join(f"{places[k]['name']} {v}분" for k, v in sorted(stays.items()))
+            + "으로 바꿔 계산했어요."
+            if stays
+            else ""
+        ),
+        stays={str(k): v for k, v in sorted((stays or {}).items())},
         rows=rows,
         first_problem=first_problem,
         pending=pending,

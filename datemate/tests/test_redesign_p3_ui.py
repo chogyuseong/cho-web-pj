@@ -93,5 +93,5 @@ def test_place_info_opens_as_a_drawer_or_bottom_sheet(audit_page):
         else:
             assert abs(box['bottom'] - box['vh']) <= 1 and box['left'] <= 1, box
         page.keyboard.press('Escape')
-        page.wait_for_function("!document.getElementById('dialog').open")
-        assert page.evaluate("document.getElementById('dialog').classList.contains('place-drawer')") is False
+        # open 은 close() 때 바로 false 가 되고, 클래스를 지우는 close 이벤트는 다음 작업에서 온다 — 지워지기를 기다린다.
+        page.wait_for_function("!document.getElementById('dialog').open&&!document.getElementById('dialog').classList.contains('place-drawer')")

@@ -7,20 +7,36 @@
 
 ★ 지금 상태 (2026-11-26 기준)
 ----------------------------------------------------------------------
-▶ 진행 중(2026-11-26 14:10~): feat/redesign-1126 — 사용자 새 시안(Gemini Canvas https://share.gemini.google/FRLO4lnDylVK, 캡처·DOM 은 Downloads\datemate-시안-2026-11-26).
-  사용자 지시(14:08, 몇 시간 자리 비움): '모든 권한 … 혼자 진행할 수 있는 것(선택은 가장 완성도 있고 효과적인 것) → 배포 → 배포-이어하기·README → 커밋 푸쉬'.
-  판단(사용자 위임 '실리콘밸리 최고 개발자로서 완성도 제일 높은 방향'): 실제 네이버 지도 유지(시안 모양만 입힘), 지각 '자동 대체' 안 함(「대신 갈 곳 찾기」 유지),
-    실제 장소 사진 유지(시안의 색 그림 대신), 피드백 이메일 칸 안 받음(개인정보 새로 모으지 않음).
-  순서: 1) 화면(색·메뉴 슬라이딩·처음 화면·코스 만들기·결과 틀·카카오맵 링크·테마·피드백·⌘K) 2) 체류 ±15분·순서 바꾸기 재계산 3) 둘러보기 바구니.
-  한 것(커밋 전): ① 처음 화면 — index.html hero(안내 알약·한 줄 제목·아이콘 칩·'추천 동선 미리보기 예시' 카드), 예전 히어로 입력 막대·사진 삭제,
-    header-mode.js COPY(제목 한 줄)·syncRequestPlaceholder(한 줄 입력 예시 → 코스 만들기 카드 textarea), simple-form.js 한 줄 입력 처음부터 펼침,
-    theme-cards.js 칩 아이콘(HERO_CHIP_ICONS, Lucide 경로), redesign.css 15). ② quick-search.js 새 파일(⌘K/Ctrl+K 팔레트, 페이지·상황 테마·인기 동네·시·도)
-    + 메뉴 미끄럼 표시(header-mode.js placeNavIndicator), redesign.css 17). 로컬 서버 8031 에서 확인함.
-  ③ 결과 카드: .timeline-card[data-kind](기존 stopKindKey 이름 cafe·meal·art·walk·make·play·rest·other) 왼쪽 색 띠·번호·시각 색, redesign.css 16).
-    카카오맵 길찾기 링크는 이미 있었음(실제 장소). ④ 체류 −15/+15분: app/delay_check.py parse_stays·delay_check(stays) + GET delay-check?stays=,
-    static/delay-check.js(staysByPlan·changeStay·resetStays·'체류 시간 되돌리기'), plan-detail.js stayStepper. 저장 안 하는 미리 보기.
-  테스트: tests/test_redesign_1126_ui.py 새로(7), test_hero_placeholder_ui.py 삭제(입력칸 없어짐), 예전 동작을 보던 6곳 갱신. 관련 121+25 통과.
-  지금 단계: 전체 테스트 실행 중 → 커밋·푸시 → CI → 병합 → 배포(사용자 지시 있음) → 운영 확인 → 기록.
+백두 번째 배포(2026-11-26 18:40) 완료: main 4361f6a(병합 = feat/naver-image-block fe48647, 그 안에 fix/mobile-375 99f0cdd), Worker 버전 0db99653-48af-4530-ac9e-d3a5f30d2e1e.
+  사용자 지시(17:50, 몇 시간 자리 비움): '모든 권한 … 남은 작업 중 혼자 할 수 있는 것(선택은 가장 완성도 있고 효과적인 것) → 배포 → 배포-이어하기·README → 커밋 푸쉬 → 컴퓨터 종료'.
+  ① 375·320px 휴대폰(101차 운영 확인에서 발견): 머리글 한 줄(400px 이하 스위치 그림 숨김·폭 112, 340px 이하 로고 글자 15px·스위치 100), 하단 바 340~400px 칸 폭을 글자에 맞춤,
+     바구니 도크 휴대폰 세 줄 배치. (320px 머리글 높이 120 이하 — tests/test_readability_stage1_ui.py 가 지킴)
+  ② 사진 없는 장소의 네이버 이미지 검색 결과(app/naver_images.py, GET /api/places/{id}/images, place-photos.js naverImageFold): 「{이름} {도로명 주소}」 6건을 받은 그대로,
+     사진 칸 아래 접힌 칸에 블록 하나+BI. 네이버 서면 답(11-24) '선별·가공 없이 표시는 이용 가능'. 사진 판정·계산에 안 씀. 사용자 결정(11-26 '약관 수정 뒤 추가').
+  ③ 장소 정보 서랍/바텀 시트(#dialog.place-drawer, redesign.css 27)).
+  · 검증: fix/mobile-375 CI 성공(첫 실행은 320px 머리글 테스트 실패 → 고침), feat/naver-image-block CI Run 45788351665 성공 → main 병합·push → test:security 27 → wrangler deploy(정적 3개).
+  · 운영 확인(18:54, 13분 기다린 뒤): server-timing 있음, place-photos·place-dialog·redesign ?v= = 로컬 sha256. 둘러보기 '성수동 카페' 24곳 중 사진 없는 3곳에 접힌 칸 →
+    펼치면 실제 네이버 결과 '‘뚱스필드 서울특별시 성동구 성수일로8길 39-1’ 이미지 검색 결과 6건' 블록 하나·썸네일 6장 모두 그려짐(지연 로딩)·BI 로고. 관련 없는 사진도 섞임(고르지 않음 — 칸 제목에 '확인 안 됨').
+    375·320px 머리글 높이 71px 한 줄, 하단 바 375px 52px(320px 은 66px 두 줄 — 칸보다 글자가 넓음), 가로 넘침 없음. 장소 정보: 휴대폰 아래 시트(움직임 끝난 뒤 바닥에 붙음).
+  · 로컬 전체(이미지 브랜치) 1664 통과·2 실패: 서랍 테스트(닫힘 이벤트 기다림 — 고침, 5회 통과), test_delay_toggle_marks_each_stop_and_turns_off_cleanly(단독 5회 통과, 부하 때 가끔 — 예전부터).
+  · 되돌리는 법: git revert -m 1 4361f6a 후 재배포. DB 변경 없음(새 API: /api/places/{id}/images).
+  · 남은 것(혼자 못 함): 착한가격업소 메뉴·가격(서울 OA-1174 — 이 컴퓨터는 openapi.seoul.go.kr:8088 막힘, 휴대폰으로 sample 응답 캡처 필요), 아이폰 실기기(날짜·시간 칸, :has, 고정 막대).
+    하지 않기로 한 것: 끌어 놓기(↑/↓ 단추), 그림 지도, 날씨 예보(어댑터만), 공유 링크 URL 직렬화(공유 토큰 사용), 네이버 지도 메뉴 긁어 오기(약관·법).
+백한 번째 배포(2026-11-26 16:53) 완료: main a4f053e(병합 = feat/redesign-p1 67bca5c, 그 안에 feat/redesign-1126 f1cb7af), Worker 버전 be03e5f6-cc62-453d-a26e-3f461e63a020.
+  사용자 지시: 14:08 '모든 권한 … 혼자 진행 … 배포 → 배포-이어하기·README → 커밋 푸쉬', '실리콘밸리 최고 개발자·디자이너로서 가장 완성도 있는 방향', 16:20 '끝나면 배포까지 하고 보고해'.
+  기준: Gemini Canvas 시안(https://share.gemini.google/FRLO4lnDylVK, Downloads\datemate-시안-2026-11-26) + 15:20 요구 문서(Phase 0~4) — 계획·판단 datemate/docs/redesign-2026-11-26-plan.ko.md.
+  ① 시안 1차(feat/redesign-1126): 처음 화면(안내 알약·한 줄 제목·아이콘 칩·'추천 동선 미리보기 예시' 카드, 예전 입력 막대·사진 삭제, 한 줄 입력은 코스 만들기 맨 위 펼침),
+     quick-search.js(⌘K/Ctrl+K), 메뉴 미끄럼 표시, 장소 카드 분류 색, 체류 −15/+15분(app/delay_check.py stays — 지각 미리 보기와 같은 규칙, 저장 안 함),
+     피드백 두 칸 카드(유형·만족도 → 글 앞머리, FAQ), 선호 활동 칩 색 점, 화면 이동 시 포커스 빼앗기 방지(app.js focusMovedSince).
+  ② Phase 1: tokens.css·html[data-mode](여행=파랑), '추천 결과' 탭+개수 배지, 되돌리기 토스트, weather.js(어댑터+직접 선택, 비·눈→실내 제안), 서버 '키' 문구 정리.
+     Phase 3·4: 순서 ↑/↓(order_suggestion.apply_manual, POST reorder manual), 지연 '대체 장소로 자동 조정', 지도 번호 분류 색, 둘러보기 바구니 도크(locked 여러 자리).
+  · 판단: 실제 네이버 지도 유지, 날씨 예보 지어내지 않음, #FF385C 는 장식만(글자 명암비), 끌어 놓기 대신 ↑/↓, 공유는 기존 토큰, 피드백 유형은 DB 칸 대신 글 앞머리.
+  · 검증: 브랜치 1 CI Run 45768316168 성공(형식 검사 한 번 고침), Phase 브랜치 로컬 전체 1659 통과·2 실패(메뉴 배지 '0'·결과 탭 현재 위치 테스트 → 고침),
+    CI Run 45774546217 성공 → main 병합·push → test:security 27 → wrangler deploy(정적 22개).
+  · 되돌리는 법: git revert -m 1 a4f053e 후 재배포. DB 변경 없음(새 API 인자: delay-check stays, reorder manual).
+  · 운영 확인(17:06, 13분 기다린 뒤): server-timing 있음, tokens·quick-search·weather·explore·plan-detail·delay-check·header-mode·redesign ?v= = 로컬 sha256.
+    1440: 개발자 문구 0, 여행 모드 #2563EB·'어디로 떠날까요?', 상세 조건 접힘·한 줄 입력 펼침·날씨 칩, ⌘K 묶음 4개, 체험 코스로 '추천 결과 · 코스 3개' 탭, 체류+15 → 끝 13:43→13:58,
+    순서 ↓ → '…2번째로 옮겼어요 [되돌리기]' → 되돌리기 복원. 375: 가로 넘침 없음, 바구니 2곳 → 고정 2자리. (이때 머리글·하단 바·도크 깨짐 발견 → 102차)
 백 번째 배포(2026-11-26 12:38) 완료: main 88e6ce7(병합 = fix/naver-terms-separate-areas 0009336, 그 안에 fix/hero-placeholder-mobile bc4937d), Worker 버전 12378408-698f-43ec-98cd-c51e5bfd15d2.
   사용자 지시: '진행해'(커밋·푸시·병합) → '병합되면 배포까지 진행해'(11-26). 배포 때 컨테이너가 깨어 있어 13분 기다린 뒤 확인.
   ① 화면(사용자 아이폰 18 Pro 캡처 3장, 2026-11-26):

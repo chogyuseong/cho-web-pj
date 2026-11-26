@@ -23,6 +23,9 @@
            {{PUBLIC_ORIGIN}} 남지 않음, canonical·og:url 없음, robots noindex 그대로(컨테이너 잠든 때·깨어난 때 두 번)
          - 아이폰 실기기: 위 화면들 + 카카오톡에 공유 링크 붙여 미리보기(예전 주소는 developers.kakao.com/tool/debugger/sharing 에서 캐시 초기화)
   · 되돌리는 법: git revert -m 1 bea0eca / git revert -m 1 2e81d8b 후 재배포. DB 변경 없음.
+  · 정리 못 한 것(삭제도 권한 검사에 막힘, 모두 main 병합 확인함):
+      git push origin --delete fix/iphone-layout-1127 fix/share-og-tour-photo-400
+      git worktree remove --force .claude/worktrees/agent-a52d81bb66bb85df4; git branch -D worktree-agent-a52d81bb66bb85df4
   · 남은 것: QA-14(CSS·JS 묶기·미디어쿼리 정리 — 큰 정리, Fable 추천), 아이폰 실기기(:hover 잔상, 홈 화면 단독 실행 막대, 입력칸 52px 글자, 날짜·시간 칸),
     index.html viewport-fit=cover 도입 여부(설계 판단), sharing.py 기존 ruff 경고(ROOT 미사용·E701).
 브랜치 fix/share-og-tour-photo-400(2026-11-27, main bea0eca 로 병합, 배포 대기): 99차 '남은 것' 중 두 가지 — 공유 화면 og 태그, tour_places 사진 검색의 400 처리.

@@ -1,7 +1,7 @@
 """코스 결과의 팝업 구역: 네이버 블로그 검색 결과 블록 + 팝업 거점 목록(우리 거점 사전)과 주변 코스 버튼.
 
 실제 브라우저, /api/popups 는 page.route 가짜 응답(외부 호출 없음).
-2026-11-20(특약 2.2)부터 글은 받은 순서 그대로 한 블록이고, 거점 목록·지도 표시는 글과 무관하게 응답의 hubs 로만 그린다.
+2026-11-20(특약 1.2)부터 글은 받은 순서 그대로 한 블록이고, 거점 목록·지도 표시는 글과 무관하게 응답의 hubs 로만 그린다.
 """
 
 import json
@@ -165,32 +165,33 @@ def test_naver_block_keeps_order_and_hub_list_is_separate_from_the_posts(audit_p
     assert api.requests[-1] == dict(region="서울", visit_date="2026-11-20")
     assert page.locator("#popup-course-title").inner_text() == "서울 팝업스토어 글"
     section = page.locator("#popup-course")
-    about = section.locator(".popup-course-about").inner_text()
-    assert "코스에 넣지 않은 참고 자료예요" in about and "받은 순서 그대로" in about
-    assert "기간과 장소는 글 원문에서 확인해 주세요" in about
+    # 블록 앞 안내 문구(예전 .popup-course-about)는 없다 — 네이버 답 2-2 앞 삽입(특약 1.2, 2026-11-26).
+    assert section.locator(".popup-course-about").count() == 0
     # 축제 구역 바로 뒤, 부가 정보 앞(모바일 DOM 순서도 같음).
     assert page.evaluate(
         "document.querySelector('#festival-section').nextElementSibling.id==='popup-course'"
         "&&document.querySelector('#popup-course').nextElementSibling.id==='plan-extras'"
     )
     # 글: 블록 하나에 받은 순서 그대로. 처음 6건 + 「글 더 보기」, 펼쳐도 순서는 같다.
-    assert page.locator("#popup-course-status").inner_text() == (
-        f"네이버 블로그 검색 ‘{QUERY}’ · 정확도순 7건"
-    )
+    # 검색어·정렬·건수는 블록 머리글 제목으로. 블록 바로 위 상태 줄은 화면 읽기용 알림만.
+    assert "visually-hidden" in page.locator("#popup-course-status").get_attribute("class")
     assert page.locator("#popup-course-results .popup-naver-block").count() == 1
     assert page.locator("#popup-course-results .popup-naver-block .naver-result-head>h4").inner_text() == (
-        "네이버 블로그 검색 결과 7건"
+        f"네이버 블로그 검색 ‘{QUERY}’ · 정확도순 7건"
     )
     assert titles(page) == [p["title"] for p in POSTS[:6]]
+    # 「글 더 보기」는 블록 바닥(같은 결과의 뒤쪽을 펴는 쪽 넘김).
+    assert page.locator("#popup-course-results .naver-result-pager > .popup-more").count() == 1
     page.locator("#popup-course-results .popup-more").click()
     assert titles(page) == [p["title"] for p in POSTS]
     block = page.locator("#popup-course-results .popup-naver-block")
     assert "네이버 검색결과 · 블로그 검색" in block.locator(".naver-attribution").inner_text()
     # 블록 안에는 우리 판정·거점·버튼이 없다: 글마다 원문 링크 하나, 그 밖의 링크는 출처 표시 둘뿐.
     for gone in (".popup-reading", ".popup-fact", ".popup-hub", ".popup-action", "button", "dl", "img"):
-        assert block.locator(gone).count() == 0, gone
-    # 링크: 글 7 + 머리글의 원본 1. 'NAVER 오픈 API' 는 2026-11-24 부터 링크가 아닌 글자다(naver-attribution.js).
-    assert block.locator(".popup-post a").count() == 7 and block.locator("a").count() == 8
+        assert block.locator(".naver-result-body").locator(gone).count() == 0, gone
+    # 링크: 글 7 + 머리글의 원본 1 + 바닥의 BI 로고 1(NAVER API HUB 소개, 2026-11-26 BI 가이드).
+    assert block.locator(".popup-post a").count() == 7 and block.locator("a").count() == 9
+    assert block.locator(".naver-result-foot > a.naver-powered img").get_attribute("alt") == "Powered by NAVER OpenAPI"
     text = section.inner_text()
     for word in ("읽은 정보", "읽은 장소", "기간 미확인", "위치 미확인", "위치를 확인한 글", "모아 소개", "숨겼어요", "뺐어요", "검색된 글"):
         assert word not in text, word
@@ -599,7 +600,7 @@ def test_four_widths_long_names_touch_targets_and_keyboard(audit_page):
               const small=all('p,dt,dd,h3,h4,h5,h6,a,button,strong,span').filter(e=>e.textContent.trim()&&parseFloat(getComputedStyle(e).fontSize)<14)
                 .map(e=>e.className+':'+getComputedStyle(e).fontSize);
               const short=all('button,.popup-source-link,.popup-hub-search').filter(e=>e.getBoundingClientRect().height<44).map(e=>e.textContent.trim());
-              const clipped=all('.popup-title,.popup-summary,.popup-hub-name,.popup-fact dd,.popup-meta,.popup-action-note,.popup-origin-title,.popup-hub-search,.popup-status,button')
+              const clipped=all('.popup-title,.popup-summary,.popup-hub-name,.popup-fact dd,.popup-meta,.popup-action-note,.popup-origin-title,.popup-hub-search,.popup-status:not(.visually-hidden),button')
                 .filter(e=>e.scrollWidth>e.clientWidth+1||getComputedStyle(e).textOverflow==='ellipsis'||getComputedStyle(e).webkitLineClamp!=='none')
                 .map(e=>e.textContent.slice(0,20));
               const outside=all('.popup-hub,.popup-post,.popup-naver-block,.naver-attribution,.popup-origin-note button').filter(e=>{const r=e.getBoundingClientRect();return r.left<0||r.right>innerWidth;}).length;

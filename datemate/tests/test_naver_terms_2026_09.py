@@ -281,7 +281,9 @@ def test_attribution_script_is_loaded_and_used():
     for name in ('plan-detail.js', 'place-dialog.js', 'shared.js', 'maps.js'):
         assert 'naverAttribution(' in (ROOT / 'static' / name).read_text('utf-8'), name
     # 화면에 남는 네이버 검색 결과는 블록 공통 부품(naverResultBlock)으로 그린다(2단계 3.7(a)). 블록의 머리글이 출처 표시다.
-    assert 'function naverResultBlock(' in script and "naverAttribution(kind, originalUrl)" in script
+    # 2026-11-26: 블록 머리글은 글자 출처(로고 없이), BI 로고는 블록 오른쪽 아래(naverPoweredBy).
+    assert 'function naverResultBlock(' in script and "naverAttribution(kind, originalUrl, 'p', { logo: false })" in script
+    assert 'function naverPoweredBy(' in script and (ROOT / 'static/brand/naver-openapi-powered.png').is_file()
     for name in ('explore.js', 'place-blogs.js', 'popups.js', 'location-picker.js'):
         assert 'naverResultBlock(' in (ROOT / 'static' / name).read_text('utf-8'), name
     # 주변 식당·레저·주차장은 공공 자료만 쓰므로 네이버 출처 표시가 없다.

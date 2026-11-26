@@ -1,6 +1,6 @@
 """코스 비용 계산. 등록된 단가(업체 제공·등록 출처·운영자가 확인한 메뉴)와 계획용 가정 범위를 구분한다.
 
-네이버 검색 API 특약 2.2·2.3(2026-09 개정, docs/naver-terms-stage2-design.ko.md 3.2(a)):
+네이버 검색 API 특약 1.2·1.3(2026-09 개정, docs/naver-terms-stage2-design.ko.md 3.2(a)):
 블로그 검색 요약에서 금액을 읽어 비용 표·합계·예산 판정에 넣던 것(extract_quote·lookup_price, 'web_reference' 가격)을 없앴다.
 가격을 찾는 외부 호출은 없다. 등록된 단가가 없는 장소는 사용자가 허용하면 계획용 가정 범위(ASSUMPTIONS)로, 아니면 '확인 필요'(합계에서 빠짐)로 둔다.
 그래서 합계는 '계획용 가정 범위' 중심이고 실제 가격과 다를 수 있다 — 화면이 비용 표 옆에 그렇게 적는다(static/plan-detail.js).

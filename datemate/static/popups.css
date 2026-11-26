@@ -1,6 +1,6 @@
 /* 팝업 글 둘러보기·코스 결과의 팝업 구역 (static/popups.js). 색·글꼴은 style.css :root 와 line.css 의 토큰만 쓴다.
    2026-11-20 부터 화면은 두 가지뿐이다: 네이버 블로그 검색 결과 블록(받은 글 그대로)과 팝업 거점 목록·지도 표시(우리 거점 사전).
-   글에서 읽은 기간·장소·사진 칸은 없다(네이버 검색 API 특약 2.2). */
+   글에서 읽은 기간·장소·사진 칸은 없다(네이버 검색 API 특약 1.2). */
 
 /* ---------- 장소 / 팝업스토어 전환 ---------- */
 .explore-switch { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; }
@@ -30,7 +30,6 @@
 .popup-searchbar label { min-width:0; }
 .popup-searchbar select,.popup-searchbar input { min-height:44px; font-size:16px; }
 .popup-searchbar button { min-height:44px; }
-.popup-browse .popup-about { font-size:14px; margin:12px 0 4px; }
 .popup-status { font-size:16px; color:var(--ink); margin:12px 0; font-weight:600; overflow-wrap:anywhere; }
 .popup-status:empty { display:none; }
 .popup-results[aria-busy=true] { min-height:88px; }
@@ -80,7 +79,6 @@
   scroll-margin-top:100px;
 }
 .popup-course .section-heading h3 { margin:0; color:var(--ink); }
-.popup-course-about { font-size:14px; margin:8px 0 0; }
 .popup-course-demo { margin:12px 0 0; padding:8px 12px; background:var(--platform); color:var(--ink); font-size:14px; }
 .popup-course .popup-naver-block .naver-result-head>h4 { font-size:17px; line-height:1.5; margin:0 0 4px; color:var(--ink); }
 .popup-course .popup-title { font-size:16px; }
@@ -88,6 +86,8 @@
 /* ---------- 팝업 거점 목록 (우리 거점 사전) ----------
    거점마다 이름·위치 줄·거리 줄·주변 코스 버튼. 검색된 글과 잇지 않는다. */
 .popup-hubs-about { font-size:14px; margin:0 0 12px; }
+/* 거점 목록(우리 정보)은 네이버 블록과 구분된 별개 상자(2026-11-26 네이버 답 2-1). 블록(.naver-result-block)과 같은 테두리 모양, 위 간격은 .popup-list 의 24px. */
+.popup-hubs { padding:16px; border:1px solid var(--line); border-radius:10px; background:#fff; }
 .popup-hub-items { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); gap:12px; }
 .popup-hub { min-width:0; padding:12px 16px; border:1px solid var(--line); border-radius:10px; background:var(--platform); overflow-wrap:anywhere; word-break:keep-all; }
 .popup-hub-chosen { border-left:4px solid var(--hong); }

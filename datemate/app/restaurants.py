@@ -2,7 +2,7 @@
 
 우리 식당 자료(data/restaurants.json)와 공공 자료(한국관광공사 관광정보의 음식점, 소상공인 상가정보의 음식 업종 — app/public_places.py)에서만 찾는다.
 2026-11-20 2단계: 예전에는 네이버 지역 검색의 '맛집'·'음식점' 결과를 리뷰순으로 받아 거르고 줄 세워 보여 줬다. 검색 결과를 우리 목록의
-입력으로 쓰지 않기로 해 뺐다(검색 API 특약 2.1·2.2, docs/naver-terms-stage2-design.ko.md 3.8(b)). 그래서 '리뷰가 많은 순'과 구 단위
+입력으로 쓰지 않기로 해 뺐다(검색 API 특약 1.1·1.2, docs/naver-terms-stage2-design.ko.md 3.8(b)). 그래서 '리뷰가 많은 순'과 구 단위
 '유명 맛집' 목록은 없다(대신할 공공 자료가 없음). 화면은 네이버 지도 검색 링크를 따로 둔다.
 """
 import json
@@ -71,7 +71,8 @@ def public_food(plan,indices):
             if any(public_places.same_venue(food,other) for other in chosen):continue
             tour_row=food['public_source']=='tour'
             chosen.append(dict(food,cuisine=food['description'].split('>')[-1],recognition=TOUR_RECOGNITION if tour_row else STORE_RECOGNITION,
-                hours_text='영업시간·메뉴는 지도에서 확인',search_radius_m=radius,distance_m=round(meters),after_index=i,near_place=a['name'],
+                # hours_text: 메뉴는 카드의 메뉴 칸이 안내하므로 영업시간만(2026-11-26, 예전 '영업시간·메뉴는 지도에서 확인'은 같은 말 두 번).
+                hours_text='영업시간은 지도에서 확인',search_radius_m=radius,distance_m=round(meters),after_index=i,near_place=a['name'],
                 extra_distance_km=round(max(0,distance(a,food)+distance(food,b)-distance(a,b)),1),route_offset_km=round(segment_distance(food,a,b),1)))
             if len(chosen)==PER_STOP:break
         groups[i]=chosen;shown+=chosen

@@ -183,7 +183,7 @@ def test_result_photo_opens_same_viewer(audit_page):
     page.keyboard.press('Escape')
 
 
-# 네이버가 중간에서 자른 제목·요약('...')도 다듬지 않고 받은 그대로 보여 준다(네이버 검색 API 특약 2.2).
+# 네이버가 중간에서 자른 제목·요약('...')도 다듬지 않고 받은 그대로 보여 준다(네이버 검색 API 특약 1.2).
 # 예전의 다듬기 함수(blogTitleText·blogExcerptText)와 그 테스트는 없앴다.
 POSTS = [{'title': '성수 데이트 코스 추천 | 성수 놀....', 'url': 'https://blog.naver.com/a/1', 'blogger': '하루', 'posted_at': '2026-11-01',
           'description': '주말에 다녀왔는데 정말 좋았어요. 분위기도 좋고 사장님도 친절하세요! 다음에도 꼭 다시 오고 싶은 곳이에요 주차는 어려워서...'},
@@ -227,11 +227,12 @@ def test_blog_panel_loading_and_results(audit_page, width):
     loaded_height = content.bounding_box()['height']
     # 뼈대 높이가 결과의 절반 가까이라 크게 튀지 않는다.
     assert loading_height >= loaded_height * 0.3, (loading_height, loaded_height)
-    assert '‘어느 장소 서울 방문 후기’ 네이버 블로그 검색 결과 5건' in content.locator('.blog-status').inner_text()
-    # 우리 안내는 블록 밖에 한 번, 블록 안에는 출처 표시와 네이버가 준 글만(받은 순서·글자 그대로).
+    # 2026-11-26 네이버 답(특약 1.2, 2-1·2-2): 접기 안에는 블록 하나만 — 블록 앞 안내('네이버가 준 순서 그대로…')·뒤 링크 없음.
+    # 검색어·건수는 블록 머리글 제목, 상태 줄은 화면 읽기용 알림(보이지 않음).
     block = content.locator('.naver-result-block')
-    assert block.count() == 1 and content.locator('.blog-scope-note').count() == 1 and block.locator('.blog-scope-note').count() == 0
-    assert '네이버가 준 순서 그대로' in content.locator('.blog-scope-note').inner_text()
+    assert block.count() == 1 and content.locator('.blog-scope-note').count() == 0
+    assert block.locator('.naver-result-title').inner_text() == '‘어느 장소 서울 방문 후기’ 블로그 검색 결과 5건'
+    assert content.evaluate("e=>[...e.children].filter(c=>!c.classList.contains('visually-hidden')).map(c=>c.className)") == ['naver-result-block']
     assert block.locator('.naver-attribution').count() == 1 and '네이버 검색결과 · 블로그 검색' in block.locator('.naver-attribution').inner_text()
     titles = block.locator('a.blog-post-title')
     assert titles.all_inner_texts() == [post['title'] for post in POSTS[:3]], '처음 3건을 받은 순서·제목 그대로'
@@ -241,9 +242,9 @@ def test_blog_panel_loading_and_results(audit_page, width):
     assert block.locator('.blog-meta').first.inner_text() == '하루 · 2026-11-01'
     for gone in ('미리보기', '원문에서 이어 읽기', '원문이 안 열리면 검색'):
         assert gone not in block.inner_text()
-    # 나머지는 블록 밖의 「더 보기」로 편다. 편 뒤에도 받은 순서·건수 그대로이고, 요약이 없는 글은 요약 칸을 만들지 않는다.
-    more = content.get_by_role('button', name='나머지 2건 더 보기', exact=True)
-    assert more.count() == 1 and block.get_by_role('button').count() == 0
+    # 나머지는 블록 바닥의 「더 보기」로 편다. 편 뒤에도 받은 순서·건수 그대로이고, 요약이 없는 글은 요약 칸을 만들지 않는다.
+    more = block.locator('.naver-result-pager').get_by_role('button', name='나머지 2건 더 보기', exact=True)
+    assert more.count() == 1
     more.click()
     assert block.locator('.blog-post-title').all_inner_texts() == [post['title'] for post in POSTS]
     assert block.locator('.blog-summary').count() == 4 and content.get_by_role('button', name='나머지 2건 더 보기', exact=True).count() == 0

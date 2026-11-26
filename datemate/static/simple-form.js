@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   function regionOf(point){return regionFromAddress(point.road_address)||regionFromAddress(point.jibun_address)||regionFromAddress(point.name);}
   // 출발지 이름은 시·도로 시작해야 서버의 시·도·주소 일치 검증을 통과한다.
   function originNameOf(point,area){const address=String(point.road_address||point.jibun_address||point.name||'').trim();return regionFromAddress(address)===area?address:area+' '+address;}
-  function closeResults(){resultHolder.replaceChildren(resultList);resultList.hidden=true;resultList.replaceChildren();searchResults=[];activeIndex=-1;originInput.setAttribute('aria-expanded','false');originInput.removeAttribute('aria-activedescendant');}
+  function closeResults(){searchStatus.classList.remove('visually-hidden');resultHolder.replaceChildren(resultList);resultList.hidden=true;resultList.replaceChildren();searchResults=[];activeIndex=-1;originInput.setAttribute('aria-expanded','false');originInput.removeAttribute('aria-activedescendant');}
   function setActive(index){
     activeIndex=index;
     [...resultList.children].forEach((item,i)=>item.setAttribute('aria-selected',String(i===index)));
@@ -127,12 +127,16 @@ document.addEventListener('DOMContentLoaded',()=>{
       item.id='origin-search-option-'+i;item.setAttribute('role','option');item.setAttribute('aria-selected','false');
       // 역·가게·명소 이름으로 찾은 결과(place_name)는 이름과 주소를 함께 보인다. 모두 텍스트로만 넣는다.
       if(point.place_name){
-        item.append(node('strong',point.place_name),node('span',point.road_address||point.jibun_address||'주소 정보 없음','hint origin-search-address'));
+        // 네이버 블록 안이라 API 가 준 값만 — 주소가 없으면 우리 글('주소 정보 없음')을 넣지 않는다(네이버 답 2-1 중간 삽입, 2026-11-26).
+        item.append(node('strong',point.place_name));
+        const address=point.road_address||point.jibun_address;if(address)item.append(node('span',address,'hint origin-search-address'));
       }else{
         item.append(node('strong',point.road_address||point.name));
         if(point.jibun_address&&point.jibun_address!==point.road_address)item.append(node('span','지번: '+point.jibun_address,'hint'));
       }
-      if(!known){item.setAttribute('aria-disabled','true');item.append(node('span','시·도를 알 수 없어 고를 수 없어요','hint origin-search-unknown'));}
+      // 시·도를 알 수 없는 결과: 고를 수 없게만 하고(흐리게, home.css .origin-search-option[aria-disabled=true]), 까닭은 블록 밖 상태 줄에 쓴다.
+      // 예전처럼 항목 안에 '시·도를 알 수 없어 고를 수 없어요'를 넣으면 네이버 결과 중간에 우리 글을 넣는 것(네이버 답 2-1).
+      if(!known)item.setAttribute('aria-disabled','true');
       item.addEventListener('click',()=>chooseResult(i));
       resultList.append(item);
     });
@@ -143,8 +147,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       block.addEventListener('mousedown',event=>event.preventDefault());
     }
     resultList.hidden=false;originInput.setAttribute('aria-expanded','true');
-    const usable=results.filter(regionOf).length;
-    searchStatus.textContent=usable?`검색 결과 ${results.length}곳이에요. 하나를 누르거나 위아래 화살표로 고른 뒤 Enter 를 눌러 주세요.`:'시·도를 알 수 없는 결과뿐이에요. 시·도 이름을 붙여(예: 부산 광안리) 다시 검색하거나 ‘지도에서 고르기’를 이용해 주세요.';
+    const usable=results.filter(regionOf).length,naver=results.some(point=>point.place_name);
+    searchStatus.textContent=usable?`검색 결과 ${results.length}곳이에요.${usable<results.length?` 시·도를 알 수 없는 ${results.length-usable}곳(흐린 항목)은 고를 수 없어요.`:''} 하나를 누르거나 위아래 화살표로 고른 뒤 Enter 를 눌러 주세요.`:'시·도를 알 수 없는 결과뿐이에요. 시·도 이름을 붙여(예: 부산 광안리) 다시 검색하거나 ‘지도에서 고르기’를 이용해 주세요.';
+    // 네이버 블록 바로 위에 우리 안내를 보이지 않게 한다(네이버 답 2-2 앞 삽입). 화면 읽기 프로그램은 입력칸 설명(aria-describedby)으로 그대로 듣는다.
+    // 고를 수 있는 결과가 하나도 없으면(사용자가 다음에 할 일을 알아야 함) 보이게 둔다.
+    searchStatus.classList.toggle('visually-hidden',naver&&usable>0);
   }
   async function searchOrigin(){
     if(searching)return;
@@ -152,7 +159,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(query.length<2){closeResults();searchStatus.textContent='동네·역·주소를 두 글자 이상 입력하고 검색해 주세요.';originInput.focus();return;}
     // disabled 로 바꾸면 버튼에 있던 포커스가 사라져 입력한 검색어가 되돌려지므로 aria-disabled 만 쓴다.
     searching=true;searchButton.setAttribute('aria-disabled','true');closeResults();searchStatus.textContent=`‘${query}’을(를) 찾고 있어요…`;
-    // 새 질의: 앞서 지역 검색으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 2.4, form-state.js).
+    // 새 질의: 앞서 지역 검색으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 1.4, form-state.js).
     LastConditions.newQuery('local');
     try{const data=await api('/locations/search',{query}),at=Date.now();showResults((data.results||[]).map(point=>({...point,received_at:at})),data.message);}
     catch(error){searchStatus.textContent=(error.message||'검색하지 못했어요.')+' 잠시 후 다시 검색하거나 ‘지도에서 고르기’를 이용해 주세요.';}

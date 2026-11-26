@@ -78,8 +78,9 @@ body.mode-travel .mode-switch .mode-thumb { transform:translateX(100%); }
 @media(max-width:720px) {
   :root { --bottom-bar:76px; }
   /* 흐림(backdrop-filter)이 있는 요소는 그 안의 position:fixed 기준이 된다 — 머리글에 흐림을 두면 바가 화면 아래가 아니라 머리글에 붙었다.
-     그래서 휴대폰에서는 머리글 흐림을 끄고 거의 불투명한 흰색으로 둔다(흐림은 바 자신이 갖는다). */
-  body > header { -webkit-backdrop-filter:none; backdrop-filter:none; background:rgba(255,255,255,.96); }
+     그래서 휴대폰에서는 머리글 흐림을 끄고 불투명한 흰색으로 둔다(흐림은 바 자신이 갖는다).
+     예전 rgba(255,255,255,.96) 은 흐림 없이 4% 비쳐, 아이폰에서 뒤로 지나가는 글자('지도에서 고르기')가 머리글 위에 겹쳐 보였다(2026-11-26 사용자 캡처). */
+  body > header { -webkit-backdrop-filter:none; backdrop-filter:none; background:#fff; }
   body { padding-bottom:calc(var(--bottom-bar) + env(safe-area-inset-bottom)); }
   body > header nav { position:fixed; z-index:40; left:12px; right:12px; bottom:calc(10px + env(safe-area-inset-bottom)); margin:0; width:auto;
     display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; padding:6px; overflow:visible;
@@ -108,7 +109,8 @@ body.mode-travel .mode-switch .mode-thumb { transform:translateX(100%); }
 .hero-command { display:flex; align-items:center; gap:8px; padding:6px 6px 6px 18px; border:1px solid var(--field-line); border-radius:var(--radius-pill); background:#fff; box-shadow:0 6px 20px rgba(17,24,39,.08); }
 .hero-command:focus-within { border-color:var(--ink); box-shadow:0 0 0 4px var(--accent-soft); }
 /* id 로 고른다: line.css 의 입력칸 공통 테두리 규칙(:is(input:not(...)…))이 클래스 선택자보다 명시도가 높다. 테두리는 바깥 막대(.hero-command)가 맡는다. */
-#hero-command-input { flex:1; min-width:0; height:48px; padding:0; border:0; border-radius:0; background:none; font-size:17px; color:var(--ink); }
+#hero-command-input { flex:1; min-width:0; height:48px; padding:0; border:0; border-radius:0; background:none; font-size:17px; color:var(--ink); text-overflow:ellipsis; }
+/* 안내 문구는 header-mode.js syncHeroPlaceholder 가 칸 폭에 맞춰 긴/짧은 것을 고른다. ellipsis 는 그래도 넘칠 때(글꼴 차이) 뚝 끊기지 않고 '…'로 끝내는 대비책. */
 #hero-command-input:focus { outline:none; }
 .hero-command button { flex:0 0 auto; min-height:48px; padding:0 22px; border-radius:var(--radius-pill); font-size:16px; font-weight:700; }
 .hero-quick { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
@@ -297,6 +299,15 @@ body.mode-travel { --hong:#1D4ED8; --accent:var(--hong); --accent-soft:rgba(37,9
 #conditions .activity-group .quick-chip[aria-pressed=true] { border-color:var(--hong); background:var(--accent-soft); color:var(--hong); }
 /* 날짜·시작·종료: 세 칸 한 줄(휴대폰은 날짜 한 줄 + 시각 두 칸). */
 #conditions .when-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+/* iOS Safari 날짜·시간 칸 넘침(2026-11-26 사용자 아이폰 18 Pro 캡처: 방문 날짜·시작·종료 칸 오른쪽이 카드 밖으로 약 13px).
+   iOS 의 date/time 칸은 기본 모양(appearance:auto)이면 style.css 의 width:100%·min-width:0 을 무시하고 자체 최소 폭만큼 넓어진다(WebKit 동작).
+   기본 모양을 끄면 폭 지정을 따른다. 끄면 값이 왼쪽으로 붙으므로 지금처럼 가운데(iOS 기본 모양)로 둔다.
+   @supports (-webkit-touch-callout:none) 은 iOS Safari 에서만 참 — 데스크톱·안드로이드 모양은 그대로. 다른 화면의 date/time 칸도 같은 문제라 #conditions 로 묶지 않는다.
+   Windows Playwright WebKit 은 date/time 을 text 로 바꿔 재현이 안 됨 — 확인은 실기기로. */
+@supports (-webkit-touch-callout:none) {
+  input:is([type=date],[type=time]) { display:block; max-width:100%; -webkit-appearance:none; appearance:none; }
+  input:is([type=date],[type=time])::-webkit-date-and-time-value { text-align:center; }
+}
 #conditions .when-grid label,#conditions .simple-extra-options label,#conditions .detail-label { margin:0; font-size:14px; font-weight:700; color:var(--muted); }
 /* 입력 칸 테두리: 시안의 #E2E8F0 은 흰 바탕 대비 1.2:1 이라 칸이 어디까지인지 보이지 않는다(WCAG 1.4.11 은 3:1).
    #7C879A = 흰 바탕 3.6:1, 연회색 칸 바탕(--platform) 3.3:1 (2026-11-25, tests/test_a11y_mobile_polish.py). 더 옅게 바꾸면 그 테스트가 잡는다. */

@@ -107,7 +107,7 @@ function optionComparison(items){
 }
 // 확인 상태를 쉬운 말의 항목으로 보여준다. state: ok(확인됨) · check(확인 필요) · info(참고)
 // '위치' 줄(2026-11-20): 공공 자료 판정만 보여 준다(app/place_identity.py — 소상공인 상가정보, 행안부 인허가 일반음식점·휴게음식점).
-// 예전에는 네이버 지역 검색 결과로 계산한 '위치 확인됨'을 보여 줬는데, 검색 결과에서 만든 판정을 우리 표시로 쓰지 않기로 했다(특약 2.2·2.3).
+// 예전에는 네이버 지역 검색 결과로 계산한 '위치 확인됨'을 보여 줬는데, 검색 결과에서 만든 판정을 우리 표시로 쓰지 않기로 했다(특약 1.2·1.3).
 // 판정은 사진 요청(/media)의 identity 로 온다. 공공 API 가 느려 서버가 '확인 중'(pending)으로 답하면 /identity 를 몇 번 다시 묻는다.
 // 판정이 없으면(자료에 없음·키 없음·실패·네이버 검색 장소) 판정 없이 '네이버 지도에서 확인' 링크만 둔다.
 // 문구의 '200m'는 app/place_identity.py STORE_RADIUS_M 과 같아야 한다.
@@ -211,7 +211,7 @@ function evidenceItem(label,state,text){
   item.append(node('span',{ok:'확인됨',check:'확인 필요',info:'참고'}[state],'evidence-badge'),node('strong',label),node('span',text,'evidence-text'));
   return item;
 }
-// 블로그 글에서 읽은 가격(web_reference)은 더 이상 없다(네이버 검색 API 특약 2.2, app/pricing.py). operator_menu 는 운영자가 확인한 제공 메뉴.
+// 블로그 글에서 읽은 가격(web_reference)은 더 이상 없다(네이버 검색 API 특약 1.2, app/pricing.py). operator_menu 는 운영자가 확인한 제공 메뉴.
 const PRICE_EVIDENCE={planning_assumption:['check','예산을 짜려고 넣은 가정 금액이에요. 실제 가격이 아니에요. 네이버 지도에서 확인해 주세요.'],
   operator_menu:['check','운영자가 확인해 둔 메뉴 가격이에요. 지금 가격은 원문에서 확인해 주세요.'],
   naver_menu:['check','모아 둔 메뉴 가격이에요. 지금 가격은 원문에서 확인해 주세요.'],

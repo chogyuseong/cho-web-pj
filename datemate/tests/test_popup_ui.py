@@ -1,6 +1,6 @@
 """팝업 글 둘러보기 화면: 실제 브라우저, /api/popups 는 page.route 가짜 응답(외부 호출 없음).
 
-2026-11-20(특약 2.2)부터 화면은 네이버 블로그 검색 결과 블록 하나다: 받은 순서·건수 그대로, 제목·요약 그대로,
+2026-11-20(특약 1.2)부터 화면은 네이버 블로그 검색 결과 블록 하나다: 받은 순서·건수 그대로, 제목·요약 그대로,
 글에서 읽은 기간·장소·사진 칸 없음, 블록 안에는 네이버가 준 값과 출처 표시만.
 """
 
@@ -167,36 +167,36 @@ def test_popup_browse_shows_one_untouched_naver_block_and_its_states(audit_page)
     assert page.locator("#explore-switch-popups").get_attribute("aria-pressed") == "true"
     assert page.locator("#explore-section h2").inner_text() == "팝업스토어 둘러보기"
     assert page.locator("body>header nav>*").count() == 5
-    # 어떤 검색어의 결과인지와 받은 건수를 그대로 적는다.
-    assert page.locator("#popup-status").inner_text() == f"네이버 블로그 검색 ‘{QUERY}’ · 정확도순 4건"
-    # 왜 기간·장소가 없는지는 블록 밖 한 줄로.
-    about = page.locator("#popup-browse .popup-about").inner_text()
-    assert "받은 순서 그대로" in about and "기간과 장소는 글 원문에서 확인" in about
-    assert page.locator(".popup-naver-block .popup-about").count() == 0
+    # 어떤 검색어의 결과인지와 받은 건수는 블록 머리글 제목으로(2026-11-26). 블록 바로 위 상태 줄은 화면 읽기용 알림으로만 남는다.
+    status = page.locator("#popup-status")
+    assert "visually-hidden" in status.get_attribute("class") and status.text_content() == "블로그 검색 결과 4건을 불러왔어요."
+    # 블록 앞 안내 문구(예전 .popup-about '받은 순서 그대로 … 섞일 수 있어요')는 없다 — 네이버 답 2-2 앞 삽입(특약 1.2).
+    assert page.locator("#popup-browse .popup-about").count() == 0
     # 블록은 하나, 받은 순서 그대로(나누거나 다시 줄 세우지 않음).
     assert page.locator("#popup-results .popup-list").count() == 1
-    assert page.locator(".popup-list h3").all_inner_texts() == ["네이버 블로그 검색 결과 4건"]
+    assert page.locator(".popup-list h3").all_inner_texts() == [f"네이버 블로그 검색 ‘{QUERY}’ · 정확도순 4건"]
     assert page.locator(".popup-post .popup-title").all_inner_texts() == [
         p["title"] for p in READY["posts"]
     ]
     assert page.locator(".popup-post").evaluate_all("cs=>cs.map(c=>c.dataset.postId)") == [
         p["id"] for p in READY["posts"]
     ]
-    # 출처 표시(네이버 검색결과 · 블로그 검색 · 같은 검색어의 원본 · NAVER 오픈 API)가 블록 안에 있다.
+    # 출처 표시(네이버 검색결과 · 블로그 검색 · 같은 검색어의 원본)가 블록 머리글에, BI 로고가 블록 바닥 오른쪽에 있다.
     mark = page.locator(".popup-naver-block .naver-attribution")
     assert mark.count() == 1 and "네이버 검색결과 · 블로그 검색" in mark.inner_text()
     original = mark.locator("a").first.get_attribute("href")
     assert original.startswith("https://search.naver.com/search.naver?where=blog&query=")
-    assert "NAVER 오픈 API" in mark.inner_text()
+    logo = page.locator(".popup-naver-block .naver-result-foot > a.naver-powered img")
+    assert logo.count() == 1 and logo.get_attribute("alt") == "Powered by NAVER OpenAPI"
     # 블록 안의 글자는 제목 줄·출처 표시·글(블로거·작성일, 제목, 요약, 원문 링크)뿐이다. 글 사이에 우리 문구·판정이 없다.
-    expected = ["네이버 블로그 검색 결과 4건", "네이버 검색결과 · 블로그 검색", "·", "원본 ↗", "·", "NAVER 오픈 API"]
+    expected = [f"네이버 블로그 검색 ‘{QUERY}’ · 정확도순 4건", "네이버 검색결과 · 블로그 검색", "·", "원본 ↗"]
     for p in READY["posts"]:
         meta = " · ".join(filter(None, [p["blogger"], (p["posted_at"] or "").replace("-", ".")]))
         expected += ([meta] if meta else []) + [p["title"], p["description"], "블로그 원문 보기 ↗"]
     assert page.evaluate(BLOCK_TEXTS) == expected
     # 예전의 읽은 정보 칸·기간·장소 줄·사진·모아 보기 나눔·뺀 글 안내가 없다.
     for gone in (".popup-reading", ".popup-facts", ".popup-fact", ".popup-photo", ".popup-note", "dl", "img", "button"):
-        assert page.locator(f"#popup-results {gone}").count() == 0, gone
+        assert page.locator(f"#popup-results .naver-result-body {gone}").count() == 0, gone
     text = page.locator("#popup-results").inner_text()
     for word in ("읽은 정보", "기간 미확인", "위치 미확인", "진행 중", "모아 소개", "숨겼어요", "뺐어요"):
         assert word not in text, word
@@ -309,7 +309,7 @@ def test_four_widths_long_titles_touch_targets_and_keyboard(audit_page):
                 .map(e=>e.className+':'+getComputedStyle(e).fontSize);
               const short=[...area.querySelectorAll('#popup-browse button,#explore-switch button,#popup-browse .popup-source-link,#popup-browse select,#popup-browse input')]
                 .filter(e=>e.getClientRects().length && e.getBoundingClientRect().height<44).map(e=>e.textContent.trim()||e.id);
-              const clipped=[...area.querySelectorAll('.popup-title,.popup-summary,.popup-meta,.popup-status,.popup-list h3')]
+              const clipped=[...area.querySelectorAll('.popup-title,.popup-summary,.popup-meta,.popup-status:not(.visually-hidden),.popup-list h3')]
                 .filter(e=>e.scrollWidth>e.clientWidth+1 || getComputedStyle(e).textOverflow==='ellipsis' || getComputedStyle(e).webkitLineClamp!=='none')
                 .map(e=>e.textContent.slice(0,20));
               const outside=[...area.querySelectorAll('.popup-post,.popup-naver-block,.naver-attribution')].filter(e=>{const r=e.getBoundingClientRect();return r.left<0||r.right>innerWidth;}).length;

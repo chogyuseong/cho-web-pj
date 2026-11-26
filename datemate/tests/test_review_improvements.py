@@ -33,7 +33,7 @@ def test_evidence_does_not_invent_verification():
     assert p['place_evidence'][0]['operating_current'] is False
     assert '확인하지 못했어요' in p['place_evidence'][0]['identity']
     assert p['place_evidence'][0]['price_kind']=='unknown'
-    # 블로그 언급 여부·블로그 가격 출처는 더 이상 만들지 않는다(네이버 검색 API 특약 2.2).
+    # 블로그 언급 여부·블로그 가격 출처는 더 이상 만들지 않는다(네이버 검색 API 특약 1.2).
     assert not {'blog_match','price_sources'} & set(p['place_evidence'][0])
     assert 'source_matched_places' not in p['decision_summary']
 

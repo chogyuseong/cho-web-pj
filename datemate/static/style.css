@@ -26,10 +26,10 @@
   .loading-note {display:none!important}
 }
 
-/* 네이버 검색 API 특약 2.1·2.2: '네이버 검색결과' 표시와 원본 링크(static/naver-attribution.js). 본문보다 작게, 항목 바로 아래. */
+/* 네이버 검색 API 특약 1.1·1.2: '네이버 검색결과' 표시와 원본 링크(static/naver-attribution.js). 본문보다 작게, 항목 바로 아래. */
 .naver-attribution{margin:.25rem 0;font-size:.875rem;line-height:1.5;color:var(--muted,#5b6470);overflow-wrap:anywhere}
 /* 'NAVER 오픈 API' 상표 표기: 링크가 아닌 회색 글자(2026-11-24 사용자 결정, naver-attribution.js 머리 주석).
    크기는 출처 줄과 같다 — 화면 글자는 14px 아래로 줄이지 않는다(가독성 테스트 tests/test_results_extras_ui.py 등). */
-.naver-attribution .naver-api-mark{color:var(--muted,#5b6470);font-weight:400}
+/* BI 로고 링크(naver-attribution.js naverPoweredBy). 높이 14px, 글줄 가운데. */.naver-powered{display:inline-flex;align-items:center;vertical-align:middle;line-height:0}.naver-powered img{display:block;width:auto;height:14px}
 .naver-attribution-label{font-weight:600}
 .naver-attribution a{color:inherit;text-decoration:underline}

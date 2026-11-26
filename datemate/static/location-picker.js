@@ -102,8 +102,8 @@ async function openLocationPicker(kind){
   },'secondary full'),node('p','지도 클릭·터치로 선택할 수 있습니다. 키보드로 지도를 이동한 뒤 ‘지도 중심을 선택’을 사용할 수도 있어요.','hint'));
   root.append(content,footer);
   searchForm.onsubmit=async event=>{
-    event.preventDefault();searchButton.disabled=true;results.replaceChildren();message.textContent='주소를 검색하고 있어요…';
-    // 새 질의: 앞서 지역 검색으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 2.4, form-state.js).
+    event.preventDefault();searchButton.disabled=true;results.replaceChildren();message.classList.remove('visually-hidden');message.textContent='주소를 검색하고 있어요…';
+    // 새 질의: 앞서 지역 검색으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 1.4, form-state.js).
     LastConditions.newQuery('local');
     try{
       const data=await api('/locations/search',{query:query.value.trim()}),at=Date.now();
@@ -115,7 +115,10 @@ async function openLocationPicker(kind){
       const block=local?naverResultBlock('지역 검색','https://map.naver.com/p/search/'+encodeURIComponent(query.value.trim()),{tag:'div',className:'location-naver-block'}):null;
       const target=block?block.body:results;
       if(block)results.append(block);
-      for(const found of data.results){const point={...found,received_at:at};const option=button('',()=>choose(point),'location-result');if(point.place_name)option.append(node('strong',point.place_name),node('span',point.road_address||point.name,'location-result-address'));else option.append(node('strong',point.road_address||point.name));if(point.jibun_address)option.append(node('span','지번: '+point.jibun_address,'hint'));target.append(option);}
+      // 네이버 블록이 있으면 블록 바로 위 우리 안내(message)는 보이지 않게(화면 읽기용으로만) 한다 — 네이버 답 2-2 앞 삽입(2026-11-26).
+      message.classList.toggle('visually-hidden',Boolean(block));
+      // 블록 안 항목에는 API 가 준 값만: 장소 이름·도로명 주소·지번 주소(우리 꼬리표 '지번: '은 붙이지 않는다 — 2-1 중간 삽입).
+      for(const found of data.results){const point={...found,received_at:at};const option=button('',()=>choose(point),'location-result');if(point.place_name){option.append(node('strong',point.place_name));if(point.road_address)option.append(node('span',point.road_address,'location-result-address'));if(point.jibun_address&&point.jibun_address!==point.road_address)option.append(node('span',point.jibun_address,'hint'));}else{option.append(node('strong',point.road_address||point.name));if(point.jibun_address)option.append(node('span','지번: '+point.jibun_address,'hint'));}target.append(option);}
     }catch(error){message.textContent=error.message;}finally{searchButton.disabled=false;}
   };
   // 키가 있으면 네이버 지도를 우선 사용하고, 없거나 로딩 실패면 공개 지도 사용.

@@ -3,7 +3,7 @@
 - 위치(2026-11-20): 공공 자료(상가정보·인허가) 판정만 보여 준다. 판정이 없으면 '네이버 지도에서 확인' 링크만(app/place_identity.py, tests/test_public_identity.py).
 - 영업 정보: 영업 자료 파일로 확인한 영업시간이 있으면 그 확인일이 카드의 '최근 영업 자료'가 된다. 예전에는 날짜가 이어지지 않았다.
 - 지점 이름('OO카페 성수점')에서 지점 낱말을 떼는 규칙(without_branch). 업종 낱말('서점')은 떼지 않는다.
-  (블로그 글에서 장소·가격을 읽던 규칙은 2026-11-20 2단계에서 없앴다: 네이버 검색 API 특약 2.2, tests/test_blog_independent_block.py.)
+  (블로그 글에서 장소·가격을 읽던 규칙은 2026-11-20 2단계에서 없앴다: 네이버 검색 API 특약 1.2, tests/test_blog_independent_block.py.)
 """
 from datetime import timedelta
 

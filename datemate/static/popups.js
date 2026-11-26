@@ -1,5 +1,5 @@
 /* 팝업 글 둘러보기와 코스 결과의 팝업 구역.
-   2026-11-20(네이버 검색 API 특약 2.2: 가공 없이 독립적으로 노출, 순위·내용 수정 금지)부터 두 가지만 그린다.
+   2026-11-20(네이버 검색 API 특약 1.2: 가공 없이 독립적으로 노출, 순위·내용 수정 금지)부터 두 가지만 그린다.
    1) 네이버 블로그 검색 결과 블록(PopupView.block): 서버가 준 글을 받은 순서 그대로, 받은 건수 그대로, 제목·요약은 받은 글자 그대로
       텍스트로만 넣는다. 블록 안에는 네이버가 준 값(블로거·작성일·제목·요약·원문 링크)과 출처 표시만 둔다.
       글을 고르거나 나누거나 다시 줄 세우지 않고, 글에서 기간·장소를 읽어 적지 않는다. 사진도 없다.
@@ -17,7 +17,8 @@ const PopupView = {
   regions: ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'],
   placesHeading: '',
   // 블록 밖에 적는 한 줄: 왜 기간·장소·사진이 없는지.
-  about: '네이버 블로그 검색 결과를 받은 순서 그대로 보여 드려요. 글을 고르거나 다시 정렬하지 않아 팝업이 아닌 글이나 끝난 팝업 글이 섞일 수 있어요. 기간과 장소는 글 원문에서 확인해 주세요.',
+  // 예전 about('네이버 블로그 검색 결과를 받은 순서 그대로 보여 드려요 … 섞일 수 있어요 …')는 블록 앞 안내 문구라 뺐다
+  // (네이버 답 2026-11-24 첫 문의 2-2: 블록 앞 별도 문구 = 앞 삽입, 특약 1.2). 네이버 결과임은 블록 머리글·BI 로고로만 알린다.
   mount(enabled) {
     this.enabled = enabled === true;
     if (this.enabled) PopupCourse.mount();
@@ -74,14 +75,13 @@ const PopupView = {
       // 한글 조합 중 Enter 는 글자 확정이라 검색하지 않는다.
       if (event.key === 'Enter' && !event.isComposing && event.keyCode !== 229) this.search();
     });
-    const about = node('p', this.about, 'hint popup-about');
     const status = node('p', '', 'popup-status');
     status.id = 'popup-status';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
     const results = node('div', undefined, 'popup-results');
     results.id = 'popup-results';
-    root.append(bar, about, status, results);
+    root.append(bar, status, results);
     return root;
   },
   show(popup) {
@@ -145,6 +145,12 @@ const PopupView = {
   },
   // "네이버 블로그 검색 ‘2026년 11월 서울 팝업스토어’ · 정확도순 50건". 어떤 검색어·정렬의 결과인지 그대로 적는다.
   // 서버 정렬은 app/popup_api.py SORT(2026-11-24 정확도순 sim). 예전 응답(date)도 이름표가 맞게 둘 다 다룬다.
+  // 상태 줄: 글이 있으면 보이지 않는 알림(검색어·건수는 블록 머리글 제목이 보여 준다 — 블록 바로 위에 우리 글을 두지 않는다, 2026-11-26),
+  // 글이 없거나 불러오는 중·실패면 보이는 안내. 다음 검색에서 다시 보이게 visually-hidden 을 늘 다시 정한다.
+  announce(status, data, count) {
+    status.textContent = count ? `블로그 검색 결과 ${count}건을 불러왔어요.` : this.scopeText(data, count);
+    status.classList.toggle('visually-hidden', count > 0);
+  },
   scopeText(data, count) {
     const source = this.source(data);
     const order = {
@@ -180,7 +186,7 @@ const PopupView = {
     // 블록 공통 부품(naver-attribution.js naverResultBlock): 머리글(건수 제목 + 출처 표시) + 본문(받은 글).
     const block = naverResultBlock('블로그 검색', this.searchUrl(data), {
       className: 'popup-list popup-naver-block',
-      heading: node(options.heading || 'h3', `네이버 블로그 검색 결과 ${posts.length}건`)
+      heading: node(options.heading || 'h3', this.scopeText(data, posts.length))
     });
     const items = node('div', undefined, 'popup-items');
     const render = rows => items.append(...rows.map(post => this.card(post, options.titleTag)));
@@ -194,7 +200,7 @@ const PopupView = {
         items.children[size]?.querySelector('.popup-source-link')?.focus();
       });
       more.classList.add('popup-more');
-      block.append(more);
+      block.foot.append(more); // 블록 바닥(naverResultBlock foot) — 같은 결과의 뒤쪽을 펴는 쪽 넘김
     }
     return block;
   },
@@ -226,7 +232,7 @@ const PopupView = {
       results.append(this.stateBox(data, () => this.search()));
       return;
     }
-    status.textContent = this.scopeText(data, posts.length);
+    PopupView.announce(status, data, posts.length);
     if (!posts.length) {
       results.append(this.emptyBox(data, '다른 시·도나 검색어로 찾아보세요.'));
       return;
@@ -273,7 +279,8 @@ const PopupCourse = {
     const title = node('h3', '팝업스토어 글');
     title.id = 'popup-course-title';
     heading.append(title);
-    const demo = node('p', '코스는 서울 체험 코스(가상 장소)지만, 아래 글은 실제 네이버 블로그 검색 결과예요. 체험 코스 출발점은 실제 위치가 아니라 거리를 적지 않고, 주변 코스 버튼을 누르면 실제 장소로 바꿔 추천해요.', 'hint popup-course-demo');
+    // 체험 코스 안내는 거점 목록(우리 정보)에 대한 말이라 거점 목록 뒤에 둔다. 예전 앞부분 '아래 글은 실제 네이버 블로그 검색 결과예요'는 블록 앞 안내라 뺐다.
+    const demo = node('p', '코스는 서울 체험 코스(가상 장소)라 출발점이 실제 위치가 아니어서, 거점까지 거리를 적지 않아요. 주변 코스 버튼을 누르면 실제 장소로 바꿔 추천해요.', 'hint popup-course-demo');
     demo.id = 'popup-course-demo';
     demo.hidden = true;
     const status = node('p', '', 'popup-status');
@@ -284,7 +291,9 @@ const PopupCourse = {
     results.id = 'popup-course-results';
     const hubs = node('div', undefined, 'popup-course-hubs');
     hubs.id = 'popup-course-hubs';
-    section.append(heading, node('p', '코스에 넣지 않은 참고 자료예요. ' + PopupView.about, 'hint popup-course-about'), demo, status, results, hubs);
+    // 순서: 제목 → (상태) → 네이버 블록 칸(results) → 우리 거점 목록 칸(hubs, 테두리 상자) → 체험 안내.
+    // 예전 블록 앞 '코스에 넣지 않은 참고 자료예요. ' + about 은 뺐다(네이버 답 2-2). 블록과 거점 목록은 각자 테두리 상자 + 24px 간격(popups.css).
+    section.append(heading, status, results, hubs, demo);
     festival.after(section);
   },
   ready() {
@@ -550,7 +559,7 @@ const PopupCourse = {
       return;
     }
     const posts = Array.isArray(data.posts) ? data.posts : [];
-    status.textContent = PopupView.scopeText(data, posts.length);
+    PopupView.announce(status, data, posts.length);
     if (!posts.length) {
       results.append(PopupView.emptyBox(data));
       return;

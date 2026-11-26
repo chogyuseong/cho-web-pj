@@ -19,6 +19,17 @@ function showMenuImages(food,data){
 function hasPlaceMenu(place){
   return Boolean(place.meal||place.cuisine||/카페|미식|식당|음식점|베이커리/.test(place.category||'')||(place.tags||[]).some(tag=>['cafe','restaurant','bakery'].includes(tag)));
 }
+// 관광공사 대표 메뉴(first)·취급 메뉴(treat) 글을 메뉴 이름 목록으로 나눈다. 예: '에비에비가츠동 / 대창 소고기 카레 누들 / 모듬 카레 누들 등'
+// → 이름 3개. 나누는 기호: , / · ・ 줄바꿈. 끝의 '등'·'외'는 뗀다. 같은 이름은 한 번만(대표 메뉴에 있으면 main:true).
+// 글은 고치지 않고 나누기만 한다 — 이름 안의 띄어쓰기·표기는 그대로. 기호 없이 한 문장으로 쓴 곳은 그 문장이 칩 하나가 된다.
+const TOUR_MENU_CHIPS=6; // 칩 최대 개수. 넘으면 '외 n개'. 바꾸면 tests/test_public_text_lines_ui.py 도 함께.
+function tourMenuNames(tour){
+  if(!tour)return [];
+  const split=text=>String(text||'').split(/\s*[,/·・\n]\s*/).map(s=>s.replace(/\s*(등|외)\s*$/,'').trim()).filter(Boolean);
+  const out=[],seen=new Set();
+  for(const [text,main] of [[tour.first,true],[tour.treat,false]])for(const name of split(text)){const key=name.replace(/\s+/g,'');if(seen.has(key))continue;seen.add(key);out.push({name,main});}
+  return out;
+}
 function restaurantMenuPanel(food){
   const box=node('div',undefined,'restaurant-menu');box.setAttribute('aria-label',food.name+' 메뉴 가격');box.append(node('p','메뉴 가격을 확인하고 있어요…','hint loading-note'));
   async function load(refresh=false){
@@ -26,7 +37,10 @@ function restaurantMenuPanel(food){
     try{
       if(refresh)restaurantMenuRequests.delete(food.id);
       if(!restaurantMenuRequests.has(food.id))restaurantMenuRequests.set(food.id,api('/places/'+encodeURIComponent(food.id)+'/menu?mode=real'+(refresh?'&refresh=true':'')).catch(e=>{restaurantMenuRequests.delete(food.id);throw e;}));
-      const data=await restaurantMenuRequests.get(food.id);box.replaceChildren(node('strong',data.status==='image_only'?'매장 메뉴판·가격':'대표 메뉴·가격','menu-heading'));
+      const data=await restaurantMenuRequests.get(food.id);
+      // 관광공사 메뉴 이름만 있고 가격 자료가 없으면 제목에서 '가격'을 뺀다(2026-11-26: '대표 메뉴·가격' 아래 가격이 없어 오류처럼 보였다).
+      const tourOnly=!data.items?.length&&!data.menu_images?.length&&tourMenuNames(data.tour_menu).length>0;
+      box.replaceChildren(node('strong',data.status==='image_only'?'매장 메뉴판·가격':tourOnly?'대표 메뉴':'대표 메뉴·가격','menu-heading'));
       if(data.items?.length){
         for(const item of data.items.slice(0,4)){const row=node('div',undefined,'menu-price-row');row.append(node('span',item.name),node('b',item.display_price));box.append(row);}
         if(data.source_url)box.append(link((data.source_label||'메뉴')+' 원문 ↗',data.source_url));
@@ -37,14 +51,21 @@ function restaurantMenuPanel(food){
       }else if(!data.items?.length){
         // 관광공사 음식점 안내의 대표·취급 메뉴(서버 tour_menu, app/tour_places.tour_menu — 2026-11-24). 글 그대로, 가격 없음.
         // 있으면 '모아 두지 않았어요' 문구 대신 이 한 줄과 출처를 먼저 보여 주고, 지도 링크는 그대로 둔다(지금 메뉴·가격은 지도에서).
-        const tour=data.tour_menu;
-        if(tour&&(tour.first||tour.treat)){
-          const line=node('p',undefined,'tour-menu');
-          line.append(document.createTextNode('관광공사 안내 · '+[tour.first&&('대표 메뉴 '+tour.first),tour.treat&&('취급 메뉴 '+tour.treat)].filter(Boolean).join(' · ')+' (가격·지금 메뉴는 지도에서 확인해 주세요) '));
-          if(tour.source_url)line.append(link('출처 ↗',tour.source_url));
-          box.append(line);
+        // 2026-11-26 사용자 지적(아이폰 캡처, 성수 '탐광'): 한 줄 글 + '(가격·지금 메뉴는 지도에서 확인해 주세요)'가 '메뉴를 못 받아온 오류'처럼 보였다.
+        // → 메뉴 이름을 칩으로 나누고(대표 메뉴는 '대표' 표시), 가격은 네이버 지도 메뉴 탭에 있다는 안내를 따로 적고, 지도 링크는 단추 모양(.menu-map-link).
+        // 가격을 못 싣는 까닭: 네이버 지도 메뉴는 공개 API 가 없고 화면을 읽을 수 없으며(약관), 블로그 요약에서 가격 읽기는 검색 API 특약 1.2·1.3 으로 뺐다(60차).
+        //   네이버에 메뉴 표시를 문의 중 — datemate/docs/naver-terms-inquiry-draft-2026-11-20.ko.md '네 번째 문의 초안'. 답이 오면 이 칸을 바꾼다.
+        const tour=data.tour_menu,names=tourMenuNames(tour);
+        if(names.length){
+          const chips=node('ul',undefined,'tour-menu-chips');chips.setAttribute('aria-label','한국관광공사 안내의 메뉴');
+          for(const item of names.slice(0,TOUR_MENU_CHIPS)){const li=node('li',undefined,'tour-menu-chip');if(item.main)li.append(node('span','대표','tour-menu-main'));li.append(document.createTextNode(item.name));chips.append(li);}
+          if(names.length>TOUR_MENU_CHIPS)chips.append(node('li','외 '+(names.length-TOUR_MENU_CHIPS)+'개','tour-menu-chip tour-menu-more'));
+          const note=node('p',undefined,'menu-checked tour-menu-note');
+          note.append(document.createTextNode('가격은 네이버 지도 메뉴 탭에서 볼 수 있어요. 메뉴 이름은 한국관광공사 안내 기준이라 지금과 다를 수 있어요. '));
+          if(tour.source_url)note.append(link('출처 ↗',tour.source_url));
+          box.append(chips,note);
         }else box.append(node('p',data.message||'공개 메뉴 자료가 없습니다.','hint'));
-        box.append(link('네이버 지도에서 메뉴보기 ↗',data.source_url||placeMapUrl(food)));
+        const mapLink=link('네이버 지도에서 메뉴보기 ↗',data.source_url||placeMapUrl(food));mapLink.classList.add('menu-map-link');box.append(mapLink);
       }
       // 모아 둔 메뉴 자료가 없는 식당(서버 reason not_collected)은 다시 조회해도 달라지지 않아 단추를 두지 않는다.
       if(data.reason!=='not_collected')box.append(button('메뉴 새로 조회',()=>load(true),'secondary menu-refresh'));

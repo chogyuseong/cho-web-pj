@@ -196,7 +196,7 @@ async function showPlace(id, placeMode) {
   const p = await api('/places/' + encodeURIComponent(id) + '?mode=' + placeMode);
   if (generation !== dialogGeneration || !$('#dialog').open) return;
   root.replaceChildren(node('span', p.demo ? '가상 장소 · 시연용' : '실제 장소 메타데이터 · 운영정보 확인 필요', 'tag'), node('h2', p.name), node('p', p.description || '확인된 설명이 없습니다.'));
-  // 네이버 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 2.1·2.2).
+  // 네이버 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 1.1·1.2).
   if (isNaverResult(p)) root.append(naverAttribution('지역 검색', p.place_source || p.source));
   const facts = node('dl', undefined, 'facts');
   for (const [key, value] of [

@@ -11,7 +11,7 @@ def _places(mode,visit_date):
     rows = json.loads(path.read_text(encoding='utf-8')) if path.exists() else []
     if mode=='real':
         # 공공 자료(한국관광공사·소상공인 상가정보)에서 찾은 후보는 지금 요청의 사용자가 찾은 것만 합친다(app/public_places.py).
-        # 네이버 지역 검색 결과는 후보로 쓰지 않는다(2026-11-20 2단계, 특약 2.1·2.2). 소유자가 없는 문맥(시작 색인 등)에는 들어가지 않는다.
+        # 네이버 지역 검색 결과는 후보로 쓰지 않는다(2026-11-20 2단계, 특약 1.1·1.2). 소유자가 없는 문맥(시작 색인 등)에는 들어가지 않는다.
         from . import public_places
         rows += public_places.candidates()
         curated=ROOT/'data'/'curated_places.json'

@@ -38,11 +38,21 @@ def test_course_panel_shows_blog_posts_as_an_untouched_block(audit_page, width):
     assert research.locator('summary').inner_text() == '코스 구성 메모 · 네이버 블로그 글 7건'
     research.locator('summary').click()
     panel = research.locator('.course-search-panel')
-    note = panel.locator('.course-search-note').inner_text()
-    assert '네이버가 준 순서 그대로' in note and '추천 계산에는 쓰지 않았어요' in note and '광고·협찬 글이 섞여' in note
+    # 2026-11-26 네이버 답(특약 1.2, 2-1·2-2): 우리 메모 상자와 블로그 칸을 나누고, 블로그 칸에는 블록 하나만. 블록 앞 안내 문구는 없다.
+    assert panel.locator('.course-search-note').count() == 0 and '광고·협찬 글이 섞여' not in panel.inner_text()
+    # 메모 상자는 내용이 있을 때만(이 체험 코스는 메모가 없다), 블로그 칸은 하나.
+    assert panel.locator(':scope > .course-search-memo').count() == 0 and panel.locator(':scope > .course-search-blogs').count() == 1
+    assert panel.locator('.course-search-memo .naver-result-block').count() == 0
+    assert panel.locator('.course-search-blogs').evaluate('e=>[...e.children].map(c=>c.className)') == ['naver-result-block']
     block = panel.locator('.naver-result-block')
-    assert block.count() == 1 and block.locator('.course-search-note').count() == 0
+    assert block.count() == 1
+    assert block.locator('.naver-result-head h3').inner_text() == '‘종로 데이트 코스’ 블로그 검색 결과 7건'
     assert '네이버 검색결과 · 블로그 검색' in block.locator('.naver-attribution').inner_text()
+    # BI 로고는 블록 바닥 오른쪽, NAVER API HUB 로 새 창.
+    logo = block.locator('.naver-result-foot > a.naver-powered')
+    assert logo.count() == 1 and logo.get_attribute('target') == '_blank' and 'naverApiHub' in logo.get_attribute('href')
+    assert logo.locator('img').get_attribute('alt') == 'Powered by NAVER OpenAPI'
+    assert logo.locator('img').evaluate('i=>i.complete&&i.naturalWidth>0')
     titles = block.locator('.blog-post-title')
     # 처음 5건을 받은 순서·제목 그대로(태그 글자도 글자로만). 링크가 없는 글은 글자로만 보인다.
     assert titles.all_inner_texts() == [post['title'] for post in POSTS[:5]]
@@ -53,8 +63,9 @@ def test_course_panel_shows_blog_posts_as_an_untouched_block(audit_page, width):
     assert block.locator('.blog-meta').first.inner_text() == '작성자0 · 2026-11-01'
     for gone in ('선정', '확인한 장소', '상위 글', '검색 순위', '광고·협찬 표시'):
         assert gone not in block.inner_text(), gone
-    more = panel.get_by_role('button', name='나머지 2건 더 보기', exact=True)
-    assert more.count() == 1 and block.get_by_role('button').count() == 0
+    # 「더 보기」는 블록 바닥(같은 결과의 뒤쪽을 펴는 쪽 넘김) — 블록 밖에 우리 단추를 두지 않는다.
+    more = block.locator('.naver-result-pager').get_by_role('button', name='나머지 2건 더 보기', exact=True)
+    assert more.count() == 1 and panel.get_by_role('button').count() == 1
     more.click()
     assert block.locator('.blog-post-title').all_inner_texts() == [post['title'] for post in POSTS]
     assert page.evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth')

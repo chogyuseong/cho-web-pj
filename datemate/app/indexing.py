@@ -58,7 +58,7 @@ def collections(mode):
     return tuple(client().get_or_create_collection(f'{mode}-{kind}-{suffix}',embedding_function=None) for kind in ('places','documents'))
 
 def index_places(rows,mode):
-    # 네이버 검색 API 특약 2.3: 네이버 검색으로 찾은 장소(와 그 파생물)는 임베딩·색인에 넣지 않는다.
+    # 네이버 검색 API 특약 1.3: 네이버 검색으로 찾은 장소(와 그 파생물)는 임베딩·색인에 넣지 않는다.
     # 이미 들어간 것은 아래 stale 삭제와 purge_naver_documents 가 지운다.
     from .naver_terms import is_naver_place
     rows=[p for p in rows if not is_naver_place(p)]

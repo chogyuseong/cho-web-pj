@@ -1,7 +1,7 @@
 """장소 둘러보기: 공공 자료로 만든 기본 목록과, 그 아래 따로 두는 '네이버에서 더 찾기' 블록.
 
 2026-11-20 2단계(docs/naver-terms-stage2-design.ko.md 3.5(b)): 예전에는 네이버 지역 검색 여러 건의 결과를 합쳐 중복을 지우고 점수로 다시 줄 세웠다.
-검색 결과를 합치거나 재정렬하지 않기로 해(검색 API 특약 2.2) 둘로 나눴다.
+검색 결과를 합치거나 재정렬하지 않기로 해(검색 API 특약 1.2) 둘로 나눴다.
   1) 기본 목록(GET /api/explore): 한국관광공사 TourAPI 의 시·도 목록(법정동 시·도 코드와 새 분류로 좁힘. 검색어가 있으면 이름 검색)과, 동네를 알 수 있을 때 그 주변의
      소상공인 상가정보(app/public_places.py). 공공 자료라 우리 기준으로 정렬한다: 사진이 있는 관광공사 항목 → 나머지 관광공사 항목 →
      상가정보 업소(지점 표기가 없는 곳 먼저, 가까운 순). 인기·별점 순위가 아니다.
@@ -163,7 +163,7 @@ def naver_blocks(region,activity='',q=''):
     cached=naver_cache.cached(key)
     if cached is not None:return cached
     require_ip('explore-search','DATEMATE_IP_EXPLORE_SEARCHES_PER_MINUTE',10,'새 조건 검색이 많아요. 잠시 후 다시 시도해 주세요.')
-    # 같은 사용자의 새 둘러보기 검색: 이전 검색 보관분을 지운다(특약 2.4 '새 질의 시까지', app/naver_cache.py).
+    # 같은 사용자의 새 둘러보기 검색: 이전 검색 보관분을 지운다(특약 1.4 '새 질의 시까지', app/naver_cache.py).
     naver_cache.new_query('explore',fingerprint=fingerprint)
     with httpx.Client(timeout=8) as client,ThreadPoolExecutor(max_workers=4) as pool:
         found=context_map(pool,lambda query:lookup(client,query),planned)

@@ -43,8 +43,30 @@ def test_tour_menu_line_in_the_menu_panel(audit_page):  # noqa: F811
       return out;
     }""")
     menu_text, menu_links = texts[0]
-    assert '관광공사 안내 · 대표 메뉴 돼지국밥 · 취급 메뉴 돼지국밥, 수육' in menu_text
+    # 2026-11-26: 한 줄 글 → 메뉴 칩(대표 표시, 같은 이름 한 번), 제목은 가격이 없으니 '대표 메뉴', 가격은 지도에 있다는 안내.
+    assert menu_text.startswith('대표 메뉴') and '대표 메뉴·가격' not in menu_text
+    assert '가격은 네이버 지도 메뉴 탭에서 볼 수 있어요' in menu_text
     assert '모아 두지 않았어요' not in menu_text
     assert menu_links == ['출처 ↗', '네이버 지도에서 메뉴보기 ↗']
     plain_text, plain_links = texts[1]
+    assert plain_text.startswith('대표 메뉴·가격')
     assert '모아 두지 않았어요' in plain_text and plain_links == ['네이버 지도에서 메뉴보기 ↗']
+
+
+def test_tour_menu_chips_split_names(audit_page):  # noqa: F811
+    """관광공사 메뉴 글을 칩으로 나눈다(meal-suggestions.js tourMenuNames): / , · 로 나누고 끝의 '등'을 떼고, 대표 메뉴에 '대표' 표시, 같은 이름은 한 번."""
+    page, _, _ = audit_page
+    got = page.evaluate("""()=>tourMenuNames({first:'에비가츠동',treat:'에비에비가츠동 / 대창 소고기 카레 누들 / 모듬 카레 누들 등, 에비가츠동'})""")
+    assert got == [{'name': '에비가츠동', 'main': True}, {'name': '에비에비가츠동', 'main': False},
+                   {'name': '대창 소고기 카레 누들', 'main': False}, {'name': '모듬 카레 누들', 'main': False}]
+    assert page.evaluate("tourMenuNames(null).length") == 0
+    page.route('**/api/places/m3/menu?*', lambda route: route.fulfill(json={
+        'status': 'not_found', 'items': [], 'menu_images': [], 'reason': 'not_collected', 'source_url': 'https://map.naver.com/p/search/x',
+        'tour_menu': {'first': '에비가츠동', 'treat': '에비에비가츠동 / 대창 소고기 카레 누들'}}))
+    chips = page.evaluate("""async ()=>{
+      restaurantMenuRequests.delete('m3');const box=restaurantMenuPanel({id:'m3',name:'탐광'});document.body.append(box);box.scrollIntoView();
+      const t=Date.now();while(!box.querySelector('.tour-menu-chip')&&Date.now()-t<5000)await new Promise(r=>setTimeout(r,50));
+      const out=[...box.querySelectorAll('.tour-menu-chip')].map(li=>li.textContent);
+      const link=box.querySelector('a.menu-map-link');out.push(link&&getComputedStyle(link).minHeight);box.remove();return out;
+    }""")
+    assert chips == ['대표에비가츠동', '에비에비가츠동', '대창 소고기 카레 누들', '44px']

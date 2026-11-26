@@ -25,6 +25,13 @@
     widthLine.textContent = viewportWidth() + 'px';
   }
 
+  // 문의 유형·이용 만족도(2026-11-26 시안, 고르지 않아도 됨): 고른 것만 글 앞머리 '[기능 제안 · 좋아요] '로 붙인다(feedback.html 주석).
+  // 아무것도 고르지 않으면 글 그대로 보낸다. 앞머리를 붙여 서버 한도(MAX)를 넘으면 보내기 전에 알린다.
+  function prefix() {
+    const parts = ['kind', 'mood'].map(name => form.querySelector(`[name=${name}]:checked`)?.value).filter(Boolean);
+    return parts.length ? `[${parts.join(' · ')}] ` : '';
+  }
+
   function trimmedLength() {
     return message.value.trim().length;
   }
@@ -69,6 +76,11 @@
       message.focus();
       return;
     }
+    if ((prefix() + message.value).length > MAX) {
+      setError('고른 유형·만족도 표시(' + prefix().trim() + ')까지 ' + MAX + '자를 넘어요. 내용을 ' + ((prefix() + message.value).length - MAX) + '자 줄여 주세요.');
+      message.focus();
+      return;
+    }
     if (contact.value.trim().length > 100) {
       setError('연락처는 100자까지 적을 수 있어요.');
       contact.focus();
@@ -85,7 +97,7 @@
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          message: message.value,
+          message: prefix() + message.value,
           screen: screenSelect.value,
           contact: contact.value,
           viewport_width: viewportWidth(),

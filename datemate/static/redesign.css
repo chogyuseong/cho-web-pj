@@ -777,3 +777,14 @@ html body #quick-search-input, html body #quick-search-input:focus { border:0; b
   .stay-stepper button, .stay-stepper .stay-value { flex:1; }
 }
 @media print { .stay-stepper, .delay-sim-reset { display:none; } }
+
+/* ---------- 18) 코스 만들기 '선호 활동' 칩 색 점 — 2026-11-26 시안(데이트 코스 분류 칩: 카페 노랑·맛집 빨강·전시 보라·산책 초록·체험 파랑) ----------
+   simple-form.js ACTIVITY_CHIPS 의 값(button[data-theme])마다 15) 의 분류 색을 준다. 고르면(aria-pressed=true) 옅은 분류색 바탕 + 분류색 테두리.
+   칩을 더하면 아래 목록에 data-theme 값을 더한다(없으면 옵시디언 점). 글자색은 진한 색(명암비 4.5 이상). */
+.activity-group .quick-chips button[data-theme] { --kind-color:var(--obsidian); --kind-ink:var(--obsidian); --kind-soft:var(--alabaster); display:inline-flex; align-items:center; gap:8px; }
+.activity-group .quick-chips button[data-theme]::before { content:''; width:8px; height:8px; flex:0 0 auto; border-radius:50%; background:var(--kind-color); }
+.activity-group .quick-chips button[data-theme="카페·미식"] { --kind-color:var(--kind-cafe); --kind-ink:var(--kind-cafe-ink); --kind-soft:var(--kind-cafe-soft); }
+.activity-group .quick-chips button:is([data-theme="산책·풍경"],[data-theme="휴식·힐링"]) { --kind-color:var(--kind-walk); --kind-ink:var(--kind-walk-ink); --kind-soft:var(--kind-walk-soft); }
+.activity-group .quick-chips button[data-theme="문화·예술"] { --kind-color:var(--kind-culture); --kind-ink:var(--kind-culture-ink); --kind-soft:var(--kind-culture-soft); }
+.activity-group .quick-chips button:is([data-theme="체험·제작"],[data-theme="오락·놀이"],[data-theme="레저·활동"]) { --kind-color:var(--kind-play); --kind-ink:var(--kind-play-ink); --kind-soft:var(--kind-play-soft); }
+#conditions .activity-group .quick-chips button[data-theme][aria-pressed=true] { background:var(--kind-soft); border-color:var(--kind-color); color:var(--kind-ink); box-shadow:none; }

@@ -59,8 +59,10 @@ def test_search_in_area_field_with_keyboard(server, width):
         options = listbox.get_by_role('option')
         assert options.count() == 2
         assert options.nth(1).get_attribute('aria-disabled') == 'true'
-        assert '시·도를 알 수 없어' in options.nth(1).inner_text()
-        assert '검색 결과 2곳' in page.locator('.origin-search-status').inner_text()
+        # 까닭은 항목 안이 아니라 블록 밖 상태 줄에(네이버 결과 중간에 우리 글을 넣지 않는다 — 특약 1.2, 2026-11-26 네이버 답 2-1).
+        assert '시·도를 알 수 없어' not in options.nth(1).inner_text()
+        status = page.locator('.origin-search-status').text_content()
+        assert '검색 결과 2곳' in status and '시·도를 알 수 없는 1곳(흐린 항목)은 고를 수 없어요' in status
         for option in options.all():
             assert option.bounding_box()['height'] >= 44
         assert no_overflow(page)
@@ -166,7 +168,9 @@ def test_place_name_results_show_name_and_address(server):
         assert first.get_attribute('aria-disabled') is None
         # 주소가 없어 시·도를 알 수 없는 장소는 고를 수 없다.
         assert options.nth(1).get_attribute('aria-disabled') == 'true'
-        assert '시·도를 알 수 없어' in options.nth(1).inner_text()
+        # 항목 안에는 API 값만(우리 글 '시·도를 알 수 없어…'·'주소 정보 없음' 없음), 까닭은 상태 줄에.
+        assert '시·도를 알 수 없어' not in options.nth(1).inner_text() and '주소 정보 없음' not in options.nth(1).inner_text()
+        assert '흐린 항목' in page.locator('.origin-search-status').text_content()
         first.click()
         page.wait_for_function('!!locationState.origin')
         assert field.input_value() == SEONGSIMDANG['road_address']

@@ -871,4 +871,14 @@ html body #quick-search-input, html body #quick-search-input:focus { border:0; b
   html body > header nav > :is(a,button.nav) { white-space:nowrap; }
 }
 /* 320px(가장 좁은 휴대폰): 스위치 단추 안쪽 여백을 줄여 머리글 한 줄을 지킨다(누르는 높이 44px 는 그대로). */
-@media(max-width:340px) { .mode-switch button { min-width:48px; padding:6px 8px; } html body .mode-switch { width:104px; } }
+/* 340px 이하(320px 휴대폰): 머리글 한 줄·높이 120px 이하를 지킨다(tests/test_readability_stage1_ui.py test_phone_header_is_one_compact_block).
+   간격 8→6px, 로고 아이콘 36→30px·글자 20→15px, 스위치 100px. 합 약 299px(305px 안). 글자는 14px 이상 그대로.
+   좌우 여백(16px)은 line.css 의 '!important' 규칙이라 여기서 줄이지 않는다. */
+@media(max-width:340px) {
+  .mode-switch button { min-width:0; padding:6px 2px; font-size:14px; letter-spacing:-.04em; white-space:nowrap; }
+  html body .mode-switch { width:100px; }
+  html body > header { column-gap:6px; }
+  html body > header .brand { gap:6px; }
+  html body > header .brand-icon { width:30px; height:30px; border-radius:11px; }
+  html body > header .brand-name { font-size:15px; }
+}

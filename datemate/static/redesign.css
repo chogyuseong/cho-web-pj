@@ -882,3 +882,32 @@ html body #quick-search-input, html body #quick-search-input:focus { border:0; b
   html body > header .brand-icon { width:30px; height:30px; border-radius:11px; }
   html body > header .brand-name { font-size:15px; }
 }
+
+/* ---------- 26) 사진 없는 장소의 네이버 이미지 검색 결과(place-photos.js naverImageFold·naverImageBlock, app/naver_images.py) — 2026-11-26 ----------
+   사진 칸 아래 따로 접힌 칸(테두리 상자). 안에는 '네이버 검색결과' 블록 하나만(머리글·본문·바닥 BI). 썸네일 3열(휴대폰 2열), 받은 순서 그대로.
+   제목은 두 줄까지 보이되 잘라 다듬지 않는다(줄 넘침은 가리지 않고 줄바꿈 — 특약 1.2 '가공 없이'). */
+.naver-images { margin:10px 0 0; border:1px solid var(--border-strong); border-radius:var(--radius-md); background:var(--bg-surface); }
+.naver-images > summary { display:flex; align-items:center; min-height:44px; padding:8px 14px; cursor:pointer; color:var(--ink-primary); font-size:14px; font-weight:700; }
+.naver-images-content { padding:0 10px 10px; }
+.naver-images-content > .hint { margin:4px 4px 8px; }
+.naver-image-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:0; padding:4px 0; list-style:none; }
+.naver-image-item figure { margin:0; }
+.naver-image-item img { display:block; width:100%; height:auto; aspect-ratio:4/3; object-fit:cover; border-radius:var(--radius-sm); background:var(--bg-subtle); }
+.naver-image-item figcaption { margin-top:4px; color:var(--ink-secondary); font-size:14px; line-height:1.45; overflow-wrap:anywhere; }
+.naver-image-item a { display:block; color:inherit; text-decoration:none; }
+.naver-image-item a:focus-visible { outline:3px solid var(--ink-primary); outline-offset:2px; border-radius:var(--radius-sm); }
+@media(max-width:600px) { .naver-image-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media print { .naver-images { display:none; } }
+
+/* ---------- 27) 장소 상세 서랍 · 바텀 시트(place-dialog.js showPlace → #dialog.place-drawer) — 2026-11-26 요구 문서 Phase 4 ----------
+   넓은 화면: 오른쪽에 붙는 서랍(폭 520px, 화면 높이). 720px 이하: 아래에 붙는 시트(높이 최대 88%, 위 모서리만 둥글게).
+   같은 <dialog> 라 키보드 가두기·Esc 닫기·포커스 되돌리기는 그대로. 들어오는 움직임은 '움직임 줄이기' 설정이면 끈다. */
+#dialog.place-drawer { position:fixed; inset:0 0 0 auto; margin:0; width:min(520px,100%); max-width:100%; height:100dvh; max-height:100dvh; border-radius:var(--radius-xl) 0 0 var(--radius-xl); border-right:0; box-shadow:var(--shadow-float); }
+#dialog.place-drawer[open] { animation:drawer-in .26s cubic-bezier(.2,.8,.2,1); }
+@keyframes drawer-in { from { transform:translateX(40px); opacity:.4; } to { transform:none; opacity:1; } }
+@media(max-width:720px) {
+  #dialog.place-drawer { inset:auto 0 0 0; margin:0; width:100%; height:auto; max-height:88dvh; border-radius:var(--radius-xl) var(--radius-xl) 0 0; border-right:1px solid var(--line); border-bottom:0; }
+  #dialog.place-drawer[open] { animation-name:sheet-in; }
+  @keyframes sheet-in { from { transform:translateY(48px); opacity:.4; } to { transform:none; opacity:1; } }
+}
+@media(prefers-reduced-motion:reduce) { #dialog.place-drawer[open] { animation:none; } }

@@ -631,6 +631,17 @@ def place_blog_results(id: str, mode: Literal["demo", "real"] = "real"):
     return place_blogs(p)
 
 
+@app.get("/api/places/{id}/images")
+def place_image_results(id: str, mode: Literal["demo", "real"] = "real"):
+    """사진이 없는 장소의 네이버 이미지 검색 결과(받은 순서·건수 그대로, app/naver_images.py). 화면은 사진 칸의 접힌 칸."""
+    p = get_place(id, mode)
+    if p is None:
+        raise HTTPException(404, "장소를 찾을 수 없습니다.")
+    from .naver_images import place_images
+
+    return place_images(p)
+
+
 @app.get("/api/places/{id}/review-facts")
 def place_review_facts(id: str, mode: Literal["demo", "real"] = "real"):
     """블로그 후기 본문에서 읽은 영업시간·휴무(참고용, 추천 계산에는 쓰지 않음)."""

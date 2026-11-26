@@ -296,7 +296,8 @@ def test_only_display_modules_call_the_naver_search_api():
     """네이버 검색 API 를 부르는 모듈은 결과를 받은 그대로 보여 주는 곳뿐이다(2단계 3.8(b)).
     추천 후보·주변 식당·레저·주차장·같은 업체 확인 모듈은 검색 API 주소도, 지역 검색 호출 모듈(naver_local)도 쓰지 않는다."""
     callers = {path.name for path in (ROOT / 'app').glob('*.py') if 'naverapihub.apigw.ntruss.com/search' in path.read_text('utf-8')}
-    assert callers == {'naver_local.py', 'blog_search.py', 'popup_api.py'}
+    # 2026-11-26: naver_images.py(사진 없는 장소의 이미지 검색 결과를 받은 그대로 보여 줌 — 네이버 답 '선별·가공 없이 표시 가능')도 보여 주는 곳이다.
+    assert callers == {'naver_local.py', 'blog_search.py', 'popup_api.py', 'naver_images.py'}
     users = {path.name for path in (ROOT / 'app').glob('*.py') if 'naver_local' in path.read_text('utf-8') and path.name != 'naver_local.py'}
     assert users == {'explore.py', 'geocoding.py'}
     # 네이버 검색 키가 있는지(search_enabled)도 보지 않는다: 키가 있든 없든 같은 후보가 나온다.

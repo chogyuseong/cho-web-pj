@@ -82,6 +82,8 @@ let dialogReturn = null;
 
 function openDialog(title) {
   dialogGeneration++;
+  // 장소 정보만 서랍 모양(아래 showPlace). 다른 용도로 열면 보통 대화상자로 돌린다.
+  $('#dialog').classList.remove('place-drawer');
   if (!$('#dialog').open) {
     const opener = document.activeElement;
     const stop = opener?.closest?.('#plan-detail .stop');
@@ -193,6 +195,9 @@ async function showAlternatives(index) {
 async function showPlace(id, placeMode) {
   const root = openDialog('장소 정보를 불러오고 있어요'),
     generation = dialogGeneration;
+  // 2026-11-26 요구 문서 Phase 4 '장소 상세 서랍': 넓은 화면은 오른쪽에서 나오는 서랍, 휴대폰(720px 이하)은 아래에서 올라오는 시트(redesign.css 27)).
+  // 같은 <dialog>(키보드 가두기·Esc·포커스 되돌리기 그대로)에 클래스만 붙인다. 닫히면 지운다(아래 close 처리, openDialog).
+  $('#dialog').classList.add('place-drawer');
   const p = await api('/places/' + encodeURIComponent(id) + '?mode=' + placeMode);
   if (generation !== dialogGeneration || !$('#dialog').open) return;
   root.replaceChildren(node('span', p.demo ? '가상 장소 · 시연용' : '실제 장소 메타데이터 · 운영정보 확인 필요', 'tag'), node('h2', p.name), node('p', p.description || '확인된 설명이 없습니다.'));
@@ -264,3 +269,6 @@ document.getElementById('dialog').addEventListener('close', () => {
     });
   }, 0);
 });
+
+// 장소 정보 서랍 모양은 대화상자가 닫힐 때 지운다(다음에 다른 용도로 열 때 보통 모양).
+document.getElementById('dialog')?.addEventListener('close', event => event.currentTarget.classList.remove('place-drawer')); // app.js($)보다 먼저 읽혀 $ 를 쓰지 않는다

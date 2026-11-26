@@ -224,7 +224,8 @@ const DELAY_SIM_CHOICES = [0, 15, 30, 60];
    늦어짐과 같은 서버 계산(GET …/delay-check 의 stays='번호:분,…', app/delay_check.py)으로 남은 시간표를 다시 계산하고, 같은 자리에 겹쳐 보인다.
    늦어짐(분)과 함께 고를 수 있다 — 둘 다 고르면 '늦게 도착 + 바꾼 체류'로 계산한다. 저장하지 않는 미리 보기라 코스는 그대로다.
    stays 는 코스(id)마다 따로 기억한다(탭을 바꿨다 돌아와도 그대로). 원래 체류로 돌아온 장소는 지운다. STAY_STEP·STAY_LIMIT 은 서버 STAY_RANGE 와 맞춘다. */
-const STAY_STEP = 15, STAY_LIMIT = [15, 360];
+const STAY_STEP = 15,
+  STAY_LIMIT = [15, 360];
 const delaySim = {
   minutes: 0,
   staysByPlan: new Map(),
@@ -244,7 +245,8 @@ const staysParam = plan => Object.entries(delaySim.stays(plan)).sort((a, b) => a
 const delaySimKey = (plan, minutes) => `${plan.id}:${minutes}:${staysParam(plan)}`;
 // 지금 미리 보기를 무엇으로 계산했는지 한 마디(배지·도장 앞 화면 읽기용, 진행 문구).
 function delaySimWhat(plan) {
-  const late = delaySim.minutes > 0, stays = delaySim.hasStays(plan);
+  const late = delaySim.minutes > 0,
+    stays = delaySim.hasStays(plan);
   return late && stays ? `${delaySim.minutes}분 늦고 체류를 바꾸면` : late ? `${delaySim.minutes}분 늦으면` : '체류를 바꾸면';
 }
 // 장소 i 의 지금 체류(바꿔 본 값이 있으면 그 값). base: 코스에 저장된 체류.
@@ -254,13 +256,18 @@ function stayFor(plan, i, base) {
 // 체류를 step(±15)만큼 바꾼다. 원래 값으로 돌아오면 지운다. 바꾼 뒤 미리 보기를 다시 계산하거나(켜짐) 지운다(꺼짐).
 function changeStay(plan, i, base, step) {
   if (!plan?.id || !Number.isFinite(base)) return;
-  const stays = { ...delaySim.stays(plan) };
+  const stays = {
+    ...delaySim.stays(plan)
+  };
   const next = Math.min(STAY_LIMIT[1], Math.max(STAY_LIMIT[0], stayFor(plan, i, base) + step));
-  if (next === base) delete stays[i]; else stays[i] = next;
-  if (Object.keys(stays).length) delaySim.staysByPlan.set(plan.id, stays); else delaySim.staysByPlan.delete(plan.id);
+  if (next === base) delete stays[i];
+  else stays[i] = next;
+  if (Object.keys(stays).length) delaySim.staysByPlan.set(plan.id, stays);
+  else delaySim.staysByPlan.delete(plan.id);
   syncStaySteppers(plan);
   refreshSimulation(plan);
 }
+
 function resetStays(plan) {
   delaySim.staysByPlan.delete(plan?.id);
   syncStaySteppers(plan);
@@ -269,7 +276,9 @@ function resetStays(plan) {
 // 장소 카드의 체류 칸 글자·단추 상태를 지금 값으로 맞춘다(다시 그리지 않고 글자만).
 function syncStaySteppers(plan) {
   document.querySelectorAll('#plan-detail .stay-stepper').forEach(box => {
-    const i = Number(box.dataset.index), base = Number(box.dataset.base), now = stayFor(plan, i, base);
+    const i = Number(box.dataset.index),
+      base = Number(box.dataset.base),
+      now = stayFor(plan, i, base);
     box.querySelector('.stay-value').textContent = `${now}분`;
     box.classList.toggle('is-changed', now !== base);
     box.querySelector('.stay-minus').disabled = now <= STAY_LIMIT[0];
@@ -282,7 +291,10 @@ function syncStaySteppers(plan) {
 }
 // 늦어짐·체류 중 하나라도 고른 게 있으면 다시 계산, 없으면 겹친 표시를 지운다.
 function refreshSimulation(plan) {
-  if (delaySim.on) { delaySimRefresh(plan); return; }
+  if (delaySim.on) {
+    delaySimRefresh(plan);
+    return;
+  }
   delaySim.turn += 1;
   clearDelaySim();
   const parts = delaySimParts();
@@ -375,7 +387,8 @@ async function loadDelaySim(plan) {
     parts.basis.hidden = true;
   }
   try {
-    const stays = staysParam(plan), key = delaySimKey(plan, minutes);
+    const stays = staysParam(plan),
+      key = delaySimKey(plan, minutes);
     const data = await api(`/plans/${encodeURIComponent(plan.id)}/delay-check?index=0&minutes=${minutes}` + (stays ? `&stays=${encodeURIComponent(stays)}` : ''));
     delaySim.cache.set(key, data);
     if (delaySim.cache.size > 24) delaySim.cache.delete(delaySim.cache.keys().next().value);

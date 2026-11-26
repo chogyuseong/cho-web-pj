@@ -19,7 +19,9 @@ function showPlannerPage(results, navigate = true) {
   requestAnimationFrame(() => {
     const heading = document.querySelector(results ? '.results-area .section-heading h2' : '.conditions .section-heading h2');
     heading.tabIndex = -1;
-    if (focusMovedSince(focusBefore)) return void document.getElementById('planner-section').scrollIntoView({ block: 'start' });
+    if (focusMovedSince(focusBefore)) return void document.getElementById('planner-section').scrollIntoView({
+      block: 'start'
+    });
     heading.focus({
       preventScroll: true
     });

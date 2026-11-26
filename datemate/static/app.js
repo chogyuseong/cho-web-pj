@@ -13,9 +13,13 @@ function showPlannerPage(results, navigate = true) {
   if (navigate) {
     location.hash = results ? 'date-plan' : 'planner-section';
   }
+  // 다음 그리기에서 새 화면 제목으로 포커스를 옮긴다. 그사이 다른 동작이 포커스를 옮겼으면(예: 현재 위치 실패 안내가 지역 칸으로 옮김) 빼앗지 않는다
+  // — 2026-11-26 tests/test_quick_conditions_ui.py test_current_location_allowed 가 가끔 제목에 포커스가 남아 실패한 경쟁을 막는다.
+  const focusBefore = document.activeElement;
   requestAnimationFrame(() => {
     const heading = document.querySelector(results ? '.results-area .section-heading h2' : '.conditions .section-heading h2');
     heading.tabIndex = -1;
+    if (focusMovedSince(focusBefore)) return void document.getElementById('planner-section').scrollIntoView({ block: 'start' });
     heading.focus({
       preventScroll: true
     });
@@ -785,17 +789,24 @@ $('#edit-conditions').onclick = () => {
 };
 
 
+// 화면을 옮긴 뒤 다음 그리기까지 사이에 포커스가 다른 칸으로 옮겨 갔는지. 처음 포커스(누른 단추·body)에 그대로면 false.
+function focusMovedSince(before) {
+  const now = document.activeElement;
+  return Boolean(now && now !== before && now !== document.body && now !== document.documentElement);
+}
+
 // Reveal the destination screen before scrolling, including repeated anchor clicks.
 function navigateHomeSection(hash, updateHistory = true) {
   if (!['#planner-section', '#curation'].includes(hash)) return;
   setTab(false);
   if (updateHistory && location.hash !== hash) history.pushState(null, '', hash);
+  const focusBefore = document.activeElement;
   requestAnimationFrame(() => {
     const section = document.querySelector(hash);
     if (!section) return;
     const heading = section.querySelector('h2') || section;
     heading.tabIndex = -1;
-    heading.focus({
+    if (!focusMovedSince(focusBefore)) heading.focus({
       preventScroll: true
     });
     section.scrollIntoView({

@@ -210,7 +210,7 @@ def test_current_location_allowed(server):
         here.click()
         page.wait_for_function('document.querySelector(".area-status").textContent.includes("시·도를 확인하지 못했어요")')
         assert not page.locator('#dialog').evaluate('dialog=>dialog.open')
-        assert page.evaluate('document.activeElement===form.elements.origin_name')
+        assert page.evaluate("document.activeElement===form.elements.origin_name")
 
 
 def test_current_location_denied_points_to_search(server):
@@ -221,7 +221,7 @@ def test_current_location_denied_points_to_search(server):
         page.wait_for_function('document.querySelector(".area-status").textContent.includes("위치 권한이 허용되지 않았어요")', timeout=20000)
         assert '‘허용’' in page.locator('.area-status').inner_text()
         assert not page.locator('#dialog').evaluate('dialog=>dialog.open')
-        assert page.evaluate('document.activeElement===form.elements.origin_name')
+        assert page.evaluate("document.activeElement===form.elements.origin_name")
         assert seen == [] and page.locator('[name=origin_name]').input_value() == ''
 
 

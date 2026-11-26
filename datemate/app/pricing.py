@@ -15,8 +15,8 @@ ASSUMPTION_BASIS='계획용 1인 범위 · 등록된 단가가 없어 넣은 가
 ASSUMPTION_SOURCE='서비스 예산 계획용 가정'
 UNKNOWN_BASIS='등록된 단가가 없어요. 가격은 방문 전에 확인해 주세요.'
 # 메뉴를 골라 넣은 식당 가격(app/experience.meal_draft). operator_menu = 운영자가 확인한 제공 메뉴(app/operating_evidence.py),
-# naver_menu = 네이버 화면에서 읽던 메뉴(app/naver_pages.py 가 꺼져 있어 새로 생기지 않음).
-MENU_PRICE_KINDS=('operator_menu','naver_menu')
+# naver_menu = 네이버 화면에서 읽던 메뉴(app/naver_pages.py 가 꺼져 있어 새로 생기지 않음), good_price_menu = 서울시 착한가격업소 메뉴(app/good_price.py).
+MENU_PRICE_KINDS=('operator_menu','naver_menu','good_price_menu')
 
 def apply_prices(plan):
     plan=copy.deepcopy(plan)

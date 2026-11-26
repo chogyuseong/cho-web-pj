@@ -137,6 +137,18 @@ def restaurant_menu(place,force=False):
     if evidence.get('current') and local.get('menus'):
         rows=[dict(item,display_price=f"{item['amount']:,}원",price_scope='store') for item in local['menus']]
         return dict(empty,status='available',items=rows,source_kind='operator_reviewed_menu',source_url=evidence['source'],source_label='운영자가 확인한 제공 메뉴',checked_at=evidence['checked_at'],note=evidence['scope']+' · 제공 자료 기준이며 현재 가격은 원문 확인',reason=None)
+    # 서울시 착한가격업소와 같은 가게가 확실하면 그 메뉴·가격을 글 그대로 싣는다(2026-11-26, app/good_price.py — 판정 규칙·보관은 그 파일 설명).
+    # 보관분만 읽는다(요청 안에서 서울 API 를 부르지 않음). 없거나 애매하면 아래 기존 안내 그대로. 화면: static/meal-suggestions.js goodPriceMenu.
+    from .good_price import good_price_menu
+    try:good=good_price_menu(place)
+    except Exception:good=None
+    if good:
+        from urllib.parse import quote
+        rows=[dict(name=item['name'],amount=item['amount'],display_price=f"{item['amount']:,}원",representative=False,price_scope='store') for item in good['items']]
+        return dict(empty,status='available',items=rows,source_kind='seoul_good_price',source_url=good['source_url'],source_label=good['source_label'],
+            checked_at=good['fetched_on'] or empty['checked_at'],good_price=good,reason='good_price',
+            search_url='https://map.naver.com/p/search/'+quote(place_query(place)),
+            note='서울시가 공개한 착한가격업소 가격이에요. 지금 매장 가격과 다를 수 있어요.')
     # 2026-11-19: 네이버 검색 결과 화면을 자동으로 읽지 않는다(약관·robots.txt, app/naver_pages.py).
     # 운영자가 확인한 메뉴가 없으면 네이버 지도 링크로만 안내한다(가격을 다른 곳에서 읽어 오지 않는다).
     from .naver_pages import allowed

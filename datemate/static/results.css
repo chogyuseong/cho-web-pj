@@ -383,6 +383,8 @@ main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .tour-menu-main { font-size:12px; font-weight:800; color:var(--hong,#E0004D); }
 .tour-menu-more { color:var(--muted); font-weight:500; }
 .tour-menu-note { margin:10px 0 0; }
+/* 서울시 착한가격업소 출처 줄(meal-suggestions.js goodPriceMenu, 2026-11-26). 메뉴 줄 아래 한 칸 띄운다. */
+.good-price-source { margin:10px 0 0; overflow-wrap:anywhere; }
 /* 지도 링크를 단추 모양으로(가격을 보러 가는 다음 행동). 글자색·밑줄 대신 테두리 알약, 높이 44px(누르기 쉬운 크기). */
 .restaurant-menu>a.menu-map-link { display:inline-flex; align-items:center; min-height:44px; margin-top:12px; padding:0 16px; border:1px solid var(--accent-border,var(--line)); border-radius:999px; font-weight:700; text-decoration:none; }
 

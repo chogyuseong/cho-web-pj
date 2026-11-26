@@ -215,6 +215,7 @@ function evidenceItem(label,state,text){
 const PRICE_EVIDENCE={planning_assumption:['check','예산을 짜려고 넣은 가정 금액이에요. 실제 가격이 아니에요. 네이버 지도에서 확인해 주세요.'],
   operator_menu:['check','운영자가 확인해 둔 메뉴 가격이에요. 지금 가격은 원문에서 확인해 주세요.'],
   naver_menu:['check','모아 둔 메뉴 가격이에요. 지금 가격은 원문에서 확인해 주세요.'],
+  good_price_menu:['check','서울시 착한가격업소 자료의 메뉴 가격이에요. 지금 가격은 매장과 다를 수 있어요.'],
   confirmed:['ok','등록된 가격 자료가 있어요.'],estimated:['check','추정한 가격이에요. 실제 가격과 다를 수 있어요.'],unknown:['check','가격을 확인하지 못했어요.']};
 function placeEvidencePanel(plan,index){
   const place=plan.places[index],fact=plan.place_evidence?.find(x=>x.place_id===place.id);

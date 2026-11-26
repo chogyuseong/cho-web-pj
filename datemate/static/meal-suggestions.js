@@ -30,6 +30,19 @@ function tourMenuNames(tour){
   for(const [text,main] of [[tour.first,true],[tour.treat,false]])for(const name of split(text)){const key=name.replace(/\s+/g,'');if(seen.has(key))continue;seen.add(key);out.push({name,main});}
   return out;
 }
+// 서울시 착한가격업소 메뉴·가격(서버 source_kind 'seoul_good_price', app/good_price.py — 2026-11-26). 이름·가격은 받은 글 그대로.
+// 출처 한 줄('착한가격업소 · 서울시 제공 · 날짜 확인')과 지도 링크를 둔다. 다시 조회해도 하루 한 번 받는 자료라 '새로 조회' 단추는 없다.
+const GOOD_PRICE_ROWS=6; // 보여 줄 메뉴 줄 수. 넘으면 '외 n개'. 바꾸면 tests/test_good_price.py 도 함께.
+function goodPriceMenu(box,data,food){
+  box.replaceChildren(node('strong','메뉴·가격','menu-heading'));
+  for(const item of data.items.slice(0,GOOD_PRICE_ROWS)){const row=node('div',undefined,'menu-price-row');row.append(node('span',item.name),node('b',item.display_price));box.append(row);}
+  if(data.items.length>GOOD_PRICE_ROWS)box.append(node('small','외 '+(data.items.length-GOOD_PRICE_ROWS)+'개 메뉴','menu-checked'));
+  const source=node('p',undefined,'menu-checked good-price-source');
+  source.append(document.createTextNode((data.source_label||'착한가격업소 · 서울시 제공')+(data.good_price?.fetched_on?' · '+data.good_price.fetched_on+' 확인':'')+' '));
+  if(data.source_url)source.append(link('출처 ↗',data.source_url));
+  box.append(source,node('small',data.note||'지금 매장 가격과 다를 수 있어요.','menu-checked'));
+  const mapLink=link('네이버 지도에서 메뉴보기 ↗',data.search_url||placeMapUrl(food));mapLink.classList.add('menu-map-link');box.append(mapLink);
+}
 function restaurantMenuPanel(food){
   const box=node('div',undefined,'restaurant-menu');box.setAttribute('aria-label',food.name+' 메뉴 가격');box.append(node('p','메뉴 가격을 확인하고 있어요…','hint loading-note'));
   async function load(refresh=false){
@@ -38,6 +51,7 @@ function restaurantMenuPanel(food){
       if(refresh)restaurantMenuRequests.delete(food.id);
       if(!restaurantMenuRequests.has(food.id))restaurantMenuRequests.set(food.id,api('/places/'+encodeURIComponent(food.id)+'/menu?mode=real'+(refresh?'&refresh=true':'')).catch(e=>{restaurantMenuRequests.delete(food.id);throw e;}));
       const data=await restaurantMenuRequests.get(food.id);
+      if(data.source_kind==='seoul_good_price'&&data.items?.length){goodPriceMenu(box,data,food);return;}
       // 관광공사 메뉴 이름만 있고 가격 자료가 없으면 제목에서 '가격'을 뺀다(2026-11-26: '대표 메뉴·가격' 아래 가격이 없어 오류처럼 보였다).
       const tourOnly=!data.items?.length&&!data.menu_images?.length&&tourMenuNames(data.tour_menu).length>0;
       box.replaceChildren(node('strong',data.status==='image_only'?'매장 메뉴판·가격':tourOnly?'대표 메뉴':'대표 메뉴·가격','menu-heading'));

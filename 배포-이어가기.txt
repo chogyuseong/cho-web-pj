@@ -7,7 +7,25 @@
 
 ★ 지금 상태 (2026-11-27 기준)
 ----------------------------------------------------------------------
-브랜치 fix/share-og-tour-photo-400(2026-11-27, 병합·배포 전): 99차 '남은 것' 중 두 가지 — 공유 화면 og 태그, tour_places 사진 검색의 400 처리.
+★★ 배포 대기(2026-11-27 새벽): main bea0eca 까지 병합·push 됨, 운영은 아직 103차(Worker e38c39fb, main e3adce8 기준) 그대로.
+  사용자 지시: '모든 권한 … 혼자 처리할 수 있는 최대한 … 배포-이어하기·README 수정 후 커밋 푸쉬 → 컴퓨터 종료'.
+  · 병합된 것(배포하면 104차 한 번에 나감): ① 2e81d8b = fix/iphone-layout-1127(아이폰 레이아웃, 아래 기록) — main CI Run 45858639072 성공.
+    ② bea0eca = fix/share-og-tour-photo-400(공유 미리보기·관광공사 사진 400, 아래 기록) — 브랜치 CI Run 45864805011 성공(병합본 main CI 는 push 직후라 확인 못 함).
+  · 막힌 것: Claude Code 자동 권한 검사가 `npx wrangler@4.160.1 deploy` 를 '파괴적/원치 않는 행동'으로 막음(103차 때는 통과). 우회하지 않고 멈춤.
+    npm run test:security 27 통과는 2e81d8b 에서 확인함. Docker Desktop 은 켜 둔 상태였음(컴퓨터 종료로 꺼짐 → 배포 전에 다시 켜기).
+  · 사용자가 할 일(프로젝트 폴더에서):
+      1) Docker Desktop 켜기(%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe)
+      2) git pull; npm run test:security; npx wrangler@4.160.1 deploy
+      3) 13분 뒤 운영 확인(또는 Claude Code 에 '104차 운영 확인해' — 아래 항목):
+         - /api/status 200·server-timing, redesign.css·header-mode.js ?v= = 로컬 sha256
+         - 402px 폭: 하단 메뉴 현재 탭만 강조, 맨 아래까지 내리면 내용이 막대 위로, 결과 머리 '추천 일정 N개' 따로 한 줄, 예산 막대 글자 아래, 지역 칸 간격·높이
+         - curl -s https://datemate.guseong-family.workers.dev/shared 의 head: og:title '데이트메이트 공유 일정', og:image …/static/images/seoul-evening.jpg(200 image/jpeg),
+           {{PUBLIC_ORIGIN}} 남지 않음, canonical·og:url 없음, robots noindex 그대로(컨테이너 잠든 때·깨어난 때 두 번)
+         - 아이폰 실기기: 위 화면들 + 카카오톡에 공유 링크 붙여 미리보기(예전 주소는 developers.kakao.com/tool/debugger/sharing 에서 캐시 초기화)
+  · 되돌리는 법: git revert -m 1 bea0eca / git revert -m 1 2e81d8b 후 재배포. DB 변경 없음.
+  · 남은 것: QA-14(CSS·JS 묶기·미디어쿼리 정리 — 큰 정리, Fable 추천), 아이폰 실기기(:hover 잔상, 홈 화면 단독 실행 막대, 입력칸 52px 글자, 날짜·시간 칸),
+    index.html viewport-fit=cover 도입 여부(설계 판단), sharing.py 기존 ruff 경고(ROOT 미사용·E701).
+브랜치 fix/share-og-tour-photo-400(2026-11-27, main bea0eca 로 병합, 배포 대기): 99차 '남은 것' 중 두 가지 — 공유 화면 og 태그, tour_places 사진 검색의 400 처리.
   ① 공유 화면 링크 미리보기(원인: shared.html 에 description·og·twitter 태그가 없어 카카오톡·메신저 미리보기에 제목·그림이 없었음 — QA-08 때 일부러 뺌).
      → shared.html head 에 description·og:type·site_name·locale·title('데이트메이트 공유 일정')·description(일반 안내, 24시간 링크)·og:image(seoul-evening.jpg 1400×933)·
        twitter:card. 첫 화면(QA-08)과 같은 {{PUBLIC_ORIGIN}} 자리표시 — 앱 sharing.shared_page 가 static_pages.with_public_origin(public_origin()) 을 거치게 함

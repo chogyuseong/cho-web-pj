@@ -264,7 +264,8 @@ def test_header_menu_marks_the_current_place_with_aria_current_only(audit_page):
     generate(page)
     wait_for_selected_detail(page)
     page.wait_for_function("document.body.classList.contains('show-date-plan')")
-    assert page.evaluate(NAV) == {'home': none, 'plan': ['true', False], 'explore': none, 'results': ['true', False]}
+    # 2026-11-26: 결과 화면에서는 '추천 결과'만 현재 위치(예전에는 '코스 만들기'도 함께 — 결과 탭이 데스크톱에도 생겨 하나로).
+    assert page.evaluate(NAV) == {'home': none, 'plan': none, 'explore': none, 'results': ['true', False]}
     # 머리글 메뉴에는 aria-pressed 가 하나도 없다(데이트/여행 스위치는 메뉴가 아니라 그대로 aria-pressed).
     assert page.evaluate("document.querySelectorAll('header nav [aria-pressed]').length") == 0
     assert page.locator('#mode-switch [data-mode=date]').get_attribute('aria-pressed') == 'true'

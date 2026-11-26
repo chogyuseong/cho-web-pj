@@ -42,7 +42,8 @@
     const count = typeof plans !== 'undefined' && Array.isArray(plans) ? plans.length : 0;
     tab.classList.toggle('has-plans', count > 0);
     const badge = tab.querySelector('.nav-count');
-    if (badge) { badge.textContent = String(count); badge.hidden = count === 0; }
+    // 0 이면 숫자를 비운다 — 숨겨도 textContent 에 '0'이 남아 메뉴 이름을 읽는 곳(화면 읽기 대체 글·테스트)에 섞였다.
+    if (badge) { badge.textContent = count ? String(count) : ''; badge.hidden = count === 0; }
     tab.setAttribute('aria-label', count ? `추천 결과 · 코스 ${count}개` : '추천 결과');
     placeNavIndicator(); // 탭이 생기거나 사라지면 메뉴 폭이 바뀌어 미끄럼 표시 자리를 다시 잰다.
   }

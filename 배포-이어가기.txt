@@ -26,7 +26,7 @@
      ↔ 착한가격업소 '두꺼비'(역삼로 421 (대치동)) 선짓국·된장찌개·소고기김치찌개 각 5,000원. 이름이 다르거나 주소가 다른 곳은 붙지 않음.
   · 검증: tests/test_good_price.py 11개(응답 읽기·업종 거르기, 맞는 경우·이름만 같음·주소만 같음·포함 이름·다른 구·같은 곳 둘, 페이지 받기, 요청 때 호출 없음, 실패 시 지난 것 유지,
      키 없음, 하루 지난 보관분, 서울 밖, 메뉴 칸 응답, 375·320px 화면 표시·넘침 없음). 로컬 전체(Windows, sqlite, msedge) 1677 통과·1 건너뜀·실패 0(25분 53초).
-     ruff format(format_sources.py 에 app/good_price.py 추가)·ruff check 통과. CI: 브랜치 push 뒤 GitHub Actions 결과는 다음 줄에.
+     ruff format(format_sources.py 에 app/good_price.py 추가)·ruff check 통과. CI: Run 45834192476(b4b79da) 성공 — python-audit·container·test (postgres)·test (sqlite)·security 5개 모두 통과.
   · 되돌리는 법: 병합 전이면 브랜치를 버림. 병합 뒤면 git revert(병합 커밋) 후 재배포. DB 변경 없음(캐시 키 good-price-v1:* 만 — 그대로 두면 3일 뒤 사라짐).
      급히 끄려면 Worker Secret 을 건드리지 말고 app/menus.py 의 good_price_menu 호출 몇 줄을 빼서 재배포(주차 실시간도 같은 키를 씀).
   · 배포 때 볼 것: 운영 컨테이너에 SEOUL_OPEN_API_KEY 가 넘어가는지(cloudflare/validation.mjs — 이미 있음), 컨테이너에서 openapi.seoul.go.kr:8088(http) 로 나갈 수 있는지.

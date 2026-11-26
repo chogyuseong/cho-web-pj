@@ -376,6 +376,15 @@ main .meal-card .menu-price-row { font-size:15px; }
 main .meal-card .menu-price-row b { font-variant-numeric:tabular-nums; }
 .restaurant-menu>a { display:inline-block; margin-top:8px; font-size:14px; line-height:1.75; }
 .menu-checked { display:block; margin-top:5px; font-size:14px; line-height:1.75; color:var(--muted); }
+/* 관광공사 메뉴 이름 칩(meal-suggestions.js tourMenuNames, 2026-11-26). 가격이 없을 때만 나온다. '대표' 표시는 브랜드 색 작은 글자.
+   칩 바탕·테두리는 .tag 와 같은 계열(--platform·--line). 칩 수는 TOUR_MENU_CHIPS. */
+.tour-menu-chips { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0; padding:0; list-style:none; }
+.tour-menu-chip { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:4px 12px; border:1px solid var(--line); border-radius:999px; background:var(--platform,#F4F6F9); font-size:14px; font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
+.tour-menu-main { font-size:12px; font-weight:800; color:var(--hong,#E0004D); }
+.tour-menu-more { color:var(--muted); font-weight:500; }
+.tour-menu-note { margin:10px 0 0; }
+/* 지도 링크를 단추 모양으로(가격을 보러 가는 다음 행동). 글자색·밑줄 대신 테두리 알약, 높이 44px(누르기 쉬운 크기). */
+.restaurant-menu>a.menu-map-link { display:inline-flex; align-items:center; min-height:44px; margin-top:12px; padding:0 16px; border:1px solid var(--accent-border,var(--line)); border-radius:999px; font-weight:700; text-decoration:none; }
 
 .menu-image-preview { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:12px 0; }
 .menu-image-preview a { display:block; border:1px solid var(--line); border-radius:12px; background-color:#fff; overflow:hidden; }

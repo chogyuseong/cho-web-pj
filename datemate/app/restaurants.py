@@ -71,7 +71,8 @@ def public_food(plan,indices):
             if any(public_places.same_venue(food,other) for other in chosen):continue
             tour_row=food['public_source']=='tour'
             chosen.append(dict(food,cuisine=food['description'].split('>')[-1],recognition=TOUR_RECOGNITION if tour_row else STORE_RECOGNITION,
-                hours_text='영업시간·메뉴는 지도에서 확인',search_radius_m=radius,distance_m=round(meters),after_index=i,near_place=a['name'],
+                # hours_text: 메뉴는 카드의 메뉴 칸이 안내하므로 영업시간만(2026-11-26, 예전 '영업시간·메뉴는 지도에서 확인'은 같은 말 두 번).
+                hours_text='영업시간은 지도에서 확인',search_radius_m=radius,distance_m=round(meters),after_index=i,near_place=a['name'],
                 extra_distance_km=round(max(0,distance(a,food)+distance(food,b)-distance(a,b)),1),route_offset_km=round(segment_distance(food,a,b),1)))
             if len(chosen)==PER_STOP:break
         groups[i]=chosen;shown+=chosen

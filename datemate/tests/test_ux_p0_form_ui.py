@@ -22,9 +22,8 @@ def test_dream_box_comes_first_with_scenario_chips(audit_page):  # noqa: F811
     }""")
     assert order == [True, True, True], order
     dream = page.locator('#conditions .simple-dream')
-    # 2026-11-25 시안: 한 줄 요청은 접힘(요약 '한 줄로 적어서 조건 채우기 (선택)') 안에 있어 먼저 펼친다.
-    assert dream.evaluate('d=>!d.open') and '한 줄로 적어서 조건 채우기' in dream.locator(':scope>summary').inner_text()
-    dream.locator(':scope>summary').click()
+    # 2026-11-26 시안: 한 줄 요청은 카드 맨 위에 처음부터 펼쳐져 있다(접기 틀과 요약 글은 남김).
+    assert dream.evaluate('d=>d.open') and '한 줄로 적어서 조건 채우기' in dream.locator(':scope>summary').inner_text()
     assert '어떤 데이트를 꿈꾸나요?' in dream.inner_text()
     assert page.locator('#parse').inner_text() == '이 마음으로 조건 채우기'
     dream.get_by_role('button', name='비 오는 날 성수 실내 데이트', exact=True).click()

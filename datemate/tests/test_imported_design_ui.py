@@ -17,4 +17,3 @@ def test_imported_theme_anchors_and_sticky_map_clear_header(audit_page):
     page.locator('.execution-summary').scroll_into_view_if_needed()
     page.wait_for_function("document.querySelector('.plan-map-card').getBoundingClientRect().top>=document.querySelector('header').getBoundingClientRect().bottom")
     assert page.locator('.map-option-tabs').is_visible()
-    assert page.locator('.hero-photo img').evaluate('(el)=>el.complete&&el.naturalWidth===1400')

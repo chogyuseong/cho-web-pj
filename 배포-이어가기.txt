@@ -7,6 +7,20 @@
 
 ★ 지금 상태 (2026-11-26 기준)
 ----------------------------------------------------------------------
+▶ 진행 중(2026-11-26 14:10~): feat/redesign-1126 — 사용자 새 시안(Gemini Canvas https://share.gemini.google/FRLO4lnDylVK, 캡처·DOM 은 Downloads\datemate-시안-2026-11-26).
+  사용자 지시(14:08, 몇 시간 자리 비움): '모든 권한 … 혼자 진행할 수 있는 것(선택은 가장 완성도 있고 효과적인 것) → 배포 → 배포-이어하기·README → 커밋 푸쉬'.
+  판단(사용자 위임 '실리콘밸리 최고 개발자로서 완성도 제일 높은 방향'): 실제 네이버 지도 유지(시안 모양만 입힘), 지각 '자동 대체' 안 함(「대신 갈 곳 찾기」 유지),
+    실제 장소 사진 유지(시안의 색 그림 대신), 피드백 이메일 칸 안 받음(개인정보 새로 모으지 않음).
+  순서: 1) 화면(색·메뉴 슬라이딩·처음 화면·코스 만들기·결과 틀·카카오맵 링크·테마·피드백·⌘K) 2) 체류 ±15분·순서 바꾸기 재계산 3) 둘러보기 바구니.
+  한 것(커밋 전): ① 처음 화면 — index.html hero(안내 알약·한 줄 제목·아이콘 칩·'추천 동선 미리보기 예시' 카드), 예전 히어로 입력 막대·사진 삭제,
+    header-mode.js COPY(제목 한 줄)·syncRequestPlaceholder(한 줄 입력 예시 → 코스 만들기 카드 textarea), simple-form.js 한 줄 입력 처음부터 펼침,
+    theme-cards.js 칩 아이콘(HERO_CHIP_ICONS, Lucide 경로), redesign.css 15). ② quick-search.js 새 파일(⌘K/Ctrl+K 팔레트, 페이지·상황 테마·인기 동네·시·도)
+    + 메뉴 미끄럼 표시(header-mode.js placeNavIndicator), redesign.css 17). 로컬 서버 8031 에서 확인함.
+  ③ 결과 카드: .timeline-card[data-kind](기존 stopKindKey 이름 cafe·meal·art·walk·make·play·rest·other) 왼쪽 색 띠·번호·시각 색, redesign.css 16).
+    카카오맵 길찾기 링크는 이미 있었음(실제 장소). ④ 체류 −15/+15분: app/delay_check.py parse_stays·delay_check(stays) + GET delay-check?stays=,
+    static/delay-check.js(staysByPlan·changeStay·resetStays·'체류 시간 되돌리기'), plan-detail.js stayStepper. 저장 안 하는 미리 보기.
+  테스트: tests/test_redesign_1126_ui.py 새로(7), test_hero_placeholder_ui.py 삭제(입력칸 없어짐), 예전 동작을 보던 6곳 갱신. 관련 121+25 통과.
+  지금 단계: 전체 테스트 실행 중 → 커밋·푸시 → CI → 병합 → 배포(사용자 지시 있음) → 운영 확인 → 기록.
 백 번째 배포(2026-11-26 12:38) 완료: main 88e6ce7(병합 = fix/naver-terms-separate-areas 0009336, 그 안에 fix/hero-placeholder-mobile bc4937d), Worker 버전 12378408-698f-43ec-98cd-c51e5bfd15d2.
   사용자 지시: '진행해'(커밋·푸시·병합) → '병합되면 배포까지 진행해'(11-26). 배포 때 컨테이너가 깨어 있어 13분 기다린 뒤 확인.
   ① 화면(사용자 아이폰 18 Pro 캡처 3장, 2026-11-26):

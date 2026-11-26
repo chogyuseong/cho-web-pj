@@ -4,7 +4,7 @@ import logging
 import time
 import uuid
 from typing import Literal
-from fastapi import APIRouter,Request,HTTPException
+from fastapi import APIRouter,Request,HTTPException,Query
 from pydantic import BaseModel,ConfigDict,Field,ValidationError
 from . import store
 from . import experience as service
@@ -170,14 +170,20 @@ def feedback_summary(request:Request):
 
 
 @router.get('/plans/{pid}/delay-check')
-def delay_check(pid:str,request:Request,index:int=0,minutes:int=10):
+def delay_check(pid:str,request:Request,index:int=0,minutes:int=10,stays:str=Query('',max_length=200)):
     """읽기 전용: 남은 첫 장소(index)에 minutes 분 늦게 도착하면 남은 일정이 어디서 처음 어긋나는지(app/delay_check.py).
+    stays='장소 번호:분,…' 이면 그 장소들의 체류 시간을 바꿔 본다(2026-11-26 시안 '체류 -15분/+15분', 같은 규칙으로 다시 계산).
     만든 브라우저만 볼 수 있다(공유 범위는 그대로). 아무것도 저장하지 않는다."""
     _,plan=load(pid,request.state.owner)
-    from .delay_check import delay_check as check
+    from .delay_check import delay_check as check,parse_stays
     from .delay_recovery import recovery_for
     def action():
-        result=check(plan,index,minutes)
+        changed=parse_stays(stays,len(plan['places']))
+        result=check(plan,index,minutes,changed)
+        # 체류를 바꿔 본 시간표에서는 대신 갈 곳 안(지각 복구)을 만들지 않는다 — 복구는 저장된 체류 그대로 다시 계산해서 화면과 맞지 않는다.
+        if changed:
+            result['recovery']=None
+            return result
         # 늦어서 맞출 수 없게 된 장소가 있으면 대신 갈 곳·빼고 진행 안(app/delay_recovery.py). 계산만 하고 저장하지 않는다.
         # 복구 안 계산이 예상 못 한 코스 모양에서 실패해도 지각 확인 자체는 그대로 답한다(복구 안만 빠진다).
         try:result['recovery']=recovery_for(plan,result)

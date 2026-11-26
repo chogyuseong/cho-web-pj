@@ -220,15 +220,78 @@ function delayCheckView(data, plan) {
      결과는 '코스 id · 분' 별로 기억한다(코스 내용이 바뀌면 서버가 새 id 를 준다). 늦게 온 응답은 지금 보는 코스·분이 아니면 버린다.
    - 고를 수 있는 분을 바꾸려면 DELAY_SIM_CHOICES 만 고친다(0 = 정시). */
 const DELAY_SIM_CHOICES = [0, 15, 30, 60];
+/* 체류 시간 바꿔 보기(2026-11-26 시안 '−15분 · N분 · +15분', 장소 카드 위 줄의 .stay-stepper — plan-detail.js stayStepper).
+   늦어짐과 같은 서버 계산(GET …/delay-check 의 stays='번호:분,…', app/delay_check.py)으로 남은 시간표를 다시 계산하고, 같은 자리에 겹쳐 보인다.
+   늦어짐(분)과 함께 고를 수 있다 — 둘 다 고르면 '늦게 도착 + 바꾼 체류'로 계산한다. 저장하지 않는 미리 보기라 코스는 그대로다.
+   stays 는 코스(id)마다 따로 기억한다(탭을 바꿨다 돌아와도 그대로). 원래 체류로 돌아온 장소는 지운다. STAY_STEP·STAY_LIMIT 은 서버 STAY_RANGE 와 맞춘다. */
+const STAY_STEP = 15, STAY_LIMIT = [15, 360];
 const delaySim = {
   minutes: 0,
+  staysByPlan: new Map(),
+  stays(plan) {
+    return this.staysByPlan.get(plan?.id) || {};
+  },
+  hasStays(plan) {
+    return Object.keys(this.stays(plan)).length > 0;
+  },
   get on() {
-    return this.minutes > 0;
+    return this.minutes > 0 || (typeof selected !== 'undefined' && this.hasStays(selected));
   },
   turn: 0,
   cache: new Map()
 };
-const delaySimKey = (plan, minutes) => `${plan.id}:${minutes}`;
+const staysParam = plan => Object.entries(delaySim.stays(plan)).sort((a, b) => a[0] - b[0]).map(([i, m]) => `${i}:${m}`).join(',');
+const delaySimKey = (plan, minutes) => `${plan.id}:${minutes}:${staysParam(plan)}`;
+// 지금 미리 보기를 무엇으로 계산했는지 한 마디(배지·도장 앞 화면 읽기용, 진행 문구).
+function delaySimWhat(plan) {
+  const late = delaySim.minutes > 0, stays = delaySim.hasStays(plan);
+  return late && stays ? `${delaySim.minutes}분 늦고 체류를 바꾸면` : late ? `${delaySim.minutes}분 늦으면` : '체류를 바꾸면';
+}
+// 장소 i 의 지금 체류(바꿔 본 값이 있으면 그 값). base: 코스에 저장된 체류.
+function stayFor(plan, i, base) {
+  return delaySim.stays(plan)[i] ?? base;
+}
+// 체류를 step(±15)만큼 바꾼다. 원래 값으로 돌아오면 지운다. 바꾼 뒤 미리 보기를 다시 계산하거나(켜짐) 지운다(꺼짐).
+function changeStay(plan, i, base, step) {
+  if (!plan?.id || !Number.isFinite(base)) return;
+  const stays = { ...delaySim.stays(plan) };
+  const next = Math.min(STAY_LIMIT[1], Math.max(STAY_LIMIT[0], stayFor(plan, i, base) + step));
+  if (next === base) delete stays[i]; else stays[i] = next;
+  if (Object.keys(stays).length) delaySim.staysByPlan.set(plan.id, stays); else delaySim.staysByPlan.delete(plan.id);
+  syncStaySteppers(plan);
+  refreshSimulation(plan);
+}
+function resetStays(plan) {
+  delaySim.staysByPlan.delete(plan?.id);
+  syncStaySteppers(plan);
+  refreshSimulation(plan);
+}
+// 장소 카드의 체류 칸 글자·단추 상태를 지금 값으로 맞춘다(다시 그리지 않고 글자만).
+function syncStaySteppers(plan) {
+  document.querySelectorAll('#plan-detail .stay-stepper').forEach(box => {
+    const i = Number(box.dataset.index), base = Number(box.dataset.base), now = stayFor(plan, i, base);
+    box.querySelector('.stay-value').textContent = `${now}분`;
+    box.classList.toggle('is-changed', now !== base);
+    box.querySelector('.stay-minus').disabled = now <= STAY_LIMIT[0];
+    box.querySelector('.stay-plus').disabled = now >= STAY_LIMIT[1];
+  });
+  const reset = document.querySelector('#plan-detail .delay-sim-reset');
+  if (reset) reset.hidden = !delaySim.hasStays(plan);
+  const help = document.querySelector('#plan-detail .delay-sim-help');
+  if (help) help.hidden = delaySim.minutes > 0 || delaySim.hasStays(plan);
+}
+// 늦어짐·체류 중 하나라도 고른 게 있으면 다시 계산, 없으면 겹친 표시를 지운다.
+function refreshSimulation(plan) {
+  if (delaySim.on) { delaySimRefresh(plan); return; }
+  delaySim.turn += 1;
+  clearDelaySim();
+  const parts = delaySimParts();
+  if (parts) {
+    parts.status.textContent = '';
+    parts.status.className = 'delay-sim-status';
+    parts.basis.hidden = true;
+  }
+}
 
 function delaySimBar(plan) {
   const bar = node('div', undefined, 'delay-sim');
@@ -246,9 +309,12 @@ function delaySimBar(plan) {
     pill.addEventListener('click', () => setDelaySim(minutes));
     pills.append(pill);
   }
-  head.append(title, pills);
-  const help = node('p', '고른 만큼 첫 장소에 늦게 도착한다고 보고, 장소마다 밀린 시각과 주의할 점을 일정에 표시해요. 코스는 바꾸지 않아요.', 'hint delay-sim-help');
-  help.hidden = delaySim.on;
+  // 체류를 바꿔 본 것이 있으면 되돌리기(시안의 '되돌리기'). 늦어짐은 '정시'가 되돌리기다.
+  const reset = button('체류 시간 되돌리기', () => resetStays(plan), 'secondary delay-sim-reset');
+  reset.hidden = !delaySim.hasStays(plan);
+  head.append(title, pills, reset);
+  const help = node('p', '고른 만큼 첫 장소에 늦게 도착한다고 보고, 장소마다 밀린 시각과 주의할 점을 일정에 표시해요. 장소 카드의 −15분·+15분으로 머무는 시간도 바꿔 볼 수 있어요. 코스는 바꾸지 않아요.', 'hint delay-sim-help');
+  help.hidden = delaySim.minutes > 0 || delaySim.hasStays(plan);
   const status = node('p', '', 'delay-sim-status');
   status.setAttribute('role', 'status');
   const basis = node('p', '', 'hint delay-sim-basis');
@@ -279,19 +345,9 @@ function setDelaySim(minutes) {
   const parts = delaySimParts();
   if (parts) {
     parts.pills.forEach(pill => pill.setAttribute('aria-pressed', String(Number(pill.dataset.minutes) === minutes)));
-    parts.help.hidden = minutes > 0;
+    parts.help.hidden = minutes > 0 || delaySim.hasStays(selected);
   }
-  if (!minutes) {
-    delaySim.turn += 1;
-    clearDelaySim();
-    if (parts) {
-      parts.status.textContent = '';
-      parts.status.className = 'delay-sim-status';
-      parts.basis.hidden = true;
-    }
-    return;
-  }
-  if (selected) delaySimRefresh(selected);
+  if (selected) refreshSimulation(selected);
 }
 
 // renderDetail 이 상세를 다시 그린 뒤 부른다. 켜져 있으면 기억한 결과를 겹치거나 새로 불러온다.
@@ -315,18 +371,21 @@ async function loadDelaySim(plan) {
   clearDelaySim();
   if (parts) {
     parts.status.className = 'delay-sim-status';
-    parts.status.textContent = `${minutes}분 늦을 때를 다시 계산하고 있어요…`;
+    parts.status.textContent = `${delaySimWhat(plan)} 어떻게 되는지 다시 계산하고 있어요…`;
     parts.basis.hidden = true;
   }
   try {
-    const data = await api(`/plans/${encodeURIComponent(plan.id)}/delay-check?index=0&minutes=${minutes}`);
-    delaySim.cache.set(delaySimKey(plan, minutes), data);
+    const stays = staysParam(plan), key = delaySimKey(plan, minutes);
+    const data = await api(`/plans/${encodeURIComponent(plan.id)}/delay-check?index=0&minutes=${minutes}` + (stays ? `&stays=${encodeURIComponent(stays)}` : ''));
+    delaySim.cache.set(key, data);
     if (delaySim.cache.size > 24) delaySim.cache.delete(delaySim.cache.keys().next().value);
-    if (turn !== delaySim.turn || delaySim.minutes !== minutes || selected?.id !== plan.id) return;
+    if (turn !== delaySim.turn || delaySimKey(plan, delaySim.minutes) !== key || selected?.id !== plan.id) return;
     applyDelaySim(plan, data);
   } catch (error) {
     if (turn !== delaySim.turn || selected?.id !== plan.id) return;
-    // 계산하지 못하면 고른 채로 두지 않는다(일정은 원래 시각 그대로라 '늦음'이 거짓이 된다).
+    // 계산하지 못하면 고른 채로 두지 않는다(일정은 원래 시각 그대로라 '늦음'이 거짓이 된다). 바꿔 본 체류도 되돌린다.
+    delaySim.staysByPlan.delete(plan.id);
+    syncStaySteppers(plan);
     setDelaySim(0);
     const after = delaySimParts();
     if (after) {
@@ -375,7 +434,7 @@ function delaySimBadges(row, place) {
 
 function delaySimBadgeLine(badges) {
   const line = node('p', undefined, 'delay-sim-badges');
-  line.append(node('span', `${delaySim.minutes}분 늦으면: `, 'visually-hidden'));
+  line.append(node('span', `${typeof selected !== 'undefined' ? delaySimWhat(selected) : delaySim.minutes + '분 늦으면'}: `, 'visually-hidden'));
   badges.forEach(([text, kind]) => {
     const badge = node('span', text, `delay-sim-badge is-${kind}`);
     badge.dataset.kind = kind;
@@ -387,7 +446,9 @@ function delaySimBadgeLine(badges) {
 function delaySimStamp(row) {
   const box = node('span', undefined, 'delay-sim-time');
   const shift = row.shift > 0 ? `+${row.shift}분` : row.shift < 0 ? `${-row.shift}분 일찍` : '그대로';
-  box.append(node('span', `${delaySim.minutes}분 늦으면 이용 시작 `, 'visually-hidden'), node('b', row.start, 'delay-sim-start'), node('small', shift, 'delay-sim-shift'));
+  box.append(node('span', `${typeof selected !== 'undefined' ? delaySimWhat(selected) : delaySim.minutes + '분 늦으면'} 이용 시작 `, 'visually-hidden'), node('b', row.start, 'delay-sim-start'), node('small', shift, 'delay-sim-shift'));
+  // 체류를 바꾼 장소는 떠나는 시각도 달라져 '~떠남 (N분)'을 붙인다(늦어짐만이면 머무는 시간이 같아 시작 시각으로 충분하다).
+  if (typeof selected !== 'undefined' && delaySim.hasStays(selected) && row.departure && !row.festival) box.append(node('small', `~ ${row.departure} (${row.stay}분)`, 'delay-sim-departure'));
   return box;
 }
 
@@ -440,7 +501,7 @@ function applyDelaySim(plan, data) {
   // 늦어짐 → 대신 갈 곳(2026-11-25 Gemini Canvas 시안은 문제 장소를 자동으로 바꾸고 되돌리기를 뒀다). 우리는 자동으로 바꾸지 않고,
   // 이미 있는 서버 지각 복구(접힌 '더 할 수 있는 것' 안 '늦어지면 어디서 문제가 생길까?', app/delay_recovery.py)를 같은 장소·같은 분으로 열어
   // 서버가 영업시간·구간·예산을 다시 맞춘 후보만 고르게 한다. 종료 시각 문제(kind 'end')는 바꿀 장소가 없어 단추를 두지 않는다.
-  if (data.status === 'problem' && data.first_problem?.kind !== 'end' && delayRecoveryAllowed(plan)) {
+  if (data.status === 'problem' && data.first_problem?.kind !== 'end' && delayRecoveryAllowed(plan) && !(data.stays && Object.keys(data.stays).length)) {
     const go = button('대신 갈 곳 찾기', () => openDelayRecovery(plan, data), 'secondary delay-sim-recover');
     parts.status.append(' ', go);
   }
@@ -471,15 +532,19 @@ function openDelayRecovery(plan, data) {
 // 단추 옆 결론 한 줄(위 접힌 상자의 delayCheckView 와 같은 판단, 짧게).
 function delaySimSummary(data) {
   const later = data.finish && data.original_finish && data.finish !== data.original_finish;
-  const finish = later ? ` 끝나는 시간이 ${data.original_finish}에서 ${data.finish}로 늦어져요.` : data.finish ? ` 끝나는 시간은 ${data.finish} 그대로예요.` : '';
+  const finish = later ? ` 끝나는 시간이 ${data.original_finish}에서 ${data.finish}로 바뀌어요.` : data.finish ? ` 끝나는 시간은 ${data.finish} 그대로예요.` : '';
+  // 앞머리: '30분 늦으면' / '체류를 바꾸면' / '30분 늦고 체류를 바꾸면'. 서버가 받은 값(data.delay·data.stays)으로 정한다.
+  const stays = data.stays && Object.keys(data.stays).length;
+  const what = data.delay && stays ? `${data.delay}분 늦고 체류를 바꾸면` : data.delay ? `${data.delay}분 늦으면` : '체류를 바꾸면';
+  const okWhat = data.delay && stays ? `${data.delay}분 늦고 체류를 바꿔도` : data.delay ? `${data.delay}분 늦어도` : '체류를 바꿔도';
   if (data.status === 'problem') {
     const p = data.first_problem;
-    if (p.kind === 'end') return `${data.delay}분 늦으면 일정이 ${p.time}에 끝나 정한 종료 시간(${p.limit})보다 ${p.over}분 늦어요.`;
-    return `${data.delay}분 늦으면 ${p.place}에서 처음 문제가 생겨요(${p.reason}). 「대신 갈 곳 찾기」를 누르면 바꿀 곳을 골라 볼 수 있어요.`;
+    if (p.kind === 'end') return `${what} 일정이 ${p.time}에 끝나 정한 종료 시간(${p.limit})보다 ${p.over}분 늦어요.`;
+    return `${what} ${p.place}에서 처음 문제가 생겨요(${p.reason}).` + (stays ? ' 체류를 줄이거나 되돌려 보세요.' : ' 「대신 갈 곳 찾기」를 누르면 바꿀 곳을 골라 볼 수 있어요.');
   }
   const waits = (data.pending || []).length;
-  if (data.status === 'unknown') return `${data.delay}분 늦어도 시간표로는 괜찮아 보여요.${finish} 영업 정보가 없는 ${waits}곳은 연다고 보고 계산했어요.`;
-  return `${data.delay}분 늦어도 괜찮아요.${finish}`;
+  if (data.status === 'unknown') return `${okWhat} 시간표로는 괜찮아 보여요.${finish} 영업 정보가 없는 ${waits}곳은 연다고 보고 계산했어요.`;
+  return `${okWhat} 괜찮아요.${finish}`;
 }
 
 // 공유받은 코스·보관 기한(21일)이 지난 코스에서는 바꾸는 단추를 두지 않는다(서버도 404·409).

@@ -24,12 +24,16 @@ def test_desktop_header_is_a_centered_pill_menu(audit_page):
     center = box['x'] + box['width'] / 2
     assert abs(center - 640) < 120, box
     # 2026-11-25 시안: 데스크톱 메뉴는 코스 만들기·테마 추천·장소 둘러보기·피드백(코스 결과 칸은 휴대폰 하단 바에서만 보인다).
-    # 첫 화면은 '테마 추천'(#nav-home)이 고른 메뉴이고, 고른 메뉴는 흰 알약 + 그림자다(redesign.css 2-1).
+    # 첫 화면은 '테마 추천'(#nav-home)이 고른 메뉴이고, 고른 메뉴 뒤에 흰 알약 표시(.nav-indicator)가 미끄러져 온다(2026-11-26, redesign.css 17).
     assert page.locator('body > header nav > :is(a,button)').evaluate_all("l=>l.filter(e=>e.getClientRects().length).map(e=>e.textContent.trim())") == ['코스 만들기', '테마 추천', '장소 둘러보기', '피드백']
     active = page.locator('#nav-home')
     assert active.get_attribute('aria-current') == 'true'
-    assert active.evaluate("e=>getComputedStyle(e).backgroundColor") == 'rgb(255, 255, 255)'
-    assert float(active.evaluate("e=>parseFloat(getComputedStyle(e).borderTopLeftRadius)")) >= 20
+    mark = page.locator('body > header > .nav-indicator')
+    assert mark.evaluate("e=>getComputedStyle(e).backgroundColor") == 'rgb(255, 255, 255)'
+    assert float(mark.evaluate("e=>parseFloat(getComputedStyle(e).borderTopLeftRadius)")) >= 20
+    page.wait_for_timeout(400)
+    assert page.evaluate("""()=>{const m=document.querySelector('body > header > .nav-indicator').getBoundingClientRect(),
+      a=document.getElementById('nav-home').getBoundingClientRect();return Math.abs(m.left-a.left)<2&&Math.abs(m.width-a.width)<2;}""")
     assert page.locator('body > header').evaluate("e=>getComputedStyle(e).position") == 'sticky'
 
 
@@ -91,19 +95,8 @@ def test_hero_quick_start_area_only_uses_the_area_card(audit_page):
     assert page.evaluate('[locationState.origin.name, form.elements.transport.value]') == ['강원 강릉 안목해변 지역 중심', 'car']
 
 
-def test_hero_command_sends_the_sentence_to_the_request_parser(audit_page):
-    page, _, _ = audit_page
-    ready(page)
-    bar = page.locator('#hero-command')
-    bar.get_by_role('button', name='코스 찾기').click()
-    assert page.evaluate("document.activeElement.id") == 'hero-command-input'
-    page.fill('#hero-command-input', '비 오는 날 실내 위주로 덜 걷는 코스')
-    page.keyboard.press('Enter')
-    page.wait_for_function("location.hash==='#planner-section'")
-    assert page.evaluate('form.elements.request.value') == '비 오는 날 실내 위주로 덜 걷는 코스'
-    # 지역이 비어 있으면 지역 묶음을 강조한다.
-    page.locator('.simple-form-group.needs-area').wait_for()
-    assert page.locator('#hero-command-input').evaluate("e=>getComputedStyle(e).borderTopWidth") == '0px'
+# 예전 test_hero_command_sends_the_sentence_to_the_request_parser: 2026-11-26 시안에서 히어로 한 줄 입력 막대가 없어졌다.
+# 한 줄 입력은 코스 만들기 카드 맨 위(test_ux_p0_form_ui.py·test_redesign_1126_ui.py 가 본다).
 
 
 def test_theme_cards_are_rounded_cards(audit_page):

@@ -47,7 +47,32 @@
       if (on) item.setAttribute('aria-current', 'true'); else item.removeAttribute('aria-current');
       item.removeAttribute('aria-pressed');
     }
+    placeNavIndicator();
   }
+  // 메뉴 미끄럼 표시(2026-11-26 시안 '상단 내비게이션의 활성 탭 필이 부드럽게 슬라이딩'). 데스크톱 메뉴에서 고른 칸 뒤에 흰 알약 하나를 두고
+  // 고른 칸이 바뀌면 그 자리로 옮긴다(redesign.css 17) 의 transition). 표시는 메뉴(nav) 밖, 머리글의 자식으로 둔다 — 메뉴 안 항목 수를
+  // 세는 테스트·화면 읽기 순서를 바꾸지 않으려고. 위치 = 메뉴의 위치(offsetLeft/Top, 머리글 기준) + 고른 칸의 위치(메뉴 기준).
+  // 휴대폰 하단 바(720px 이하)는 CSS 가 표시를 숨기고 예전 모양을 쓴다.
+  function placeNavIndicator() {
+    const nav = document.querySelector('body > header nav');
+    if (!nav) return;
+    let mark = document.querySelector('body > header > .nav-indicator');
+    if (!mark) {
+      mark = document.createElement('span');
+      mark.className = 'nav-indicator';
+      mark.setAttribute('aria-hidden', 'true');
+      nav.after(mark); // 메뉴 뒤에 둬야 메뉴 바탕(회색) 위, 글자(z-index 1) 아래에 그려진다.
+      nav.classList.add('has-indicator');
+    }
+    const on = nav.querySelector(':scope > .active');
+    if (!on || !on.offsetWidth || getComputedStyle(mark).display === 'none') { mark.style.opacity = '0'; return; }
+    mark.style.opacity = '1';
+    mark.style.width = on.offsetWidth + 'px';
+    mark.style.height = on.offsetHeight + 'px';
+    mark.style.transform = `translate(${nav.offsetLeft + on.offsetLeft}px, ${nav.offsetTop + on.offsetTop}px)`;
+  }
+  addEventListener('resize', placeNavIndicator);
+  document.fonts?.ready?.then(placeNavIndicator);
   // 강제로 다시 맞춘다(app.js setTab 이 클래스를 바꾼 뒤 부른다 — 같은 상태라도 단추 클래스를 되돌려 놓는다).
   window.syncHeaderNav = () => { last = ''; syncHeaderNav(); };
   let frame = 0;
@@ -63,36 +88,20 @@
   });
 
   // ---------- 데이트 / 여행 ----------
+  // 처음 화면 문구(2026-11-26 시안: 제목 한 줄 '어디서 만날까요?', 설명 '지역·시간·예산만 정하면 …'). 제목은 넓은 화면에서 한 줄, 좁으면 저절로 줄바꿈.
+  // placeholder: 한 줄 입력이 코스 만들기 카드 맨 위(simple-form.js .simple-dream 의 textarea)로 옮겨 가서 그 칸에 넣는다.
+  //   textarea 라 긴 문구도 줄바꿈되어 잘리지 않는다(예전 히어로 input 의 짧은 문구 바꾸기 syncHeroPlaceholder 는 필요 없어져 뺐다).
   const COPY = {
-    date: { title: ['어디서', '만날까요?'], description: '원하는 하루를 한 줄로 적거나 아래에서 골라 보세요. 지역·시간·예산에 맞는 코스 3개를 비교해요.',
-      placeholder: '예: 비 오는 날 성수에서 덜 걷고 분위기 좋은 저녁 코스', shortPlaceholder: '예: 성수 실내 데이트' },
-    travel: { title: ['어디로', '떠날까요?'], description: '가고 싶은 여행지를 한 줄로 적거나 아래에서 골라 보세요. 이동 수단·시간·예산에 맞는 코스 3개를 비교해요.',
-      placeholder: '예: 강릉에서 바다 보며 드라이브하고 저녁은 시장에서', shortPlaceholder: '예: 강릉 바다 여행' }
+    date: { title: '어디서 만날까요?', description: '지역·시간·예산만 정하면, 동선과 비용까지 계산된 하루 코스 3개를 비교해요.',
+      placeholder: '예: 비 오는 날 성수에서 덜 걷고 분위기 좋은 저녁 코스' },
+    travel: { title: '어디로 떠날까요?', description: '여행지·이동 수단·예산만 정하면, 동선과 비용까지 계산된 하루 코스 3개를 비교해요.',
+      placeholder: '예: 강릉에서 바다 보며 드라이브하고 저녁은 시장에서' }
   };
-  // 히어로 입력칸 안내 문구(2026-11-26 사용자 지적: 휴대폰에서 '…덜 걷고' 근처에서 잘림).
-  // 휴대폰 폭에서는 「코스 찾기」 단추와 한 줄을 나눠 칸이 좁다(390px 폭 → 칸 224px, 320px → 154px, 긴 문구는 약 335~356px).
-  // 화면 폭 기준값 대신 실제 칸 폭과 문구 폭을 재서, 긴 문구가 안 들어가면 shortPlaceholder 를 쓴다(태블릿·두 칸 배치도 같은 규칙).
-  // 짧은 문구는 320px 폭(칸 154px)에서 여유가 있게 골랐다(약 110~120px). 바꾸면 tests/test_hero_placeholder_ui.py 의 폭 검사가 지켜 준다.
-  // 그래도 넘치는 글꼴이면 redesign.css 4) 의 text-overflow:ellipsis 가 '…'로 끝낸다.
-  // 안 한 것: 두 줄로 감싸기(input 은 줄바꿈이 안 되고, textarea 로 바꾸면 Enter 로 찾기·막대 높이가 달라진다).
-  const heroInput = document.getElementById('hero-command-input');
-  const measureCtx = document.createElement('canvas').getContext('2d');
-  function syncHeroPlaceholder() {
-    if (!heroInput) return;
-    const copy = COPY[body.classList.contains('mode-travel') ? 'travel' : 'date'];
-    const style = getComputedStyle(heroInput);
-    let fits = true;
-    if (measureCtx && heroInput.clientWidth > 0) {
-      measureCtx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-      fits = measureCtx.measureText(copy.placeholder).width <= heroInput.clientWidth;
-    }
-    const next = fits ? copy.placeholder : copy.shortPlaceholder;
-    if (heroInput.placeholder !== next) heroInput.placeholder = next;
+  function syncRequestPlaceholder() {
+    const request = document.getElementById('conditions')?.elements?.request;
+    if (request) request.placeholder = COPY[body.classList.contains('mode-travel') ? 'travel' : 'date'].placeholder;
   }
-  if (heroInput && typeof ResizeObserver === 'function') new ResizeObserver(() => syncHeroPlaceholder()).observe(heroInput);
-  else addEventListener('resize', () => syncHeroPlaceholder());
-  // 웹 글꼴(Pretendard)이 늦게 오면 글자 폭이 달라지므로 다 받은 뒤 한 번 더 잰다.
-  document.fonts?.ready?.then(() => syncHeroPlaceholder());
+  window.syncRequestPlaceholder = syncRequestPlaceholder; // simple-form.js 가 카드를 다 그린 뒤 부른다.
   const KEY = 'datemate-mode';
   // 여행 기본값. 칸 이름은 index.html·simple-form.js 의 form 칸(name). 값을 바꾸면 tests/test_travel_mode_ui.py 도 함께 고친다.
   const TRIP_DEFAULTS = { start: '10:00', end: '20:00', count: '5', max_leg: '60', stay_minutes: '75', include_meal: true };
@@ -146,10 +155,10 @@
     switcher?.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     const copy = COPY[mode];
     const h1 = document.querySelector('.hero-copy h1');
-    if (h1) h1.replaceChildren(copy.title[0], document.createElement('br'), copy.title[1]);
+    if (h1) h1.textContent = copy.title;
     const description = document.querySelector('.hero-copy .hero-description');
     if (description) description.textContent = copy.description;
-    syncHeroPlaceholder(); // 모드에 맞는 긴/짧은 안내 문구(위 syncHeroPlaceholder)
+    syncRequestPlaceholder(); // 코스 만들기 카드 맨 위 한 줄 입력의 예시 문구(위 COPY.placeholder)
     if (typeof window.renderHeroQuick === 'function') window.renderHeroQuick(mode);
     // 테마 구역: 여행은 '주말 떠나기 좋은 동네'부터, 데이트는 '오늘의 상황으로 고르기'부터. 사용자가 스위치를 누를 때만 탭을 옮긴다
     // (처음 열 때 여행으로 기억돼 있어도 탭은 옮긴다 — 같은 규칙). 탭 단추 click 은 theme-cards.js 의 탭 동작을 그대로 탄다.
@@ -167,4 +176,5 @@
     if (button && button.getAttribute('aria-pressed') !== 'true') apply(button.dataset.mode, true);
   });
   if (saved() === 'travel') apply('travel', false);
+  else syncRequestPlaceholder(); // 데이트로 열 때도 한 줄 입력 예시 문구를 맞춘다(여행이면 apply 가 맞춤).
 })();

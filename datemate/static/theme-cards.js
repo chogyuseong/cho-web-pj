@@ -75,20 +75,36 @@ function seasonBadge(month){return `${month}월 ${SEASON_THEMES[seasonFor(month)
 // area 출발지 이름은 시·도 이름으로 시작해야 서버의 지역 일치 검증을 통과한다. 한남·서촌은 동네 카드에 없어 기준 역 좌표를 여기 둔다
 // (한남 = 6호선 한강진역, 서촌 = 3호선 경복궁역). 칩을 바꾸면 tests/test_redesign_shell_ui.py 의 기대값도 함께 고친다.
 const HERO_QUICK_STARTS=[
-  {label:'비 오는 날 성수 실내',situation:'indoor',area:{region:'서울',name:'서울 성수역 지역 중심',lat:37.5446,lon:127.0559,label:'서울 성수'}},
-  {label:'퇴근 후 한남 3시간',situation:'after-work',area:{region:'서울',name:'서울 한남 한강진역 지역 중심',lat:37.5396,lon:127.0017,label:'서울 한남'}},
-  {label:'강릉 바다 드라이브',preset:'강릉 안목해변'},
-  {label:'어색함 없는 서촌 소개팅',situation:'first-date',area:{region:'서울',name:'서울 서촌 경복궁역 지역 중심',lat:37.5757,lon:126.9735,label:'서울 서촌'}}
+  {label:'비 오는 날 성수 실내',icon:'rain',situation:'indoor',area:{region:'서울',name:'서울 성수역 지역 중심',lat:37.5446,lon:127.0559,label:'서울 성수'}},
+  {label:'퇴근 후 한남 3시간',icon:'moon',situation:'after-work',area:{region:'서울',name:'서울 한남 한강진역 지역 중심',lat:37.5396,lon:127.0017,label:'서울 한남'}},
+  {label:'강릉 바다 드라이브',icon:'waves',preset:'강릉 안목해변'},
+  {label:'어색함 없는 서촌 소개팅',icon:'heart',situation:'first-date',area:{region:'서울',name:'서울 서촌 경복궁역 지역 중심',lat:37.5757,lon:126.9735,label:'서울 서촌'}}
 ];
 // 계절 나누기(가이드 §2.3·시안 '11월 겨울 시즌'): 3~5월 봄, 6~8월 여름, 9~10월 가을, 11~2월 겨울. 11월을 겨울로 두는 까닭: 연말 야경·실내 수요가 시작된다.
 // 여행 모드(header-mode.js 데이트/여행 스위치)의 바로 시작 칩: 모두 '주말 떠나기 좋은 동네' 카드(index.html data-preset)를 그대로 고른다.
 // 동네 카드를 더하거나 이름을 바꾸면 preset 값도 같이 고친다.
 const HERO_QUICK_STARTS_TRAVEL=[
-  {label:'강릉 바다 드라이브',preset:'강릉 안목해변'},
-  {label:'부산 광안리 밤바다',preset:'부산 해운대'},
-  {label:'경주 황리단길 한옥 산책',preset:'경주 황리단길'},
-  {label:'제주 애월 오션뷰',preset:'제주 애월'}
+  {label:'강릉 바다 드라이브',icon:'waves',preset:'강릉 안목해변'},
+  {label:'부산 광안리 밤바다',icon:'moon',preset:'부산 해운대'},
+  {label:'경주 황리단길 한옥 산책',icon:'pin',preset:'경주 황리단길'},
+  {label:'제주 애월 오션뷰',icon:'waves',preset:'제주 애월'}
 ];
+// 바로 시작 칩 앞 작은 그림(2026-11-26 시안: 칩마다 선 아이콘). Lucide 아이콘(ISC 라이선스)의 경로를 그대로 옮겼다 — 글자를 대신하지 않는 장식이라 aria-hidden.
+// 새 칩을 더하면 icon 에 아래 이름 중 하나를 적는다(없으면 그림 없이 글자만).
+const HERO_CHIP_ICONS={
+  rain:['M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242','M16 14v6','M8 14v6','M12 16v6'],
+  moon:['M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'],
+  waves:['M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1','M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1','M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1'],
+  heart:['M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z'],
+  pin:['M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0','M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0']
+};
+function heroChipIcon(name){
+  const paths=HERO_CHIP_ICONS[name];if(!paths)return null;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  for(const [k,v] of Object.entries({viewBox:'0 0 24 24',width:'16',height:'16',fill:'none',stroke:'currentColor','stroke-width':'2','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',class:'hero-chip-icon'}))svg.setAttribute(k,v);
+  for(const d of paths){const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);svg.append(path);}
+  return svg;
+}
 function seasonFor(month){return month>=3&&month<=5?'spring':month>=6&&month<=8?'summer':month>=9&&month<=10?'autumn':'winter';}
 
 // 배너에 보여 줄 '실제로 채운 조건' 문장(카드의 # 태그는 홍보 문구라 따로 둔다).
@@ -287,7 +303,7 @@ const ThemePresets=(()=>{
   form.addEventListener('change',()=>setTimeout(syncBanner));
   areaGrid?.querySelectorAll('[data-preset]').forEach(card=>card.addEventListener('click',()=>pickArea(card)));
 
-  // 히어로(index.html .hero-start): 바로 시작 칩과 한 줄 입력.
+  // 히어로(index.html .hero-start): 바로 시작 칩(아이콘 + 글).
   const quick=document.getElementById('hero-quick');
   // mode: 'date'(기본) | 'travel'. 데이트/여행 스위치(header-mode.js)가 다시 부른다.
   function renderHeroQuick(mode){
@@ -299,27 +315,12 @@ const ThemePresets=(()=>{
         const theme=SITUATION_THEMES.find(item=>item.key===start.situation);
         if(theme)pickSituation(theme,start.area);
       });
-      chip.type='button';chip.dataset.quick=start.label;quick.append(chip);
+      chip.type='button';chip.dataset.quick=start.label;
+      const icon=heroChipIcon(start.icon);if(icon)chip.prepend(icon);
+      quick.append(chip);
     }
   }
   window.renderHeroQuick=renderHeroQuick;
   renderHeroQuick(document.body.classList.contains('mode-travel')?'travel':'date');
-  // 한 줄 입력 → 조건 화면의 '어떤 데이트를 꿈꾸나요?' 칸에 넣고 해석 단추(#parse, app.js applyRequest)를 누른다.
-  // 해석은 지역을 정하지 않으므로, 지역이 비어 있으면 상황 테마처럼 '어디에서 만날까요?'를 강조한다.
-  document.getElementById('hero-command')?.addEventListener('submit',event=>{
-    event.preventDefault();
-    const input=document.getElementById('hero-command-input'),text=input.value.trim();
-    if(!text){input.focus();toast('원하는 데이트를 한 줄로 적어 주세요.');return;}
-    if(!ready())return;
-    const request=form.elements.request;request.value=text;request.dispatchEvent(new Event('input',{bubbles:true}));
-    // 조건 화면의 한 줄 요청은 접힘(simple-form.js .simple-dream) 안에 있다 — 해석 결과(이렇게 이해했어요)가 보이게 펼친다.
-    const dreamBox=document.querySelector('details.simple-dream');if(dreamBox)dreamBox.open=true;
-    document.getElementById('nav-plan').click();
-    document.getElementById('parse').click();
-    requestAnimationFrame(()=>{
-      const dream=document.querySelector('.simple-dream')||request;
-      if(!locationState.origin)areaGroup()?.classList.add('needs-area');
-      dream.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
-    });
-  });
+  // 예전 히어로 한 줄 입력(#hero-command) 처리는 2026-11-26 시안에서 입력이 코스 만들기 카드 맨 위로 옮겨 가 뺐다(simple-form.js .simple-dream).
 })();

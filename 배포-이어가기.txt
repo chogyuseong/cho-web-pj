@@ -23,7 +23,7 @@
      edge·앱 공유 화면이 공개 주소 있을 때·없을 때 글자까지 같은지 node 로 비교. 기존 test_qa_low_2026_11_25(공유 화면 'og:' 없음 → 'og:url' 없음)·edge.test.mjs(공유 화면 = withPublicOrigin 결과)를 새 규칙에 맞춤.
      로컬 전체(Windows, sqlite, msedge) 1690 통과·1 건너뜀·실패 0(31분 26초, README·이 문서 고치기 전 코드 기준).
      format_sources --check 통과(41개), 새 테스트 파일 ruff format·ruff check 통과, app/tour_places.py ruff check 통과. npm run test:security 27 통과.
-     @@CI@@
+     CI: Run 45864805011(73d023b) 성공 — python-audit·container·test (postgres)·test (sqlite)·security 5개 모두 통과.
   · 되돌리는 법: 병합 전이면 브랜치를 버림. 병합 뒤면 git revert(병합 커밋) 후 재배포(정적: shared.html·index.html 주석, 앱: sharing.py·tour_places.py·static_pages.py 주석, Worker: edge.mjs 주석). DB 변경 없음.
   · 배포 때 볼 것: ① curl -s https://datemate.guseong-family.workers.dev/shared 의 head 에 og:title '데이트메이트 공유 일정',
      og:image https://datemate.guseong-family.workers.dev/static/images/seoul-evening.jpg, 자리표시({{PUBLIC_ORIGIN}}) 없음, canonical·og:url 없음, noindex 그대로

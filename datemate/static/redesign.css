@@ -849,3 +849,26 @@ html body #quick-search-input, html body #quick-search-input:focus { border:0; b
 /* ---------- 24) 코스 지도 번호 표시 분류 색(maps.js 의 .route-stop-marker[data-kind]) — 2026-11-26 요구 문서 Phase 3 ----------
    흰 숫자가 읽히게 진한 색(--kind-ink). 일정 카드에서 고른 표시(is-focused)는 예전처럼 옵시디언 + 코랄 고리(237번 줄 규칙이 이긴다). */
 .route-marker.route-stop-marker[data-kind]:not(.is-focused) { background:var(--kind-ink); border-color:#fff; color:#fff; }
+
+/* ---------- 25) 375px 휴대폰 정리 — 2026-11-26 101차 운영 확인(아이폰 SE·미니 폭) ----------
+   ① 머리글: 돋보기(빠른 검색) 단추가 생겨 375px 에서 3px 모자라 데이트/여행 스위치가 둘째 줄로 밀렸다 → 400px 이하에서 스위치의 작은 그림을 숨기고 폭을 112px 로(글자는 그대로)
+      머리글 간격·돋보기 오른쪽 여백을 줄인다. 320px 은 로고 131 + 돋보기 44 + 스위치 104 + 여백이 화면(305)보다 22px 넓어 스위치가 둘째 줄로 내려간다(넘침 없음, 요구 기준 375px).
+   ② 하단 바: 네 칸을 같은 폭(375px 에서 78px)으로 나눠 '장소 둘러보기'(약 88px)만 두 줄이 됐다 → 340~400px 에서는 칸 폭을 글자 길이에 맞춘다(합 약 322px).
+      340px 미만은 예전처럼 같은 폭(두 줄 허용 — 글자 합이 화면보다 넓다).
+   ③ 바구니 도크: 휴대폰에서는 제목 한 줄 · 담은 장소 칩 한 줄(가로로 밀기) · 단추 한 줄. 장소 이름은 줄바꿈하지 않는다. */
+@media(max-width:720px) {
+  html body > header { column-gap:8px; }
+  .quick-search-open { margin-right:0; }
+  .basket-title { flex:1 1 100%; }
+  .basket-list { flex:1 1 100%; flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; scrollbar-width:thin; }
+  .basket-item { flex:0 0 auto; white-space:nowrap; }
+  .basket-clear { flex:0 0 auto; }
+  .basket-go { flex:1 1 auto; }
+}
+@media(max-width:400px) { #mode-switch svg { display:none; } html body .mode-switch { width:112px; } }
+@media(min-width:340px) and (max-width:400px) {
+  html body > header nav { grid-template-columns:repeat(4,minmax(max-content,1fr)); }
+  html body > header nav > :is(a,button.nav) { white-space:nowrap; }
+}
+/* 320px(가장 좁은 휴대폰): 스위치 단추 안쪽 여백을 줄여 머리글 한 줄을 지킨다(누르는 높이 44px 는 그대로). */
+@media(max-width:340px) { .mode-switch button { min-width:48px; padding:6px 8px; } html body .mode-switch { width:104px; } }

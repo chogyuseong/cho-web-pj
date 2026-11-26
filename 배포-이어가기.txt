@@ -7,6 +7,29 @@
 
 ★ 지금 상태 (2026-11-27 기준)
 ----------------------------------------------------------------------
+브랜치 fix/share-og-tour-photo-400(2026-11-27, 병합·배포 전): 99차 '남은 것' 중 두 가지 — 공유 화면 og 태그, tour_places 사진 검색의 400 처리.
+  ① 공유 화면 링크 미리보기(원인: shared.html 에 description·og·twitter 태그가 없어 카카오톡·메신저 미리보기에 제목·그림이 없었음 — QA-08 때 일부러 뺌).
+     → shared.html head 에 description·og:type·site_name·locale·title('데이트메이트 공유 일정')·description(일반 안내, 24시간 링크)·og:image(seoul-evening.jpg 1400×933)·
+       twitter:card. 첫 화면(QA-08)과 같은 {{PUBLIC_ORIGIN}} 자리표시 — 앱 sharing.shared_page 가 static_pages.with_public_origin(public_origin()) 을 거치게 함
+       (Worker edge.mjs pageResponse 는 원래 모든 엣지 페이지에 withPublicOrigin 을 씀). 공개 주소가 없으면 og:image 태그만 빠짐.
+     · 판단: 미리보기는 크롤러가 가져가므로 늘 같은 일반 문구만(장소 이름 등 공유 내용 없음 — 이 화면은 토큰을 읽지 않는 정적 HTML이고 토큰은 주소 # 뒤라 서버에 오지 않음).
+       noindex·X-Robots-Tag·no-referrer 그대로. canonical·og:url 은 넣지 않음: '/shared' 하나로 묶이면 미리보기 카드를 누를 때 토큰 없는 화면이 열릴 수 있음.
+  ② 장소 사진의 관광공사 이름 검색(tour_places._search_rows → searchKeyword2): QA-06 의 둘러보기 검색과 같은 문제(기호 든 검색어에 HTTP 400·사유 10)가 그대로였음.
+     예전에는 raise_for_status → tour_info 'unavailable'(1분) → 사진 칸에 '사진 다시 불러오기'가 뜨고 1분마다 다시 불러 하루 한도를 씀. 기호('"한담해변"!')는 그대로 보내 0건.
+     → public_places.keyword_text 로 기호를 빼고 보냄, 두 글자 미만이면 부르지 않음, 400·사유 10(public_places._rejected_parameter)이면 그 검색어는 건너뛰고(낱말 → 이름 전체 순서는 그대로)
+       부른 검색어가 모두 거절되면 tour_info = {status: not_found, reason: rejected} 를 하루(REJECTED_SECONDS=86400) 보관. 사진 칸은 '없음'(photo_retry false), 영업 안내·메뉴도 없음.
+       사유 10 이 아닌 400·403·5xx 는 예전 그대로 unavailable(1분). 보관 키 버전(tour-place-v3)은 그대로(예전 실패 보관은 1분짜리).
+  · 테스트: tests/test_share_og_tour_photo_400.py 9개(고치기 전 8개 실패 확인, 나머지 1개는 '진짜 장애는 그대로 unavailable' 확인용).
+     edge·앱 공유 화면이 공개 주소 있을 때·없을 때 글자까지 같은지 node 로 비교. 기존 test_qa_low_2026_11_25(공유 화면 'og:' 없음 → 'og:url' 없음)·edge.test.mjs(공유 화면 = withPublicOrigin 결과)를 새 규칙에 맞춤.
+     로컬 전체(Windows, sqlite, msedge) 1690 통과·1 건너뜀·실패 0(31분 26초, README·이 문서 고치기 전 코드 기준).
+     format_sources --check 통과(41개), 새 테스트 파일 ruff format·ruff check 통과, app/tour_places.py ruff check 통과. npm run test:security 27 통과.
+     CI: Run 45864805011(73d023b) 성공 — python-audit·container·test (postgres)·test (sqlite)·security 5개 모두 통과.
+  · 되돌리는 법: 병합 전이면 브랜치를 버림. 병합 뒤면 git revert(병합 커밋) 후 재배포(정적: shared.html·index.html 주석, 앱: sharing.py·tour_places.py·static_pages.py 주석, Worker: edge.mjs 주석). DB 변경 없음.
+  · 배포 때 볼 것: ① curl -s https://datemate.guseong-family.workers.dev/shared 의 head 에 og:title '데이트메이트 공유 일정',
+     og:image https://datemate.guseong-family.workers.dev/static/images/seoul-evening.jpg, 자리표시({{PUBLIC_ORIGIN}}) 없음, canonical·og:url 없음, noindex 그대로
+     (컨테이너가 잠든 때(엣지)와 깬 때 두 번). ② 그 og:image 주소가 200 image/jpeg. ③ 카카오톡에 실제 공유 링크를 붙여 미리보기 확인 — 카카오는 미리보기를 캐시하므로
+     예전에 붙인 적 있는 주소는 카카오 개발자 '공유 디버거'(developers.kakao.com/tool/debugger/sharing)에서 캐시 초기화 후 확인.
+     ④ 사진 400 은 외부 호출이라 운영에서 일부러 만들지 않음(테스트로만).
 브랜치 fix/iphone-layout-1127(2026-11-27, 병합·배포 전): 사용자 아이폰(약 402pt, Safari) 운영 캡처 두 장의 휴대폰 화면 깨짐.
   ① 무엇을(원인 → 고침, 넓은 화면 모양은 그대로):
      1) 하단 메뉴: '코스 만들기'가 현재 탭인데 '추천 결과'에 흰 알약·진한 글자. 미끄럼 알약(.nav-indicator)은 휴대폰에서 원래 숨겨져 있고, 원인은 redesign.css 2) 의

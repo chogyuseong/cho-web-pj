@@ -46,7 +46,7 @@ def versioned_page(name):
     return re.sub(r'(/static/[^\s"\'<>?]+\.(?:js|css))', versioned, html)
 
 
-# 첫 화면 head 의 canonical·og:url·og:image(2026-11-25 운영 QA-08). 절대 주소는 robots.txt·sitemap.xml(app/search_robots.py)처럼
+# 첫 화면 head 의 canonical·og:url·og:image(2026-11-25 운영 QA-08)와 공유 화면의 og:image(링크 미리보기, 2026-11-27). 절대 주소는 robots.txt·sitemap.xml(app/search_robots.py)처럼
 # 공개 주소 설정(DATEMATE_PUBLIC_ORIGIN, Worker 의 PUBLIC_ORIGIN)에서만 만들고 Host 머리글은 믿지 않는다.
 # index.html 에는 자리표시 PUBLIC_ORIGIN_TOKEN 을 적어 두고 보낼 때 바꾼다. 공개 주소가 없으면(개발) 자리표시가 든 태그를 뺀다.
 # Worker 가 컨테이너 대신 첫 화면을 줄 때(cloudflare/edge.mjs withPublicOrigin)도 같은 규칙이다 — 두 쪽 결과를 tests 가 비교한다.

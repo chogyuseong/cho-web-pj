@@ -156,8 +156,8 @@ def test_home_head_has_description_open_graph_and_canonical(monkeypatch):
     assert '<meta name="description" content="' in html and '<meta property="og:title" content="데이트메이트' in html
     assert '<meta property="og:description" content="' in html and '{{PUBLIC_ORIGIN}}' not in html
     assert (ROOT / 'static' / 'images' / 'seoul-evening.jpg').is_file()
-    # 공유 화면은 그대로 noindex 이고 canonical·og 를 넣지 않는다.
-    assert '<meta name="robots" content="noindex, nofollow">' in shared and 'canonical' not in shared and 'og:' not in shared
+    # 공유 화면은 그대로 noindex 이고 canonical·og:url 을 넣지 않는다(일반 문구 미리보기는 2026-11-27 추가 — tests/test_share_og_tour_photo_400.py).
+    assert '<meta name="robots" content="noindex, nofollow">' in shared and 'canonical' not in shared and 'og:url' not in shared
 
 
 def test_without_a_public_origin_absolute_tags_are_left_out(monkeypatch):

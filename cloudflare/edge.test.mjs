@@ -154,7 +154,11 @@ test("asleep: the shared page keeps noindex and no-referrer", async () => {
   const { response } = await run("/shared");
   assertAppHeaders(response, { page: true });
   assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow");
-  assert.equal(await response.text(), PAGES["/shared"]);
+  // The link preview image address comes from PUBLIC_ORIGIN, as on the home page; there is no canonical/og:url.
+  const html = await response.text();
+  assert.equal(html, withPublicOrigin(PAGES["/shared"], ORIGIN));
+  assert.ok(html.includes(`<meta property="og:image" content="${ORIGIN}/static/images/seoul-evening.jpg">`));
+  assert.ok(!html.includes(PUBLIC_ORIGIN_TOKEN) && !html.includes('rel="canonical"') && !html.includes("og:url"));
   const head = (await run("/shared", { method: "HEAD" })).response;
   assert.equal(head.status, 200);
   assert.equal(await head.text(), "");

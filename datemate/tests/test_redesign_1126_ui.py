@@ -147,8 +147,8 @@ def test_activity_chips_have_category_dots(audit_page):
     page, _, _ = audit_page
     chip = page.locator('#conditions .activity-group .quick-chips button[data-theme="카페·미식"]')
     dot = chip.evaluate("e=>getComputedStyle(e,'::before').backgroundColor")
-    assert dot == 'rgb(245, 158, 11)', dot  # --kind-cafe #F59E0B
+    assert dot == 'rgb(217, 119, 6)', dot  # --cat-cafe #D97706(tokens.css, 요구 문서 토큰)
     chip.click()
     assert chip.get_attribute('aria-pressed') == 'true'
     style = chip.evaluate("e=>{const s=getComputedStyle(e);return [s.backgroundColor,s.borderTopColor,s.color]}")
-    assert style == ['rgb(254, 243, 199)', 'rgb(245, 158, 11)', 'rgb(180, 83, 9)'], style
+    assert style == ['rgb(254, 243, 199)', 'rgb(217, 119, 6)', 'rgb(180, 83, 9)'], style

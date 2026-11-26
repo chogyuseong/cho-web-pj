@@ -517,9 +517,57 @@ function applyDelaySim(plan, data) {
   if (data.status === 'problem' && data.first_problem?.kind !== 'end' && delayRecoveryAllowed(plan) && !(data.stays && Object.keys(data.stays).length)) {
     const go = button('대신 갈 곳 찾기', () => openDelayRecovery(plan, data), 'secondary delay-sim-recover');
     parts.status.append(' ', go);
+    // 자동 조정(2026-11-26 요구 문서 Phase 3): 서버 지각 복구가 고른 1순위 대체 장소로 바로 바꾼다(없고 뺄 수 있으면 빼고 진행).
+    // 바꾼 뒤 알림에 [되돌리기](plan-actions.js commitNewPlan). 후보를 직접 보고 고르려면 옆의 「대신 갈 곳 찾기」.
+    const auto = delayAutoChoice(data.recovery);
+    if (auto) parts.status.append(' ', button(auto.label, () => autoAdjustDelay(plan, data, auto), 'primary delay-sim-auto'));
   }
   parts.basis.textContent = data.basis || '';
   parts.basis.hidden = !data.basis;
+}
+
+// 자동 조정에 쓸 안: 1순위 대체 장소(서버가 정한 순서의 첫 후보), 없으면 '빼고 진행'(허용될 때). 둘 다 없으면 null.
+function delayAutoChoice(recovery) {
+  if (!recovery || recovery.blocked) return null;
+  const first = recovery.options?.[0];
+  if (first) return {
+    id: first.id,
+    label: '대체 장소로 자동 조정',
+    done: `${recovery.place} 대신 ${first.name}${delayRecoveryJosa(first.name, '으로', '로')} 바꿨어요`
+  };
+  if (recovery.skip?.allowed) return {
+    id: null,
+    label: '문제 장소 빼고 진행',
+    done: `${recovery.place}${delayRecoveryJosa(recovery.place, '을', '를')} 빼고 남은 일정을 다시 짰어요`
+  };
+  return null;
+}
+
+async function autoAdjustDelay(plan, data, choice) {
+  if (selected?.id !== plan.id) return;
+  return runPlanChange(async () => {
+    const parts = delaySimParts();
+    parts?.status.querySelectorAll('button').forEach(b => b.disabled = true);
+    try {
+      const updated = await api(`/plans/${encodeURIComponent(plan.id)}/delay-recovery`, {
+        index: data.index,
+        minutes: data.delay,
+        target: data.recovery.index,
+        replacement_id: choice.id
+      });
+      const result = updated.delay_recovery_result || {};
+      delayRecoveryNotice = {
+        planId: updated.id,
+        index: data.index,
+        messages: result.message ? [result.message] : [],
+        warnings: result.warnings || []
+      };
+      commitNewPlan(plan.id, updated, choice.done);
+    } catch (error) {
+      toast(error.message || '자동 조정을 하지 못했어요. 「대신 갈 곳 찾기」에서 직접 골라 주세요.');
+      parts?.status.querySelectorAll('button').forEach(b => b.disabled = false);
+    }
+  });
 }
 
 // 지각 확인 상자를 펼치고 같은 장소(지각 미리 보기는 첫 장소부터)·같은 분으로 확인을 누른다. 상자는 접힌 '더 할 수 있는 것' 안에 있어 그 칸도 연다.

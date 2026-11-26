@@ -40,7 +40,9 @@ def test_explore_card_sends_the_place_as_a_fixed_slot(audit_page):  # noqa: F811
     page.route('**/api/places/*/media?*', lambda route: route.fulfill(json={'status': 'not_found', 'photos': []}))
     page.get_by_role('button', name='장소 둘러보기', exact=True).click()
     card = page.locator('#catalog .place-card').first
-    card.get_by_role('button', name='이 장소 포함해서 코스 짜기', exact=True).click()
+    # 2026-11-26 바구니: 「+ 코스에 담기」 → 화면 아래 도크의 「담은 1곳으로 코스 짜기」(explore.js Basket).
+    card.get_by_role('button', name='+ 코스에 담기', exact=True).click()
+    page.locator('#basket-dock').get_by_role('button', name='담은 1곳으로 코스 짜기', exact=True).click()
     page.wait_for_function("location.hash==='#planner-section'")
     tags = page.locator('#preset-tags')
     assert tags.is_visible() and '둘러보기 미술관' in tags.inner_text()
@@ -50,3 +52,35 @@ def test_explore_card_sends_the_place_as_a_fixed_slot(audit_page):  # noqa: F811
     # 빼기를 누르면 고정에서도 뺀다.
     tags.get_by_role('button', name='이 장소 빼기', exact=True).click()
     assert page.evaluate('Object.keys(values().locked).length') == 0
+
+
+
+def test_basket_carries_several_places_as_fixed_slots(audit_page):  # noqa: F811
+    """둘러보기 바구니(2026-11-26 요구 문서 Phase 4): 두 곳을 담으면 도크가 뜨고, 코스 짜기를 누르면 두 곳 모두 고정 자리로 간다.
+    담은 수가 장소 수보다 많으면 장소 수를 늘리고, 칩의 × 로 한 곳씩 뺄 수 있다."""
+    page, _, _ = audit_page
+    page.wait_for_function('!!statusData')
+    second = dict(EXPLORED, id=EXPLORED['id'] + '-2', name='둘러보기 공방', lat=EXPLORED['lat'] + 0.001)
+    page.route('**/api/explore?*', lambda route: route.fulfill(json={'places': [EXPLORED, second], 'total': 2, 'has_more': False, 'region': '서울', 'activity': '', 'message': ''}))
+    page.route('**/api/places/*/media?*', lambda route: route.fulfill(json={'status': 'not_found', 'photos': []}))
+    page.get_by_role('button', name='장소 둘러보기', exact=True).click()
+    adds = page.locator('#catalog .basket-add')
+    adds.nth(0).click()
+    adds.nth(1).click()
+    dock = page.locator('#basket-dock')
+    assert dock.is_visible() and '서울 2곳' in dock.inner_text()
+    assert adds.nth(0).get_attribute('aria-pressed') == 'true' and 'secondary' in adds.nth(0).get_attribute('class')
+    # 다시 누르면 뺀다.
+    adds.nth(1).click()
+    assert '서울 1곳' in dock.inner_text()
+    adds.nth(1).click()
+    page.evaluate("form.elements.count.value='1'")
+    dock.get_by_role('button', name='담은 2곳으로 코스 짜기', exact=True).click()
+    page.wait_for_function("location.hash==='#planner-section'")
+    assert sorted(page.evaluate('Object.values(values().locked)')) == sorted([EXPLORED['id'], second['id']])
+    assert page.evaluate('form.elements.count.value') == '2'
+    assert dock.is_hidden()
+    tags = page.locator('#preset-tags')
+    tags.get_by_role('button', name='둘러보기 공방 빼기', exact=True).click()
+    assert page.evaluate('Object.values(values().locked)') == [EXPLORED['id']]
+    assert tags.get_by_role('button', name='둘러보기 공방 빼기').count() == 0

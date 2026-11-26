@@ -700,12 +700,12 @@ main .romance-hero p.hero-preview-time { display:flex; align-items:center; gap:8
 .hero-preview-leg:before { content:''; position:absolute; left:0; top:4px; bottom:4px; border-left:2px dashed #A7F3D0; }
 /* 분류 → 색. 결과 카드는 plan-detail.js stopKindKey 의 이름(cafe·meal·art·walk·make·play·rest·other), 처음 화면 예시는 같은 이름을 쓴다.
    만들기(make)는 체험 색, 휴식(rest)은 산책 색, 모르는 분류(other)는 옵시디언. */
-:is(.hero-preview-stop,.timeline-card)[data-kind=cafe] { --kind-color:var(--kind-cafe); --kind-ink:var(--kind-cafe-ink); --kind-soft:var(--kind-cafe-soft); }
-:is(.hero-preview-stop,.timeline-card)[data-kind=art] { --kind-color:var(--kind-culture); --kind-ink:var(--kind-culture-ink); --kind-soft:var(--kind-culture-soft); }
-:is(.hero-preview-stop,.timeline-card)[data-kind=meal] { --kind-color:var(--kind-food); --kind-ink:var(--kind-food-ink); --kind-soft:var(--kind-food-soft); }
-:is(.hero-preview-stop,.timeline-card):is([data-kind=walk],[data-kind=rest]) { --kind-color:var(--kind-walk); --kind-ink:var(--kind-walk-ink); --kind-soft:var(--kind-walk-soft); }
-:is(.hero-preview-stop,.timeline-card):is([data-kind=play],[data-kind=make]) { --kind-color:var(--kind-play); --kind-ink:var(--kind-play-ink); --kind-soft:var(--kind-play-soft); }
-:is(.hero-preview-stop,.timeline-card)[data-kind=other] { --kind-color:var(--obsidian); --kind-ink:var(--obsidian); --kind-soft:var(--alabaster); }
+:is(.hero-preview-stop,.timeline-card,.route-stop-marker)[data-kind=cafe] { --kind-color:var(--kind-cafe); --kind-ink:var(--kind-cafe-ink); --kind-soft:var(--kind-cafe-soft); }
+:is(.hero-preview-stop,.timeline-card,.route-stop-marker)[data-kind=art] { --kind-color:var(--kind-culture); --kind-ink:var(--kind-culture-ink); --kind-soft:var(--kind-culture-soft); }
+:is(.hero-preview-stop,.timeline-card,.route-stop-marker)[data-kind=meal] { --kind-color:var(--kind-food); --kind-ink:var(--kind-food-ink); --kind-soft:var(--kind-food-soft); }
+:is(.hero-preview-stop,.timeline-card,.route-stop-marker):is([data-kind=walk],[data-kind=rest]) { --kind-color:var(--kind-walk); --kind-ink:var(--kind-walk-ink); --kind-soft:var(--kind-walk-soft); }
+:is(.hero-preview-stop,.timeline-card,.route-stop-marker):is([data-kind=play],[data-kind=make]) { --kind-color:var(--kind-play); --kind-ink:var(--kind-play-ink); --kind-soft:var(--kind-play-soft); }
+:is(.hero-preview-stop,.timeline-card,.route-stop-marker)[data-kind=other] { --kind-color:var(--obsidian); --kind-ink:var(--obsidian); --kind-soft:var(--alabaster); }
 @media(max-width:900px) {
   body:not(.show-date-plan) .romance-hero { grid-template-columns:minmax(0,1fr); gap:28px; padding:32px 0 40px; }
   main .romance-hero h1 { font-size:38px; letter-spacing:-1.2px; }
@@ -818,3 +818,34 @@ html body #quick-search-input, html body #quick-search-input:focus { border:0; b
 #conditions .weather-suggest { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:10px 0 0; padding:10px 14px; border:1px solid var(--status-info); border-radius:var(--radius-md); background:var(--status-info-bg); color:#1E3A8A; font-size:15px; }
 #conditions .weather-suggest[hidden] { display:none; }
 #conditions .weather-indoor { min-height:44px; }
+
+/* ---------- 22) 장소 카드 순서 ↑/↓(plan-detail.js orderButtons) — 2026-11-26 요구 문서 Phase 3 ----------
+   체류 단추 옆 작은 두 칸(44px). 끈 단추는 흐리게. 휴대폰에서는 체류 단추와 같은 줄 끝. */
+.order-buttons { display:inline-flex; gap:4px; }
+.order-buttons button { width:44px; min-height:44px; padding:0; border:1px solid var(--hairline); border-radius:12px; background:#fff; color:var(--obsidian); font-size:18px; font-weight:800; line-height:1; }
+.order-buttons button:hover:not(:disabled) { background:var(--alabaster); }
+.order-buttons button:disabled { color:var(--ink-secondary); background:var(--alabaster); border-style:dashed; cursor:not-allowed; }
+@media(max-width:600px) { .stay-stepper { width:auto; flex:1; } .order-buttons { margin-left:auto; } }
+@media print { .order-buttons { display:none; } }
+
+/* ---------- 23) 코스 바구니 도크 · 꼭 들를 장소 칩(explore.js Basket·renderIncludedTags) — 2026-11-26 요구 문서 Phase 4 ----------
+   도크: 장소 둘러보기 화면(body.show-explore)에서 1곳 이상 담으면 화면 아래 가운데에 뜬다. 휴대폰은 하단 메뉴 바(--bottom-bar) 위.
+   담은 장소 칩(× 로 빼기) · 비우기 · 「담은 N곳으로 코스 짜기」(브랜드 진한 색). 단추는 44px. */
+.basket-dock { position:fixed; z-index:45; left:50%; bottom:calc(20px + env(safe-area-inset-bottom)); transform:translateX(-50%); display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; width:min(760px,calc(100vw - 32px)); padding:12px 14px; border:1px solid var(--border-strong); border-radius:var(--radius-xl); background:rgba(255,255,255,.94); -webkit-backdrop-filter:saturate(180%) blur(14px); backdrop-filter:saturate(180%) blur(14px); box-shadow:var(--shadow-float); }
+.basket-dock[hidden], body:not(.show-explore) .basket-dock { display:none; }
+.basket-title { margin:0; color:var(--ink-primary); font-size:15px; font-weight:800; }
+.basket-list { display:flex; flex-wrap:wrap; gap:6px; flex:1; min-width:0; margin:0; padding:0; list-style:none; }
+.basket-item, .include-chip { display:inline-flex; align-items:center; gap:2px; padding:2px 2px 2px 12px; border:1px solid var(--border-strong); border-radius:999px; background:var(--bg-surface); color:var(--ink-primary); font-size:14px; font-weight:700; }
+.basket-remove, .include-chip-remove { width:44px; height:44px; min-height:44px; padding:0; border:0; border-radius:50%; background:none; color:var(--ink-secondary); font-size:18px; }
+.basket-remove:hover, .include-chip-remove:hover { background:var(--bg-hover); color:var(--ink-primary); }
+.basket-go, .basket-clear { min-height:44px; }
+.preset-tag-list .include-chip { margin-right:4px; }
+@media(max-width:720px) {
+  .basket-dock { bottom:calc(var(--bottom-bar) + 12px + env(safe-area-inset-bottom)); padding:10px 12px; }
+  .basket-go { flex:1 1 100%; }
+}
+@media print { .basket-dock { display:none; } }
+
+/* ---------- 24) 코스 지도 번호 표시 분류 색(maps.js 의 .route-stop-marker[data-kind]) — 2026-11-26 요구 문서 Phase 3 ----------
+   흰 숫자가 읽히게 진한 색(--kind-ink). 일정 카드에서 고른 표시(is-focused)는 예전처럼 옵시디언 + 코랄 고리(237번 줄 규칙이 이긴다). */
+.route-marker.route-stop-marker[data-kind]:not(.is-focused) { background:var(--kind-ink); border-color:#fff; color:#fff; }

@@ -179,3 +179,66 @@ def apply(plan, order, owner):
         return save_change(updated, plan, owner)
     except ValueError as exc:
         raise Refused(str(exc)) from exc
+
+
+def apply_manual(plan, order, owner):
+    """사용자가 정한 순서(장소 id 목록)로 다시 계산해 새 코스로 저장한다(2026-11-26 요구 문서 Phase 3 '순서 이동 ↑/↓').
+
+    제안(apply)과 같은 계산을 쓴다: 추정 구간(candidate_routes, 외부 호출 없음)으로 planner 규칙(영업시간·마지막 입장·휴게·종료 시각·
+    구간 상한·예산·총 도보)을 다시 적용하고, 저장할 때 plan_changes.save_change 가 자동차 구간을 실제 길찾기로 다시 확인한다.
+    제안과 다른 점: 이동이 줄지 않아도 바꾼다(사용자가 고른 순서). 대신 아래면 바꾸지 않고 까닭을 돌려준다(Refused → 409):
+    - 제안과 같은 까닭(장소 1곳, 보관 기한 지남, 지각을 반영한 코스, 구간마다 수단을 정한 코스).
+    - 고정했거나 예약한 장소의 자리를 옮기는 순서(그 장소는 제자리 — 고정을 풀면 옮길 수 있다).
+    - 그 순서로는 일정을 맞출 수 없을 때(planner 가 거절: 영업시간 밖·종료 시각 넘김 등 — 그 까닭을 그대로).
+    - 필수 조건을 새로 어기게 될 때(hard_blocks), 축제 방문 자리 종류가 달라질 때.
+    되돌리기는 다른 변경처럼 /undo(부모 코스)."""
+    from .condition_audit import audit_plan
+    from .festival_time import set_change_note
+    from .plan_changes import change_delta, save_change
+    from .plan_rules import reevaluate, settle_leg_modes
+    from .preferences import hard_blocks
+    from .pricing import price_plans
+    from .routes import candidate_routes
+
+    c = settle_leg_modes(dict(plan, conditions=dict(plan["conditions"])))
+    places = plan["places"]
+    ids = [p["id"] for p in places]
+    if len(order) != len(ids) or sorted(order) != sorted(ids):
+        raise Refused("코스의 장소가 바뀌었어요. 화면을 새로 고친 뒤 다시 옮겨 주세요.")
+    if list(order) == ids:
+        raise Refused("순서가 그대로예요.")
+    reason = _blocked(plan, c)
+    if reason and reason != "고정했거나 예약한 장소를 빼면 자리를 바꿀 곳이 없어요.":
+        raise Refused(reason.replace("순서를 견주지 않아요", "순서를 바꿀 수 없어요"))
+    for i in _fixed(plan, c):
+        if order[i] != ids[i]:
+            raise Refused(f"고정했거나 예약한 장소({places[i]['name']})는 자리를 옮기지 않아요. 고정을 풀면 옮길 수 있어요.")
+    by_id = {p["id"]: p for p in places}
+    soft = bool(plan.get("best_effort"))
+    with candidate_routes():
+        base, _ = reevaluate(plan, places, c, delays={}, soft=soft)
+        candidate, error = reevaluate(plan, [by_id[i] for i in order], c, delays={}, soft=soft)
+    if error:
+        raise Refused(f"이 순서로는 일정을 맞출 수 없어요. {error}")
+    if _festival_kind(candidate) != _festival_kind(base or plan):
+        raise Refused("이 순서로는 축제를 보는 자리가 달라져 바꾸지 않았어요.")
+    candidate = audit_plan(candidate, c)
+    updated = copy.deepcopy(candidate)
+    if plan.get("course_search"):
+        updated["course_search"] = plan["course_search"]
+    if plan.get("best_effort"):
+        from .best_effort import annotate
+
+        updated = annotate(updated, Conditions.model_validate(plan["conditions"]))
+    updated = price_plans([updated])[0]
+    if hard_blocks(updated) and not hard_blocks(plan):
+        raise Refused("이 순서로는 필수 조건을 지키지 못해 바꾸지 않았어요.")
+    updated["delta"] = change_delta(plan, updated)
+    before, after = travel_minutes(base) if base else None, travel_minutes(updated)
+    moved = f"이동은 추정 기준 {before}분 → {after}분이에요. " if before is not None else ""
+    updated["change_reason"] = f"방문 순서를 직접 바꿨어요. {moved}시간·비용을 다시 계산했어요."
+    set_change_note(updated, plan)
+    try:
+        return save_change(updated, plan, owner)
+    except ValueError as exc:
+        raise Refused(str(exc)) from exc

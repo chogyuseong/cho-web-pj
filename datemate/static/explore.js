@@ -2,37 +2,84 @@
    기본 목록: 공공 자료(한국관광공사 관광정보·소상공인 상가정보)를 우리 기준으로 정리한 카드. 사진·상세·코스에 쓰는 것은 이 목록뿐이다.
    그 아래 '네이버에서 더 찾기': 펼쳤을 때만 불러, 검색어 하나당 네이버 지역 검색 결과를 받은 순서 그대로 한 블록씩 보여 준다
    (naver-attribution.js naverResultBlock). 블록 항목은 합치거나 거르지 않고, 우리 카드·사진·장소 상세와 잇지 않는다. */
-// 둘러보기에서 「이 장소 포함해서 코스 짜기」로 고른 장소 {id,name,origin}(2026-11-24 UX P2). app.js values() 가 추천 요청의
-// 고정 자리(locked)에 넣는다. 다른 지역을 고르거나 '이 장소 빼기'를 누르면 비운다. 화면 태그는 테마 카드와 같은 자리(#preset-tags)를 쓴다.
-let includedPlace=null;
-function includePlace(place,region){
-  // 출발 기준을 그 장소 위치로 둔다(서버의 지역 일치 검증: 출발지 이름은 시·도로 시작). 그래야 그 장소가 동선 범위 안에 든다.
-  const origin={name:`${region} ${place.name} 주변`,lat:place.lat,lon:place.lon};
+// 꼭 들를 장소(2026-11-26 요구 문서 Phase 4 '코스 바구니'). 둘러보기 카드의 「+ 코스에 담기」로 담고(Basket, 최대 5곳·한 시·도),
+// 화면 아래 바구니 도크의 「담은 N곳으로 코스 짜기」를 누르면 includePlaces 가 코스 만들기로 넘긴다.
+// app.js values() 가 추천 요청의 고정 자리(locked)에 비어 있는 앞자리부터 넣는다 — 서버는 고정 장소가 후보에 없으면 둘러보기 보관분에서 찾아 넣는다
+// (app/quality.py pool, 예전 한 곳 포함 기능 2026-11-24 UX P2 와 같은 길). 담은 수가 장소 수보다 많으면 장소 수를 늘린다(최대 5).
+// 출발 기준은 첫 장소 위치(서버 지역 일치 검증: 출발지 이름은 시·도로 시작). 출발지를 다른 곳으로 바꾸면 꼭 들를 장소도 비운다.
+let includedPlaces=[],includedOrigin=null;
+const BASKET_MAX=5;
+function includePlaces(list,region){
+  const first=list[0];if(!first)return;
+  const origin={name:`${region} ${first.name} 주변`,lat:first.lat,lon:first.lon};
   applyArea(region,origin);
-  includedPlace={id:place.id,name:place.name,origin:origin.name};
+  includedPlaces=list.map(p=>({id:p.id,name:p.name}));includedOrigin=origin.name;
+  const count=form.elements.count;
+  if(count&&Number(count.value)<includedPlaces.length){count.value=String(Math.min(BASKET_MAX,includedPlaces.length));count.dispatchEvent(new Event('change',{bubbles:true}));}
   document.getElementById('nav-plan').click();
+  renderIncludedTags(true);
+  toast(includedPlaces.length===1?first.name+'을(를) 넣어 코스를 짜요.':`담은 ${includedPlaces.length}곳을 꼭 넣어 코스를 짜요.`);
+}
+// 예전 이름(한 곳). 다른 파일·테스트가 부를 수 있어 남긴다.
+function includePlace(place,region){includePlaces([place],region);}
+// 코스 만들기 맨 위 '꼭 들를 장소' 칩 목록(테마 배너와 같은 자리 #preset-tags). 칩마다 ×로 뺀다.
+function renderIncludedTags(focus=false){
   let box=document.getElementById('preset-tags');
   if(!box){box=node('div',undefined,'preset-tags');box.id='preset-tags';box.setAttribute('role','group');form.prepend(box);}
+  if(!includedPlaces.length){if(box.getAttribute('aria-label')==='포함할 장소')box.hidden=true;return;}
   box.setAttribute('aria-label','포함할 장소');
-  const tags=node('div',undefined,'preset-tag-list');tags.append(node('span','포함할 장소','tag'),node('strong',place.name));
+  const tags=node('div',undefined,'preset-tag-list');tags.append(node('span','꼭 들를 장소','tag'));
+  for(const place of includedPlaces){
+    const chip=node('span',undefined,'include-chip');chip.append(node('strong',place.name));
+    const x=button('×',()=>{includedPlaces=includedPlaces.filter(p=>p.id!==place.id);if(!includedPlaces.length)includedOrigin=null;renderIncludedTags();},'include-chip-remove');
+    x.setAttribute('aria-label',place.name+' 빼기');chip.append(x);tags.append(chip);
+  }
   const go=button('이 조건으로 바로 추천받기',()=>form.requestSubmit(),'primary preset-go');
-  const drop=button('이 장소 빼기',()=>{includedPlace=null;box.hidden=true;},'secondary');
-  box.replaceChildren(node('p','이 장소를 꼭 넣고, 그 주변에서 나머지 장소를 찾아요. 날짜·시간·예산은 아래 기본 조건에서 확인해 주세요.','hint'),tags,go,drop);
+  const drop=button(includedPlaces.length===1?'이 장소 빼기':'모두 빼기',()=>{includedPlaces=[];includedOrigin=null;box.hidden=true;},'secondary');
+  box.replaceChildren(node('p',includedPlaces.length===1?'이 장소를 꼭 넣고, 그 주변에서 나머지 장소를 찾아요. 날짜·시간·예산은 아래 기본 조건에서 확인해 주세요.':`담은 ${includedPlaces.length}곳을 꼭 넣고, 첫 장소 주변에서 나머지를 찾아요. 날짜·시간·예산은 아래 기본 조건에서 확인해 주세요.`,'hint'),tags,go,drop);
   box.hidden=false;
-  toast(place.name+'을(를) 넣어 코스를 짜요.');
-  requestAnimationFrame(()=>{go.focus({preventScroll:true});go.scrollIntoView({block:'center',behavior:'instant'});});
+  if(focus)requestAnimationFrame(()=>{go.focus({preventScroll:true});go.scrollIntoView({block:'center',behavior:'instant'});});
 }
-// 출발지를 다른 곳으로 바꾸면 포함할 장소도 비운다(그 장소가 동선 범위를 벗어날 수 있다).
+// 출발지를 다른 곳으로 바꾸면 꼭 들를 장소도 비운다(그 장소가 동선 범위를 벗어날 수 있다).
 document.addEventListener('click',()=>setTimeout(()=>{
-  if(!includedPlace||locationState.origin?.name===includedPlace.origin)return;
-  includedPlace=null;const box=document.getElementById('preset-tags');if(box&&box.getAttribute('aria-label')==='포함할 장소')box.hidden=true;
+  if(!includedPlaces.length||locationState.origin?.name===includedOrigin)return;
+  includedPlaces=[];includedOrigin=null;const box=document.getElementById('preset-tags');if(box&&box.getAttribute('aria-label')==='포함할 장소')box.hidden=true;
 }));
+// 코스 바구니(둘러보기 화면 아래 도크). 담은 장소 {id,name,lat,lon} 과 그 시·도. 다른 시·도의 장소를 담으면 새로 시작한다.
+const Basket={
+  items:[],region:null,
+  has(id){return this.items.some(p=>p.id===id);},
+  toggle(place,region){
+    if(this.has(place.id)){this.remove(place.id);return;}
+    if(this.region&&this.region!==region&&this.items.length){this.items=[];toast(`다른 시·도(${region})의 장소라 바구니를 새로 시작했어요.`);}
+    if(this.items.length>=BASKET_MAX){toast(`한 코스에는 ${BASKET_MAX}곳까지 담을 수 있어요.`);return;}
+    this.region=region;this.items.push({id:place.id,name:place.name,lat:Number(place.lat),lon:Number(place.lon)});this.render();
+  },
+  remove(id){this.items=this.items.filter(p=>p.id!==id);if(!this.items.length)this.region=null;this.render();},
+  clear(){this.items=[];this.region=null;this.render();},
+  go(){const list=[...this.items],region=this.region;this.clear();includePlaces(list,region);},
+  render(){
+    // 담은 카드의 단추는 보조 단추 모양으로(.primary 는 shell.css 가 !important 로 칠해 aria-pressed 만으로는 바꿀 수 없다).
+    document.querySelectorAll('#catalog .basket-add').forEach(b=>{const on=this.has(b.dataset.placeId);b.setAttribute('aria-pressed',String(on));b.textContent=on?'담음 ✓ (빼기)':'+ 코스에 담기';b.classList.toggle('primary',!on);b.classList.toggle('secondary',on);});
+    let dock=document.getElementById('basket-dock');
+    if(!dock){dock=node('section',undefined,'basket-dock');dock.id='basket-dock';dock.setAttribute('aria-label','코스 바구니');document.body.append(dock);}
+    dock.hidden=!this.items.length;
+    if(!this.items.length){dock.replaceChildren();return;}
+    const list=node('ul',undefined,'basket-list');
+    for(const place of this.items){const li=node('li',undefined,'basket-item');li.append(node('span',place.name));const x=button('×',()=>this.remove(place.id),'basket-remove');x.setAttribute('aria-label',place.name+' 바구니에서 빼기');li.append(x);list.append(li);}
+    const head=node('p',`코스 바구니 · ${this.region} ${this.items.length}곳`,'basket-title');
+    const clear=button('비우기',()=>this.clear(),'secondary basket-clear');
+    const go=button(`담은 ${this.items.length}곳으로 코스 짜기`,()=>this.go(),'primary basket-go');
+    dock.replaceChildren(head,list,clear,go);
+  }
+};
 const ExploreView={
   sequence:0,offset:0,regionTouched:false,
   card(place,mode){
     const card=node('article',undefined,'place-card');
-    // 실제 장소에만 「이 장소 포함해서 코스 짜기」(좌표가 있어야 출발 기준이 된다).
-    const include=!place.demo&&Number.isFinite(Number(place.lat))&&Number.isFinite(Number(place.lon))?[button('이 장소 포함해서 코스 짜기',()=>includePlace(place,this.conditions().region),'primary include-place')]:[];
+    // 실제 장소에만 「+ 코스에 담기」(좌표가 있어야 출발 기준이 된다). 담기·빼기 토글, 바구니 도크에서 코스를 짠다(Basket).
+    const add=button(Basket.has(place.id)?'담음 ✓ (빼기)':'+ 코스에 담기',()=>Basket.toggle(place,this.conditions().region),(Basket.has(place.id)?'secondary':'primary')+' include-place basket-add');add.dataset.placeId=place.id;add.setAttribute('aria-pressed',String(Basket.has(place.id)));
+    const include=!place.demo&&Number.isFinite(Number(place.lat))&&Number.isFinite(Number(place.lon))?[add]:[];
     card.append(placePhotoPanel(place,mode),node('span',place.demo?'가상 장소':place.category,'tag'),node('h3',place.name),node('p',place.address||'주소는 상세에서 확인해 주세요.','hint'),...(isPublicDataPlace(place)?[publicDataSource(place)]:[]),...include,button('장소 자세히 보기',()=>showPlace(place.id,mode),'secondary'));
     return card;
   },

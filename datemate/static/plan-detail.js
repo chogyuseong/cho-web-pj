@@ -66,6 +66,38 @@ function sharedLegSource(plan) {
 }
 
 // 상세는 일정 → 확인 → 결정·공유 순서로 #plan-detail에, 부가 정보는 축제 뒤 #plan-extras에 그린다.
+// 장소 카드의 순서 ↑/↓ 단추. 바꿀 수 있는 코스(저장된 id·내 코스·보관 기한 안)에서 장소가 2곳 이상일 때.
+// 고정·예약한 장소와 그 자리로 옮기는 단추는 끈다(서버도 거절 — app/order_suggestion.apply_manual). 맨 위는 ↑, 맨 아래는 ↓ 를 끈다.
+// 서버가 거절하면(영업시간·종료 시각 등) 그 까닭을 알림으로 보여 주고 코스는 그대로 둔다.
+function orderButtons(p, i, place) {
+  if (!p.id || p.can_edit === false || p.places.length < 2 || (typeof planHistoryExpired === 'function' && planHistoryExpired(p))) return null;
+  const fixed = j => locks.has(j) || p.places[j]?.reservation === true;
+  const box = node('div', undefined, 'order-buttons');
+  box.setAttribute('role', 'group');
+  box.setAttribute('aria-label', `${i + 1}번 ${place.name} 순서 옮기기`);
+  const move = step => runPlanChange(async () => {
+    const order = p.places.map(x => x.id);
+    [order[i], order[i + step]] = [order[i + step], order[i]];
+    try {
+      const updated = await api(`/plans/${encodeURIComponent(p.id)}/reorder`, {
+        order,
+        manual: true
+      });
+      commitNewPlan(p.id, updated, `‘${place.name}’을 ${i + 1 + step}번째로 옮겼어요`);
+    } catch (error) {
+      toast(error.message || '순서를 바꾸지 못했어요.');
+    }
+  });
+  const up = button('↑', () => move(-1), 'order-up');
+  const down = button('↓', () => move(1), 'order-down');
+  up.setAttribute('aria-label', `${place.name} 앞으로 옮기기`);
+  down.setAttribute('aria-label', `${place.name} 뒤로 옮기기`);
+  up.disabled = i === 0 || fixed(i) || fixed(i - 1);
+  down.disabled = i === p.places.length - 1 || fixed(i) || fixed(i + 1);
+  box.append(up, down);
+  return box;
+}
+
 // 장소 카드의 체류 단추 묶음. 늦어짐 미리 보기를 쓸 수 있는 코스(저장된 id)만 만든다. 값·단추 상태는 delay-check.js syncStaySteppers 가 맞춘다.
 function stayStepper(p, i, stay, place) {
   if (!p.id || !Number.isFinite(stay) || typeof changeStay !== 'function') return null;
@@ -208,6 +240,9 @@ function renderDetail() {
     // 체류 시간 −15분 · N분 · +15분(2026-11-26 시안). 저장된 코스(id)만 — 서버 지각 확인(delay-check.js changeStay)으로 다시 계산해 겹쳐 보인다.
     const stepper = stayStepper(p, i, stay, place);
     if (stepper) head.append(stepper);
+    // 순서 ↑/↓(2026-11-26 요구 문서 Phase 3): 서버가 같은 규칙으로 다시 계산해 새 코스로 저장(POST reorder manual) → 알림의 [되돌리기].
+    const mover = orderButtons(p, i, place);
+    if (mover) head.append(mover);
     body.append(head, stopKindIcon(place), node('h4', place.name));
     if (place.address) body.append(node('p', place.address, 'stop-address'));
     // 네이버 지역 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 1.1·1.2). 21일이 지나 지운 장소는 안내만.

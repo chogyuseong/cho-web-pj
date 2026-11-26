@@ -294,7 +294,8 @@ body.show-explore .curation { display:none; }
 .last-conditions .again-button span { margin-left:0; }
 main .service-details summary { font-size:15px; color:var(--muted); }
 main .service-details summary>span { color:var(--hong); }
-main .hero .hero-description { font-size:18px!important; line-height:1.9; color:var(--muted); max-width:38em; }
+/* 2026-11-26: 처음 화면 글자 크기의 !important 를 뺐다 — 새 처음 화면(redesign.css 15))이 명시도로 덮는다(redesign.css 는 !important 0개 규칙). */
+main .hero .hero-description { font-size:18px; line-height:1.9; color:var(--muted); max-width:38em; }
 main .hero-pill { font-size:14px; line-height:1.7; letter-spacing:.06em; color:var(--hong); background-color:var(--platform); }
 main .hero-actions a { font-size:16px; min-height:50px; }
 main .workspace-intro>p { font-size:16px; color:var(--muted); }
@@ -327,7 +328,7 @@ main .workspace-intro>p { font-size:16px; color:var(--muted); }
   .conditions .simple-form-group legend { font-size:19px; }
 }
 @media(max-width:480px) {
-  main .hero .hero-description { font-size:17px!important; }
+  main .hero .hero-description { font-size:17px; }
   .conditions .field-grid { gap:12px; }
 }
 main .hero .hero-pill { font-size:14px!important; }
@@ -381,8 +382,8 @@ main .hero .hero-pill { font-size:14px!important; }
 .search-spinner { border-color:var(--line)!important; border-top-color:var(--hong)!important; border-right-color:var(--hong)!important; }
 body:not(.show-date-plan) .romance-hero { padding:40px 0 48px; }
 .hero-copy { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-areas:'title photo' 'desc photo' 'line photo' 'actions photo'; column-gap:64px; align-items:start; padding-bottom:0; }
-.hero h1 { grid-area:title; margin:0 0 16px; font-size:44px!important; line-height:1.2; color:var(--ink); }
-.hero .hero-description { grid-area:desc; margin:0 0 28px; font-size:19px!important; line-height:1.6; color:var(--ink); max-width:none; }
+.hero h1 { grid-area:title; margin:0 0 16px; font-size:44px; line-height:1.2; color:var(--ink); }
+.hero .hero-description { grid-area:desc; margin:0 0 28px; font-size:19px; line-height:1.6; color:var(--ink); max-width:none; }
 .hero-actions { grid-area:actions; display:flex; flex-wrap:wrap; align-items:center; gap:12px 24px; margin-top:28px; }
 .hero-actions .primary { display:inline-flex; align-items:center; justify-content:center; min-height:52px; padding:12px 32px; font-size:17px; text-decoration:none; }
 .hero-actions .text-link { display:inline-flex; align-items:center; min-height:44px; font-size:16px; }
@@ -489,7 +490,7 @@ body:not(.show-date-plan) .hero-photo { display:block; grid-area:photo; height:a
   .curation-grid .curation-card>* { grid-column:1; }
 }
 @media(max-width:420px) {
-  .hero .hero-description { font-size:16px!important; }
+  .hero .hero-description { font-size:16px; }
   .line-sample { --time:4.2em; --rail:30px; }
   .line-sample time { font-size:19px; }
   .line-sample .line-name { font-size:19px; }

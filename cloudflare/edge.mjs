@@ -117,8 +117,9 @@ function notFound(request, pages) {
   return new Response(request.method === "HEAD" ? null : body, { status: 404, headers });
 }
 
-// Same rule as datemate/app/static_pages.py with_public_origin(): the home page's canonical/og:url/og:image carry
-// PUBLIC_ORIGIN_TOKEN, replaced by the PUBLIC_ORIGIN secret (the only source of absolute URLs, like robots.txt).
+// Same rule as datemate/app/static_pages.py with_public_origin(): the home page's canonical/og:url/og:image and the
+// shared page's og:image (link preview, 2026-11-27) carry PUBLIC_ORIGIN_TOKEN, replaced by the PUBLIC_ORIGIN secret
+// (the only source of absolute URLs, like robots.txt).
 // Without an origin the tags holding the token are dropped. Python tests compare the two outputs.
 export const PUBLIC_ORIGIN_TOKEN = "{{PUBLIC_ORIGIN}}";
 const ORIGIN_TAG = /<(?:link|meta)\b[^>]*\{\{PUBLIC_ORIGIN\}\}[^>]*>/g;

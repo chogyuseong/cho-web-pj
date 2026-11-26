@@ -35,6 +35,8 @@
     글로만 보여 준다. 언제 확인한 정보인지 알 수 없어 '방문 전 확인'을 늘 붙인다(app/festivals.py 의 축제 안내와 같은 원칙).
 
 캐시(사용자 공용 store 캐시): 찾은 결과·추가 사진은 7일(공공 자료 공용 캐시 규칙), 못 찾음은 6시간, 실패는 1분(FAIL_SECONDS).
+이름 검색어는 둘러보기 검색과 같이 기호를 빼고 보내고(두 글자 미만이면 부르지 않음), 관광공사가 검색어를 거절한 답(HTTP 400·사유 10)은
+장애가 아니라 '없음'(reason rejected)으로 하루(REJECTED_SECONDS) 둔다(2026-11-27, _search_rows).
 실패를 '없음'으로 두지 않는다: 키 오류·권한 오류(공공데이터포털 SERVICE_KEY_IS_NOT_REGISTERED_ERROR 등)는 HTTP 403 이나
 200 + {"OpenAPI_ServiceResponse": …} 본문으로 온다(2026-11-20 확인). tour_body 가 둘 다 오류로 본다.
 '사진 다시 불러오기'(force)는 실패 표시만 건너뛴다(찾은 결과·없음은 그대로 쓴다 — 하루 호출 한도 보호).
@@ -62,6 +64,8 @@ CACHE_SECONDS = 7 * 86400
 # 찾는 방법을 바꾸면 cache_key 의 버전도 올린다(v3: 2026-11-20 느슨한 이름·1km·추가 사진).
 MISS_SECONDS = 6 * 3600
 FAIL_SECONDS = 60
+# 관광공사가 이름 검색어를 거절한 답(HTTP 400·사유 10)의 보관. 둘러보기 검색(public_places.tour_keyword)의 거절 보관과 같은 하루.
+REJECTED_SECONDS = 86400
 IMAGE_SECONDS = 7 * 86400
 # 장소 카드가 보여 주는 사진 수(app/media.py 도 5장까지)
 MAX_PHOTOS = 5
@@ -297,18 +301,30 @@ def _region_code(place):
     return REGION_CODES.get(place.get("region") or region_from_address(place.get("address")))
 
 
-def _search_rows(place, client, base):
+def _search_rows(place, client, base, outcome=None):
     """searchKeyword2 로 받은 항목들(호출 1건). 찾는 낱말(search_keyword)의 결과가 LIST_ROWS 를 넘어 잘렸으면 '하나뿐'인지 알 수 없으므로
     이름 전체로 한 번 더 좁혀 찾는다(드묾: '더 현대 서울'처럼 흔한 낱말 하나로 찾게 되는 이름).
-    그래도 잘렸으면 빈 목록을 돌려준다: 받지 못한 항목 중에 같은 이름이 또 있을 수 있어 '반경 안에 하나뿐'을 지킬 수 없다(연결하지 않음)."""
+    그래도 잘렸으면 빈 목록을 돌려준다: 받지 못한 항목 중에 같은 이름이 또 있을 수 있어 '반경 안에 하나뿐'을 지킬 수 없다(연결하지 않음).
+
+    검색어는 둘러보기 검색(public_places.tour_keyword, 2026-11-25 QA-06)과 같은 규칙이다(2026-11-27): keyword_text 로 기호를 빼고 보내고,
+    정리한 검색어가 두 글자 미만이면 부르지 않는다. 관광공사가 검색어를 거절하면(HTTP 400·사유 10, public_places._rejected_parameter)
+    장애가 아니므로 그 검색어는 건너뛴다. 부른 검색어가 모두 거절됐으면 outcome['rejected'] = True(tour_info 가 하루 보관)."""
     from .course_search import without_branch
+    from .public_places import _rejected_parameter, keyword_text
 
     name = " ".join(without_branch(clean_title(place.get("name"))).split()) or str(place.get("name"))
-    for keyword in dict.fromkeys((search_keyword(place), name)):
+    keywords = [k for k in dict.fromkeys(keyword_text(k) for k in (search_keyword(place), name)) if len(k) >= 2]
+    rejected = 0
+    for keyword in keywords:
         params = dict(base, keyword=keyword, arrange="A", numOfRows=LIST_ROWS, pageNo=1)
         if _region_code(place):
             params["lDongRegnCd"] = _region_code(place)
         listing = observed_http(client.get, LIST_ENDPOINT, params=params)
+        if _rejected_parameter(listing):
+            rejected += 1
+            if outcome is not None and rejected == len(keywords):
+                outcome["rejected"] = True
+            continue
         listing.raise_for_status()
         if len(listing.content) > 2_000_000:
             raise ValueError("oversized_response")
@@ -447,7 +463,14 @@ def tour_info(place, force=False):
         with httpx.Client(timeout=8) as client:
             # 이름으로 찾고(searchKeyword2) 좌표로 거른다. 위치 기반 목록(locationBasedList2)은 타입을 주지 않으면
             # 56m 옆 박물관도 빠뜨렸다(2026-11-19 실제 응답: 대한민국역사박물관·금호미술관).
-            row = same_place(place, _search_rows(place, client, base))
+            outcome = {}
+            row = same_place(place, _search_rows(place, client, base, outcome))
+            if row is None and outcome.get("rejected"):
+                # 이름을 관광공사가 검색어로 받지 않았다(장애가 아님). 같은 이름은 늘 같은 답이라 둘러보기 검색처럼 하루 보관하고,
+                # 사진 칸은 '없음'으로 둔다('사진 다시 불러오기'를 띄우지 않음 — media.py 는 unavailable 일 때만 띄운다).
+                result = dict(status="not_found", reason="rejected")
+                store.cache(cache_key, result, REJECTED_SECONDS)
+                return result
             if row is None:
                 result = dict(status="not_found")
                 store.cache(cache_key, result, MISS_SECONDS)

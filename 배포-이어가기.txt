@@ -7,12 +7,28 @@
 
 ★ 지금 상태 (2026-11-27 기준)
 ----------------------------------------------------------------------
-▶ 진행 중(2026-11-27 오후): 브랜치 feat/js-bundle — QA-14 중 'JS 묶기'만(사용자 선택. CSS 묶기·미디어쿼리 기준점 통일·안 쓰는 CSS 는 이번에 안 함).
-  측정(운영, 캐시 없음, 402px): defer 스크립트 46개를 브라우저가 몇 개씩만 동시에 보내 DOMContentLoaded 약 4.4초(느린 4G·CPU 4배 9.5초), CSS 13개는 첫 묶음에 다 받음.
-  구현: cloudflare/build-edge-pages.mjs writeBundles·bundledPage + app/static_pages.py bundled_page(같은 규칙) — 원본 index.html·JS 는 그대로,
-  배포 때 static/bundles/index.js·shared.js(저장소 제외)를 만들고 머리의 원본 해시가 맞을 때만 묶음 태그 하나로 바꿈. tests/conftest.py 가 테스트 시작 때 묶음 생성.
-  새 테스트 tests/test_js_bundle.py, 고친 테스트 test_asset_versions·test_edge_headers·cloudflare/edge.test.mjs. test:security 27 통과, 전체 테스트 돌리는 중.
-  함께: .claude/settings.local.json(개인, 저장소 제외)에 `npx wrangler@4.160.1 deploy` 허용 규칙. fix/sharing-ruff(main 902517f)는 병합·push 끝, 배포는 다음 때 함께.
+★★ 백다섯 번째 배포(2026-11-27 16:10 무렵) 완료: main 8d75998(병합 = feat/js-bundle 51c5c85, 그 앞 902517f = fix/sharing-ruff), Worker 버전 5945bb55-f388-4a52-b198-c5ab6ff80919.
+  사용자 '추천대로 진행해' → QA-14 범위 질문에 'JS 묶기만(추천)' → '끝나면 커밋하고 병합까지' → '병합되면 배포까지'.
+  ① QA-14 중 JS 묶기만(CSS 묶기·미디어쿼리 기준점 22개 통일·안 쓰는 CSS 66% 는 안 함 — 측정상 이득이 거의 없고 화면 폭 경계가 바뀌는 위험).
+     원인(운영 측정, 캐시 없음, 402px): defer 스크립트 46개를 브라우저가 몇 개씩만 동시에 보내(요청 시작 시각이 0.25초 칸마다 흩어짐) 파일마다 1ms 인 응답이
+     왕복 대기(약 0.35~0.4초)를 열 번 가까이 쌓음. CSS 13개는 첫 묶음에 다 받아 FCP 에 거의 영향 없음.
+     구현: cloudflare/build-edge-pages.mjs writeBundles·bundledPage + app/static_pages.py bundled_page(같은 규칙, 두 쪽 페이지 글자까지 같음을 테스트가 비교).
+     원본 index.html·shared.html·static/*.js 는 그대로 고치면 됨. 배포 build 가 static/bundles/index.js(46개)·shared.js(5개)(저장소 제외)를 만들고,
+     묶음 머리의 원본별 해시가 지금 원본과 같을 때만 페이지에 묶음 태그 하나 — 다르면 원본 태그 그대로(개발 중 JS 를 고치면 자동으로 원본 46개).
+     묶음 안 차이(일부러): 첫 파일이 아닌 'use strict' 는 무시됨, 한 파일 맨 위 실행 오류가 뒤 파일도 멈춤. 파일 사이 ';' 와 줄바꿈, BOM 제거.
+     끄는 법: static/bundles/ 를 지우면 원본 태그. 기능을 빼려면 writeEdgePages 의 writeBundles 호출과 versioned_page 의 bundled_page 호출을 뺌.
+  · 검증: tests/test_js_bundle.py 새로(원본 순서·BOM·';' 함정·오래된 묶음 되돌림·앱=엣지·정규식 같음·Git 제외), test_asset_versions·test_edge_headers·
+    cloudflare/edge.test.mjs 를 묶음 기준으로 고침(edge.test.mjs 가 시작 때 writeBundles — CI 깨끗한 checkout 대비). tests/conftest.py 가 테스트 시작 때 묶음 생성.
+    로컬 전체(Windows, sqlite, msedge, 묶음 사용) 1696 통과·1 건너뜀·실패 0(34분 42초). 로컬 비교(왕복 150ms, HTTP/1.1): DOMContentLoaded 2.82→2.19초.
+    CI Run 45951545063(51c5c85) 성공 5개 — test (sqlite) 1696 통과·1 건너뜀으로 묶음 테스트가 CI 에서도 돎. npm run test:security 27 통과.
+  · 운영 확인(배포 직후): /api/status 200·server-timing, / 와 /shared 의 스크립트가 각 1개(bundles/index.js?v=d66e29e1341c·shared.js?v=806cae94f378 = 로컬 sha256),
+    묶음 200 text/javascript. 측정(캐시 없음, 402px, 배포 전 → 후): JS 46개 293KB → 1개 217KB, DOMContentLoaded 약 4.4초 → 2.3~2.7초(3회),
+    느린 4G·CPU 4배 9.5 → 8.0초(느린 CPU 는 JS 해석·실행이 대부분), FCP 1.7~2.0초(같음). 첫 화면·공유 화면 페이지 오류·콘솔 오류 0.
+    13분 뒤 다시: /api/status 200·server-timing, 두 화면 묶음 주소 같음, tokens.css·redesign.css ?v= = 로컬 sha256.
+  · 되돌리는 법: git revert -m 1 8d75998 후 재배포(또는 static/bundles 를 지우고 재배포하면 원본 태그). DB 변경 없음.
+  · 함께: .claude/settings.local.json(개인, 저장소 제외)에 `npx wrangler@4.160.1 deploy` 허용 규칙 → 이번 배포는 막히지 않음.
+    fix/sharing-ruff(sharing.py ruff 경고 2개, 동작 같음)도 이번 배포에 함께 나감. viewport-fit=cover 는 넣지 않기로 판단(manifest 없음, 가로 노치 좌우 여백 미처리).
+  · 남은 것: 아이폰 실기기(104차 항목들), QA-14 나머지(CSS·미디어쿼리 — 하려면 스크린샷 비교와 함께).
 ★★ 백네 번째 배포(2026-11-27 13:55 무렵) 완료: main f9621fd(병합 2e81d8b = fix/iphone-layout-1127, bea0eca = fix/share-og-tour-photo-400), Worker 버전 90602763-6b10-4135-9ad9-8f5e3bb50221.
   사용자 '진행해'. Docker 켜져 있음 → npm run test:security 27 통과 → `npx wrangler@4.160.1 deploy` 는 이번에도 Claude Code 자동 권한 검사에 막혀
   사용자가 프롬프트에서 `! npx wrangler@4.160.1 deploy` 로 직접 실행(정적 4개: shared.html·redesign.css·header-mode.js·index.html). 다음에도 막히면 같은 방법.

@@ -7,6 +7,26 @@
 
 ★ 지금 상태 (2026-11-27 기준)
 ----------------------------------------------------------------------
+★★ 백여섯 번째 배포(2026-11-27 저녁) 완료: main 50cb5f6(병합 = fix/qa-2nd-low-1127 6f14a2e, 그 앞 cd33165 = 2차 QA 보고서), Worker 버전 40ff97c9-7ee8-42a7-b112-f0ba8436b693.
+  사용자 '남은 작업 진행'(→ website-qa-report 로 2차 운영 QA) → '진행해'(QA-17·18 수정) → '병합되면 배포까지' → '몇 시간 자리 비움, 모든 권한 … 남은 작업 중 혼자 할 수 있는 것
+  (가장 완성도 있고 효과적인 것) → 배포 → 배포-이어하기·README → 커밋 푸쉬 → 컴퓨터 종료'.
+  ① 2차 운영 QA(105차 직후, 보고 전용, Playwright 로 320~1920px 실측): 판정 '출시 가능', 새 낮음 3건 — 보고서 datemate/docs/QA_REPORT-2026-11-27.ko.md,
+     시트 https://claude.ai/artifact/14MjGcxgXVSy3dzX46wGst 'QA 이슈' 18~20행(QA-17~19), '요약' 46행부터 '2차 점검'. 1차 수정 15건 운영 유지 확인.
+  ② QA-18: 안내 문구 '서울 성수을(를) …' 5곳 → static/ko-text.js withObjectParticle(받침으로 을/를, 닫는 따옴표·끝 괄호 설명 건너뜀, 한글 아닌 끝은 '을(를)').
+     index.html·shared.html 에서 사용하는 파일보다 먼저, 묶음 맨 앞이라 'use strict' 두지 않음(두면 묶음 전체가 엄격 모드).
+     QA-17: redesign.css 2-0) 720px 이하·손가락 입력에서 바닥글 '의견 보내기'·'예산 무관' label 누르는 높이 44px(:not([hidden]) — label 이 hidden 으로 시작).
+  · 검증: tests/test_qa_2nd_2026_11_27.py 3개, 로컬 전체 1699 통과·1 건너뜀(38분), CI Run 45969789457 성공 5개, test:security 27.
+  · 운영 확인(배포 직후): 390px '서울 성수를 데이트할 지역으로 골랐어요.', 두 요소 높이 44px, bundles/index.js?v=b02e39cd2ac3·shared.js?v=04f1be88e5cf·redesign.css?v=37426891a1df
+    = 로컬 sha256, 페이지·콘솔 오류 0. 13분 뒤 다시: /api/status 200·server-timing, 세 주소 ?v= 같음. ★ 실제 추천 1회(사용자 권한, 서울 성수 11/28 11:00~19:00 2인 12만 원 — 운영 DB 에 1건 남음): 코스 3개·조건 충족 칩·
+    네이버 지도 번호·실시간 예산 카드 정상, 오류 0(QA 시트 '확인 불가'에서 '확인함'으로 옮김). 공유·피드백·결정은 그때도 막음.
+  · 되돌리는 법: git revert -m 1 50cb5f6 후 재배포. DB 변경 없음.
+  · 정리 못 한 것(자동 권한 검사가 삭제를 막음 — 모두 main 병합 확인함, 사용자가 직접):
+      git push origin --delete feat/js-bundle fix/iphone-layout-1127 fix/qa-2nd-low-1127 fix/share-og-tour-photo-400 fix/sharing-ruff
+      git worktree remove --force ../cho-web-pj-r2      (커밋 안 한 변경 없음 확인, 안의 .env 복사본도 같이 지워짐)
+      git branch -D feat/js-bundle feat/naver-image-block feat/redesign-1126 feat/redesign-1126-b feat/redesign-p1 fix/mobile-375 fix/qa-2nd-low-1127 fix/sharing-ruff
+  · 남은 것: QA-19(첫 화면 JS 기능별 나눠 받기 — 첫 화면에서 실행되는 코드 약 22%, 느린 기기 DOMContentLoaded 8초. 전역 변수를 함께 쓰는 스크립트를
+    모듈로 바꾸는 구조 정리가 먼저라 혼자 하지 않음, 설계부터), QA-14 나머지(CSS 묶기·미디어쿼리 기준점 22개 — 스크린샷 비교와 함께), 아이폰 실기기.
+    시트 'QA 이슈' A1 머리글이 'No' 대신 'wlsgodgo'(누가 잘못 입력한 것으로 보임, 손대지 않음).
 ★★ 백다섯 번째 배포(2026-11-27 16:10 무렵) 완료: main 8d75998(병합 = feat/js-bundle 51c5c85, 그 앞 902517f = fix/sharing-ruff), Worker 버전 5945bb55-f388-4a52-b198-c5ab6ff80919.
   사용자 '추천대로 진행해' → QA-14 범위 질문에 'JS 묶기만(추천)' → '끝나면 커밋하고 병합까지' → '병합되면 배포까지'.
   ① QA-14 중 JS 묶기만(CSS 묶기·미디어쿼리 기준점 22개 통일·안 쓰는 CSS 66% 는 안 함 — 측정상 이득이 거의 없고 화면 폭 경계가 바뀌는 위험).

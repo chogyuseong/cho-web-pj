@@ -8,10 +8,12 @@ import {
   feedbackEnabled, handleFetch, serveAtEdge, CRAWLER_CACHE_CONTROL, NOT_FOUND_PAGE_KEY, PUBLIC_ORIGIN_TOKEN, wantsPage,
   withPublicOrigin,
 } from "./edge.mjs";
-import { DATEMATE_ROOT, buildEdgePages } from "./build-edge-pages.mjs";
+import { DATEMATE_ROOT, buildEdgePages, bundledPage, writeBundles } from "./build-edge-pages.mjs";
 
 const ORIGIN = "https://datemate.example.workers.dev";
 const ENV = { PUBLIC_ORIGIN: ORIGIN, DATABASE_URL: "postgresql://u:p@db.example.com/app?sslmode=require" };
+// 배포(wrangler build)처럼 JS 묶음(static/bundles/, 저장소에 없음)을 먼저 만들고 페이지를 만든다 — CI 의 깨끗한 checkout 에서도 같게.
+writeBundles();
 const PAGES = buildEdgePages();
 const STATIC_DIR = path.join(DATEMATE_ROOT, "static");
 
@@ -90,7 +92,10 @@ test("built pages match versioned_page(): only ?v=<sha256[:12]> added to existin
   for (const [route, name] of [["/", "index.html"], ["/shared", "shared.html"]]) {
     const html = PAGES[route];
     const source = readFileSync(path.join(STATIC_DIR, name), "utf8").replace(/\r\n?/g, "\n");
-    assert.equal(html.replace(/\?v=[0-9a-f]{12}/g, ""), source, route);
+    // JS 묶기(QA-14, 2026-11-27): 이어진 defer 스크립트 태그들은 묶음 태그 하나로 바뀌고(bundledPage), 그 밖에는 ?v= 만 붙는다.
+    const bundled = bundledPage(name, source);
+    assert.ok(bundled.includes(`<script src="/static/bundles/${name.replace(".html", ".js")}" defer></script>`), route);
+    assert.equal(html.replace(/\?v=[0-9a-f]{12}/g, ""), bundled, route);
     const urls = [...html.matchAll(/(\/static\/[^\s"'<>?]+\.(?:js|css))(\?v=([0-9a-f]{12}))?/g)];
     assert.ok(urls.length > 3, route);
     for (const [, url, , version] of urls) {
@@ -274,14 +279,15 @@ test("a container answer that happens to carry the signal is ignored outside edg
 });
 
 test("static files: immutable only when ?v= is the content hash the built pages use", async () => {
-  const versioned = PAGES["/"].match(/\/static\/app\.js\?v=([0-9a-f]{12})/);
-  assert.ok(versioned, "home page links app.js with ?v=");
-  const hit = (await run("/static/app.js?v=" + versioned[1])).response;
+  // 첫 화면의 JS 는 묶음 하나(2026-11-27 QA-14) — 그 묶음 주소의 ?v= 로 시험한다.
+  const versioned = PAGES["/"].match(/\/static\/bundles\/index\.js\?v=([0-9a-f]{12})/);
+  assert.ok(versioned, "home page links bundles/index.js with ?v=");
+  const hit = (await run("/static/bundles/index.js?v=" + versioned[1])).response;
   assert.equal(hit.status, 200);
   assert.equal(hit.headers.get("cache-control"), "public, max-age=31536000, immutable");
   // An old or made-up hash, or no hash, keeps the revalidating policy.
   for (const suffix of ["?v=000000000000", "?v=" + versioned[1].slice(0, 11), ""]) {
-    const other = (await run("/static/app.js" + suffix)).response;
+    const other = (await run("/static/bundles/index.js" + suffix)).response;
     assert.equal(other.headers.get("cache-control"), "public, max-age=0, must-revalidate", suffix);
   }
   // Fonts and images are not versioned by the pages, so they always revalidate.

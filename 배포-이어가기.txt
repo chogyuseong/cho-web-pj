@@ -7,6 +7,12 @@
 
 ★ 지금 상태 (2026-11-27 기준)
 ----------------------------------------------------------------------
+▶ 진행 중(2026-11-27 오후): 브랜치 feat/js-bundle — QA-14 중 'JS 묶기'만(사용자 선택. CSS 묶기·미디어쿼리 기준점 통일·안 쓰는 CSS 는 이번에 안 함).
+  측정(운영, 캐시 없음, 402px): defer 스크립트 46개를 브라우저가 몇 개씩만 동시에 보내 DOMContentLoaded 약 4.4초(느린 4G·CPU 4배 9.5초), CSS 13개는 첫 묶음에 다 받음.
+  구현: cloudflare/build-edge-pages.mjs writeBundles·bundledPage + app/static_pages.py bundled_page(같은 규칙) — 원본 index.html·JS 는 그대로,
+  배포 때 static/bundles/index.js·shared.js(저장소 제외)를 만들고 머리의 원본 해시가 맞을 때만 묶음 태그 하나로 바꿈. tests/conftest.py 가 테스트 시작 때 묶음 생성.
+  새 테스트 tests/test_js_bundle.py, 고친 테스트 test_asset_versions·test_edge_headers·cloudflare/edge.test.mjs. test:security 27 통과, 전체 테스트 돌리는 중.
+  함께: .claude/settings.local.json(개인, 저장소 제외)에 `npx wrangler@4.160.1 deploy` 허용 규칙. fix/sharing-ruff(main 902517f)는 병합·push 끝, 배포는 다음 때 함께.
 ★★ 백네 번째 배포(2026-11-27 13:55 무렵) 완료: main f9621fd(병합 2e81d8b = fix/iphone-layout-1127, bea0eca = fix/share-og-tour-photo-400), Worker 버전 90602763-6b10-4135-9ad9-8f5e3bb50221.
   사용자 '진행해'. Docker 켜져 있음 → npm run test:security 27 통과 → `npx wrangler@4.160.1 deploy` 는 이번에도 Claude Code 자동 권한 검사에 막혀
   사용자가 프롬프트에서 `! npx wrangler@4.160.1 deploy` 로 직접 실행(정적 4개: shared.html·redesign.css·header-mode.js·index.html). 다음에도 막히면 같은 방법.

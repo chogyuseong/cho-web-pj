@@ -35,6 +35,15 @@ body > header .brand-name { font-size:20px; font-weight:800; letter-spacing:-.03
 .mode-switch button[aria-pressed=true] { color:#fff; background:var(--hong); }
 .mode-switch button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 footer .footer-feedback { color:var(--ink); font-weight:700; text-underline-offset:4px; }
+/* 2-0) 휴대폰·터치 화면의 누르는 영역(2026-11-27 2차 QA-17). 바닥글 '의견 보내기'(64×25px)와 코스 만들기 '예산 무관' 체크박스 label(높이 32px)이
+   권장 44px 보다 작았다. 보이는 글자·상자 크기는 그대로 두고 누르는 높이만 44px 로 늘린다.
+   - '예산 무관' label 은 index.html 에서 hidden 으로 시작해 스크립트가 보이게 바꾼다. display 를 주면 [hidden] 이 풀리므로 :not([hidden]) 로만 준다.
+   - 폭 720px 이하(하단 메뉴가 나오는 폭, 아래 2) 와 같은 기준)이거나 손가락 입력 기기일 때만. 넓은 화면 마우스에서는 바닥글 줄 높이를 바꾸지 않는다.
+   함께 볼 것: tests/test_qa_2nd_2026_11_27.py 가 390px 에서 두 요소 높이 44px 이상을 확인한다. */
+@media(max-width:720px), (pointer:coarse) {
+  footer .footer-feedback { display:inline-flex; align-items:center; min-height:44px; }
+  #conditions label.check:not([hidden]) { display:flex; min-height:44px; }
+}
 @media(max-width:720px) {
   /* 휴대폰: 머리글은 로고 + 스위치 한 줄(메뉴는 하단 바). 스위치 칸 44px 은 그대로, 글자만 조금 작게. */
   .mode-switch { margin-left:auto; }

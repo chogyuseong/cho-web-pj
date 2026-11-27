@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const areaChips=spots.map(spot=>{
     const item=chip(spot.label,()=>whenReady(()=>{
       if(spot.card)applyPresetArea(spot.card);else applyArea(spot.state,{name:spot.origin,lat:spot.lat,lon:spot.lon});
-      areaStatus.textContent=spot.label+'을(를) 데이트할 지역으로 골랐어요.';refresh();
+      areaStatus.textContent=withObjectParticle(spot.label)+' 데이트할 지역으로 골랐어요.';refresh();
     }));
     item.dataset.area=spot.label;item.spot=spot;return item;
   });
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const query=originInput.value.trim();
     if(query.length<2){closeResults();searchStatus.textContent='동네·역·주소를 두 글자 이상 입력하고 검색해 주세요.';originInput.focus();return;}
     // disabled 로 바꾸면 버튼에 있던 포커스가 사라져 입력한 검색어가 되돌려지므로 aria-disabled 만 쓴다.
-    searching=true;searchButton.setAttribute('aria-disabled','true');closeResults();searchStatus.textContent=`‘${query}’을(를) 찾고 있어요…`;
+    searching=true;searchButton.setAttribute('aria-disabled','true');closeResults();searchStatus.textContent=withObjectParticle(`‘${query}’`)+' 찾고 있어요…';
     // 새 질의: 앞서 지역 검색으로 고른 출발지를 이 브라우저(지난번처럼 추천)에서 지운다(특약 1.4, form-state.js).
     LastConditions.newQuery('local');
     try{const data=await api('/locations/search',{query}),at=Date.now();showResults((data.results||[]).map(point=>({...point,received_at:at})),data.message);}
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const origin={name:originNameOf(point,area),lat:point.lat,lon:point.lon};
     applyArea(area,point.place_name?NaverDeviceRetention.mark(origin,'local',point.received_at):origin);
     appliedOrigin=locationState.origin;closeResults();searchStatus.textContent='';closeLocationChoice();
-    areaStatus.textContent=(point.place_name?point.place_name+'('+originInput.value+')':originInput.value)+'을(를) 데이트할 지역으로 골랐어요.';
+    areaStatus.textContent=withObjectParticle(point.place_name?point.place_name+'('+originInput.value+')':originInput.value)+' 데이트할 지역으로 골랐어요.';
     refresh();
   }
   originInput.addEventListener('keydown',event=>{

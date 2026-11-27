@@ -9,7 +9,8 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from typing import Literal
 from . import store
-from .config import ROOT, public_origin
+# ROOT 는 이 파일에서 쓰지 않아 뺐다(ruff F401, 2026-11-27). 공유 화면 HTML 은 static_pages.versioned_page 가 ROOT/static 에서 읽는다.
+from .config import public_origin
 from .models import PlaceId
 from .regions import normalize_region
 from .static_pages import versioned_page, with_public_origin
@@ -52,7 +53,8 @@ def public_plan(plan):
     # 네이버 검색으로 찾은 장소는 '네이버 검색결과' 표시와 원본(지도 검색) 링크를 함께 보낸다(특약 1.1·1.2).
     from .naver_terms import is_naver_place
     def naver_fields(p):
-        if not is_naver_place(p):return {}
+        if not is_naver_place(p):
+            return {}
         source=next((u for u in (p.get('place_source'),p.get('source')) if str(u or '').startswith('https://')),None)
         return dict(naver_result=True,source=source,naver_expired=bool(p.get('naver_expired')))
     shared = {'places': [dict(id=p['id'], name=p['name'], category=p.get('category',''),

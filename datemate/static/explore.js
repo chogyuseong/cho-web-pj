@@ -18,7 +18,7 @@ function includePlaces(list,region){
   if(count&&Number(count.value)<includedPlaces.length){count.value=String(Math.min(BASKET_MAX,includedPlaces.length));count.dispatchEvent(new Event('change',{bubbles:true}));}
   document.getElementById('nav-plan').click();
   renderIncludedTags(true);
-  toast(includedPlaces.length===1?first.name+'을(를) 넣어 코스를 짜요.':`담은 ${includedPlaces.length}곳을 꼭 넣어 코스를 짜요.`);
+  toast(includedPlaces.length===1?withObjectParticle(first.name)+' 넣어 코스를 짜요.':`담은 ${includedPlaces.length}곳을 꼭 넣어 코스를 짜요.`);
 }
 // 예전 이름(한 곳). 다른 파일·테스트가 부를 수 있어 남긴다.
 function includePlace(place,region){includePlaces([place],region);}

@@ -36,3 +36,7 @@ htmlcov/
 Thumbs.db
 .neon
 .claude/fable-handoff.md
+# JS 묶음(QA-14) — cloudflare/build-edge-pages.mjs 가 배포·테스트 때 만든다. 원본은 datemate/static/*.js
+/datemate/static/bundles/
+# 개인 Claude Code 권한(배포 허용 등) — 저장소에 올리지 않는다(2026-11-27)
+.claude/settings.local.json

@@ -47,6 +47,24 @@ import pytest
 from app import store
 
 
+# JS 묶음(QA-14, 2026-11-27): 운영처럼 첫 화면·공유 화면이 묶음(static/bundles/*.js) 하나를 받게, 테스트 시작 때 배포와 같은
+# 스크립트로 묶음을 만든다. node 나 cloudflare/ 가 없으면(이미지 안 등) 만들지 않고, 페이지는 원본 태그를 그대로 쓴다
+# (app/static_pages.bundled_page 는 오래되거나 없는 묶음을 쓰지 않는다). 묶음이 실제로 쓰이는지는 tests/test_js_bundle.py 가 본다.
+def _build_js_bundles():
+    import shutil
+    import subprocess
+    build=Path(__file__).resolve().parents[2]/'cloudflare'/'build-edge-pages.mjs'
+    node=shutil.which('node')
+    if not (build.is_file() and node):
+        return
+    result=subprocess.run([node,str(build)],cwd=build.parents[1],capture_output=True,text=True,encoding='utf-8')
+    if result.returncode:
+        raise RuntimeError('JS 묶음 만들기 실패(cloudflare/build-edge-pages.mjs):\n'+result.stdout+result.stderr)
+
+
+_build_js_bundles()
+
+
 # 2026-11-25 상세 결과 시안: 시안에 없는 기능(수단 바꾸기·지각 확인·순서 제안·비용표·결정·공유·레저·질문·후기)은 접힌 칸 두 개
 # (static/plan-detail.js planMoreFold, 키 PLAN_MORE_KEY·PLAN_EXTRAS_KEY)에 모였다. 펼침 여부는 브라우저 localStorage 에 기억한다.
 # 예전 화면 테스트 수백 개가 그 안의 단추를 바로 누르므로, 모든 브라우저 페이지에 '펼침'을 미리 넣는다.

@@ -88,7 +88,10 @@ def test_static_files_are_immutable_only_for_the_current_content_hash(monkeypatc
     """배포 직후 예전 컨테이너가 새 주소(?v=새 해시)로 예전 파일을 보내도, 해시가 맞지 않으면 1년 캐시를 주지 않는다."""
     from app.static_pages import file_version, versioned_page
     current = file_version('/static/app.js')
-    assert current and f'/static/app.js?v={current}' in versioned_page('index.html')
+    # 첫 화면은 JS 를 묶음 하나로 받는다(2026-11-27 QA-14) — 페이지에는 묶음 주소, CSS 는 파일별 주소가 실린다.
+    page = versioned_page('index.html')
+    assert current and f'/static/bundles/index.js?v={file_version("/static/bundles/index.js")}' in page
+    assert f'/static/tokens.css?v={file_version("/static/tokens.css")}' in page
     assert static_headers(monkeypatch, f'v={current}') == 'public, max-age=31536000, immutable'
     assert static_headers(monkeypatch, f'v={current}', 304) == 'public, max-age=31536000, immutable'
     for query in ('v=000000000000', '', f'v={current[:11]}'):

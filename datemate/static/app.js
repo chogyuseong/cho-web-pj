@@ -445,10 +445,12 @@ async function init() {
     applyVisitDateMin(statusData.today);
     mountDateCategories(statusData.date_categories);
     // 팝업 둘러보기 전환은 서버 스위치(DATEMATE_POPUPS_ENABLED)가 켜져 있을 때만 그린다.
-    if (typeof PopupView !== 'undefined') PopupView.mount(statusData.popups_enabled === true);
+    // popups.js 는 나중 묶음이라(later-scripts.js) 실행된 뒤에 그린다 — 처음 화면 준비는 기다리지 않는다.
+    DatemateLater.whenReady(() => PopupView.mount(statusData.popups_enabled === true));
     const id = new URLSearchParams(location.search).get('plan');
     if (id) {
-      selected = await api('/plans/' + encodeURIComponent(id));
+      // 결과 화면 코드(나중 묶음)는 저장된 코스 조회와 함께 기다린다. 받지 못하면 아래 catch 가 안내 배너를 띄운다.
+      [selected] = await Promise.all([api('/plans/' + encodeURIComponent(id)), DatemateLater.ready()]);
       mode = selected.conditions.mode;
       locks = new Set(Object.keys(selected.conditions.locked || {}).map(Number));
       form.elements.count.value = selected.conditions.count;
@@ -613,6 +615,7 @@ $('#parse').onclick = () => applyRequest().then(() => toast('해석된 조건을
 // 글을 다 쓰고 칸을 벗어나면 바로 해석해 ‘이렇게 이해했어요’를 보여 준다(입력 중에는 부르지 않는다).
 form.elements.request.addEventListener('change', () => applyRequest().catch(e => toast(e.message)));
 
+// 결과 화면 코드(나중 묶음)가 실행된 뒤에만 부른다 — 부르는 곳(제출, plan-progress.js resumeOnce)이 DatemateLater.need() 를 먼저 기다린다.
 function beginPlanSearch() {
   plans = [];
   window.syncResultsTab?.();
@@ -691,6 +694,14 @@ form.addEventListener('submit', async e => {
       form.elements.end.focus();
       return;
     }
+    // 결과 화면 코드(나중 묶음, later-scripts.js)가 아직이면 여기서 기다린다. values() 부터 나중 묶음 이름(FestivalPanel)을 쓴다.
+    // 받지 못했으면 서버에 추천 작업을 만들기 전에 멈춘다(다시 누르면 실패한 파일만 다시 받는다).
+    try {
+      await DatemateLater.need();
+    } catch (error) {
+      toast(error.message);
+      return;
+    }
     const data = values();
     data.explicit_fields = [...FormState.edited];
     await PlanningStudy.prepare(data);
@@ -744,8 +755,11 @@ form.elements.mode.addEventListener('change', () => {
   clearLocationsForMode();
   if (mode === 'demo') form.elements.region.value = '서울';
   $('#mode-badge').textContent = mode === 'demo' ? '서울 체험 코스' : '실제 장소';
-  renderResults();
-  renderDetail();
+  // 빈 결과 화면 다시 그리기. 결과 화면 코드(나중 묶음)가 아직이면 실행된 때 그린다(그동안 결과 화면은 숨어 있다).
+  DatemateLater.whenReady(() => {
+    renderResults();
+    renderDetail();
+  });
 });
 form.elements.region.addEventListener('change', () => {
   if (form.elements.mode.value === 'demo' && form.elements.region.value !== '서울') form.elements.mode.value = 'real';
@@ -793,7 +807,15 @@ $('#nav-explore').onclick = () => {
   setTab(true);
   search().catch(e => toast(e.message));
 };
+// 둘러보기 메뉴·검색 단추·Enter·주소 # 이동·처음 주소(#explore-section)가 모두 이 함수를 거친다. explore.js 는 나중 묶음이라 먼저 기다린다.
 async function search() {
+  if (!DatemateLater.loaded) {
+    // 기다리는 동안 시·도를 바꿨으면(explore.js 의 change 처리가 아직 없다) 직접 고른 것으로 표시해, 조건 화면의 지역으로 덮어쓰지 않게 한다.
+    const region = $('#explore-region'),
+      before = region.value;
+    await DatemateLater.need();
+    if (region.value !== before) ExploreView.regionTouched = true;
+  }
   return ExploreView.search();
 }
 $('#search-button').onclick = () => search().catch(e => toast(e.message));

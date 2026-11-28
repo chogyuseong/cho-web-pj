@@ -1,4 +1,7 @@
-"""JS 묶기(QA-14, 2026-11-27): 첫 화면·공유 화면의 이어진 defer 스크립트를 static/bundles/<페이지>.js 하나로 받는다.
+"""JS 묶기(QA-14, 2026-11-27): 첫 화면·공유 화면의 이어진 defer 스크립트 덩어리를 static/bundles/<페이지>.js 로 받는다.
+
+2026-11-28 QA-19: 첫 화면(index.html)은 덩어리가 둘이다 — 바로 받는 첫 묶음(bundles/index.js)과, template#later-scripts 안에 있어
+later-scripts.js 가 DOMContentLoaded 뒤에 붙이는 나중 묶음(bundles/index-2.js). 나눈 것 자체의 검사는 tests/test_js_split.py.
 
 묶음은 cloudflare/build-edge-pages.mjs 가 배포 때(테스트는 conftest 가 시작할 때) 만들고, 앱(app/static_pages.bundled_page)과
 엣지(build-edge-pages.mjs bundledPage)는 묶음 머리의 원본 해시가 지금 원본과 같을 때만 묶음 태그를 쓴다.
@@ -43,34 +46,50 @@ def sources(page):
     return SCRIPT.findall((ROOT / "static" / page).read_text(encoding="utf-8"))
 
 
+def chunks(page):
+    """페이지의 이어진 스크립트 태그 덩어리별 원본 이름(묶음 하나가 되는 단위)."""
+    html = (ROOT / "static" / page).read_text(encoding="utf-8")
+    return [SCRIPT.findall(run.group(0)) for run in static_pages._SCRIPT_RUN.finditer(html)]
+
+
 @pytest.mark.parametrize(
-    "page,route,bundle", [("index.html", "/", "index.js"), ("shared.html", "/shared", "shared.js")]
+    "page,route,bundles",
+    [("index.html", "/", ["index.js", "index-2.js"]), ("shared.html", "/shared", ["shared.js"])],
 )
-def test_page_loads_one_bundle_in_source_order(page, route, bundle):
-    names = sources(page)
-    assert len(names) >= 2
-    path = ROOT / "static" / "bundles" / bundle
-    text = path.read_bytes().decode("utf-8")
-    # 머리 = 원본 해시, 몸 = 원본 순서 그대로(BOM 만 빼고), 파일 사이에 줄바꿈과 ';'
-    assert text.startswith(static_pages.bundle_header(names))
-    body = "".join(
-        f"/* ---- {n} ---- */\n"
-        + (ROOT / "static" / n).read_bytes().decode("utf-8").removeprefix("﻿")
-        + "\n;\n"
-        for n in names
-    )
-    assert text == static_pages.bundle_header(names) + body
+def test_page_loads_its_bundles_in_source_order(page, route, bundles):
+    groups = chunks(page)
+    assert len(groups) == len(bundles)
+    # 덩어리 밖에 따로 남은 스크립트 태그가 없다(모든 원본이 어느 묶음엔가 들어간다).
+    assert [name for names in groups for name in names] == sources(page)
+    tags = []
+    for names, bundle in zip(groups, bundles):
+        assert len(names) >= 2
+        path = ROOT / "static" / "bundles" / bundle
+        text = path.read_bytes().decode("utf-8")
+        # 머리 = 원본 해시, 몸 = 원본 순서 그대로(BOM 만 빼고), 파일 사이에 줄바꿈과 ';'
+        assert text.startswith(static_pages.bundle_header(names))
+        body = "".join(
+            f"/* ---- {n} ---- */\n"
+            + (ROOT / "static" / n).read_bytes().decode("utf-8").removeprefix("﻿")
+            + "\n;\n"
+            for n in names
+        )
+        assert text == static_pages.bundle_header(names) + body
+        subprocess.run([NODE, "--check", str(path)], check=True)
+        version = static_pages.file_version(f"/static/bundles/{bundle}")
+        tags.append(f'<script src="/static/bundles/{bundle}?v={version}" defer>')
     with TestClient(app) as client:
         html = client.get(route).text
-        version = static_pages.file_version(f"/static/bundles/{bundle}")
-        assert re.findall(r"<script\b[^>]*>", html) == [
-            f'<script src="/static/bundles/{bundle}?v={version}" defer>'
-        ]
-        served = client.get(f"/static/bundles/{bundle}?v={version}")
-        assert served.status_code == 200 and served.headers["content-type"].startswith(
-            "text/javascript"
-        )
-    subprocess.run([NODE, "--check", str(path)], check=True)
+        assert re.findall(r"<script\b[^>]*>", html) == tags
+        for tag in tags:
+            served = client.get(tag.split('"')[1])
+            assert served.status_code == 200 and served.headers["content-type"].startswith(
+                "text/javascript"
+            )
+    if page == "index.html":
+        # 첫 묶음만 브라우저가 바로 받는다. 나중 묶음 태그는 실행되지 않는 template 안에 있다(later-scripts.js 가 붙인다).
+        assert f'<template id="later-scripts">\n{tags[1]}</script>\n</template>' in html
+        assert html.index(tags[0]) < html.index('<template id="later-scripts">')
 
 
 def test_app_and_edge_build_the_same_pages():

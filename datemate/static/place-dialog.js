@@ -1,5 +1,5 @@
 'use strict';
-// Place dialog rendering; initialized by app.js after shared UI helpers exist.
+// Place dialog rendering. 나중 묶음(index.html template#later-scripts, later-scripts.js)이라 app.js 뒤에 실행된다 — 첫 묶음이 openDialog 를 부르려면 DatemateLater.need() 를 먼저 기다린다.
 function drawMap(p) {
   const wrap = node('div', undefined, 'map');
   const ns = 'http://www.w3.org/2000/svg',
@@ -250,7 +250,7 @@ async function showPlace(id, placeMode) {
 }
 
 // 닫힌 뒤 포커스가 갈 곳을 잃었으면(연 단추가 다시 그려져 사라짐) 같은 순번 장소의 제목, 없으면 상세 제목으로 옮긴다.
-// 이 파일은 app.js($ 정의)보다 먼저 읽히므로 맨 위 수준에서는 getElementById 를 쓴다.
+// 맨 위 수준에서는 getElementById 를 쓴다(2026-11-28 QA-19 전에는 app.js($ 정의)보다 먼저 읽혔다. 지금은 나중 묶음이라 뒤에 읽히지만 그대로 둔다).
 document.getElementById('dialog').addEventListener('close', () => {
   const back = dialogReturn;
   dialogReturn = null;
@@ -271,4 +271,4 @@ document.getElementById('dialog').addEventListener('close', () => {
 });
 
 // 장소 정보 서랍 모양은 대화상자가 닫힐 때 지운다(다음에 다른 용도로 열 때 보통 모양).
-document.getElementById('dialog')?.addEventListener('close', event => event.currentTarget.classList.remove('place-drawer')); // app.js($)보다 먼저 읽혀 $ 를 쓰지 않는다
+document.getElementById('dialog')?.addEventListener('close', event => event.currentTarget.classList.remove('place-drawer'));

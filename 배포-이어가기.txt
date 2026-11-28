@@ -7,6 +7,54 @@
 
 ★ 지금 상태 (2026-11-28 기준)
 ----------------------------------------------------------------------
+브랜치 feat/js-split-qa19(2026-11-28, 병합·배포 전): QA-19 첫 화면 JS 나눠 받기 — 설계안(datemate/docs/QA-19-js-split-design.ko.md)의 0~2단계 구현. 기능·화면 모양은 그대로.
+  사용자 요청: 느린 휴대폰(CPU 4배·느린 4G)에서 DOMContentLoaded 약 8초 → 기능·모양 변화 없이 측정 가능하게 빠르게, 먼저 측정, main 병합·배포는 하지 않음.
+  ① 무엇을:
+     1) index.html 스크립트를 두 덩어리로: 바로 받는 24개(→ bundles/index.js, 724,148B → 286,571B)와 <template id="later-scripts"> 안의 24개
+        (→ bundles/index-2.js 446,990B: parking·review-facts·maps·wikimedia-photos·place-blogs·meal-suggestions·place-photos·execution-summary·plan-results·plan-actions·
+        plan-evidence·leisure·delay-check·order-suggestion·day-of·action-card·plan-detail·chat-ui·share-card·explore·festivals·popups·place-dialog·reviews).
+        template 안의 script 는 브라우저가 받지도 실행하지도 않는다. 묶기 규칙(이어진 태그 덩어리 = 묶음 하나)이 그대로라 build-edge-pages.mjs·static_pages.py 로직은 안 바꿈(주석만).
+     2) 새 파일 static/later-scripts.js(전역 DatemateLater, 첫 묶음 둘째 파일): DOMContentLoaded 뒤에 template 안 주소를 순서대로 붙인다(배포: 묶음 하나, 묶음이 오래된 개발 중: 원본 24개).
+        ready()(기다림), need()(누른 동작용 — 0.4초 넘으면 '화면을 준비하고 있어요…' 알림), whenReady(fn)(기다리지 않고 실행된 때 한 번), loaded·state.
+        받기 실패 → 태그를 지우고 다음 호출이 실패한 주소만 다시 받음. 받았는데 약속한 이름이 없으면 broken(새로고침 안내). 모듈 전환·전역 stub 없음.
+     3) 진입점 8곳(첫 묶음이 나중 묶음 이름을 쓰는 곳)이 먼저 기다림: G1 app.js search()(둘러보기 메뉴·검색·Enter·# 이동·처음 주소·빠른 검색), G2 제출(입력 검증 뒤·values() 앞 —
+        테마 카드·바구니의 '바로 추천받기'도 여기), G3 init ?plan=, G4 PopupView.mount(whenReady), G5 코스 종류 전환 뒤 빈 결과 그리기(whenReady),
+        G6 plan-progress.js resumeOnce(이어보기 — 기다리는 동안 제출 단추는 예전처럼 꺼 둠), G7 location-picker.js openLocationPicker(지도에서 고르기), G8 planning-outcomes.js showDecisions(내가 결정한 코스 다시 보기).
+        나머지 참조 14곳은 게이트 뒤나 결과 화면(나중 묶음 코드)에서만 불림 — 전체 표는 tests/test_js_split.py ENTRY.
+  · 판단·설계와 달라진 점(자세히는 설계 문서 5.4):
+     - 0단계 측정이 설계의 추정을 뒤집음: 느린 조건 DCL 의 큰 몫은 JS 실행(CPU)도 CSS 도 아니고, 글꼴 4종(각 약 270KB, 합 1.08MB, 2종 preload)과 200KB/초 회선을 나눠 쓰는 JS 받기.
+       긴 작업 합은 0.3초뿐. 글꼴을 끊고 재면 나누기 전에도 DCL 6.9 → 2.4초(운영 7.8 → 3.1초). 그래도 첫 묶음을 줄이면 받는 시간이 줄어 효과가 큼(아래) → 구현 진행.
+     - 받기 실패 문구는 '다시 눌러 주세요' 대신 '코스 화면을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요.'(누를 것이 없는 ?plan=·이어보기 안내에도 쓰임).
+     - G1: 기다리는 동안 둘러보기 시·도를 바꾸면 그 선택으로 찾게 함(explore.js 의 change 처리가 아직 없어 조건 화면 지역으로 덮어쓰였음).
+     - G4·G5 는 whenReady: 받기에 실패했다가 다시 눌러 성공한 때도 팝업 전환·빈 결과가 그려짐. 받는 시간 제한(타임아웃)은 두지 않음(늦게 온 파일과 다시 붙인 파일이 겹쳐 실행되는 것을 피함).
+     - 첫 묶음 크기 예산 320KB(설계 300KB — 실제 285KB 라 여유가 작아 넓힘).
+  · 전후 측정(tests/js_split_measure.py — Playwright msedge, 402×874, 캐시 없음, 왕복 150ms·1.6Mbps, CPU 4배, 데우기 1회 뒤 5회 중앙값, 로컬 앱을 gzip 으로 감싸 띄움, ms):
+       DOMContentLoaded 6,924 → 3,642(−47%) · 첫 화면 준비(상태 응답·폼) 7,310 → 4,113(−44%) · load 7,584 → 7,625(같음) · FCP 2,168 → 2,188(같음)
+       later:ready — → 7,058(모든 기능 준비는 예전 DCL 과 비슷한 때) · DCL 전 JS 전송 226.7KB → 92.2KB(나중 묶음 139.0KB) · 긴 작업 합 335 → 382ms(전부 DCL 전 한 덩어리)
+       DCL+100ms 에 둘러보기를 누르면 목록까지 60ms → 3,193ms(누른 뒤 기다림은 늘지만 목록이 뜨는 절대 시각은 약 7.1 → 6.9초로 같음, 그동안 '준비하고 있어요' 알림).
+     운영 기준선(배포 전 108차 상태, 같은 조건 5회): DCL 7,823 · load 8,195 · FCP 2,324 · 첫 화면 준비 8,572 · bundles/index.js 전송 223.5KB. 글꼴을 끊으면 DCL 3,063.
+     운영의 '후' 숫자는 배포 뒤에 잼 [추정: 4초대 초반 — 로컬과 받기 순서·원인이 같아서].
+  · 검증: 새 tests/test_js_split.py 23개(구조 4 · 정적 허용 목록 3 — tests/js_globals.py 가 두 묶음의 전역 이름과 참조를 분석 · 브라우저 16: 나중 묶음을 붙잡아 둠 9,
+     받기 실패 3, 빈 파일(broken) 1, CSP·load 전 실행 1, 원본 태그(개발 중) 2). 붙잡은 동안 페이지·콘솔 오류 0, 받기 실패 때 POST /api/plan-jobs 0회·다시 누르면 1회.
+     진입점의 기다림을 모두 뺀 변형으로 23개 중 15개가 실패함을 확인(원복). 고친 테스트(구조 단정만): test_js_bundle(덩어리별 같은 단정 + 둘째는 template 안),
+     test_asset_versions(두 묶음 주소 ?v=·app.js 는 첫 묶음, maps.js 는 나중 묶음), edge.test.mjs(index-2.js immutable 더함), audit_page 여는 기다림에 DatemateLater.loaded.
+     로컬 전체(Windows, sqlite, msedge) 두 번: 1회 1726 통과·1 건너뜀·오류 1(25분 55초) — test_transit_basis 한 개가 화면 열기(goto networkidle) 30초 시간 초과.
+     따로 4번·앞 파일 10개와 함께 1번·첫 화면 열기 150회 반복(최대 1.5초) 모두 통과해 재현되지 않음 [추정: 일시적 멈춤, 원인 미확인]. 2회(커밋 e80ff42) 1727 통과·1 건너뜀·실패 0(26분 2초)
+     — 기존 로컬 불안정 2종(test_stay_stepper…, test_delay_toggle…)도 두 번 모두 통과.
+     format_sources --check 통과(41개), 새 py 3개 ruff format·check 통과, npm run test:security 27 통과. !important 추가 없음, CSS 변경 없음, shared.html 변경 없음.
+     CI: Run 46112461212(e80ff42) 첫 실행 — container·python-audit·security 성공, test (sqlite) 성공(1727 통과·1 건너뜀, 29분 44초 — 새 나누기 테스트 23개 포함), test (postgres) 1722 통과·5 건너뜀·실패 1개:
+       test_parking::test_route_is_expensive_rate_limited_and_leaves_the_plan_alone([429, 429] == [200, 429] — 서버 한도 검사, 화면·JS 를 거치지 않는 TestClient 테스트라 이 변경과 무관.
+       conftest 의 '분 경계' 주석과 같은 종류의 간헐 실패로 보임 [추정]). 같은 Run 의 실패 작업 재실행은 성공(코드 그대로) → 5개 성공.
+       Run 46115505525(1a3a686 = 위에 이어보기 단추 손질·문서) 성공 5개 — container·python-audit·security·test (sqlite)·test (postgres) 모두 통과. 이 기록만 담은 뒤 커밋의 Run 은 gh run list --branch feat/js-split-qa19.
+  · 되돌리는 법: 병합 전이면 브랜치를 버림. 병합 뒤면 git revert(병합 커밋) 후 재배포. 급하면 index.html 의 template 안 태그 24개를 첫 덩어리 끝(quick-search.js 뒤)으로 옮기고
+     template 을 지우면 예전 한 묶음(로더·진입점의 기다림은 바로 통과) — 이때 test_js_split·test_js_bundle 의 구조 단정도 되돌려야 함. static/bundles/ 를 지우는 것은 되돌리기가 아님(원본 24개를 나중에 받을 뿐). DB 변경 없음.
+  · 배포 때 볼 것: ① / 의 script 태그가 둘 — bundles/index.js?v=…(바로)와 <template id="later-scripts"> 안 bundles/index-2.js?v=…, 두 ?v= = 로컬 sha256 앞 12자, 둘 다 200·immutable
+     (컨테이너가 잠든 때의 엣지 페이지와 깬 때 모두). ② 콘솔 DatemateLater.state === 'ready', 페이지·콘솔 오류·CSP 위반 0. ③ 손으로: 둘러보기(시·도 바꾸기·검색·팝업 전환),
+     지도에서 고르기, 내가 결정한 코스 다시 보기, 코스 추천 1회(결과·상세·지도·축제), ?plan= 링크 새 탭, 검색 중 새로고침(이어보기).
+     ④ 측정: MEASURE_URL=https://datemate.guseong-family.workers.dev 로 tests/js_split_measure.py 를 돌려 위 운영 기준선과 비교. 개발자 도구 '느린 4G'에서 DCL 직후 둘러보기 → 알림 뒤 목록.
+     ⑤ 아이폰 Safari 실기기(테스트는 Chromium 계열뿐). ⑥ 배포 순간에 열려 있던 페이지는 첫 묶음(옛)+나중 묶음(새)이 섞일 수 있음(수 초 창, [추정] 위험 낮음).
+  · 남은 것(안 함, 효과 큰 순): 글꼴과의 회선 다툼(preload 줄이기·더 작은 subset·굵기 수 줄이기 — 화면이 뜬 직후 글자 모양에 영향이 있어 이번 범위 밖. 나눈 뒤에도 later:ready 약 7초는 여기에 묶임),
+     결과 전용 CSS 나중 받기(gzip 약 38KB, FCP 에만 조금), experience.js 폼/결과 분리(약 20KB), 버전 섞임 대응. 설계 문서 5.5.
 ★★ 백여덟 번째 배포(2026-11-28 13:15 무렵) 완료: main 6a7f93f(병합 = fix/section-bar-1128 f660a62), Worker 버전 8a14a3b7-8a69-4935-9fc1-594ed28d7624.
   사용자 '스크린샷에 오류나는 사진 넣어놨어 확인'(C:\Users\rbtjd\Pictures\Screenshots\KakaoTalk_20261128_112825192*.png, 아이폰 결과 상세) → '병합되면 배포까지' →
   '모든 권한 … 혼자 처리할 수 있는 최대한 … 배포-이어하기·README 수정 후 커밋 푸쉬'.
@@ -24,7 +72,7 @@
      성수노루 data-kind=meal(식사 그림), 세 카드 모두 체류·순서 단추 4개가 카드 안·가로 넘침 없음, 회색 이름표 숨김. 표시줄은 위 108차에서 다시 고침.
   · 남은 것: 왼쪽 회색 탭(›)은 우리 요소가 아님 — 사용자에게 다른 사이트에서도 보이는지 확인 요청. 아이폰 실기기 재확인.
      로컬 전용 불안정 테스트 2종(test_stay_stepper_recomputes_the_rest_of_the_day — 로컬 시각 의존 추정, test_delay_toggle… — '60분' 문구 경합) 원인 정리.
-     QA-19 는 설계안만: datemate/docs/QA-19-js-split-design.ko.md(추천 A1 — template 안 두 번째 묶음 + later-scripts.js 로더, 진입점 G1~G8, 0단계 측정 먼저).
+     QA-19 는 설계안만(→ 위 브랜치 feat/js-split-qa19 에서 구현): datemate/docs/QA-19-js-split-design.ko.md(추천 A1 — template 안 두 번째 묶음 + later-scripts.js 로더, 진입점 G1~G8, 0단계 측정 먼저).
      구현은 큰 구조 변경이라 새 터미널 ccf(Fable)로, 요청문은 설계 문서 4절. 정리 못 한 브랜치 없음(fix/iphone-results-1128·fix/section-bar-1128 원격 삭제함).
 브랜치 fix/iphone-results-1128(2026-11-28, 107차로 배포됨):사용자 아이폰(약 402pt, Safari) 운영 캡처 두 장 — 결과 상세('우리 하루, 자세히 보기') 장소 카드.
   ① 무엇을(원인 → 고침, 넓은 화면 모양은 그대로):

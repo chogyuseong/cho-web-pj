@@ -290,6 +290,13 @@ test("static files: immutable only when ?v= is the content hash the built pages 
     const other = (await run("/static/bundles/index.js" + suffix)).response;
     assert.equal(other.headers.get("cache-control"), "public, max-age=0, must-revalidate", suffix);
   }
+  // QA-19(2026-11-28): 나중에 받는 둘째 묶음(template#later-scripts 안의 주소)도 같은 규칙이다.
+  const later = PAGES["/"].match(/<template id="later-scripts">\n<script src="\/static\/bundles\/index-2\.js\?v=([0-9a-f]{12})" defer><\/script>\n<\/template>/);
+  assert.ok(later, "home page keeps bundles/index-2.js with ?v= inside template#later-scripts");
+  const laterHit = (await run("/static/bundles/index-2.js?v=" + later[1])).response;
+  assert.equal(laterHit.status, 200);
+  assert.equal(laterHit.headers.get("cache-control"), "public, max-age=31536000, immutable");
+  assert.equal((await run("/static/bundles/index-2.js?v=000000000000")).response.headers.get("cache-control"), "public, max-age=0, must-revalidate");
   // Fonts and images are not versioned by the pages, so they always revalidate.
   const font = (await run("/static/fonts/pretendard/Pretendard-Regular.subset.woff2?v=" + versioned[1])).response;
   assert.equal(font.headers.get("cache-control"), "public, max-age=0, must-revalidate");

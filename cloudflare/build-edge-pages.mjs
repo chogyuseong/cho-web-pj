@@ -36,6 +36,11 @@ export const EDGE_PAGE_FILES = Object.freeze({ "/": "index.html", "/shared": "sh
 //   · 한 파일의 맨 위 코드가 실행 중 오류를 내면 그 뒤 파일도 멈춘다(예전엔 그 파일만). 테스트 전체로 확인한다.
 //   · 파일 사이에 줄바꿈과 ';' 를 넣어 앞 파일 끝과 뒤 파일 첫 줄이 한 문장으로 붙지 않게 하고(세미콜론 자동
 //     삽입 함정), 파일 맨 앞 BOM(U+FEFF)은 뺀다.
+// 덩어리가 둘인 페이지(QA-19, 2026-11-28): 첫 화면(index.html)은 바로 받는 덩어리(→ bundles/index.js)와, <template id="later-scripts">
+//     안에 적어 둔 덩어리(→ bundles/index-2.js, 둘째부터는 이름에 -2, -3 …)가 있다. template 안의 script 는 브라우저가 받지 않고,
+//     첫 묶음의 static/later-scripts.js 가 DOMContentLoaded 뒤에 그 주소(묶음이면 하나, 원본 태그면 여러 개)를 순서대로 붙인다.
+//     여기 로직은 덩어리가 어디 있는지 모른다 — 덩어리마다 따로 묶고, 따로 오래됐는지 보고, 아래 versionedPage 가 template 안 주소에도 ?v= 를 붙인다.
+//     각 묶음의 첫 파일(ko-text.js, parking.js)에는 'use strict' 를 두지 않는다. 설계·되돌리는 법: datemate/docs/QA-19-js-split-design.ko.md
 // 묶지 않으려면: static/bundles/ 를 지우면 된다(페이지가 원본 태그로 돌아간다). 기능을 아예 끄려면
 //     writeEdgePages 의 writeBundles 호출과 static_pages.versioned_page 의 bundled_page 호출을 뺀다.
 export const BUNDLE_DIR = "bundles";

@@ -1,6 +1,13 @@
 /* Decisions work for everyone; timing and research answers require explicit opt-in. */
 const PlanningStudy = {
   async showDecisions() {
+    // 대화창(place-dialog.js openDialog)은 나중 묶음이다(later-scripts.js). 아직이면 기다리고, 받지 못했으면 알린다.
+    try {
+      await DatemateLater.need();
+    } catch (error) {
+      toast(error.message);
+      return;
+    }
     const root = openDialog('내가 결정한 코스');
     root.append(node('p', '현재 브라우저에서 결정한 최근 코스 최대 10개예요.', 'hint'));
     try {

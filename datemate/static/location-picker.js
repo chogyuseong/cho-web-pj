@@ -25,6 +25,8 @@ function clearLocationsForMode(){
   for(const kind of ['origin','home'])form.elements[kind+'_name'].value=locationState[kind]?.name||'';
 }
 async function openLocationPicker(kind){
+  // 대화창(place-dialog.js openDialog)과 지도(maps.js)는 나중 묶음이다(later-scripts.js). 아직이면 기다리고, 받지 못했으면 알린다(다시 누르면 다시 받는다).
+  try{await DatemateLater.need();}catch(error){toast(error.message);return;}
   if(locationMap){locationMap.remove();locationMap=null;}
   const title=kind==='origin'?'데이트할 지역':'귀가지';
   const root=openDialog(title+' 선택');

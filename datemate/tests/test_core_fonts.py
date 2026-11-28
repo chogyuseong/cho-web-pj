@@ -1,7 +1,7 @@
 """첫 화면용 작은 글꼴(core)과 전체 글꼴 나중 받기(2026-11-28, 브랜치 perf/font-loading).
 
-line.css 가 Pretendard 굵기마다 @font-face 를 둘 적는다: 전체 파일(*.subset.woff2, 범위 없음)과 그 뒤의 작은 core 파일(*.core.woff2, unicode-range).
-브라우저는 core 를 먼저 쓰고 core 에 없는 글자가 나올 때만 전체 파일을 받는다. static/full-fonts.js(전역 DatemateFullFonts)는 모든 기능이 준비된 뒤
+line.css 가 Pretendard 굵기마다 @font-face 를 둘 적는다: 전체 파일(*.subset.woff2, 범위 = 그 파일의 글자)과 그 뒤의 작은 core 파일(*.core.woff2, 더 좁은 범위).
+브라우저는 core 를 먼저 쓰고 core 에 없고 전체 파일에 있는 글자가 나올 때만 전체 파일을 받는다. static/full-fonts.js(전역 DatemateFullFonts)는 모든 기능이 준비된 뒤
 전체 파일 넷을 받아 모든 글자를 전체 파일로 그리게 한다 — 다 받은 뒤의 모양은 예전과 같다. core 는 scripts/build_core_fonts.py 가 만든다.
 
 여기서 보는 것
@@ -13,6 +13,8 @@ line.css 가 Pretendard 굵기마다 @font-face 를 둘 적는다: 전체 파일
   4. 브라우저: 첫 화면·공유 화면은 전체 파일 없이 core 만으로 다 그려지고(전체 파일 요청을 붙잡아 둔 동안 요청은 스크립트가 보낸 하나뿐),
      전체 파일로 바뀌는 순간 화면이 한 픽셀도 달라지지 않는다. 전체 파일을 못 받아도 오류 없이 core 로 남는다.
      core 에 없는 글자는 스크립트가 없어도 전체 파일의 글리프로 그려진다(글자가 빠지지 않는다).
+     전체 파일에도 없는 글자(기호·이모지·한자)는 글꼴 파일을 받게 하지 않는다.
+CI 는 Linux(FreeType), 개발 컴퓨터는 Windows 라 픽셀 비교는 두 쪽에서 다 돈다 — 2026-11-28 첫 CI 가 Linux 에서만 다른 24자와 영어 로캘의 U+202F 를 잡았다.
 측정(수동): tests/js_split_measure.py.
 """
 
@@ -38,7 +40,7 @@ WEIGHTS = build_core_fonts.WEIGHTS
 # 예전(2026-11-24 ~ 11-28) 부분집합의 글자 수. 전체 파일을 바꾸면 여기와 fonts/LICENSE 를 함께 고친다 — 줄어들면 글자가 빠진다.
 FULL_CODEPOINTS = 3728
 FULL_HANGUL = 2780
-CORE_BUDGET = 95_000  # 굵기마다(지금 약 84,000). 넘으면 첫 화면이 느려진다 — 담는 글자를 다시 본다.
+CORE_BUDGET = 95_000  # 굵기마다(지금 약 82,000). 넘으면 첫 화면이 느려진다 — 담는 글자를 다시 본다.
 
 
 def css_faces():
@@ -57,12 +59,20 @@ def css_faces():
     return faces
 
 
-def core_range():
+SYNTHESIZED = set(build_core_fonts.SYNTHESIZED)
+
+
+def css_core_range():
     ranges = build_core_fonts.css_core_ranges()
     assert set(ranges) == {name for name, _ in WEIGHTS}
     first = ranges[WEIGHTS[0][0]]
     assert all(value == first for value in ranges.values())
     return first
+
+
+def core_range():
+    """core 파일에 글리프가 있는 글자(= CSS 범위에서, 글꼴의 빈칸으로 그려지는 글자 SYNTHESIZED 를 뺀 것)."""
+    return css_core_range() - SYNTHESIZED
 
 
 # ── 1. 파일·범위 ────────────────────────────────────────────────────────────────────────────────
@@ -75,9 +85,19 @@ def test_font_face_rules_list_full_files_first_then_core_with_a_range():
     assert [(kind, name, weight) for kind, name, weight, _ in faces] == [
         ("subset", name, weights[name]) for name in ("Regular", "ExtraBold", "Bold", "SemiBold")
     ] + [("core", name, weight) for name, weight in WEIGHTS]
-    # 전체 파일에는 범위가 없다(core 에 없는 모든 글자를 맡는다). 뒤에 적힌 core 가 자기 범위의 글자를 먼저 가져간다.
-    assert all(not covered for kind, _, _, covered in faces if kind == "subset")
-    assert all(covered for kind, _, _, covered in faces if kind == "core")
+    # 뒤에 적힌 core 가 자기 범위의 글자를 먼저 가져가고, 전체 파일은 나머지를 맡는다.
+    # 전체 파일의 범위 = 그 파일에 있는 한글 아닌 글자 그대로 + 한글 음절 구역 전체. 범위를 두는 까닭: 파일에 없는 글자(기호·이모지·한자·U+202F)가
+    # 화면에 나올 때 브라우저가 '혹시 있나' 하고 전체 파일을 받지 않게.
+    ttlib = pytest.importorskip("fontTools.ttLib")
+    full_ranges = build_core_fonts.css_ranges("subset")
+    core = core_range()
+    for name, _ in WEIGHTS:
+        in_file = set(ttlib.TTFont(FONT_DIR / f"Pretendard-{name}.subset.woff2").getBestCmap())
+        hangul = set(range(0xAC00, 0xD7A4))
+        assert full_ranges[name] == (in_file - hangul) | hangul, name
+        assert core < full_ranges[name], name
+        for outside in (0xA0, 0x202F, 0x2715, 0x25BE, 0x4E00, 0x6F22, 0x1F4CD, 0x23F0, 0x2615):
+            assert outside not in full_ranges[name], hex(outside)
 
 
 def test_core_files_match_the_css_range_and_the_full_files_keep_every_character():
@@ -94,6 +114,9 @@ def test_core_files_match_the_css_range_and_the_full_files_keep_every_character(
         assert len(full_cmap) == FULL_CODEPOINTS, (name, len(full_cmap))
         assert sum(1 for cp in full_cmap if 0xAC00 <= cp <= 0xD7A3) == FULL_HANGUL
         assert set(core_cmap) == covered, name
+        # CSS 범위에는 글꼴에 없지만 글꼴의 빈칸으로 그려지는 글자(U+00A0, U+202F 등)가 더 있다 — 예전처럼 Pretendard 가 맡게.
+        assert css_core_range() == covered | (SYNTHESIZED - set(full_cmap)), name
+        assert {0xA0, 0x202F, 0x3000, 0x200B} <= css_core_range()
         assert covered < set(full_cmap), name
         # 줄 높이·굵기 판정에 쓰이는 값은 원본 그대로.
         for table, fields in (
@@ -257,7 +280,7 @@ CONTEXT_LINES = [
     "서울-부산 A-B a-b 1-2 가~나 A~B a~b 3~4 (가) (A) (a) [1] <2> 가+나 1+1=2 A=B 가:나 A:B a:b",
     "TEL 02-123-4567 · http://example.com/path?a=1&b=2 · me@example.com · #태그 @이름",
     "AV To Ty Wa VA Yo LT fi fl ff 1/2 3/4 ×2 ÷3 ±4 ≤5 ≥6 ≈7 ≠8 −9",
-    "‘작은따옴표’ “큰따옴표” 「낫표」 『겹낫표』 〈작은 화살〉 《겹화살》 … · • ※ ★ ☆ ♥ ♡ ✓ ① ② ③ ㈜ ℃ ₩ ￦ €",
+    "‘작은따옴표’ “큰따옴표” 「낫표」 『겹낫표』 〈작은 화살〉 《겹화살》 … · • ※ ★ ☆ ♥ ♡ ✓ ㈜ ℃ ₩ ￦ €",
     "가격은 12,000원~15,000원(1인), 주차 30분 무료! 정말? 네. 좋아요; 그리고, 끝.",
     "ㅋㅋㅋ ㅎㅎ ㅠㅠ ㄱㄴㄷ ㅏㅑㅓㅕ 한ㄱ 가ㅏ",
     "0123456789 1111 7777 00:00 11:11 2026-11-28 (토) 09:41",
@@ -306,7 +329,9 @@ def test_core_glyphs_and_shaping_render_like_the_full_files(site):
                 p.textContent = line;
                 return p;
             }));
-            return document.fonts.load(`${weight} 17px '${family}'`, lines.join('')).then(() => document.fonts.ready).then(() => box.getBoundingClientRect().height);
+            return document.fonts.load(`${weight} 17px '${family}'`, lines.join('')).then(() => document.fonts.ready)
+                .then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))))
+                .then(() => box.getBoundingClientRect().height);
         }"""
         compared = 0
         # 비교하는 글은 모두 core 에 있는 글자여야 한다(없는 글자는 한쪽만 대체 글꼴로 떨어져 비교가 뜻을 잃는다).
@@ -321,6 +346,9 @@ def test_core_glyphs_and_shaping_render_like_the_full_files(site):
                         continue
                     shots = {}
                     for family in ("OnlyCore", "OnlyFull"):
+                        # 찍을 때마다 새로 연다: 같은 화면에서 글만 바꾸면 Linux 에서 앞 글의 글자 가장자리 픽셀(왼쪽 1px 줄)이
+                        # 지워지지 않고 남아, 글꼴이 같아도 앞에 무엇을 그렸는지에 따라 몇 픽셀이 달라졌다(2026-11-28 확인).
+                        page.goto(base + "/sample")
                         height = page.evaluate(fill, [lines, family, weight, nums])
                         shots[family] = (height, box.screenshot(animations="disabled"))
                     assert shots["OnlyCore"][0] == shots["OnlyFull"][0], (label, weight, nums)
@@ -335,8 +363,24 @@ def test_core_glyphs_and_shaping_render_like_the_full_files(site):
 
 
 READY = "typeof statusData!=='undefined'&&!!statusData&&!!document.querySelector('.simple-plan-form')&&DatemateLater.loaded"
+# document.fonts 의 Pretendard: CSS 의 core(좁은 범위)·full(한글 음절 구역 전체를 가진 범위), 스크립트가 더한 added(범위 없음 = 모든 글자).
 FONT_STATES = """() => [...document.fonts].filter(f => f.family.replace(/["']/g, '') === 'Pretendard')
-    .map(f => [/U\\+0-10FFFF/i.test(f.unicodeRange) ? 'full' : 'core', f.weight, f.status])"""
+    .map(f => [/U\\+0-10FFFF/i.test(f.unicodeRange) ? 'added' : /U\\+AC00-D7A3/i.test(f.unicodeRange) ? 'full' : 'core', f.weight, f.status])"""
+# 글이 대체 글꼴(monospace)이 아니라 Pretendard 로 그려졌는지: 같은 글을 두 글꼴로 놓고 폭을 견준다.
+USES_PRETENDARD = """async ([text, weight]) => {
+    const probe = document.createElement('div');
+    probe.style.cssText = `position:absolute;left:0;top:0;font:${weight} 40px Pretendard, monospace;white-space:nowrap`;
+    const mono = probe.cloneNode();
+    mono.style.fontFamily = 'monospace';
+    document.body.append(probe, mono);
+    probe.textContent = mono.textContent = text;
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await document.fonts.ready;
+    const widths = [probe.getBoundingClientRect().width, mono.getBoundingClientRect().width];
+    probe.remove();
+    mono.remove();
+    return widths[0] !== widths[1];
+}"""
 
 
 def settle(page):
@@ -347,23 +391,35 @@ def settle(page):
     )
 
 
+def drop(held):
+    """붙잡아 둔 요청이 남은 채로 탭을 닫으면 닫기가 오래 걸린다(실패한 테스트가 CI 를 30분 붙잡았다). 남은 것은 끊는다."""
+    for route in held:
+        try:
+            route.abort()
+        except Exception:
+            pass
+
+
 @pytest.mark.parametrize("width,height", [(402, 874), (1440, 900)])
 def test_first_screen_needs_only_core_and_does_not_change_when_full_fonts_take_over(
     site, width, height
 ):
     browser, base = site
     page, errors = open_page(browser, base, width, height)
+    held = hold_full_fonts(page)
     try:
-        held = hold_full_fonts(page)
-        page.goto(base + "/", wait_until="load")
+        # 전체 파일을 CSS 가 불렀다면 load 가 오지 않으므로(붙잡혀 있다) DOMContentLoaded 까지만 기다리고 아래에서 센다.
+        page.goto(base + "/", wait_until="domcontentloaded")
         page.wait_for_function("() => " + READY)
         page.wait_for_function("() => DatemateFullFonts.state === 'loading'")
         settle(page)
         # 붙잡힌 요청은 스크립트가 보낸 첫 굵기 하나뿐이다: 첫 화면 글자는 모두 core 에 있어 CSS 가 전체 파일을 부르지 않았다.
-        assert len(held) == 1, [route.request.url for route in held]
+        assert [route.request.url.rsplit("/", 1)[-1] for route in held] == [
+            "Pretendard-Regular.subset.woff2"
+        ]
         states = page.evaluate(FONT_STATES)
         assert sorted(s for kind, _, s in states if kind == "core") == ["loaded"] * 4, states
-        assert all(s == "unloaded" for kind, _, s in states if kind == "full"), states
+        assert [s for kind, _, s in states if kind == "full"] == ["unloaded"] * 4, states
         assert len(states) == 8
         before = page.screenshot(full_page=True, animations="disabled", caret="hide")
         # 놓아 주면 넷을 차례로 받고 한 번에 바꾼다.
@@ -373,28 +429,34 @@ def test_first_screen_needs_only_core_and_does_not_change_when_full_fonts_take_o
         assert page.evaluate("DatemateFullFonts.done") == "full"
         settle(page)
         states = page.evaluate(FONT_STATES)
-        added = [s for s in states if s[0] == "full" and s[2] == "loaded"]
-        assert sorted(w for _, w, _ in added) == ["400", "500 600", "700", "800 900"], states
+        added = [s for s in states if s[0] == "added"]
+        assert sorted((w, s) for _, w, s in added) == [
+            (weight, "loaded") for weight in ("400", "500 600", "700", "800 900")
+        ], states
+        assert len(states) == 12
         assert page.evaluate("performance.getEntriesByName('fonts:full').length") == 1
         after = page.screenshot(full_page=True, animations="disabled", caret="hide")
         assert before == after
         assert not errors, errors
     finally:
+        drop(held)
         page.close()
 
 
 def test_shared_page_text_is_in_core_and_full_fonts_follow_after_load(site):
     browser, base = site
     page, errors = open_page(browser, base)
+    held = hold_full_fonts(page)
     try:
-        held = hold_full_fonts(page)
         # 없는 공유 주소의 안내 화면: 공유 화면의 틀·문구가 core 만으로 그려지는지 본다.
-        page.goto(base + "/shared#none", wait_until="load")
+        page.goto(base + "/shared#none", wait_until="domcontentloaded")
         page.wait_for_function("() => DatemateFullFonts.state === 'loading'")
         settle(page)
-        assert len(held) == 1, [route.request.url for route in held]
+        assert [route.request.url.rsplit("/", 1)[-1] for route in held] == [
+            "Pretendard-Regular.subset.woff2"
+        ]
         states = page.evaluate(FONT_STATES)
-        assert all(s == "unloaded" for kind, _, s in states if kind == "full"), states
+        assert [s for kind, _, s in states if kind == "full"] == ["unloaded"] * 4, states
         assert any(s == "loaded" for kind, _, s in states if kind == "core"), states
         page.unroute("**/*.subset.woff2*")
         for route in held:
@@ -403,6 +465,7 @@ def test_shared_page_text_is_in_core_and_full_fonts_follow_after_load(site):
         # 없는 공유 주소라 API 가 404 를 준다(브라우저가 콘솔에 적는다) — 그것 말고 오류는 없다.
         assert not [e for e in errors if "404" not in e], errors
     finally:
+        drop(held)
         page.close()
 
 
@@ -417,11 +480,31 @@ def test_full_font_failure_keeps_core_and_reports_no_error(site):
         states = page.evaluate(FONT_STATES)
         assert len(states) == 8, states  # 아무것도 더하지 않았다
         assert sorted(s for kind, _, s in states if kind == "core") == ["loaded"] * 4, states
-        assert page.evaluate("document.fonts.check(\"400 16px 'Pretendard'\", '데이트 코스 추천')")
+        for weight in ("400", "600", "700", "800"):
+            assert page.evaluate(USES_PRETENDARD, ["데이트 코스 추천 10:00~12:30", weight]), weight
         # 요청이 끊긴 것은 브라우저가 콘솔에 적는다(ERR_FAILED) — 그것 말고 페이지 오류는 없다.
         assert not [e for e in errors if "ERR_FAILED" not in e and "net::" not in e], errors
     finally:
         page.close()
+
+
+def css_only_page(browser, base):
+    """스크립트 없이(전체 파일로 바꾸는 코드 없이) line.css 만으로 보는 화면. 전체 파일 요청 주소 목록을 함께 돌려준다."""
+    page, errors = open_page(browser, base)
+    page.route("**/static/full-fonts.js*", lambda route: route.abort())
+    page.route("**/static/bundles/**", lambda route: route.abort())
+    requested = []
+    page.on(
+        "request",
+        lambda request: (
+            ".subset.woff2" in request.url and requested.append(request.url.rsplit("/", 1)[-1])
+        ),
+    )
+    page.goto(base + "/feedback", wait_until="load")
+    assert page.evaluate("typeof DatemateFullFonts") == "undefined"
+    settle(page)
+    assert not requested, requested
+    return page, requested
 
 
 def test_characters_outside_core_use_the_full_file_even_without_the_script(site):
@@ -435,39 +518,36 @@ def test_characters_outside_core_use_the_full_file_even_without_the_script(site)
     full = set(ttlib.TTFont(FONT_DIR / "Pretendard-Regular.subset.woff2").getBestCmap())
     rare = [ch for ch in rare if ord(ch) in full and ord(ch) not in covered]
     assert len(rare) >= 4, rare
-    page, errors = open_page(browser, base)
+    page, requested = css_only_page(browser, base)
     try:
-        # 스크립트는 못 받게 하고(전체 파일로 바꾸는 코드 없이) line.css 만으로 본다.
-        page.route("**/static/full-fonts.js*", lambda route: route.abort())
-        page.route("**/static/bundles/**", lambda route: route.abort())
-        requested = []
-        page.on(
-            "request",
-            lambda request: ".subset.woff2" in request.url and requested.append(request.url),
-        )
-        page.goto(base + "/feedback", wait_until="load")
-        assert page.evaluate("typeof DatemateFullFonts") == "undefined"
-        settle(page)
-        assert not requested, requested
-        widths = page.evaluate(
-            """async rare => {
-            const probe = document.createElement('div');
-            probe.style.cssText = 'position:absolute;left:0;top:0;font:400 40px Pretendard, monospace;white-space:nowrap';
-            const mono = probe.cloneNode();
-            mono.style.fontFamily = 'monospace';
-            document.body.append(probe, mono);
-            probe.textContent = mono.textContent = rare.join('');
-            await document.fonts.load("400 40px 'Pretendard'", rare.join(''));
+        for ch in rare:
+            assert page.evaluate(USES_PRETENDARD, [ch + ch + ch, "400"]), ch
+        assert requested == ["Pretendard-Regular.subset.woff2"], requested
+        # 굵은 글씨의 드문 글자는 그 굵기의 전체 파일을 받는다.
+        assert page.evaluate(USES_PRETENDARD, ["".join(rare), "800"])
+        assert requested == ["Pretendard-Regular.subset.woff2", "Pretendard-ExtraBold.subset.woff2"]
+    finally:
+        page.close()
+
+
+def test_characters_in_neither_file_do_not_fetch_the_full_file(site):
+    """전체 파일에도 없는 글자(화면이 쓰는 ✕ ▾ 📍, 한자, 영어 로캘 시간 칸의 U+202F)는 예전처럼 시스템 글꼴로 가고, 전체 파일을 받게 하지 않는다."""
+    browser, base = site
+    page, requested = css_only_page(browser, base)
+    try:
+        page.evaluate(
+            """async text => {
+            for (const weight of [400, 600, 700, 800]) {
+                const probe = document.createElement('p');
+                probe.style.cssText = `font:${weight} 20px Pretendard, sans-serif`;
+                probe.textContent = '닫기 ' + text + ' 서울';
+                document.body.append(probe);
+            }
+            await new Promise(resolve => setTimeout(resolve, 400));
             await document.fonts.ready;
-            return [probe.getBoundingClientRect().width, mono.getBoundingClientRect().width,
-                document.fonts.check("400 40px 'Pretendard'", rare.join(''))];
         }""",
-            rare,
+            "✕ ▾ ▴ ↻ ⌂ ✦ 📍 ⏰ ☕ 漢字 日本 10:30\u202fAM\u00a0",
         )
-        assert widths[2] is True
-        assert widths[0] != widths[1], (
-            widths
-        )  # 대체 글꼴(monospace)이 아니라 Pretendard 전체 파일로 그려졌다
-        assert len(requested) == 1 and "Pretendard-Regular.subset.woff2" in requested[0], requested
+        assert not requested, requested
     finally:
         page.close()

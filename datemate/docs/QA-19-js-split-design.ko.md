@@ -308,6 +308,7 @@ JS 묶음(227KB)은 혼자면 1.2초면 받지만 글꼴과 나눠 6.7초에 끝
 
 1. **글꼴과의 회선 다툼**: 글꼴 4종 1.08MB 가 느린 회선 DCL 의 약 60%(5.3). 후보 — preload 를 본문 굵기 하나로 줄이기, 쓰는 글자만 남긴 더 작은 subset, 굵기 수 줄이기(가변 글꼴 1개).
    화면이 뜬 직후의 글자 모양(글꼴 바뀜)에 영향이 있어 이번 범위('화면 모양 변경 없음') 밖이다. 나눈 뒤에도 `later:ready`(약 7초)는 이 다툼에 묶여 있다.
+   → 2026-11-28 브랜치 `perf/font-loading` 에서 진행: 굵기마다 작은 core 파일(약 82KB)을 먼저 쓰고 전체 파일은 모든 기능 준비 뒤에 받는다(`static/full-fonts.js`, `scripts/build_core_fonts.py`). 로컬 느린 조건 DCL 3.6 → 2.5초, `later:ready` 7.1 → 3.9초. 측정·버린 후보는 `배포-이어가기.txt` 의 브랜치 기록.
 2. 결과 전용 CSS(results.css·place-photos.css·popups.css·plan-map.css, gzip 약 38KB)를 나중에 — CSS 는 1.7초에 끝나 FCP(2.2초)에만 조금 영향.
 3. experience.js 폼/결과 분리(약 20KB), 버전 섞임 대응.
 

@@ -6,3 +6,6 @@ pypdf==6.21.4
 playwright==1.64.1
 ruff==0.14.3
 jsbeautifier==1.15.4
+# scripts/build_core_fonts.py (첫 화면용 작은 글꼴 만들기)와 tests/test_core_fonts.py (글꼴 파일 안 글자 집합 검사)
+fonttools==4.69.1
+brotli==1.2.1

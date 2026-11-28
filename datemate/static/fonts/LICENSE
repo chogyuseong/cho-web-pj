@@ -1,7 +1,15 @@
 본문·제목 글꼴: Pretendard 1.3.9 (2026-11-24부터, 리디자인 1단계)
-- 파일: fonts/pretendard/Pretendard-{Regular,SemiBold,Bold,ExtraBold}.subset.woff2 (각 약 27만 바이트)
+- 전체 파일: fonts/pretendard/Pretendard-{Regular,SemiBold,Bold,ExtraBold}.subset.woff2 (각 약 27만 바이트)
 - 원본: npm 패키지 pretendard@1.3.9 의 dist/web/static/woff2-subset/ (https://cdn.jsdelivr.net/npm/pretendard@1.3.9/, 2026-11-24 내려받음)
-  '부분집합(subset)'은 KS X 1001 한글 2,350자와 라틴·문장부호만 담는다. 그 밖의 드문 한글은 시스템 글꼴로 보인다.
+  '부분집합(subset)'은 한글 음절 2,780자와 낱자모 51자, 라틴·그리스·키릴 글자·문장부호·기호 897자를 담는다(모두 3,728자, 2026-11-28 파일을 열어 셈.
+  예전 메모의 'KS X 1001 2,350자'는 틀렸다). 한자와 그 밖의 드문 한글은 들어 있지 않아 시스템 글꼴로 보인다.
+- 첫 화면용 작은 파일(2026-11-28부터): fonts/pretendard/Pretendard-{Regular,SemiBold,Bold,ExtraBold}.core.woff2 (각 약 8만 4천 바이트)
+  위 전체 파일에서 자주 쓰는 글자(화면 문구·서버 문구·장소 자료에 나오는 한글 950자 + ASCII·문장부호·화살표·낱자모 등 281자)만 떼어 낸 고친 판이다.
+  만든 법: datemate 폴더에서 python scripts/build_core_fonts.py (fonttools 4.69.1·brotli 1.2.1 — requirements-dev.txt). 글자 고르는 기준과 남기는
+  글꼴 기능은 그 파일 머리 설명. 같은 스크립트가 static/line.css 의 @font-face(core 의 unicode-range)도 함께 쓴다.
+  고친 판이라 SIL OFL 1.1 의 예약 글꼴 이름 조항에 따라 파일 안 글꼴 이름을 'Datemate Core' 로 바꿨다(저작권·상표·라이선스 문구는 그대로,
+  CSS 의 font-family 이름은 파일 안 이름과 상관없다). 라이선스는 같은 SIL Open Font License 1.1.
+  쓰는 법: 브라우저는 core 를 먼저 쓰고, core 에 없는 글자가 나오거나 모든 기능이 준비되면(static/full-fonts.js) 전체 파일을 받는다.
 - 라이선스: SIL Open Font License 1.1, 예약 글꼴 이름 Pretendard. 원문은 fonts/pretendard/LICENSE.txt.
 - CSP 가 font-src 'self'(와 Google Fonts)만 허용해 CDN 에서 바로 부르지 않고 이 폴더에 둔다.
 

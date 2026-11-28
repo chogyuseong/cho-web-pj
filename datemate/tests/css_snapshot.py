@@ -9,6 +9,7 @@ datemate 폴더에서 실행한다(Docker 에서는 DATEMATE_BROWSER_CHANNEL=chr
     python tests/css_snapshot.py capture --out runtime/css-snapshots/after
     python tests/css_snapshot.py compare runtime/css-snapshots/before runtime/css-snapshots/after
 줄이는 옵션(설계 범위를 바꾸지 않고 빨리 볼 때만): --scenes home,results --widths 390,1440 --jobs 4 --no-states --no-screenshots.
+환경 변수 CSS_SNAPSHOT_ABORT(정규식)에 맞는 주소는 받지 않고 찍는다(글꼴 전후 비교에서 '전체 글꼴을 받기 전' 화면을 볼 때: '\\.subset\\.woff2').
 runtime/ 은 Git 에 들어가지 않는다. 캡처 산출물은 커밋하지 않는다.
 
 외부 API 는 부르지 않는다: 서버는 tests/conftest.py 가 키를 비운 상태로 뜨고, 브라우저는 우리 서버 밖 요청을 모두 끊으며,
@@ -237,6 +238,8 @@ class Network:
 
 def settle(page, net, scroll=True, open_details=False):
     """글꼴 → 화면 끝까지 내려 '화면 근처에서 받기' 부품을 모두 불러옴(늦게 그려진 details 도 다시 엶) → 맨 위 → 이미지 → 애니메이션 정지."""
+    # 전체 글꼴을 나중에 받아 바꾸는 코드(static/full-fonts.js, 2026-11-28)가 있으면 바뀐 뒤(실패했으면 실패로 끝난 뒤)에 잰다.
+    page.evaluate("typeof DatemateFullFonts === 'undefined' || DatemateFullFonts.done.then(() => true)")
     page.evaluate('document.fonts.ready.then(() => true)')
     net.quiet(page)
     if scroll:
@@ -379,6 +382,12 @@ def feedback_admin(page, base):
     page.wait_for_selector('.admin-entry.handled')
 
 
+def not_found(page, base):
+    """없는 주소의 안내 화면(static/not-found.html, 2026-11-28 글꼴 전후 비교 때 더함)."""
+    page.goto(base + '/no-such-page', wait_until='networkidle')
+    page.wait_for_function("document.body && document.body.innerText.trim().length > 0")
+
+
 # 이름 → (준비 함수, 열 때 매체 에뮬레이션, 준비 뒤 매체 에뮬레이션, 상태 표본 여부)
 SCENES = {
     'home': (None, {}, None, True),
@@ -396,6 +405,7 @@ SCENES = {
     'shared': (shared, {}, None, True),
     'feedback': (feedback, {}, None, True),
     'feedback-admin': (feedback_admin, {}, None, True),
+    'not-found': (not_found, {}, None, True),
 }
 SCREEN = {'media': 'screen', 'color_scheme': 'light', 'reduced_motion': 'no-preference', 'forced_colors': 'none'}
 
@@ -549,9 +559,13 @@ def capture_one(page, base, scene, width, out, usage, options):
     # bypass_csp(Playwright 의 wait_for_function 이 eval 을 쓴다), 우리 서버 밖 요청은 끊음.
     context = page.context.browser.new_context(viewport={'width': width, 'height': HEIGHT}, bypass_csp=True)
 
+    blocked = os.getenv('CSS_SNAPSHOT_ABORT')  # 이 정규식에 맞는 우리 서버 주소도 끊는다(예: \.subset\.woff2 = 전체 글꼴 없이 core 만으로)
+
     def guard(route):
         url = route.request.url
         if url.startswith(base):
+            if blocked and re.search(blocked, url):
+                return route.abort()
             return route.continue_()
         # 지도 배경 타일(…/{z}/{x}/{y}.png)은 끊지 않고 빈 그림으로 답한다. 끊으면 tileerror 가 오는지·언제 오는지에 따라
         # 지도 아래 안내 글(maps.js mapCaption)이 바뀌어 같은 입력에서도 화면이 달라졌다. 바깥으로는 여전히 나가지 않는다.

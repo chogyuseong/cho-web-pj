@@ -20,6 +20,9 @@
 지표(ms): dcl·load(navigation timing), fcp·lcp, ready(statusData 와 .simple-plan-form 이 생긴 때 = 첫 화면 준비),
 later_start·later_ready(나중 묶음 로더 표시, 없으면 null), css_end(마지막 CSS 응답 끝), js_end(DCL 전에 끝난 마지막 JS 응답 끝),
 long_before_dcl(DCL 전 긴 작업 합), long_total(FCP~max(later_ready, load)+2초 사이 긴 작업 합), 전송 크기(B)는 CSS 합·JS 주소별.
+글꼴(2026-11-28 perf/font-loading 에서 더함): font_first_end·font_early_end(load 전에 시작한 글꼴 가운데 첫·마지막 응답 끝 = 글자가 바뀌는 구간),
+font_bytes_early·font_count_early(load 전에 시작한 글꼴 전송 합·수), font_bytes·font_count(전체 글꼴을 나중에 받는 것까지 모두),
+fonts_full(static/full-fonts.js 가 전체 글꼴로 바꾼 때, 없으면 null), cls(레이아웃 밀림 합, 사용자 입력 직후 것은 빼고)·cls_after_ready(첫 화면 준비 뒤의 몫).
 """
 
 import json
@@ -39,7 +42,8 @@ RUNS = int(os.getenv("MEASURE_RUNS", "5"))
 FAST = os.getenv("MEASURE_FAST") == "1"
 ABORT = os.getenv("MEASURE_ABORT", "")
 
-OBSERVE = """(()=>{const m=window.__measure={long:[],fcp:null,lcp:null,ready:null};
+OBSERVE = """(()=>{const m=window.__measure={long:[],fcp:null,lcp:null,ready:null,shifts:[]};
+try{new PerformanceObserver(l=>{for(const e of l.getEntries())if(!e.hadRecentInput)m.shifts.push([e.startTime,e.value]);}).observe({type:'layout-shift',buffered:true});}catch(e){}
 try{new PerformanceObserver(l=>{for(const e of l.getEntries())m.long.push([e.startTime,e.duration]);}).observe({type:'longtask',buffered:true});}catch(e){}
 try{new PerformanceObserver(l=>{for(const e of l.getEntries())if(e.name==='first-contentful-paint')m.fcp=e.startTime;}).observe({type:'paint',buffered:true});}catch(e){}
 try{new PerformanceObserver(l=>{for(const e of l.getEntries())m.lcp=e.startTime;}).observe({type:'largest-contentful-paint',buffered:true});}catch(e){}
@@ -50,7 +54,7 @@ COLLECT = """()=>{const m=window.__measure,nav=performance.getEntriesByType('nav
 const res=performance.getEntriesByType('resource').map(e=>({name:new URL(e.name).pathname,end:e.responseEnd,start:e.startTime,size:e.transferSize,body:e.encodedBodySize,raw:e.decodedBodySize}));
 const mark=n=>{const e=performance.getEntriesByName(n)[0];return e?e.startTime:null;};
 return {dcl:nav.domContentLoadedEventStart,dcl_end:nav.domContentLoadedEventEnd,load:nav.loadEventStart,html_end:nav.responseEnd,html_size:nav.transferSize,
-  fcp:m.fcp,lcp:m.lcp,ready:m.ready,later_start:mark('later:start'),later_ready:mark('later:ready'),long:m.long,res};}"""
+  fcp:m.fcp,lcp:m.lcp,ready:m.ready,later_start:mark('later:start'),later_ready:mark('later:ready'),fonts_full:mark('fonts:full'),long:m.long,shifts:m.shifts,res};}"""
 
 
 @pytest.fixture(scope="module")
@@ -122,6 +126,10 @@ def one_run(browser, base):
             page.wait_for_function(
                 "()=>typeof DatemateLater==='undefined'||DatemateLater.loaded", timeout=120000
             )
+            # 전체 글꼴을 나중에 받는 코드가 있으면 끝날 때까지(받는 양·바뀌는 때·그때의 레이아웃 밀림을 함께 잰다).
+            page.evaluate(
+                "()=>typeof DatemateFullFonts==='undefined'?null:DatemateFullFonts.done.then(()=>null)"
+            )
         page.wait_for_timeout(2500)
         data = page.evaluate(COLLECT)
     finally:
@@ -132,8 +140,31 @@ def one_run(browser, base):
     until = max(data["later_ready"] or 0, data["load"]) + 2000
     row = {
         key: data[key]
-        for key in ("dcl", "load", "fcp", "lcp", "ready", "later_start", "later_ready", "html_end")
+        for key in (
+            "dcl",
+            "load",
+            "fcp",
+            "lcp",
+            "ready",
+            "later_start",
+            "later_ready",
+            "html_end",
+            "fonts_full",
+        )
     }
+    fonts = [r for r in data["res"] if r["name"].endswith(".woff2")]
+    early = [r for r in fonts if r["start"] < data["load"]]
+    row["font_first_end"] = min((r["end"] for r in early), default=None)
+    row["font_early_end"] = max((r["end"] for r in early), default=None)
+    row["font_bytes_early"] = sum(r["size"] for r in early)
+    row["font_count_early"] = len(early)
+    row["font_bytes"] = sum(r["size"] for r in fonts)
+    row["font_count"] = len(fonts)
+    row["cls"] = round(sum(v for _, v in data["shifts"]), 4)
+    row["shifts"] = [[round(t), round(v, 4)] for t, v in data["shifts"]]
+    row["cls_after_ready"] = round(
+        sum(v for t, v in data["shifts"] if data["ready"] is not None and t > data["ready"]), 4
+    )
     row["css_end"] = max((r["end"] for r in css), default=None)
     row["js_end"] = max((r["end"] for r in before_dcl), default=None)
     row["css_bytes"] = sum(r["size"] for r in css)
@@ -258,8 +289,17 @@ def test_measure_first_screen(target):
         "js_bytes",
         "js_bytes_before_dcl",
         "script_count",
+        "font_first_end",
+        "font_early_end",
+        "font_bytes_early",
+        "font_count_early",
+        "font_bytes",
+        "font_count",
+        "fonts_full",
     )
     report["median"] = {key: median(report["runs"], key) for key in keys}
+    for key in ("cls", "cls_after_ready"):  # 작은 소수라 반올림하지 않는다
+        report["median"][key] = statistics.median(row[key] for row in report["runs"])
     if "explore" in report:
         report["median"]["explore_click_to_list"] = median(
             report["explore"], "explore_click_to_list"
@@ -273,6 +313,7 @@ def test_measure_first_screen(target):
     for line in report["runs"][-1]["waterfall"]:
         print("  ", line)
     report["errors"] = [e for row in report["runs"] for e in row["errors"]]
+    print("layout shifts [ms, value] (last run):", report["runs"][-1]["shifts"])
     print("\n==== first screen measure:", report["label"] or "(no label)", "====")
     print("each dcl:", [round(row["dcl"]) for row in report["runs"]])
     print(json.dumps(report["median"], ensure_ascii=False, indent=1))

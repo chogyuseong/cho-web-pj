@@ -300,4 +300,15 @@ test("static files: immutable only when ?v= is the content hash the built pages 
   // Fonts and images are not versioned by the pages, so they always revalidate.
   const font = (await run("/static/fonts/pretendard/Pretendard-Regular.subset.woff2?v=" + versioned[1])).response;
   assert.equal(font.headers.get("cache-control"), "public, max-age=0, must-revalidate");
+  // 2026-11-28 perf/font-loading: 첫 화면·공유 화면이 미리 받는 글꼴은 작은 core 파일 하나뿐이다(전체 파일은 static/full-fonts.js 가 나중에).
+  // core 파일도 글꼴이라 주소에 ?v= 가 없고 늘 다시 확인한다.
+  for (const route of ["/", "/shared"]) {
+    assert.ok(PAGES[route].includes('<link rel="preload" href="/static/fonts/pretendard/Pretendard-Regular.core.woff2" as="font" type="font/woff2" crossorigin>'), route);
+    assert.doesNotMatch(PAGES[route], /rel="preload"[^>]*\.subset\.woff2/, route);
+  }
+  for (const weight of ["Regular", "SemiBold", "Bold", "ExtraBold"]) {
+    const core = (await run(`/static/fonts/pretendard/Pretendard-${weight}.core.woff2`)).response;
+    assert.equal(core.status, 200, weight);
+    assert.equal(core.headers.get("cache-control"), "public, max-age=0, must-revalidate", weight);
+  }
 });

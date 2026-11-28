@@ -53,7 +53,9 @@ def test_leaflet_is_not_loaded_until_the_fallback_map_needs_it(audit_page):
 
 
 def test_heading_font_is_real_woff2_and_preloaded():
-    # 2026-11-24 리디자인 1단계: Pretendard 부분집합 네 굵기(fonts/LICENSE). 본문(400)·제목(800)만 미리 받는다.
+    # 2026-11-24 리디자인 1단계: Pretendard 부분집합 네 굵기(fonts/LICENSE).
+    # 2026-11-28 perf/font-loading: 굵기마다 작은 core 파일을 먼저 쓰고 전체 파일은 나중에 받는다(tests/test_core_fonts.py).
+    # 미리 받는 것은 본문(400)의 core 하나뿐이다 — 전체 파일이나 다른 굵기를 미리 받으면 첫 화면 CSS·JS 와 회선을 나눠 쓴다(측정: 배포-이어가기.txt).
     for weight in ('Regular', 'SemiBold', 'Bold', 'ExtraBold'):
         data = (STATIC / 'fonts' / 'pretendard' / f'Pretendard-{weight}.subset.woff2').read_bytes()
         assert data[:4] == b'wOF2', (weight, data[:4])
@@ -61,9 +63,12 @@ def test_heading_font_is_real_woff2_and_preloaded():
     assert (STATIC / 'fonts' / 'pretendard' / 'LICENSE.txt').read_text(encoding='utf-8').count('SIL OPEN FONT LICENSE')
     for name in ('index.html', 'shared.html'):
         html = (STATIC / name).read_text(encoding='utf-8')
-        for weight in ('Regular', 'ExtraBold'):
-            assert (f'<link rel="preload" href="/static/fonts/pretendard/Pretendard-{weight}.subset.woff2" as="font" type="font/woff2" crossorigin>'
-                    in html), (name, weight)
+        assert ('<link rel="preload" href="/static/fonts/pretendard/Pretendard-Regular.core.woff2" as="font" type="font/woff2" crossorigin>'
+                in html), name
+        assert html.count('rel="preload"') == 1 and html.count('as="font"') == 1, name
+    for weight in ('Regular', 'SemiBold', 'Bold', 'ExtraBold'):
+        data = (STATIC / 'fonts' / 'pretendard' / f'Pretendard-{weight}.core.woff2').read_bytes()
+        assert data[:4] == b'wOF2', (weight, data[:4])
 
 
 def test_first_screen_has_no_large_hero_image(audit_page):

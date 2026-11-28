@@ -7,7 +7,23 @@
 
 ★ 지금 상태 (2026-11-28 기준)
 ----------------------------------------------------------------------
-브랜치 feat/js-split-qa19(2026-11-28, 병합·배포 전): QA-19 첫 화면 JS 나눠 받기 — 설계안(datemate/docs/QA-19-js-split-design.ko.md)의 0~2단계 구현. 기능·화면 모양은 그대로.
+★★ 백아홉 번째 배포(2026-11-28 16:35 무렵) 완료: main 5ed77fc(병합 = feat/js-split-qa19 53bc6cf, 아래 브랜치 기록), Worker 버전 666d1ff4-70ca-401b-94bb-d410e948c9d7.
+  사용자 '페이블로 바꿨어 진행해'(QA-19 구현, hard-worker 를 Fable 모델로) → '모든 권한 … 혼자 처리할 수 있는 최대한 … 배포-이어하기·README 수정 후 커밋 푸쉬'.
+  · 병합 전 검토: later-scripts.js 와 진입점 8곳 diff 를 직접 읽음, CI Run 46118105365(53bc6cf) 성공 5개. npm run test:security 27 → wrangler deploy(정적 9개).
+  · 운영 확인(배포 직후): / 의 script 태그 2개(둘째는 <template id="later-scripts"> 안), bundles/index.js?v=3ef6d9d176ce(286,843B)·index-2.js?v=203c1c82e1c4(446,990B)
+     = 로컬 sha256, 둘 다 200·immutable, /api/status 200·server-timing.
+     402px Playwright, DOMContentLoaded 직후(DatemateLater.state 'loading')에 바로 누름: 둘러보기 → 카드 24개, 지도에서 고르기 → 대화창 열림,
+     서울 성수 추천 → 코스·상세 3곳·지도, POST /api/plan-jobs 정확히 1회, 페이지·콘솔 오류 0, 가로 넘침 없음(운영 DB 에 추천 1건 남음 — 오늘 합 3건).
+  · 운영 측정(tests/js_split_measure.py, MEASURE_URL=운영, 402×874·캐시 없음·150ms·1.6Mbps·CPU 4배, 5회 중앙값, 배포 전 → 후):
+     DOMContentLoaded 7,823 → 4,866ms(−38%), 첫 화면 준비 8,572 → 5,694ms(−34%), load 8,195 → 8,242(같음), FCP 2,324 → 2,324(같음),
+     DCL 전 JS 전송 223.5KB → 94.0KB, later:ready 8,240ms(모든 기능 준비는 예전 DCL 과 비슷한 때), 긴 작업 합 402ms.
+     실행: datemate 폴더에서 $env:MEASURE_URL='https://datemate.guseong-family.workers.dev'; python -m pytest tests/js_split_measure.py -q -s
+  · 되돌리는 법: git revert -m 1 5ed77fc 후 재배포. DB 변경 없음.
+  · 남은 것: ① 글꼴과의 회선 다툼(Pretendard 4종 1.08MB, 그중 2종 preload — 운영에서 첫 묶음이 4.5초에야 다 받아지는 주원인. preload 줄이기·subset 축소·굵기 수 줄이기,
+     글자 모양이 걸려 사용자 판단 필요) ② 결과 전용 CSS 나중 받기 ③ experience.js 폼/결과 분리 ④ 아이폰 Safari 실기기(테스트는 Chromium 계열뿐)
+     ⑤ 간헐 실패 2건 원인 미확인(로컬 test_transit_basis goto 30초 초과 1회, CI postgres test_parking 한도 검사 [429,429] 1회 — 재실행 통과)
+     ⑥ 왼쪽 회색 탭(›) 다른 사이트에서도 보이는지 사용자 확인. 정리 못 한 브랜치 없음(feat/js-split-qa19 원격·로컬 삭제함).
+브랜치 feat/js-split-qa19(2026-11-28, 109차로 배포됨):QA-19 첫 화면 JS 나눠 받기 — 설계안(datemate/docs/QA-19-js-split-design.ko.md)의 0~2단계 구현. 기능·화면 모양은 그대로.
   사용자 요청: 느린 휴대폰(CPU 4배·느린 4G)에서 DOMContentLoaded 약 8초 → 기능·모양 변화 없이 측정 가능하게 빠르게, 먼저 측정, main 병합·배포는 하지 않음.
   ① 무엇을:
      1) index.html 스크립트를 두 덩어리로: 바로 받는 24개(→ bundles/index.js, 724,148B → 286,571B)와 <template id="later-scripts"> 안의 24개

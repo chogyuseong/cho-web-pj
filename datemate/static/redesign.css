@@ -856,8 +856,16 @@ html body #quick-search-input, html body #quick-search-input:focus { border:0; b
 .order-buttons button { width:44px; min-height:44px; padding:0; border:1px solid var(--hairline); border-radius:12px; background:#fff; color:var(--obsidian); font-size:18px; font-weight:800; line-height:1; }
 .order-buttons button:hover:not(:disabled) { background:var(--alabaster); }
 .order-buttons button:disabled { color:var(--ink-secondary); background:var(--alabaster); border-style:dashed; cursor:not-allowed; }
-@media(max-width:600px) { .stay-stepper { width:auto; flex:1; } .order-buttons { margin-left:auto; } }
-@media print { .order-buttons { display:none; } }
+/* 두 묶음은 plan-detail.js 가 .stop-controls 에 담는다. 넓은 화면은 상자 없이(contents) 예전처럼 머리 줄 항목, 휴대폰은 태그 아래 제 줄.
+   2026-11-28 아이폰 캡처: 체류 단추가 flex:1(기준 폭 0)에 overflow:hidden 이라 첫 줄 남은 틈에 끼어 '−15분'이 잘리고 ↑↓ 만 다음 줄로 떨어졌다.
+   이제 체류 단추는 제 글자 폭부터 늘어나고(1 0 auto), 한 줄에 다 못 들어가면(320px) ↑↓ 가 그 아래 오른쪽으로 내려간다. */
+.stop-controls { display:contents; }
+@media(max-width:600px) {
+  .detail .stop-head .stop-controls { display:flex; flex:1 0 100%; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
+  .stay-stepper { width:auto; flex:1 0 auto; }
+  .order-buttons { margin-left:auto; }
+}
+@media print { .order-buttons, .detail .stop-head .stop-controls { display:none; } }
 
 /* ---------- 23) 코스 바구니 도크 · 꼭 들를 장소 칩(explore.js Basket·renderIncludedTags) — 2026-11-26 요구 문서 Phase 4 ----------
    도크: 장소 둘러보기 화면(body.show-explore)에서 1곳 이상 담으면 화면 아래 가운데에 뜬다. 휴대폰은 하단 메뉴 바(--bottom-bar) 위.

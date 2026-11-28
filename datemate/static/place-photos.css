@@ -197,4 +197,14 @@ main .photo-arrow { width:44px; height:44px; min-height:44px; font-size:28px; li
    늘어나는 것(align-items 기본값 stretch)에 기대므로, 펼친 상자가 하나라도 있으면 칸마다 제 높이(start)로 둔다. 닫으면 다시 맞춘다.
    :has() 를 모르는 오래된 브라우저에서는 예전처럼 같이 늘어날 뿐 깨지지는 않는다. */
 .plan-photo-preview:has(.place-blogs[open]) { align-items:start; }
+/* 결과 상세의 장소 카드, 휴대폰(2026-11-28 아이폰 캡처).
+   ① 사진 없는 장소의 회색 이름표는 바로 위 카드 머리(이름 h4·분류 태그·주소)를 되풀이해 카드 안에서는 빼고 안내 글·지도 링크만 둔다.
+      800px 이하만(넓은 화면 모양은 그대로). 다른 칸(코스 미리보기·둘러보기·식당·장소 정보 창)은 그대로.
+   ② 760px 이하 카드 사진은 180px(100번 줄)인데 사진 칸 최소 높이(위 '자리 미리 잡기')는 210px(720px 이하)·195px 라 사진 아래에 빈 회색 띠가 남았다
+      — 카드 사진 높이에 맞춘다. 넓은 화면은 사진 230px 가 최소 높이 195px 보다 커서 띠가 없다. */
+@media(max-width:800px) {
+  .detail .stop .photo-empty-card { display:none; }
+  .detail .stop .photo-empty-body { padding-top:0; }
+}
+@media(max-width:760px) { .detail .stop .place-photo .photo-viewport { min-height:180px; } }
 

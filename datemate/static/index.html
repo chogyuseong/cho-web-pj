@@ -25,47 +25,59 @@
 <link rel="stylesheet" href="/static/server-wake.css">
 <link rel="stylesheet" href="/static/redesign.css">
 <script src="/static/ko-text.js" defer></script>
+<script src="/static/later-scripts.js" defer></script>
 <script src="/static/naver-attribution.js" defer></script>
 <script src="/static/server-wake.js" defer></script>
 <script src="/static/location-picker.js" defer></script>
-<script src="/static/parking.js" defer></script>
-
-<script src="/static/review-facts.js" defer></script>
-<script src="/static/maps.js" defer></script>
 <script src="/static/recommendation-feedback.js" defer></script>
 <script src="/static/date-categories.js" defer></script>
-<script src="/static/wikimedia-photos.js" defer></script>
-<script src="/static/place-blogs.js" defer></script>
-<script src="/static/meal-suggestions.js" defer></script>
-<script src="/static/place-photos.js" defer></script>
 <script src="/static/price-controls.js" defer></script>
-<script src="/static/execution-summary.js" defer></script>
 <script src="/static/planning-outcomes.js" defer></script>
 <script src="/static/experience.js" defer></script>
-<script src="/static/plan-results.js" defer></script>
-<script src="/static/plan-actions.js" defer></script>
 <script src="/static/plan-progress.js" defer></script>
-<script src="/static/plan-evidence.js" defer></script>
-<script src="/static/leisure.js" defer></script>
-<script src="/static/delay-check.js" defer></script><script src="/static/order-suggestion.js" defer></script><script src="/static/day-of.js" defer></script><script src="/static/action-card.js" defer></script><script src="/static/plan-detail.js" defer></script>
-<script src="/static/chat-ui.js" defer></script>
-<script src="/static/share-card.js" defer></script>
-<script src="/static/explore.js" defer></script>
-<script src="/static/festivals.js" defer></script>
-<script src="/static/popups.js" defer></script>
 <script src="/static/api-client.js" defer></script>
 <script src="/static/form-state.js" defer></script>
-<script src="/static/place-dialog.js" defer></script>
-<script src="/static/reviews.js" defer></script>
 <script src="/static/app.js" defer></script>
 <script src="/static/request-understanding.js" defer></script>
 <script src="/static/course-search.js" defer></script>
 <script src="/static/romance.js" defer></script>
 <script src="/static/theme-cards.js" defer></script>
 <script src="/static/privacy-controls.js" defer></script>
-<script src="/static/weather.js" defer></script><script src="/static/simple-form.js" defer></script>
+<script src="/static/weather.js" defer></script>
+<script src="/static/simple-form.js" defer></script>
 <script src="/static/section-indicator.js" defer></script>
-<script src="/static/header-mode.js" defer></script><script src="/static/quick-search.js" defer></script>
+<script src="/static/header-mode.js" defer></script>
+<script src="/static/quick-search.js" defer></script>
+<!-- QA-19(2026-11-28) 첫 화면 뒤에 쓰는 기능(결과 화면·둘러보기·지도·장소 정보 창). template 안의 script 는 브라우저가 받지도 실행하지도 않는다 —
+     later-scripts.js(DatemateLater)가 DOMContentLoaded 뒤에 이 순서대로 붙인다. 위 덩어리는 묶음 bundles/index.js, 이 덩어리는 bundles/index-2.js 가 된다
+     (cloudflare/build-edge-pages.mjs). 위 파일이 이 안의 이름을 쓰려면 먼저 DatemateLater.need()/ready() 를 기다려야 한다(tests/test_js_split.py 가 검사).
+     이 안의 첫 파일(parking.js)에는 'use strict' 를 두지 않는다(두면 둘째 묶음 전체가 엄격 모드). 설계·되돌리는 법: docs/QA-19-js-split-design.ko.md -->
+<template id="later-scripts">
+<script src="/static/parking.js" defer></script>
+<script src="/static/review-facts.js" defer></script>
+<script src="/static/maps.js" defer></script>
+<script src="/static/wikimedia-photos.js" defer></script>
+<script src="/static/place-blogs.js" defer></script>
+<script src="/static/meal-suggestions.js" defer></script>
+<script src="/static/place-photos.js" defer></script>
+<script src="/static/execution-summary.js" defer></script>
+<script src="/static/plan-results.js" defer></script>
+<script src="/static/plan-actions.js" defer></script>
+<script src="/static/plan-evidence.js" defer></script>
+<script src="/static/leisure.js" defer></script>
+<script src="/static/delay-check.js" defer></script>
+<script src="/static/order-suggestion.js" defer></script>
+<script src="/static/day-of.js" defer></script>
+<script src="/static/action-card.js" defer></script>
+<script src="/static/plan-detail.js" defer></script>
+<script src="/static/chat-ui.js" defer></script>
+<script src="/static/share-card.js" defer></script>
+<script src="/static/explore.js" defer></script>
+<script src="/static/festivals.js" defer></script>
+<script src="/static/popups.js" defer></script>
+<script src="/static/place-dialog.js" defer></script>
+<script src="/static/reviews.js" defer></script>
+</template>
 </head>
 <body>
 <a class="skip-to-content" href="#main-content">본문으로 바로가기</a>

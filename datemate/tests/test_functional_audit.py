@@ -32,7 +32,9 @@ def audit_page():
                 return request.continue_()
             page.route('**/*',route)
             page.goto(base,wait_until='networkidle')
-            page.wait_for_function("typeof statusData!=='undefined'&&!!statusData&&document.querySelector('.simple-plan-form')")
+            # QA-19(2026-11-28): 결과·둘러보기·지도 코드는 나중 묶음이다(static/later-scripts.js). networkidle 이면 이미 실행됐지만,
+            # 이 화면을 쓰는 테스트 수백 개가 그 함수를 바로 부르므로 실행까지 확인하고 넘긴다(나중 묶음 없이 여는 시험은 tests/test_js_split.py).
+            page.wait_for_function("typeof statusData!=='undefined'&&!!statusData&&document.querySelector('.simple-plan-form')&&DatemateLater.loaded")
             yield page,base,errors
             assert not errors,errors
             browser.close();browser=None

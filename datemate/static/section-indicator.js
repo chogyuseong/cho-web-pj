@@ -51,8 +51,10 @@
       // 장소 카드의 이름(h4)은 카드 머리 줄(번호·시간·태그·체류·순서 단추) 아래에 있다. 카드 위 끝이 판정선에 닿으면 그 장소로 본다
       // (전에는 이름 위치로 판정해, 다음 카드 머리 줄이 보이는데도 앞 장소 이름이 남았다).
       const card = heading.parentElement?.classList.contains('timeline-card') ? heading.parentElement : null;
+      // 카드는 판정선을 화면 남은 높이의 위쪽 30% 까지 내린다(107차 운영 확인: 카드 위 끝이 표시줄 22px 아래에 있어도 그 위 장소의
+      // 긴 부가 내용(사진·블로그·행동 단추) 때문에 앞 장소 이름이 남았다 — 화면 위쪽을 차지한 카드가 지금 장소).
       const top = card ? card.getBoundingClientRect().top : rects[0].top;
-      if (top > line) continue;
+      if (top > (card ? line + (window.innerHeight - line) * 0.3 : line)) continue;
       if (top >= activeTop) {
         active = heading;
         activeTop = top;

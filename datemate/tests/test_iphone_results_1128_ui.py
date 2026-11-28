@@ -37,6 +37,7 @@ def test_phone_section_bar_names_the_card_under_it(audit_page):
         page.evaluate(
             """([i,gap])=>{const bar=document.querySelector('.section-indicator'),header=document.querySelector('body > header');
               const line=Math.max(0,header.getBoundingClientRect().bottom)+bar.getBoundingClientRect().height;
+              if(gap<1)gap=(innerHeight-line)*gap;
               const stop=document.querySelectorAll('#plan-detail .stop')[i];
               window.scrollBy({top:stop.getBoundingClientRect().top-line-gap,behavior:'instant'});}""",
             [i, gap],
@@ -52,8 +53,11 @@ def test_phone_section_bar_names_the_card_under_it(audit_page):
             assert (
                 page.locator(".section-indicator-parent").inner_text() == "우리 하루, 자세히 보기"
             )
-            # 카드가 아직 화면 아래쪽이면(앞 카드를 보는 중) 그 카드 이름이 아니다.
-            assert place_card(i, 120) != names[i], (width, i, names)
+            # 107차 운영 확인: 카드 위 끝이 표시줄 22px 아래(사용자 캡처 모양)·화면 위쪽 1/5 쯤이어도 그 카드.
+            assert place_card(i, 24) == names[i], (width, i, names)
+            assert place_card(i, 0.2) == names[i], (width, i, names)
+            # 카드가 아직 화면 아래쪽 절반이면(앞 장소 내용을 보는 중) 그 카드 이름이 아니다.
+            assert place_card(i, 0.5) != names[i], (width, i, names)
 
 
 HEAD = """card=>{const r=e=>e.getBoundingClientRect(),c=r(card),s=getComputedStyle(card);

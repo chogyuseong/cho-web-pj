@@ -154,7 +154,7 @@
 | G3 | `app.js` init `?plan=` 분기 | renderResults·renderDetail·FestivalPanel·PopupCourse | `Promise.all([api('/plans/…'), DatemateLater.ready()])`, 실패 시 init 의 catch 가 안내 배너(showServiceNotice) |
 | G4 | `app.js` init `PopupView.mount` | PopupView | `DatemateLater.whenReady(() => PopupView.mount(…))` — 기다리지 않음. 예전 typeof 보호는 로드 전이면 조용히 빠져 버그가 되므로 없앰. 받기에 실패했다가 나중에 성공해도 그려짐 |
 | G5 | `app.js` 코스 종류(mode) change | renderResults·renderDetail | 상태 초기화는 바로, 그리기는 `whenReady`(그동안 결과 화면은 숨어 있음) |
-| G6 | `plan-progress.js` `resumeOnce` | FestivalPanel·PopupCourse·renderResults·renderDetail (+ beginPlanSearch) | 맨 앞 `need()`(제출 단추를 끄기 전), 실패 시 toast 하고 그만둠 — 남은 검색 ID 는 그대로라 새로고침하면 다시 이어 봄. 처음 방문은 남은 ID 가 없어 기다리지 않음 |
+| G6 | `plan-progress.js` `resumeOnce` | FestivalPanel·PopupCourse·renderResults·renderDetail (+ beginPlanSearch) | 제출 단추를 끈 바로 뒤 `need()`(기다리는 동안 새 검색이 겹치지 않게 예전처럼 꺼 둠), 실패 시 단추를 다시 켜고 toast 하고 그만둠 — 남은 검색 ID 는 그대로라 새로고침하면 다시 이어 봄. 처음 방문은 남은 ID 가 없어 기다리지 않음 |
 | G7 | `location-picker.js` `openLocationPicker` | openDialog·loadNaverMaps·loadLeaflet | 맨 앞 `need()`, 실패 시 toast |
 | G8 | `planning-outcomes.js` `PlanningStudy.showDecisions` | openDialog | 맨 앞 `need()`, 실패 시 toast |
 
@@ -200,7 +200,7 @@ api-client.js `copyPlanShare`·`kakaoItineraryText`·`copyKakaoItinerary`, cours
 
 ### 3.7 새 테스트 `tests/test_js_split.py` (23개) + 분석 도구 `tests/js_globals.py`
 
-1. 구조 4개: 덩어리 정확히 둘·둘째는 template 안·로더 위치, 두 묶음 첫 파일에 'use strict' 없음, 첫 묶음 원본 합 320KB 미만(지금 약 284KB — 설계의 300KB 는 여유가 16KB 뿐이라 넓힘), 나중 파일에 DOMContentLoaded 없음.
+1. 구조 4개: 덩어리 정확히 둘·둘째는 template 안·로더 위치, 두 묶음 첫 파일에 'use strict' 없음, 첫 묶음 원본 합 320KB 미만(지금 약 285KB — 설계의 300KB 는 여유가 16KB 뿐이라 넓힘), 나중 파일에 DOMContentLoaded 없음.
 2. 정적 허용 목록 3개: 두 묶음에 같은 전역 이름 없음, 첫 묶음이 나중 묶음 이름을 쓰는 (파일·맨 위 문장)별 이름 집합 = `ENTRY` 와 정확히 같음, 게이트 문장 안에 `DatemateLater.need|ready|whenReady(` 가 있고 기다리지 않는 함수는 표 안의 문장에서만 불림.
 3. 브라우저 — 나중 묶음을 붙잡아 둠(요청을 보류했다 놓음) 9개: 둘러보기(기다리는 동안 시·도 변경 포함), 처음 주소 `#explore-section`, 제출(POST 정확히 1회), 테마 카드 '바로 추천받기', 지도에서 고르기·'내가 결정한 코스 다시 보기', `?plan=` 직접 열기, 남은 검색 이어보기, 팝업 전환 그리기, 모드 전환(머리글 데이트/여행 + 코스 종류) 뒤 화면이 붙잡지 않은 페이지와 같음. 놓기 전: 페이지 오류·콘솔 오류 0, `renderResults` 없음.
 4. 브라우저 — 받기 실패(abort) 3개: 첫 화면 오류 0, 둘러보기·제출·지도·결정에서 안내, `POST /api/plan-jobs` 0회, 연결이 돌아온 뒤 다시 누르면 성공(POST 1회)·팝업 전환도 그려짐. `?plan=`·`#explore-section` 은 안내 배너. 이어보기는 ID 를 남기고 다음 방문에 이어 봄.
@@ -299,7 +299,7 @@ JS 묶음(227KB)은 혼자면 1.2초면 받지만 글꼴과 나눠 6.7초에 끝
 | G1 은 기다렸다 부르기만 | 기다리는 동안 바꾼 시·도를 지킴 | explore.js 의 change 처리가 아직 없어 고른 값이 덮어쓰였다 |
 | 받기 실패 문구 '다시 눌러 주세요' | '다시 시도해 주세요' | 누를 것이 없는 안내 배너·이어보기에도 쓰임 |
 | 약속 이름 8개 | 10개(`renderPlanMapCard`·`loadLeaflet` 더함) | 진입점이 실제로 쓰는 이름 |
-| 첫 묶음 예산 300KB | 320KB | 실제 284KB 라 여유가 너무 작음 |
+| 첫 묶음 예산 300KB | 320KB | 실제 285KB 라 여유가 너무 작음 |
 | 로더 약 2KB | 6.5KB(주석이 절반 이상) | 이유·되돌리는 법을 파일에 적음 |
 | DCL 리스너에서 시작 | 파일 실행 때 `ready()` 를 부르고 안에서 DCL 을 기다림 | `init()` 이 DCL 전에 `ready()` 를 불러도 일찍 붙지 않게 한 곳에서 막음 |
 | 분류표 [추정] | 24/24 분류 그대로 맞았다 | 정적 분석 + 붙잡기 테스트 |

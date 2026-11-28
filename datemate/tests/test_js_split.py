@@ -74,7 +74,7 @@ def test_first_file_of_each_bundle_is_not_strict():
 
 def test_first_bundle_stays_small():
     """퇴행 방지: 첫 화면에 필요 없는 코드가 첫 묶음으로 돌아오면 느린 회선의 DOMContentLoaded 가 다시 늦어진다.
-    나누기 전 한 묶음은 약 724KB, 나눈 직후 첫 묶음은 약 284KB. 넘으면 새 코드를 나중 묶음(template#later-scripts)에 둘 수 있는지 본다."""
+    나누기 전 한 묶음은 약 724KB, 나눈 직후 첫 묶음은 약 285KB. 넘으면 새 코드를 나중 묶음(template#later-scripts)에 둘 수 있는지 본다."""
     first, later = js_globals.page_scripts()
     size = sum((STATIC / name).stat().st_size for name in first)
     assert size < 320_000, size
@@ -542,7 +542,8 @@ def test_slow_later_bundle_resumes_the_remaining_search(session):
     page.wait_for_function(FIRST_SCREEN)
     wait_toast(page, WAITING)
     assert_waiting(page, seen)
-    assert not page.locator("#submit-plan").is_disabled()
+    # 이어보기를 기다리는 동안 새 검색을 겹쳐 시작하지 못한다(나누기 전에도 이어보기는 시작하자마자 단추를 껐다).
+    assert page.locator("#submit-plan").is_disabled()
     later.release()
     page.wait_for_function(
         "()=>plans.length>0&&document.querySelector('#progress').textContent.includes('검색 복원 완료')",

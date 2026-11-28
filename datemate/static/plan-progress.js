@@ -138,9 +138,10 @@ async function resumePlanSearch(){
   return PlanSearch.resuming;
 }
 async function resumeOnce(id){
-  // 결과 화면 코드(나중 묶음, later-scripts.js)를 먼저 기다린다. 받지 못하면 알리고 그만둔다 — 남은 검색 ID 는 그대로라 새로고침하면 다시 이어 본다.
-  try{await DatemateLater.need();}catch(error){toast(error.message);return;}
   const submit=document.querySelector('#submit-plan');submit.disabled=true;
+  // 결과 화면 코드(나중 묶음, later-scripts.js)를 먼저 기다린다(그동안 제출 단추는 예전처럼 꺼 둔다 — 이어보기와 새 검색이 겹치지 않게).
+  // 받지 못하면 알리고 그만둔다 — 남은 검색 ID 는 그대로라 새로고침하면 다시 이어 본다.
+  try{await DatemateLater.need();}catch(error){submit.disabled=false;toast(error.message);return;}
   beginPlanSearch();setTab(false);showPlannerPage(true);
   // 새 추천 때처럼 축제는 코스 검색과 나란히 조회한다. 조건이 남아 있지 않으면 받은 코스의 조건으로 조회한다.
   const festival=PlanSearch.festival();

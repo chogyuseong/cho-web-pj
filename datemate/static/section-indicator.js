@@ -35,7 +35,9 @@
       const top = headerBottom + 'px';
       if (bar.style.top !== top) bar.style.top = top;
     };
-    const line = headerBottom + 12;
+    // 판정선은 이 표시줄의 아래 끝 + 8px(2026-11-28 아이폰 캡처: 머리글 바로 아래 +12px 로 잡아 표시줄 높이(약 38px)만큼 늦었다).
+    // 표시줄은 숨어 있을 때도 자리 높이가 같다(opacity·visibility 로만 숨김).
+    const line = headerBottom + bar.offsetHeight + 8;
     let active = null,
       section = null,
       activeTop = -Infinity,
@@ -46,7 +48,10 @@
       const rects = heading.getClientRects();
       // 숨겨졌거나 닫힌 펼침 안의 제목은 건너뛴다.
       if (!rects.length) continue;
-      const top = rects[0].top;
+      // 장소 카드의 이름(h4)은 카드 머리 줄(번호·시간·태그·체류·순서 단추) 아래에 있다. 카드 위 끝이 판정선에 닿으면 그 장소로 본다
+      // (전에는 이름 위치로 판정해, 다음 카드 머리 줄이 보이는데도 앞 장소 이름이 남았다).
+      const card = heading.parentElement?.classList.contains('timeline-card') ? heading.parentElement : null;
+      const top = card ? card.getBoundingClientRect().top : rects[0].top;
       if (top > line) continue;
       if (top >= activeTop) {
         active = heading;

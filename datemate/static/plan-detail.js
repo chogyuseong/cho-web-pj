@@ -239,10 +239,15 @@ function renderDetail() {
     head.append(tags);
     // 체류 시간 −15분 · N분 · +15분(2026-11-26 시안). 저장된 코스(id)만 — 서버 지각 확인(delay-check.js changeStay)으로 다시 계산해 겹쳐 보인다.
     const stepper = stayStepper(p, i, stay, place);
-    if (stepper) head.append(stepper);
     // 순서 ↑/↓(2026-11-26 요구 문서 Phase 3): 서버가 같은 규칙으로 다시 계산해 새 코스로 저장(POST reorder manual) → 알림의 [되돌리기].
     const mover = orderButtons(p, i, place);
-    if (mover) head.append(mover);
+    // 두 단추 묶음은 .stop-controls 에 함께 담는다. 넓은 화면은 display:contents 라 예전처럼 머리 줄의 항목 그대로이고,
+    // 휴대폰(600px 이하)은 태그 아래 제 줄에서 체류 단추 · ↑↓ 가 함께 선다(redesign.css 22), 2026-11-28 아이폰 캡처: '−15분'이 잘리고 ↑↓ 만 떨어짐).
+    if (stepper || mover) {
+      const controls = node('div', undefined, 'stop-controls');
+      controls.append(...[stepper, mover].filter(Boolean));
+      head.append(controls);
+    }
     body.append(head, stopKindIcon(place), node('h4', place.name));
     if (place.address) body.append(node('p', place.address, 'stop-address'));
     // 네이버 지역 검색으로 찾은 장소: '네이버 검색결과' 표시와 원본 링크(특약 1.1·1.2). 21일이 지나 지운 장소는 안내만.
@@ -584,7 +589,7 @@ function replaceInList(oldId, p) {
 }
 
 /* 장소 칸 번호 아래 종류 그림(2026-11-25 HTML 시안의 둥근 네모 그림). 장식이라 화면 읽기에서는 숨긴다(종류는 stop-meta 글자로 읽는다).
-   분류는 서버 분류(app/models.py THEMES)와 식사(category '음식점'·is_meal). 모르는 분류는 동그라미. 색은 redesign.css 10) [data-kind]. */
+   분류는 서버 분류(app/models.py THEMES)와 식사(meal·'food:' id, category '음식점'). 모르는 분류는 동그라미. 색은 redesign.css 10) [data-kind]. */
 const STOP_KIND_ICONS = {
   cafe: '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/>',
   meal: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
@@ -598,7 +603,9 @@ const STOP_KIND_ICONS = {
 
 function stopKindKey(place) {
   const c = String(place?.category || '');
-  if (place?.is_meal || /음식|식당|맛집/.test(c)) return 'meal';
+  // 식사는 분류 칩 글자(app.js placeKind '식사')와 같은 기준: 서버가 주는 meal 표시 또는 'food:' id(app/quality.is_meal).
+  // 식당도 분류는 '카페·미식'으로 오므로 이 줄이 없으면 커피잔 그림이 붙는다(2026-11-28 아이폰 캡처 '성수노루'). is_meal 은 예전 이름이라 같이 본다.
+  if (place?.meal || place?.is_meal || String(place?.id || '').startsWith('food:') || /음식|식당|맛집/.test(c)) return 'meal';
   return {
     '카페·미식': 'cafe',
     '문화·예술': 'art',
